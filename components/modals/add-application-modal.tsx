@@ -59,7 +59,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
         type,
         priority: priority as any,
         deadline: deadline || undefined,
-        notes,
+        notes: notes || undefined,
       })
 
       // Create questions if any were extracted
@@ -201,9 +201,12 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Notes</label>
+                    <label className="text-sm font-medium">
+                      {type === 'scholarship' ? 'Scholarship Details' : type === 'job' || type === 'internship' ? 'Job Description' : 'Notes'}
+                      {(type === 'job' || type === 'scholarship' || type === 'internship') && <span className="text-destructive">*</span>}
+                    </label>
                     <Textarea
-                      placeholder="Add any notes about this application..."
+                      placeholder={type === 'scholarship' ? 'Add scholarship details...' : type === 'job' || type === 'internship' ? 'Paste the job description...' : 'Add any notes about this application...'}
                       value={notes}
                       onChange={(e) => setNotes(e.target.value)}
                       rows={3}
@@ -214,7 +217,10 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
                     <Button variant="outline" onClick={handleClose}>
                       Cancel
                     </Button>
-                    <Button onClick={() => setStep(2)} disabled={!title}>
+                    <Button
+                      onClick={() => setStep(2)}
+                      disabled={!title || ((type === 'job' || type === 'scholarship' || type === 'internship') && !notes)}
+                    >
                       Continue
                     </Button>
                   </div>
