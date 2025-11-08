@@ -62,6 +62,8 @@ export async function POST(request: Request) {
           "analysis_status",
           "analysis_error",
           "parsed_at",
+          "extracted_text",
+          "updated_at",
         ].join(",")
       )
       .eq("id", id)
@@ -78,6 +80,7 @@ export async function POST(request: Request) {
       analysis_status?: string
       analysis_error?: string | null
       parsed_at?: string | null
+      extracted_text?: string | null
     }
 
     if (!document.file_url) {
@@ -139,119 +142,125 @@ export async function POST(request: Request) {
       })
       .eq("id", id)
 
-    // 3) Fetch raw file content (from Supabase public URL or equivalent)
-    let fileResponse: Response
-    try {
-      fileResponse = await fetch(document.file_url)
-    } catch (err) {
-      console.error("Error fetching file_url:", err)
-      await supabase
-        .from("documents")
-        .update({
-          analysis_status: "failed",
-          analysis_error: "Unable to fetch document content from file_url",
-        })
-        .eq("id", id)
+    // 3) Use stored extracted text or re-extract if needed
+    let extractedText = document.extracted_text || ""
 
-      return NextResponse.json(
-        { error: "Unable to fetch document content from file_url" },
-        { status: 502 }
-      )
-    }
+    // If no stored text or force re-extraction, fetch and extract
+    if (!extractedText || force) {
+      console.log(`Extracting text for document ${id} (force=${force}, hasStored=${!!document.extracted_text})`)
 
-    if (!fileResponse.ok) {
-      const msg = `Failed to fetch document content: ${fileResponse.status} ${fileResponse.statusText}`
-      console.error(msg)
-      await supabase
-        .from("documents")
-        .update({
-          analysis_status: "failed",
-          analysis_error: msg,
-        })
-        .eq("id", id)
+      try {
+        const fileResponse = await fetch(document.file_url)
 
-      return NextResponse.json(
-        { error: msg },
-        { status: 502 }
-      )
-    }
+        if (!fileResponse.ok) {
+          const msg = `Failed to fetch document: ${fileResponse.status} ${fileResponse.statusText}`
+          console.error(msg)
+          await supabase
+            .from("documents")
+            .update({
+              analysis_status: "failed",
+              analysis_error: msg,
+            })
+            .eq("id", id)
 
-    const contentType =
-      fileResponse.headers.get("content-type") ?? document.file_type ?? ""
+          return NextResponse.json({ error: msg }, { status: 502 })
+        }
 
-    // Basic size guard (5MB default, configurable via env)
-    const maxBytes =
-      (process.env.MAX_ANALYSIS_FILE_SIZE_BYTES &&
-        parseInt(process.env.MAX_ANALYSIS_FILE_SIZE_BYTES, 10)) ||
-      5 * 1024 * 1024
+        const contentType =
+          fileResponse.headers.get("content-type") ?? document.file_type ?? ""
+        const arrayBuffer = await fileResponse.arrayBuffer()
 
-    const arrayBuffer = await fileResponse.arrayBuffer()
-    if (arrayBuffer.byteLength > maxBytes) {
-      const msg = "Document too large for analysis"
-      await supabase
-        .from("documents")
-        .update({
-          analysis_status: "failed",
-          analysis_error: msg,
-        })
-        .eq("id", id)
+        // Basic size guard (10MB)
+        const maxBytes = 10 * 1024 * 1024
+        if (arrayBuffer.byteLength > maxBytes) {
+          const msg = "Document too large for analysis (max 10MB)"
+          await supabase
+            .from("documents")
+            .update({
+              analysis_status: "failed",
+              analysis_error: msg,
+            })
+            .eq("id", id)
 
-      return NextResponse.json(
-        { error: msg },
-        { status: 413 }
-      )
-    }
+          return NextResponse.json({ error: msg }, { status: 413 })
+        }
 
-    // 4) Extract text from supported types
-    let extractedText = ""
+        // Extract text based on content type
+        if (contentType.startsWith("text/") || contentType.includes("json")) {
+          extractedText = Buffer.from(arrayBuffer).toString("utf-8")
+        } else if (contentType.includes("application/pdf")) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const pdfParse: (data: Buffer) => Promise<{ text: string }> = require("pdf-parse")
+            const parsed = await pdfParse(Buffer.from(arrayBuffer))
+            extractedText = parsed.text || ""
+          } catch (pdfError) {
+            console.error("PDF parsing error:", pdfError)
+            const msg = `PDF parsing failed: ${pdfError}`
+            await supabase
+              .from("documents")
+              .update({
+                analysis_status: "failed",
+                analysis_error: msg,
+              })
+              .eq("id", id)
 
-    if (contentType.startsWith("text/") || contentType.includes("json")) {
-      extractedText = Buffer.from(arrayBuffer).toString("utf-8")
-    } else if (contentType.includes("application/pdf")) {
-      // PDF: use pdf-parse (Node.js runtime only)
-      // eslint-disable-next-line @typescript-eslint/no-var-requires
-      const pdfParse: (data: Buffer) => Promise<{ text: string }> = require("pdf-parse")
-      const parsed = await pdfParse(Buffer.from(arrayBuffer))
-      extractedText = parsed.text || ""
-    } else if (
-      contentType.includes(
-        "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-      ) ||
-      contentType.includes("application/msword")
-    ) {
-      const msg =
-        "DOC/DOCX parsing is not yet implemented. Please use PDF or text for automatic analysis."
-      await supabase
-        .from("documents")
-        .update({
-          analysis_status: "failed",
-          analysis_error: msg,
-        })
-        .eq("id", id)
+            return NextResponse.json({ error: msg }, { status: 500 })
+          }
+        } else if (
+          contentType.includes("application/vnd.openxmlformats-officedocument") ||
+          contentType.includes("application/msword")
+        ) {
+          const msg = "DOC/DOCX files are not supported yet. Please convert to PDF."
+          await supabase
+            .from("documents")
+            .update({
+              analysis_status: "failed",
+              analysis_error: msg,
+            })
+            .eq("id", id)
 
-      return NextResponse.json(
-        { error: msg },
-        { status: 501 }
-      )
-    } else {
-      const msg = `Unsupported content-type for analysis: ${contentType}`
-      await supabase
-        .from("documents")
-        .update({
-          analysis_status: "failed",
-          analysis_error: msg,
-        })
-        .eq("id", id)
+          return NextResponse.json({ error: msg }, { status: 501 })
+        } else {
+          const msg = `Unsupported file type: ${contentType}`
+          await supabase
+            .from("documents")
+            .update({
+              analysis_status: "failed",
+              analysis_error: msg,
+            })
+            .eq("id", id)
 
-      return NextResponse.json(
-        { error: msg },
-        { status: 415 }
-      )
+          return NextResponse.json({ error: msg }, { status: 415 })
+        }
+
+        // Truncate if too long (100KB)
+        if (extractedText.length > 100000) {
+          extractedText = extractedText.slice(0, 100000) + "\n...(truncated)"
+        }
+
+        // Store extracted text for future use
+        await supabase
+          .from("documents")
+          .update({ extracted_text: extractedText })
+          .eq("id", id)
+      } catch (err) {
+        console.error("Error during text extraction:", err)
+        const msg = `Text extraction failed: ${err}`
+        await supabase
+          .from("documents")
+          .update({
+            analysis_status: "failed",
+            analysis_error: msg,
+          })
+          .eq("id", id)
+
+        return NextResponse.json({ error: msg }, { status: 500 })
+      }
     }
 
     if (!extractedText || extractedText.trim().length === 0) {
-      const msg =
-        "No textual content could be extracted from this document for analysis."
+      const msg = "No textual content could be extracted from this document."
       await supabase
         .from("documents")
         .update({
@@ -260,10 +269,7 @@ export async function POST(request: Request) {
         })
         .eq("id", id)
 
-      return NextResponse.json(
-        { error: msg },
-        { status: 422 }
-      )
+      return NextResponse.json({ error: msg }, { status: 422 })
     }
 
     // 5) Call AI parser to get structured data
