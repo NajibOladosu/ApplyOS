@@ -88,14 +88,22 @@ export async function POST(request: Request) {
     }
 
     // Idempotency / status handling
-    if (document.analysis_status === "pending") {
-      return NextResponse.json(
-        {
-          error: "Analysis already in progress",
-          analysis_status: "pending",
-        },
-        { status: 409 }
-      )
+    if (document.analysis_status === "pending" && !force) {
+      // Check if it's been stuck in pending for more than 5 minutes
+      const updatedAt = document.updated_at ? new Date(document.updated_at) : null
+      const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000)
+
+      if (updatedAt && updatedAt > fiveMinutesAgo) {
+        return NextResponse.json(
+          {
+            error: "Analysis already in progress. Use force=true to retry.",
+            analysis_status: "pending",
+          },
+          { status: 409 }
+        )
+      }
+      // If stuck for more than 5 minutes, allow retry
+      console.log(`Document ${id} stuck in pending, allowing retry`)
     }
 
     if (document.analysis_status === "success" && !force) {

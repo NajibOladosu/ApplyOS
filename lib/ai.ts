@@ -262,16 +262,18 @@ Rules:
 }
 
 /**
- * Summarize a document using Gemini based on its filename and optional parsed_data.
+ * Summarize a document using Gemini based on its filename, extracted text, and/or parsed_data.
  * - Uses models/gemini-2.0-flash
  * - Produces a concise summary (3-5 bullets or a short paragraph) as plain text.
  * - Safe for unknown parsed_data shapes via runtime checks.
+ * - Prioritizes extractedText for more accurate summaries.
  */
 export async function summarizeDocument(input: {
   fileName: string
   parsedData?: unknown
+  extractedText?: string
 }): Promise<string> {
-  const { fileName, parsedData } = input
+  const { fileName, parsedData, extractedText } = input
 
   if (!genAI) {
     console.warn('Gemini API key not configured for summarizeDocument')
@@ -302,6 +304,14 @@ export async function summarizeDocument(input: {
 
     const contextParts: string[] = []
 
+    // Prioritize extracted text for most accurate summary
+    if (extractedText && extractedText.trim().length > 0) {
+      // Limit text length to avoid token limits (first 3000 chars)
+      const truncatedText = extractedText.slice(0, 3000)
+      contextParts.push(`Document content:\n${truncatedText}${extractedText.length > 3000 ? '...(truncated)' : ''}`)
+    }
+
+    // Include structured data if available
     if (education) {
       contextParts.push(`Education entries:\n${JSON.stringify(education, null, 2)}`)
     }
@@ -332,19 +342,20 @@ export async function summarizeDocument(input: {
 
     const contextBlock = contextParts.length
       ? contextParts.join('\n\n')
-      : 'No structured data is available; infer a generic but helpful summary from the file name only.'
+      : 'No content or structured data is available; infer a generic but helpful summary from the file name only.'
 
     const prompt = `You are an AI assistant helping summarize user documents (resumes, transcripts, certificates, etc).
 
 File name: ${fileName}
 
-Structured context (if available):
+Available context:
 ${contextBlock}
 
 Task:
 - Produce a concise, user-friendly summary of this document.
-- Prefer 3-5 bullet points OR a short paragraph (max ~120 words).
+- Prefer 3-5 bullet points OR a short paragraph (max ~150 words).
 - Highlight key qualifications, experience, education, skills, or document purpose.
+- If the document content is available, focus on the actual content rather than just metadata.
 - Output plain text only (no markdown fences).`
 
     const result = await model.generateContent(prompt)
