@@ -14,7 +14,6 @@ import {
   Calendar,
   Sparkles,
   Edit,
-  Save,
   RotateCw,
   FileText,
   CheckCircle,
@@ -28,7 +27,6 @@ import {
   updateQuestion,
 } from "@/lib/services/questions"
 import { generateAnswer } from "@/lib/ai"
-import { createClient } from "@/lib/supabase/client"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -56,7 +54,7 @@ export default function ApplicationDetailPage() {
         ])
         setApplication(app)
         setQuestions(qs)
-      } catch (err: any) {
+      } catch (err: unknown) {
         console.error("Error loading application detail:", err)
         setError("Unable to load this application. It may not exist or you may not have access.")
       } finally {
@@ -71,7 +69,6 @@ export default function ApplicationDetailPage() {
     if (!application) return
 
     try {
-      const supabase = createClient()
       // Optionally load some parsed_data from documents or profile later as context.
       // For now, keep context minimal but real (no mocks).
       const context = {
@@ -99,7 +96,6 @@ export default function ApplicationDetailPage() {
       }
     } catch (err) {
       console.error("Error regenerating answer:", err)
-      alert("Failed to regenerate answer. Please try again.")
     } finally {
       setRegenerating(null)
     }
@@ -112,7 +108,6 @@ export default function ApplicationDetailPage() {
       setQuestions((prev) => prev.map((q) => (q.id === saved.id ? saved : q)))
     } catch (err) {
       console.error("Error saving answer:", err)
-      alert("Failed to save your answer. Please try again.")
     } finally {
       setSaving(null)
     }
