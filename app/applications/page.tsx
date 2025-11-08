@@ -1,8 +1,8 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
@@ -10,79 +10,18 @@ import { motion } from "framer-motion"
 import {
   Plus,
   Search,
-  Filter,
   Calendar,
   Briefcase,
-  MoreVertical,
   Eye,
   Edit,
   Trash2,
   ExternalLink,
+  Loader2,
 } from "lucide-react"
 import Link from "next/link"
-
-const applications = [
-  {
-    id: "1",
-    title: "Software Engineer - Google",
-    url: "https://careers.google.com/jobs/123",
-    status: "in_review",
-    priority: "high",
-    type: "job",
-    deadline: "2024-12-15",
-    created_at: "2024-11-01",
-  },
-  {
-    id: "2",
-    title: "Product Designer - Meta",
-    url: "https://www.metacareers.com/jobs/456",
-    status: "interview",
-    priority: "high",
-    type: "job",
-    deadline: "2024-12-10",
-    created_at: "2024-11-05",
-  },
-  {
-    id: "3",
-    title: "Frontend Developer - Stripe",
-    url: "https://stripe.com/jobs/789",
-    status: "submitted",
-    priority: "medium",
-    type: "job",
-    deadline: "2024-12-20",
-    created_at: "2024-11-08",
-  },
-  {
-    id: "4",
-    title: "Research Scholar - MIT",
-    url: "https://mit.edu/scholarships/phd",
-    status: "draft",
-    priority: "high",
-    type: "scholarship",
-    deadline: "2024-12-25",
-    created_at: "2024-11-10",
-  },
-  {
-    id: "5",
-    title: "Data Scientist - Amazon",
-    url: "https://amazon.jobs/en/jobs/abc123",
-    status: "submitted",
-    priority: "medium",
-    type: "job",
-    deadline: "2024-12-18",
-    created_at: "2024-11-12",
-  },
-  {
-    id: "6",
-    title: "UX Researcher - Apple",
-    url: "https://jobs.apple.com/en-us/details/xyz789",
-    status: "rejected",
-    priority: "low",
-    type: "job",
-    deadline: "2024-11-30",
-    created_at: "2024-10-15",
-  },
-]
+import { getApplications, deleteApplication } from "@/lib/services/applications"
+import type { Application } from "@/types/database"
+import { AddApplicationModal } from "@/components/modals/add-application-modal"
 
 const statusConfig = {
   draft: { label: "Draft", variant: "outline" as const, color: "bg-muted" },
@@ -100,14 +39,54 @@ const priorityConfig = {
 }
 
 export default function ApplicationsPage() {
+  const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  useEffect(() => {
+    fetchApplications()
+  }, [])
+
+  const fetchApplications = async () => {
+    try {
+      const data = await getApplications()
+      setApplications(data)
+    } catch (error) {
+      console.error('Error fetching applications:', error)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!confirm('Are you sure you want to delete this application?')) return
+
+    try {
+      await deleteApplication(id)
+      setApplications(apps => apps.filter(app => app.id !== id))
+    } catch (error) {
+      console.error('Error deleting application:', error)
+      alert('Error deleting application')
+    }
+  }
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch = app.title.toLowerCase().includes(searchQuery.toLowerCase())
     const matchesStatus = selectedStatus === "all" || app.status === selectedStatus
     return matchesSearch && matchesStatus
   })
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
@@ -120,7 +99,7 @@ export default function ApplicationsPage() {
               Manage and track all your job and scholarship applications
             </p>
           </div>
-          <Button className="glow-effect">
+          <Button className="glow-effect" onClick={() => setIsModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Application
           </Button>
@@ -140,34 +119,39 @@ export default function ApplicationsPage() {
                 />
               </div>
 
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <Button
                   variant={selectedStatus === "all" ? "default" : "outline"}
                   onClick={() => setSelectedStatus("all")}
+                  size="sm"
                 >
                   All
                 </Button>
                 <Button
                   variant={selectedStatus === "draft" ? "default" : "outline"}
                   onClick={() => setSelectedStatus("draft")}
+                  size="sm"
                 >
                   Draft
                 </Button>
                 <Button
                   variant={selectedStatus === "submitted" ? "default" : "outline"}
                   onClick={() => setSelectedStatus("submitted")}
+                  size="sm"
                 >
                   Submitted
                 </Button>
                 <Button
                   variant={selectedStatus === "in_review" ? "default" : "outline"}
                   onClick={() => setSelectedStatus("in_review")}
+                  size="sm"
                 >
                   In Review
                 </Button>
                 <Button
                   variant={selectedStatus === "interview" ? "default" : "outline"}
                   onClick={() => setSelectedStatus("interview")}
+                  size="sm"
                 >
                   Interview
                 </Button>
@@ -178,92 +162,112 @@ export default function ApplicationsPage() {
 
         {/* Applications Grid */}
         <div className="grid grid-cols-1 gap-4">
-          {filteredApplications.map((app, index) => (
-            <motion.div
-              key={app.id}
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3, delay: index * 0.05 }}
-            >
-              <Card className="hover:border-primary/40 transition-all">
-                <CardContent className="p-6">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start space-x-4 flex-1">
-                      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <Briefcase className="h-6 w-6 text-primary" />
-                      </div>
-
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center space-x-3 mb-2">
-                          <h3 className="text-lg font-semibold truncate">{app.title}</h3>
-                          <div className={`h-2 w-2 rounded-full ${priorityConfig[app.priority as keyof typeof priorityConfig].color}`} />
+          {filteredApplications.length === 0 ? (
+            <Card>
+              <CardContent className="p-12 text-center">
+                <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
+                  <Briefcase className="h-8 w-8 text-primary" />
+                </div>
+                <h3 className="text-lg font-semibold mb-2">
+                  {searchQuery || selectedStatus !== "all" ? "No applications found" : "No applications yet"}
+                </h3>
+                <p className="text-muted-foreground mb-4">
+                  {searchQuery || selectedStatus !== "all"
+                    ? "Try adjusting your search or filters"
+                    : "Create your first application to get started"}
+                </p>
+                <Button onClick={() => setIsModalOpen(true)}>
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Your First Application
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            filteredApplications.map((app, index) => (
+              <motion.div
+                key={app.id}
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+              >
+                <Card className="hover:border-primary/40 transition-all">
+                  <CardContent className="p-6">
+                    <div className="flex items-start justify-between">
+                      <div className="flex items-start space-x-4 flex-1">
+                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Briefcase className="h-6 w-6 text-primary" />
                         </div>
 
-                        <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
-                          <div className="flex items-center space-x-2">
-                            <Calendar className="h-4 w-4" />
-                            <span>Deadline: {new Date(app.deadline).toLocaleDateString()}</span>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-lg font-semibold truncate">{app.title}</h3>
+                            <div className={`h-2 w-2 rounded-full ${priorityConfig[app.priority].color}`} />
                           </div>
-                          <Badge variant="outline" className="capitalize">
-                            {app.type}
-                          </Badge>
-                        </div>
 
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={statusConfig[app.status as keyof typeof statusConfig].variant}>
-                            {statusConfig[app.status as keyof typeof statusConfig].label}
-                          </Badge>
-                          <a
-                            href={app.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="text-xs text-primary hover:underline flex items-center space-x-1"
-                          >
-                            <span>View posting</span>
-                            <ExternalLink className="h-3 w-3" />
-                          </a>
+                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center space-x-2">
+                              <Calendar className="h-4 w-4" />
+                              <span>
+                                {app.deadline
+                                  ? `Deadline: ${new Date(app.deadline).toLocaleDateString()}`
+                                  : 'No deadline'}
+                              </span>
+                            </div>
+                            <Badge variant="outline" className="capitalize">
+                              {app.type}
+                            </Badge>
+                          </div>
+
+                          <div className="flex items-center space-x-2">
+                            <Badge variant={statusConfig[app.status].variant}>
+                              {statusConfig[app.status].label}
+                            </Badge>
+                            {app.url && (
+                              <a
+                                href={app.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="text-xs text-primary hover:underline flex items-center space-x-1"
+                                onClick={(e) => e.stopPropagation()}
+                              >
+                                <span>View posting</span>
+                                <ExternalLink className="h-3 w-3" />
+                              </a>
+                            )}
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="icon" asChild>
-                        <Link href={`/applications/${app.id}`}>
-                          <Eye className="h-4 w-4" />
-                        </Link>
-                      </Button>
-                      <Button variant="ghost" size="icon">
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="ghost" size="icon" asChild>
+                          <Link href={`/applications/${app.id}`}>
+                            <Eye className="h-4 w-4" />
+                          </Link>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:text-destructive"
+                          onClick={() => handleDelete(app.id)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          ))}
+                  </CardContent>
+                </Card>
+              </motion.div>
+            ))
+          )}
         </div>
-
-        {filteredApplications.length === 0 && (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Briefcase className="h-8 w-8 text-primary" />
-              </div>
-              <h3 className="text-lg font-semibold mb-2">No applications found</h3>
-              <p className="text-muted-foreground mb-4">
-                Try adjusting your search or filters
-              </p>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Your First Application
-              </Button>
-            </CardContent>
-          </Card>
-        )}
       </div>
+
+      {/* Add Application Modal */}
+      <AddApplicationModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        onSuccess={fetchApplications}
+      />
     </DashboardLayout>
   )
 }
