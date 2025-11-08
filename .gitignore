@@ -22,14 +22,9 @@
 # local tools/config that should not be pushed
 .kilocode
 
-# markdown: ignore all .md files except README.md, CLAUDE.md, and documentation files
+# markdown: ignore all .md files except README.md
 *.md
 !README.md
-!CLAUDE.md
-!MIGRATION_INSTRUCTIONS.md
-!DOCUMENT_PROCESSING_ANALYSIS.md
-!FIXES_APPLIED.md
-!APPLY_MIGRATION_NOW.sql
 
 # debug
 npm-debug.log*
@@ -46,3 +41,4 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+.git-filter-repo.py
