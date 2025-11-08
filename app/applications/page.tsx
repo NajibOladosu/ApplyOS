@@ -13,7 +13,6 @@ import {
   Calendar,
   Briefcase,
   Eye,
-  Edit,
   Trash2,
   ExternalLink,
   Loader2,

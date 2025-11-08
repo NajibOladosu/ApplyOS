@@ -1,7 +1,6 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,6 +18,9 @@ import {
 import Link from "next/link"
 import type { Document } from "@/types/database"
 import { getDocuments, deleteDocument } from "@/lib/services/documents"
+import { cn } from "@/lib/utils"
+import { useToast } from "@/components/ui/use-toast"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B"
@@ -27,11 +29,12 @@ function formatFileSize(bytes: number): string {
 }
 
 export default function DocumentsPage() {
-  const router = useRouter()
+  const { toast } = useToast()
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; fileUrl: string; fileName: string } | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -43,25 +46,48 @@ export default function DocumentsPage() {
       } catch (err) {
         console.error("Error loading documents:", err)
         setError("Unable to load your documents. Please try again.")
+        toast({
+          variant: "destructive",
+          title: "Failed to load documents",
+          description: "Please refresh the page or try again later.",
+        })
       } finally {
         setLoading(false)
       }
     }
 
     void load()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
-  const handleDelete = async (doc: Document) => {
-    if (!confirm(`Delete "${doc.file_name}"? This cannot be undone.`)) return
-    setDeletingId(doc.id)
+  const requestDelete = (doc: Document) => {
+    setDeleteTarget({
+      id: doc.id,
+      fileUrl: doc.file_url,
+      fileName: doc.file_name,
+    })
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!deleteTarget) return
+    setDeletingId(deleteTarget.id)
     try {
-      await deleteDocument(doc.id, doc.file_url)
-      setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
+      await deleteDocument(deleteTarget.id, deleteTarget.fileUrl)
+      setDocuments((prev) => prev.filter((d) => d.id !== deleteTarget.id))
+      toast({
+        title: "Document deleted",
+        description: `"${deleteTarget.fileName}" has been removed.`,
+      })
     } catch (err) {
       console.error("Error deleting document:", err)
-      alert("Failed to delete document. Please try again.")
+      toast({
+        variant: "destructive",
+        title: "Delete failed",
+        description: "Failed to delete document. Please try again.",
+      })
     } finally {
       setDeletingId(null)
+      setDeleteTarget(null)
     }
   }
 
@@ -197,7 +223,16 @@ export default function DocumentsPage() {
                       <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <FileText className="h-6 w-6 text-primary" />
                       </div>
-                      <Button variant="ghost" size="icon">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={cn(
+                          "text-muted-foreground hover:text-destructive",
+                          deletingId === doc.id && "opacity-50 cursor-not-allowed"
+                        )}
+                        onClick={() => requestDelete(doc)}
+                        disabled={deletingId === doc.id}
+                      >
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </div>
@@ -262,7 +297,7 @@ export default function DocumentsPage() {
                         variant="ghost"
                         size="icon"
                         className="text-destructive hover:text-destructive"
-                        onClick={() => handleDelete(doc)}
+                        onClick={() => requestDelete(doc)}
                         disabled={deletingId === doc.id}
                       >
                         {deletingId === doc.id ? (
@@ -284,6 +319,23 @@ export default function DocumentsPage() {
             {error}
           </p>
         )}
+
+        <ConfirmDialog
+          open={!!deleteTarget}
+          title="Delete document"
+          description={
+            deleteTarget
+              ? `This will permanently delete "${deleteTarget.fileName}" and its associated data. This action cannot be undone.`
+              : "This will permanently delete the document and its associated data. This action cannot be undone."
+          }
+          confirmLabel="Delete"
+          cancelLabel="Cancel"
+          variant="destructive"
+          onCancel={() => {
+            if (!deletingId) setDeleteTarget(null)
+          }}
+          onConfirm={handleConfirmDelete}
+        />
       </div>
     </DashboardLayout>
   )

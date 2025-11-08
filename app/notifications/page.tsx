@@ -4,13 +4,11 @@ import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { motion } from "framer-motion"
 import {
   Bell,
   CheckCheck,
   Calendar,
-  FileText,
   TrendingUp,
   AlertCircle,
   Loader2,
