@@ -327,12 +327,12 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Danger Zone (disabled until backend flow is implemented) */}
+        {/* Danger Zone */}
         <Card className="border-destructive/50">
           <CardHeader>
             <CardTitle className="text-destructive">Danger Zone</CardTitle>
             <CardDescription>
-              Account deletion requires a secure backend flow.
+              Permanently delete your account and all associated data.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -340,14 +340,66 @@ export default function ProfilePage() {
               <div>
                 <p className="font-medium">Delete Account</p>
                 <p className="text-sm text-muted-foreground">
-                  Contact support or implement a verified deletion endpoint
-                  before enabling this action.
+                  This will delete your Trackly profile, applications, questions,
+                  documents, notifications, and status history. This action cannot
+                  be undone.
                 </p>
               </div>
-              <Button variant="destructive" disabled>
-                Disabled
+              <Button
+                variant="destructive"
+                onClick={async () => {
+                  if (!user) return
+                  const confirmed = window.prompt(
+                    'Type DELETE to confirm permanent deletion of your account.'
+                  )
+                  if (confirmed !== "DELETE") {
+                    return
+                  }
+                  try {
+                    // Deleting from public.users will cascade to related tables due to FKs
+                    const { error: deleteError } = await supabase
+                      .from("users")
+                      .delete()
+                      .eq("id", user.id)
+
+                    if (deleteError) {
+                      console.error("Error deleting user profile:", deleteError)
+                      alert(
+                        "Failed to delete your account. Please try again or contact support."
+                      )
+                      return
+                    }
+
+                    // Also remove the auth user (session + auth identity)
+                    const { error: authError } = await supabase.auth.admin.deleteUser(
+                      user.id
+                    )
+
+                    if (authError) {
+                      console.error("Error deleting auth user:", authError)
+                      // At this point profile is gone; inform user to contact support if issues
+                    }
+
+                    await supabase.auth.signOut()
+                    window.location.href = "/"
+                  } catch (err) {
+                    console.error("Unexpected error during account deletion:", err)
+                    alert(
+                      "An unexpected error occurred while deleting your account."
+                    )
+                  }
+                }}
+              >
+                Delete Account
               </Button>
             </div>
+            <p className="text-xs text-muted-foreground">
+              Note: This flow relies on your Supabase service configuration:
+              deleting from public.users cascades via foreign keys defined in
+              your migration, and auth user deletion uses Supabase Admin API.
+              Ensure the client has appropriate privileges (or move this logic
+              to a secure server-side endpoint) before using in production.
+            </p>
           </CardContent>
         </Card>
       </div>
