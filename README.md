@@ -2,10 +2,10 @@
 
 
 <div align="center">
-  <img src="https://img.shields.io/badge/Next.js-14-black" alt="Next.js" />
-  <img src="https://img.shields.io/badge/TypeScript-5.4-blue" alt="TypeScript" />
+  <img src="https://img.shields.io/badge/Next.js-16.0.1-black" alt="Next.js" />
+  <img src="https://img.shields.io/badge/TypeScript-5.4.0-blue" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Supabase-Enabled-green" alt="Supabase" />
-  <img src="https://img.shields.io/badge/Tailwind-3.4-38bdf8" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Tailwind-3.4.3-38bdf8" alt="Tailwind" />
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License" />
 </div>
 
