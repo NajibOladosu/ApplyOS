@@ -120,13 +120,22 @@ export default function Home() {
             </p>
 
             <div className="flex items-center justify-center space-x-4">
-              <Button size="lg" asChild className="glow-effect">
-                <Link href="/auth/signup">
-                  Start Free Trial
-                  <ArrowRight className="ml-2 h-4 w-4" />
+              <Button
+                size="lg"
+                asChild
+                className="glow-effect inline-flex items-center justify-center gap-2"
+              >
+                <Link href="/auth/signup" className="flex items-center gap-2">
+                  <span>Start Free Trial</span>
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
-              <Button size="lg" variant="outline" asChild>
+              <Button
+                size="lg"
+                variant="outline"
+                asChild
+                className="inline-flex items-center justify-center gap-2"
+              >
                 <Link href="#features">View Features</Link>
               </Button>
             </div>
@@ -226,10 +235,14 @@ export default function Home() {
               <p className="text-xl text-muted-foreground mb-8">
                 Join thousands of users who are applying smarter, not harder.
               </p>
-              <Button size="lg" asChild className="glow-effect-strong">
-                <Link href="/auth/signup">
-                  Get Started for Free
-                  <ArrowRight className="ml-2 h-4 w-4" />
+              <Button
+                size="lg"
+                asChild
+                className="glow-effect-strong inline-flex items-center justify-center gap-2"
+              >
+                <Link href="/auth/signup" className="flex items-center gap-2">
+                  <span>Get Started for Free</span>
+                  <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </CardContent>
