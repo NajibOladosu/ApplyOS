@@ -223,8 +223,10 @@ are partially supported by the schema or structure, but require additional work 
 4. Set up the database:
 
    - In your Supabase project, open the SQL editor.
-   - Apply the SQL from:
-     - [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1)
+   - Apply the SQL migrations in order:
+     - [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1) - Core schema
+     - [`supabase/migrations/002_add_document_analysis_fields.sql`](supabase/migrations/002_add_document_analysis_fields.sql:1) - Document AI analysis fields
+   - See [`MIGRATION_INSTRUCTIONS.md`](MIGRATION_INSTRUCTIONS.md) for detailed migration steps
 
 5. Run the development server:
 
@@ -240,7 +242,7 @@ For deployment (e.g. Vercel):
 
 - Set all required environment variables in the hosting platform.
 - Ensure your Supabase project has:
-  - The schema from [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1)
+  - All migrations applied in order (see [`MIGRATION_INSTRUCTIONS.md`](MIGRATION_INSTRUCTIONS.md))
   - A `documents` storage bucket with appropriate policies (public or private + signed URLs).
 - Confirm Next.js runtime settings for routes that rely on Node-only modules (e.g. document parsing).
 

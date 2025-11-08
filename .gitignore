@@ -22,9 +22,11 @@
 # local tools/config that should not be pushed
 .kilocode
 
-# markdown: ignore all .md files except README.md
+# markdown: ignore all .md files except README.md, CLAUDE.md, and MIGRATION_INSTRUCTIONS.md
 *.md
 !README.md
+!CLAUDE.md
+!MIGRATION_INSTRUCTIONS.md
 
 # debug
 npm-debug.log*
