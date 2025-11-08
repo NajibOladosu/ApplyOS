@@ -26,6 +26,10 @@ import {
   getQuestionsByApplicationId,
   updateQuestion,
 } from "@/lib/services/questions"
+import {
+  getAnalyzedDocuments,
+  buildContextFromDocument,
+} from "@/lib/services/documents"
 import { generateAnswer } from "@/lib/ai"
 
 export default function ApplicationDetailPage() {
@@ -69,15 +73,27 @@ export default function ApplicationDetailPage() {
     if (!application) return
 
     try {
-      // Optionally load some parsed_data from documents or profile later as context.
-      // For now, keep context minimal but real (no mocks).
-      const context = {
+      // Fetch documents with successful analysis and build context
+      const analyzedDocs = await getAnalyzedDocuments()
+
+      // Build context from the most recent successfully analyzed document
+      let context: {
+        resume?: string
+        experience?: string
+        education?: string
+      } = {
         resume: undefined,
         experience: undefined,
         education: undefined,
       }
 
+      if (analyzedDocs.length > 0) {
+        // Use the most recent document's parsed_data as context
+        context = buildContextFromDocument(analyzedDocs[0])
+      }
+
       if (!questionId) {
+        // Regenerate all questions
         setRegenerating("all")
         const updated: Question[] = []
         for (const q of questions) {
@@ -87,6 +103,7 @@ export default function ApplicationDetailPage() {
         }
         setQuestions(updated)
       } else {
+        // Regenerate single question
         setRegenerating(questionId)
         const target = questions.find((q) => q.id === questionId)
         if (!target) return

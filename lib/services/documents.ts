@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/client"
 import type { Document } from "@/types/database"
+import type { ParsedDocument } from "@/lib/ai"
 
 export async function getDocuments() {
   const supabase = createClient()
@@ -10,6 +11,75 @@ export async function getDocuments() {
 
   if (error) throw error
   return data as Document[]
+}
+
+/**
+ * Get documents with successful analysis (ready to use as context for AI)
+ * Filters for analysis_status = 'success' with non-null parsed_data
+ */
+export async function getAnalyzedDocuments() {
+  const docs = await getDocuments()
+  return docs.filter((doc) => doc.analysis_status === "success" && doc.parsed_data)
+}
+
+/**
+ * Build AI context from analyzed document data
+ * Converts ParsedDocument structured data into readable strings for AI prompt
+ * @param doc Document with parsed_data
+ * @returns Context object ready for generateAnswer()
+ */
+export function buildContextFromDocument(doc: Document): {
+  resume?: string
+  experience?: string
+  education?: string
+} {
+  const context = {
+    resume: undefined as string | undefined,
+    experience: undefined as string | undefined,
+    education: undefined as string | undefined,
+  }
+
+  if (!doc.parsed_data) return context
+
+  const parsed = doc.parsed_data as ParsedDocument
+
+  // Format experience
+  if (parsed.experience && parsed.experience.length > 0) {
+    context.experience = parsed.experience
+      .map(
+        (exp) =>
+          `${exp.role} at ${exp.company} (${exp.start_date} - ${exp.end_date}): ${exp.description}`
+      )
+      .join("\n")
+  }
+
+  // Format education
+  if (parsed.education && parsed.education.length > 0) {
+    context.education = parsed.education
+      .map(
+        (edu) =>
+          `${edu.degree} in ${edu.field} from ${edu.institution} (${edu.start_date} - ${edu.end_date}): ${edu.description}`
+      )
+      .join("\n")
+  }
+
+  // Build resume summary combining all parts
+  const resumeParts = []
+  if (context.experience) resumeParts.push(`Experience:\n${context.experience}`)
+  if (context.education) resumeParts.push(`Education:\n${context.education}`)
+  if (parsed.skills) {
+    const allSkills = [
+      ...(parsed.skills.technical || []),
+      ...(parsed.skills.soft || []),
+      ...(parsed.skills.other || []),
+    ]
+    if (allSkills.length > 0) {
+      resumeParts.push(`Skills: ${allSkills.join(", ")}`)
+    }
+  }
+  context.resume = resumeParts.join("\n\n")
+
+  return context
 }
 
 /**

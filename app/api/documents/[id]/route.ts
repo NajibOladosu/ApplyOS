@@ -52,6 +52,7 @@ export async function GET(
           "analysis_error",
           "parsed_at",
           "application_id",
+          "extracted_text",
         ].join(",")
       )
       .eq("id", id)
@@ -81,6 +82,7 @@ export async function GET(
         analysis_error: (document as any).analysis_error ?? null,
         parsed_at: (document as any).parsed_at ?? null,
         application_id: (document as any).application_id ?? null,
+        extracted_text: (document as any).extracted_text ?? null,
       },
       { status: 200 }
     )

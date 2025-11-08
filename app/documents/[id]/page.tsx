@@ -163,14 +163,21 @@ export default function DocumentDetailPage() {
       const res = await fetch(`/api/documents/${documentId}`)
       const payload = await res.json().catch(() => ({}))
       if (!res.ok) return
+
+      // Ensure parsed_data is properly extracted (it might be nested in response)
+      const parsedData = payload.parsed_data || null
+
       setDoc((prev) =>
         prev
           ? {
               ...prev,
-              ...payload,
+              file_name: payload.file_name ?? prev.file_name,
+              file_url: payload.file_url ?? prev.file_url,
+              file_type: payload.file_type ?? prev.file_type,
+              file_size: payload.file_size ?? prev.file_size,
               summary: payload.summary ?? prev.summary,
               summary_generated_at: payload.summary_generated_at ?? prev.summary_generated_at,
-              parsed_data: payload.parsed_data ?? prev.parsed_data,
+              parsed_data: parsedData ?? prev.parsed_data,
               parsed_at: payload.parsed_at ?? prev.parsed_at,
               analysis_status: payload.analysis_status ?? prev.analysis_status,
               analysis_error: payload.analysis_error ?? prev.analysis_error,
@@ -185,7 +192,7 @@ export default function DocumentDetailPage() {
               updated_at: payload.updated_at ?? null,
               summary: payload.summary ?? null,
               summary_generated_at: payload.summary_generated_at ?? null,
-              parsed_data: payload.parsed_data ?? null,
+              parsed_data: parsedData ?? null,
               parsed_at: payload.parsed_at ?? null,
               analysis_status: payload.analysis_status ?? "not_analyzed",
               analysis_error: payload.analysis_error ?? null,
@@ -237,6 +244,23 @@ export default function DocumentDetailPage() {
           description:
             "AI analysis has been updated for this document.",
         })
+
+        // UPDATE STATE DIRECTLY FROM RESPONSE (don't wait for refetch)
+        const parsedData = payload.parsed_data || null
+        setDoc((prev) =>
+          prev
+            ? {
+                ...prev,
+                parsed_data: parsedData,
+                parsed_at: payload.parsed_at ?? prev.parsed_at,
+                analysis_status: payload.analysis_status ?? prev.analysis_status,
+                analysis_error: payload.analysis_error ?? prev.analysis_error,
+              }
+            : prev
+        )
+
+        // THEN refetch after a brief delay to ensure DB is updated
+        await new Promise(resolve => setTimeout(resolve, 500))
         await refetch()
       }
     } catch (err) {

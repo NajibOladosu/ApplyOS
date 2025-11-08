@@ -423,30 +423,46 @@ export default function DocumentsPage() {
                   </CardHeader>
 
                   <CardContent>
-                    {/* AI Analysis badges (including persisted summary flag) */}
+                    {/* AI Analysis summary */}
                     {doc.parsed_data && typeof doc.parsed_data === "object" && (
-                      <div className="mb-3">
-                        <p className="text-xs text-muted-foreground mb-2">
-                          AI Analysis
-                        </p>
-                        <div className="flex flex-wrap gap-2">
-                          {Object.entries(doc.parsed_data as Record<string, unknown>).map(
-                            ([key, value]) => (
-                              <Badge key={key} variant="outline" className="text-xs">
-                                {Array.isArray(value)
-                                  ? `${value.length} ${key}`
-                                  : `${String(value)} ${key}`}
-                              </Badge>
-                            )
+                      <div className="mb-4">
+                        <div className="flex flex-wrap items-center gap-2 mb-3">
+                          {/* Education */}
+                          {Array.isArray((doc.parsed_data as any).education) && (doc.parsed_data as any).education.length > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {(doc.parsed_data as any).education.length} {(doc.parsed_data as any).education.length === 1 ? 'Education' : 'Educations'}
+                            </Badge>
+                          )}
+
+                          {/* Experience */}
+                          {Array.isArray((doc.parsed_data as any).experience) && (doc.parsed_data as any).experience.length > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {(doc.parsed_data as any).experience.length} {(doc.parsed_data as any).experience.length === 1 ? 'Experience' : 'Experiences'}
+                            </Badge>
+                          )}
+
+                          {/* Skills */}
+                          {(doc.parsed_data as any).skills && (
+                            ((doc.parsed_data as any).skills.technical?.length || 0) +
+                            ((doc.parsed_data as any).skills.soft?.length || 0) +
+                            ((doc.parsed_data as any).skills.other?.length || 0) > 0
+                          ) && (
+                            <Badge variant="secondary" className="text-xs">
+                              {(
+                                ((doc.parsed_data as any).skills.technical?.length || 0) +
+                                ((doc.parsed_data as any).skills.soft?.length || 0) +
+                                ((doc.parsed_data as any).skills.other?.length || 0)
+                              )} Skills
+                            </Badge>
                           )}
                         </div>
-                      </div>
-                    )}
 
-                    {/* Inline summary display if available */}
-                    {(doc as any).summary && (
-                      <div className="mb-4 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
-                        {(doc as any).summary as string}
+                        {/* Inline summary display if available */}
+                        {(doc as any).summary && (
+                          <div className="rounded-md bg-muted/60 p-2.5 text-xs leading-relaxed text-muted-foreground">
+                            <p className="line-clamp-2">{(doc as any).summary as string}</p>
+                          </div>
+                        )}
                       </div>
                     )}
 
