@@ -1,39 +1,58 @@
-import { createClient } from '@/lib/supabase/client'
-import type { Document } from '@/types/database'
+import { createClient } from "@/lib/supabase/client"
+import type { Document } from "@/types/database"
 
 export async function getDocuments() {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('documents')
-    .select('*')
-    .order('created_at', { ascending: false })
+    .from("documents")
+    .select("*")
+    .order("created_at", { ascending: false })
 
   if (error) throw error
   return data as Document[]
 }
 
+/**
+ * Fetch a single document (client-side) for cases where we want to use Supabase directly
+ * instead of the REST API detail route.
+ * The app currently relies on the dedicated API route:
+ * [`app/api/documents/[id]/route.ts`](app/api/documents/[id]/route.ts:1)
+ */
+export async function getDocumentById(id: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from("documents")
+    .select("*")
+    .eq("id", id)
+    .single()
+
+  if (error) throw error
+  return data as Document
+}
+
 export async function uploadDocument(file: File) {
   const supabase = createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
 
-  if (!user) throw new Error('Not authenticated')
+  if (!user) throw new Error("Not authenticated")
 
-  // Upload file to storage
   const fileName = `${user.id}/${Date.now()}_${file.name}`
-  const { data: uploadData, error: uploadError } = await supabase.storage
-    .from('documents')
-    .upload(fileName, file)
+
+  const {
+    data: uploadData,
+    error: uploadError,
+  } = await supabase.storage.from("documents").upload(fileName, file)
 
   if (uploadError) throw uploadError
 
-  // Get public URL
-  const { data: { publicUrl } } = supabase.storage
-    .from('documents')
-    .getPublicUrl(fileName)
+  const {
+    data: { publicUrl },
+  } = supabase.storage.from("documents").getPublicUrl(fileName)
 
-  // Create database record
   const { data, error } = await supabase
-    .from('documents')
+    .from("documents")
     .insert([
       {
         user_id: user.id,
@@ -53,32 +72,36 @@ export async function uploadDocument(file: File) {
 export async function deleteDocument(id: string, fileUrl: string) {
   const supabase = createClient()
 
-  // Extract file path from URL
-  const urlParts = fileUrl.split('/')
-  const filePath = urlParts.slice(-2).join('/')
+  const urlParts = fileUrl.split("/")
+  const filePath = urlParts.slice(-2).join("/")
 
-  // Delete from storage
   const { error: storageError } = await supabase.storage
-    .from('documents')
+    .from("documents")
     .remove([filePath])
 
-  if (storageError) console.error('Storage deletion error:', storageError)
+  if (storageError)
+    console.error("Storage deletion error:", storageError)
 
-  // Delete database record
   const { error } = await supabase
-    .from('documents')
+    .from("documents")
     .delete()
-    .eq('id', id)
+    .eq("id", id)
 
   if (error) throw error
 }
 
+/**
+ * Legacy helper retained for compatibility.
+ * For AI analysis & summary we now prefer backend routes which:
+ * - enforce auth/ownership via RLS
+ * - update analysis_status / parsed_at / summary, etc.
+ */
 export async function updateDocumentParsedData(id: string, parsedData: any) {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('documents')
+    .from("documents")
     .update({ parsed_data: parsedData })
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single()
 

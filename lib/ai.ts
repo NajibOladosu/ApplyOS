@@ -31,7 +31,6 @@ Return only the JSON array:`
     const response = await result.response
     const text = response.text()
 
-    // Try to extract JSON from the response
     const jsonMatch = text.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
       const questions = JSON.parse(jsonMatch[0])
@@ -83,55 +82,182 @@ Answer:`
   }
 }
 
-export async function parseDocument(
-  fileContent: string
-): Promise<{
-  education: string[]
-  experience: string[]
-  skills: string[]
-}> {
+/**
+ * Structured analysis shape for documents.
+ */
+export type ParsedDocument = {
+  education: {
+    institution: string
+    degree: string
+    field: string
+    start_date: string
+    end_date: string
+    description: string
+  }[]
+  experience: {
+    company: string
+    role: string
+    start_date: string
+    end_date: string
+    description: string
+  }[]
+  skills: {
+    technical: string[]
+    soft: string[]
+    other: string[]
+  }
+  achievements: string[]
+  certifications: {
+    name: string
+    issuer: string
+    date: string
+  }[]
+  keywords: string[]
+  raw_highlights: string[]
+}
+
+/**
+ * Parse a document into structured data using Gemini.
+ * Returns a deterministic ParsedDocument object (never null/undefined, no placeholder noise).
+ */
+export async function parseDocument(fileContent: string): Promise<ParsedDocument> {
+  const empty: ParsedDocument = {
+    education: [],
+    experience: [],
+    skills: {
+      technical: [],
+      soft: [],
+      other: [],
+    },
+    achievements: [],
+    certifications: [],
+    keywords: [],
+    raw_highlights: [],
+  }
+
   if (!genAI) {
-    // Fallback: return empty structured data instead of mock content to avoid misleading results in production
-    return {
-      education: [],
-      experience: [],
-      skills: [],
-    }
+    return empty
   }
 
   try {
     const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
 
-    const prompt = `You are an assistant that extracts structured data from resumes and documents.
+    const prompt = `You are an assistant that extracts structured data from resumes and related documents.
 
 Document content:
 ${fileContent}
 
-Task: Extract the following information and return it as a JSON object:
-- education: array of education entries (e.g., "Bachelor of Science in Computer Science, MIT, 2020")
-- experience: array of work experience entries (e.g., "Software Engineer at Google, 2020-2023")
-- skills: array of skills (e.g., "JavaScript", "Python", "React")
+Task:
+Return a STRICT JSON object capturing the candidate's profile. Follow EXACTLY this schema:
 
-Return only the JSON object in this exact format:
 {
-  "education": [],
-  "experience": [],
-  "skills": []
-}`
+  "education": [
+    {
+      "institution": "string",
+      "degree": "string",
+      "field": "string",
+      "start_date": "string",
+      "end_date": "string",
+      "description": "string"
+    }
+  ],
+  "experience": [
+    {
+      "company": "string",
+      "role": "string",
+      "start_date": "string",
+      "end_date": "string",
+      "description": "string"
+    }
+  ],
+  "skills": {
+    "technical": ["string"],
+    "soft": ["string"],
+    "other": ["string"]
+  },
+  "achievements": ["string"],
+  "certifications": [
+    {
+      "name": "string",
+      "issuer": "string",
+      "date": "string"
+    }
+  ],
+  "keywords": ["string"],
+  "raw_highlights": ["string"]
+}
+
+Rules:
+- Return ONLY the JSON object.
+- Use empty arrays or empty strings when uncertain.
+- Do NOT include comments or additional text.`
 
     const result = await model.generateContent(prompt)
     const response = await result.response
-    const text = response.text()
+    const text = response.text().trim()
 
-    // Try to extract JSON from the response
-    const jsonMatch = text.match(/\{[\s\S]*\}/)
-    if (jsonMatch) {
-      return JSON.parse(jsonMatch[0])
+    const jsonMatch = text.match(/\{[\s\S]*\}$/)
+    if (!jsonMatch) {
+      return empty
     }
-    return { education: [], experience: [], skills: [] }
+
+    let parsed: unknown
+    try {
+      parsed = JSON.parse(jsonMatch[0])
+    } catch {
+      return empty
+    }
+
+    if (!parsed || typeof parsed !== 'object') {
+      return empty
+    }
+
+    const obj = parsed as Record<string, any>
+
+    const normalizeArray = (value: any): string[] =>
+      Array.isArray(value) ? value.map((v) => String(v)).filter(Boolean) : []
+
+    const normalized: ParsedDocument = {
+      education: Array.isArray(obj.education)
+        ? obj.education.map((e: any) => ({
+            institution: String(e?.institution || ''),
+            degree: String(e?.degree || ''),
+            field: String(e?.field || ''),
+            start_date: String(e?.start_date || ''),
+            end_date: String(e?.end_date || ''),
+            description: String(e?.description || ''),
+          }))
+        : [],
+      experience: Array.isArray(obj.experience)
+        ? obj.experience.map((e: any) => ({
+            company: String(e?.company || ''),
+            role: String(e?.role || ''),
+            start_date: String(e?.start_date || ''),
+            end_date: String(e?.end_date || ''),
+            description: String(e?.description || ''),
+          }))
+        : [],
+      skills: {
+        technical: normalizeArray(obj.skills?.technical),
+        soft: normalizeArray(obj.skills?.soft),
+        other: normalizeArray(obj.skills?.other),
+      },
+      achievements: normalizeArray(obj.achievements),
+      certifications: Array.isArray(obj.certifications)
+        ? obj.certifications.map((c: any) => ({
+            name: String(c?.name || ''),
+            issuer: String(c?.issuer || ''),
+            date: String(c?.date || ''),
+          }))
+        : [],
+      keywords: normalizeArray(obj.keywords),
+      raw_highlights: normalizeArray(obj.raw_highlights),
+    }
+
+    return normalized
   } catch (error) {
     console.error('Error parsing document:', error)
-    return { education: [], experience: [], skills: [] }
+    return empty
   }
 }
 
@@ -155,22 +281,23 @@ export async function summarizeDocument(input: {
   try {
     const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
 
-    // Extract known structures from parsedData in a type-safe way
     let education: unknown
     let experience: unknown
     let skills: unknown
+    let achievements: unknown
+    let certifications: unknown
+    let keywords: unknown
+    let raw_highlights: unknown
 
     if (parsedData && typeof parsedData === 'object') {
       const obj = parsedData as Record<string, unknown>
-      if (Array.isArray(obj.education)) {
-        education = obj.education
-      }
-      if (Array.isArray(obj.experience)) {
-        experience = obj.experience
-      }
-      if (Array.isArray(obj.skills)) {
-        skills = obj.skills
-      }
+      if (Array.isArray(obj.education)) education = obj.education
+      if (Array.isArray(obj.experience)) experience = obj.experience
+      if (obj.skills && typeof obj.skills === 'object') skills = obj.skills
+      if (Array.isArray(obj.achievements)) achievements = obj.achievements
+      if (Array.isArray(obj.certifications)) certifications = obj.certifications
+      if (Array.isArray(obj.keywords)) keywords = obj.keywords
+      if (Array.isArray(obj.raw_highlights)) raw_highlights = obj.raw_highlights
     }
 
     const contextParts: string[] = []
@@ -184,10 +311,22 @@ export async function summarizeDocument(input: {
     if (skills) {
       contextParts.push(`Skills:\n${JSON.stringify(skills, null, 2)}`)
     }
-    if (!contextParts.length && parsedData) {
-      // Fallback: include generic snapshot of parsedData if it exists but isn't in the expected shape
+    if (achievements) {
       contextParts.push(
-        `Additional structured data:\n${JSON.stringify(parsedData, null, 2).slice(0, 2000)}`
+        `Achievements:\n${JSON.stringify(achievements, null, 2)}`
+      )
+    }
+    if (certifications) {
+      contextParts.push(
+        `Certifications:\n${JSON.stringify(certifications, null, 2)}`
+      )
+    }
+    if (keywords) {
+      contextParts.push(`Keywords:\n${JSON.stringify(keywords, null, 2)}`)
+    }
+    if (raw_highlights) {
+      contextParts.push(
+        `Highlights:\n${JSON.stringify(raw_highlights, null, 2)}`
       )
     }
 
