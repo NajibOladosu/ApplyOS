@@ -47,6 +47,12 @@ export interface Document {
   version: number
   created_at: string
   updated_at: string
+  summary: string | null
+  summary_generated_at: string | null
+  analysis_status: 'not_analyzed' | 'pending' | 'success' | 'failed'
+  analysis_error: string | null
+  parsed_at: string | null
+  application_id: string | null
 }
 
 export interface Notification {
