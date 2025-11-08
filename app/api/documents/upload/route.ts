@@ -48,7 +48,14 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    const createdDocuments: any[] = []
+    const createdDocuments: {
+      id: string
+      file_name: string
+      file_url: string
+      file_type: string | null
+      file_size: number | null
+      parsed_data: unknown | null
+    }[] = []
 
     for (const entry of files) {
       if (!(entry instanceof File)) {
@@ -63,7 +70,6 @@ export async function POST(req: NextRequest) {
         continue
       }
 
-      const fileExt = file.name.split(".").pop() || ""
       const safeName = file.name.replace(/[^\w.\-]+/g, "_")
       const path = `${user.id}/${Date.now()}_${safeName}`
 
