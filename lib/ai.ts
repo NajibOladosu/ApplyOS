@@ -1,14 +1,12 @@
-import OpenAI from 'openai'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 
-const openai = process.env.OPENAI_API_KEY
-  ? new OpenAI({
-      apiKey: process.env.OPENAI_API_KEY,
-    })
+const genAI = process.env.GEMINI_API_KEY
+  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null
 
 export async function extractQuestionsFromURL(url: string): Promise<string[]> {
-  if (!openai) {
-    console.warn('OpenAI API key not configured')
+  if (!genAI) {
+    console.warn('Gemini API key not configured')
     return [
       'Why are you interested in this position?',
       'What are your key qualifications?',
@@ -17,27 +15,26 @@ export async function extractQuestionsFromURL(url: string): Promise<string[]> {
   }
 
   try {
-    // In production, you'd fetch the URL content here
-    // For now, we'll simulate with a prompt
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are an assistant that extracts application questions from job postings or scholarship pages. Return only the questions as a JSON array of strings.',
-        },
-        {
-          role: 'user',
-          content: `Extract all application questions from this URL: ${url}. Return them as a JSON array.`,
-        },
-      ],
-      temperature: 0.3,
-    })
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
-    const content = response.choices[0].message.content
-    if (content) {
-      const questions = JSON.parse(content)
+    const prompt = `You are an assistant that extracts application questions from job postings or scholarship pages.
+
+URL: ${url}
+
+Task: Extract all application questions from this job posting or scholarship page and return them as a JSON array of strings. Only include the questions, nothing else.
+
+Example format: ["Question 1?", "Question 2?", "Question 3?"]
+
+Return only the JSON array:`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+
+    // Try to extract JSON from the response
+    const jsonMatch = text.match(/\[[\s\S]*\]/)
+    if (jsonMatch) {
+      const questions = JSON.parse(jsonMatch[0])
       return Array.isArray(questions) ? questions : []
     }
     return []
@@ -55,29 +52,31 @@ export async function generateAnswer(
     education?: string
   }
 ): Promise<string> {
-  if (!openai) {
-    return 'AI answer generation is not configured. Please add your OpenAI API key to use this feature.'
+  if (!genAI) {
+    return 'AI answer generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are a helpful assistant that generates professional, tailored answers to job and scholarship application questions based on the provided context.',
-        },
-        {
-          role: 'user',
-          content: `Question: ${question}\n\nContext:\n${JSON.stringify(context, null, 2)}\n\nGenerate a professional answer:`,
-        },
-      ],
-      temperature: 0.7,
-      max_tokens: 500,
-    })
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
-    return response.choices[0].message.content || ''
+    const prompt = `You are a helpful assistant that generates professional, tailored answers to job and scholarship application questions.
+
+Question: ${question}
+
+Context about the candidate:
+${JSON.stringify(context, null, 2)}
+
+Task: Generate a professional, compelling answer to the question above based on the candidate's context. The answer should be:
+- Specific and tailored to the candidate's background
+- Professional and well-structured
+- Between 100-200 words
+- Honest and authentic
+
+Answer:`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    return response.text()
   } catch (error) {
     console.error('Error generating answer:', error)
     return 'Error generating answer. Please try again.'
@@ -91,7 +90,7 @@ export async function parseDocument(
   experience: string[]
   skills: string[]
 }> {
-  if (!openai) {
+  if (!genAI) {
     return {
       education: ['Bachelor of Science in Computer Science'],
       experience: ['Software Engineer at Tech Company'],
@@ -100,25 +99,33 @@ export async function parseDocument(
   }
 
   try {
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4',
-      messages: [
-        {
-          role: 'system',
-          content:
-            'You are an assistant that extracts structured data from resumes and documents. Return the data as JSON with keys: education, experience, skills (all arrays).',
-        },
-        {
-          role: 'user',
-          content: `Extract education, experience, and skills from this document:\n\n${fileContent}`,
-        },
-      ],
-      temperature: 0.3,
-    })
+    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
 
-    const content = response.choices[0].message.content
-    if (content) {
-      return JSON.parse(content)
+    const prompt = `You are an assistant that extracts structured data from resumes and documents.
+
+Document content:
+${fileContent}
+
+Task: Extract the following information and return it as a JSON object:
+- education: array of education entries (e.g., "Bachelor of Science in Computer Science, MIT, 2020")
+- experience: array of work experience entries (e.g., "Software Engineer at Google, 2020-2023")
+- skills: array of skills (e.g., "JavaScript", "Python", "React")
+
+Return only the JSON object in this exact format:
+{
+  "education": [],
+  "experience": [],
+  "skills": []
+}`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text()
+
+    // Try to extract JSON from the response
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (jsonMatch) {
+      return JSON.parse(jsonMatch[0])
     }
     return { education: [], experience: [], skills: [] }
   } catch (error) {
