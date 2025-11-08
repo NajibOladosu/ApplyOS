@@ -73,6 +73,34 @@ export async function POST(req: NextRequest) {
       const safeName = file.name.replace(/[^\w.\-]+/g, "_")
       const path = `${user.id}/${Date.now()}_${safeName}`
 
+      // Extract text from document BEFORE uploading
+      let extractedText = ""
+      try {
+        const contentType = file.type || ""
+
+        if (contentType.startsWith("text/") || contentType.includes("json")) {
+          extractedText = buffer.toString("utf-8")
+        } else if (contentType.includes("application/pdf")) {
+          try {
+            // eslint-disable-next-line @typescript-eslint/no-var-requires
+            const pdfParse: (data: Buffer) => Promise<{ text: string }> = require("pdf-parse")
+            const parsed = await pdfParse(buffer)
+            extractedText = parsed.text || ""
+          } catch (pdfError) {
+            console.error("PDF parsing error:", pdfError)
+            extractedText = ""
+          }
+        }
+
+        // Truncate if too long (100KB limit)
+        if (extractedText.length > 100000) {
+          extractedText = extractedText.slice(0, 100000) + "\n...(truncated)"
+        }
+      } catch (extractError) {
+        console.error("Text extraction error:", extractError)
+        extractedText = ""
+      }
+
       // Upload to Supabase Storage (documents bucket)
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("documents")
@@ -91,7 +119,7 @@ export async function POST(req: NextRequest) {
         data: { publicUrl },
       } = supabase.storage.from("documents").getPublicUrl(uploadData.path)
 
-      // Insert DB row
+      // Insert DB row with extracted text
       const { data: docRow, error: insertError } = await supabase
         .from("documents")
         .insert([
@@ -101,6 +129,8 @@ export async function POST(req: NextRequest) {
             file_url: publicUrl,
             file_type: file.type,
             file_size: file.size,
+            extracted_text: extractedText || null,
+            analysis_status: "not_analyzed",
           },
         ])
         .select()
@@ -111,26 +141,38 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      // Now analyze with AI using the ACTUAL extracted text
       let parsed_data = null
 
       try {
-        // Attempt AI-based parsing if GEMINI_API_KEY is configured.
-        const textToAnalyze = `File name: ${file.name}`
-        const parsed = await parseDocument(textToAnalyze)
-        if (parsed) {
-          parsed_data = parsed
-          const { error: updateError } = await supabase
-            .from("documents")
-            .update({ parsed_data })
-            .eq("id", docRow.id)
+        if (extractedText && extractedText.trim().length > 0) {
+          const parsed = await parseDocument(extractedText)
+          if (parsed) {
+            parsed_data = parsed
+            const { error: updateError } = await supabase
+              .from("documents")
+              .update({
+                parsed_data,
+                analysis_status: "success",
+                parsed_at: new Date().toISOString(),
+              })
+              .eq("id", docRow.id)
 
-          if (updateError) {
-            console.error("Failed to update parsed_data:", updateError)
+            if (updateError) {
+              console.error("Failed to update parsed_data:", updateError)
+            }
           }
         }
       } catch (parseError) {
         // Parsing is best-effort; log but do not fail the upload pipeline
         console.error("Error parsing document with AI:", parseError)
+        await supabase
+          .from("documents")
+          .update({
+            analysis_status: "failed",
+            analysis_error: String(parseError),
+          })
+          .eq("id", docRow.id)
       }
 
       createdDocuments.push({
