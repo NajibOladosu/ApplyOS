@@ -101,3 +101,65 @@ export async function getApplicationStats() {
     upcomingDeadlines,
   }
 }
+
+export async function getApplicationDocuments(applicationId: string) {
+  const supabase = createClient()
+  const { data, error } = await supabase
+    .from('application_documents')
+    .select('document_id')
+    .eq('application_id', applicationId)
+
+  if (error) throw error
+  return (data || []).map(row => row.document_id)
+}
+
+export async function addApplicationDocument(applicationId: string, documentId: string) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('application_documents')
+    .insert([
+      {
+        application_id: applicationId,
+        document_id: documentId,
+      },
+    ])
+
+  if (error) throw error
+}
+
+export async function removeApplicationDocument(applicationId: string, documentId: string) {
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('application_documents')
+    .delete()
+    .eq('application_id', applicationId)
+    .eq('document_id', documentId)
+
+  if (error) throw error
+}
+
+export async function updateApplicationDocuments(applicationId: string, documentIds: string[]) {
+  const supabase = createClient()
+
+  // Delete all existing relationships
+  const { error: deleteError } = await supabase
+    .from('application_documents')
+    .delete()
+    .eq('application_id', applicationId)
+
+  if (deleteError) throw deleteError
+
+  // Insert new relationships
+  if (documentIds.length > 0) {
+    const { error: insertError } = await supabase
+      .from('application_documents')
+      .insert(
+        documentIds.map(docId => ({
+          application_id: applicationId,
+          document_id: docId,
+        }))
+      )
+
+    if (insertError) throw insertError
+  }
+}
