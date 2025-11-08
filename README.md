@@ -1,259 +1,267 @@
-# Trackly - AI-Powered Application Manager
+# Trackly - Application & Document Manager
 
-<div align="center">
-  <img src="https://img.shields.io/badge/Next.js-14-black" alt="Next.js" />
-  <img src="https://img.shields.io/badge/TypeScript-5.4-blue" alt="TypeScript" />
-  <img src="https://img.shields.io/badge/Supabase-Enabled-green" alt="Supabase" />
-  <img src="https://img.shields.io/badge/Tailwind-3.4-38bdf8" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License" />
-</div>
+Trackly is a full-stack Next.js application for managing job and scholarship applications, documents, and related activity in a single dashboard. It integrates with Supabase for authentication, database, and storage, and provides APIs for document upload and (re)processing that can be extended with AI.
 
-<br />
+This README reflects the actual implementation in this repository and intentionally avoids claiming features that are not fully wired yet.
 
-Trackly is a production-ready, full-stack web application that automates the way you apply for jobs and scholarships. Built with a stunning Leadverse-inspired dark theme, Trackly uses AI to extract questions from job postings, generate personalized answers, and track all your applications in one beautiful dashboard.
+## ✨ Current Capabilities
 
-## ✨ Features
+### Authentication & Access Control
 
-### 🤖 AI-Powered Intelligence
-- **Question Extraction**: Automatically extract application questions from URLs
-- **Smart Response Generation**: Generate personalized answers using AI and your documents
-- **Document Analysis**: Upload resumes and transcripts for automatic data extraction
+- Email/OAuth authentication via Supabase Auth.
+- Protected routes enforced via middleware.
+- Server and client Supabase clients configured for use across the app.
 
-### 📊 Application Management
-- **Comprehensive Tracking**: Manage all applications in one place
-- **Status Management**: Track progress from draft to offer
-- **Priority Levels**: Mark applications as high, medium, or low priority
-- **Deadline Reminders**: Never miss an application deadline
+Key locations:
+- [`app/auth/login/page.tsx`](app/auth/login/page.tsx:1)
+- [`app/auth/signup/page.tsx`](app/auth/signup/page.tsx:1)
+- [`app/auth/callback/route.ts`](app/auth/callback/route.ts:1)
+- [`lib/supabase/client.ts`](lib/supabase/client.ts:1)
+- [`lib/supabase/server.ts`](lib/supabase/server.ts:1)
+- [`middleware.ts`](middleware.ts:1)
 
-### 📁 Document Management
-- **Secure Storage**: Upload and manage documents with Supabase Storage
-- **AI Analysis**: Automatic extraction of education, experience, and skills
-- **Version History**: Keep track of document versions
+### Dashboard & Core Pages
 
-### 🔔 Notifications
-- **Real-time Updates**: Get notified of status changes and deadlines
-- **Smart Alerts**: AI-powered insights and recommendations
-- **Customizable**: Configure notification preferences
+Screens implemented with a consistent layout and navigation:
 
-### 🎨 Beautiful UI/UX
-- **Leadverse-Inspired Design**: Dark, elegant theme with neon green accents
-- **Smooth Animations**: Framer Motion-powered transitions
-- **Fully Responsive**: Works perfectly on desktop, tablet, and mobile
-- **Accessible**: Built with accessibility in mind
+- Landing page
+- Auth pages (login/signup)
+- Dashboard
+- Applications list and detail
+- Documents list
+- Upload page
+- Notifications
+- Profile
+- Settings
 
-## 🚀 Tech Stack
+Key locations:
+- [`app/page.tsx`](app/page.tsx:1)
+- [`app/layout.tsx`](app/layout.tsx:1)
+- [`app/dashboard/page.tsx`](app/dashboard/page.tsx:1)
+- [`app/applications/page.tsx`](app/applications/page.tsx:1)
+- [`app/applications/[id]/page.tsx`](app/applications/[id]/page.tsx:1)
+- [`app/documents/page.tsx`](app/documents/page.tsx:1)
+- [`app/upload/page.tsx`](app/upload/page.tsx:1)
+- [`app/notifications/page.tsx`](app/notifications/page.tsx:1)
+- [`app/profile/page.tsx`](app/profile/page.tsx:1)
+- [`app/settings/page.tsx`](app/settings/page.tsx:1)
+- Layout & navigation components under [`components/layout/`](components/layout/dashboard-layout.tsx:1)
 
-### Frontend
-- **Framework**: Next.js 14 (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS
-- **Components**: shadcn/ui
-- **Animations**: Framer Motion
-- **Icons**: Lucide React
-- **Charts**: Recharts
-- **File Upload**: React Dropzone
+### Applications & Questions
 
-### Backend
-- **Database**: Supabase (PostgreSQL)
-- **Authentication**: Supabase Auth (Email + Google OAuth)
-- **Storage**: Supabase Storage
-- **Real-time**: Supabase Realtime
-- **Row Level Security**: Enabled on all tables
+The schema and service layer support tracking applications and related questions.
 
-### AI Integration
-- **Provider**: Google Gemini API
-- **Models**: Gemini Pro for question extraction and answer generation
-- **Document Processing**: AI-powered data extraction
+- `applications` table for storing application records.
+- `questions` table for storing questions associated with applications.
+- Service helpers for reading/writing these entities.
 
-## 📋 Prerequisites
+Key locations:
+- [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1)
+- [`lib/services/applications.ts`](lib/services/applications.ts:1)
+- [`lib/services/questions.ts`](lib/services/questions.ts:1)
 
-Before you begin, ensure you have the following installed:
-- Node.js 18+ and npm
-- A Supabase account
-- (Optional) A Google Gemini API key for AI features
+Note: Advanced AI-powered question extraction and answer generation are supported at the schema/service level via [`lib/ai.ts`](lib/ai.ts:1) but are not fully production-hardened. Treat them as an integration point, not a finalized feature.
 
-## 🛠️ Installation
+### Document Management
 
-1. **Clone the repository**
+Implemented:
+
+- Uploading documents associated with a user/application to a Supabase Storage bucket.
+- Persisting document metadata in the database.
+- Reprocessing endpoint to re-parse existing documents (e.g. after improving parsing logic).
+
+Key locations:
+- [`app/api/documents/upload/route.ts`](app/api/documents/upload/route.ts:1)
+- [`app/api/documents/reprocess/route.ts`](app/api/documents/reprocess/route.ts:1)
+- [`lib/services/documents.ts`](lib/services/documents.ts:1)
+- `documents` tables and relations in [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1)
+
+Important notes:
+
+- Upload and reprocess routes include authentication checks and use RLS-protected tables.
+- DOC/DOCX and some complex formats are not fully supported yet.
+- No built-in antivirus scanning or rate limiting—these should be added before real production use.
+
+### Notifications
+
+Implemented:
+
+- `notifications` table with RLS.
+- Backend helpers for creating and fetching notifications.
+- Notifications page and basic UI wiring.
+
+Key locations:
+- [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1)
+- [`lib/services/notifications.ts`](lib/services/notifications.ts:1)
+- [`app/notifications/page.tsx`](app/notifications/page.tsx:1)
+
+Not yet implemented:
+
+- Email delivery
+- Real-time subscriptions
+- Granular notification preferences
+
+### Account Deletion
+
+Implemented:
+
+- Authenticated API route to delete the current user’s account and associated data (subject to schema constraints).
+
+Key location:
+- [`app/api/account/delete/route.ts`](app/api/account/delete/route.ts:1)
+
+Recommended:
+
+- Ensure UI flows (e.g. profile/settings) call this endpoint with clear confirmation.
+
+### UI/UX
+
+- Built with Next.js App Router and TypeScript.
+- Tailwind CSS and shadcn/ui-based components.
+- Responsive layout for desktop and mobile.
+- Centralized layout components for dashboard shell (sidebar, topbar).
+
+Key locations:
+- [`app/globals.css`](app/globals.css:1)
+- [`components/ui`](components/ui/button.tsx:1)
+- [`components/layout`](components/layout/dashboard-layout.tsx:1)
+- [`components/modals`](components/modals/add-application-modal.tsx:1)
+
+## 🏗 Tech Stack
+
+- Framework: Next.js 14 (App Router)
+- Language: TypeScript
+- Styling: Tailwind CSS
+- Components: shadcn/ui
+- Backend: Supabase (PostgreSQL, Auth, Storage)
+- Database migrations: SQL under [`supabase/migrations`](supabase/migrations/001_initial_schema.sql:1)
+
+## 📊 Database Overview
+
+Primary tables (see migration for full definitions):
+
+- `users` – profile data linked to `auth.users`
+- `applications` – job/scholarship application records
+- `questions` – questions per application (and potential AI-generated answers)
+- `documents` – uploaded documents with metadata
+- `notifications` – in-app notifications
+- `status_history` – change history for applications
+
+All core tables in [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1) have Row Level Security enabled with policies that scope access to the authenticated user.
+
+## ⚙️ Environment Configuration
+
+Create a `.env.local` file in the project root with at least:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=your-supabase-url
+NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+
+# Optional: Required if you enable AI parsing/features
+GEMINI_API_KEY=your_gemini_api_key_here
+```
+
+Recommended additional variables for a production-grade deployment (not all are currently wired end-to-end, but should be considered):
+
+```env
+NEXT_PUBLIC_APP_URL=https://your-production-url
+
+# For secure backend jobs (never expose to browser)
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+
+# Operational controls
+LOG_LEVEL=info
+ERROR_TRACKING_DSN=your_sentry_or_other_dsn
+STORAGE_DOCUMENTS_BUCKET=documents
+MAX_UPLOAD_SIZE_MB=10
+MAX_FILES_PER_UPLOAD=5
+ALLOWED_UPLOAD_MIME_TYPES=application/pdf,text/plain
+AI_REQUEST_MAX_TOKENS=8000
+AI_REQUEST_TIMEOUT_MS=30000
+```
+
+Ensure that any secrets (e.g. `SUPABASE_SERVICE_ROLE_KEY`, `GEMINI_API_KEY`) are configured only as server-side environment variables in your hosting provider.
+
+## 🧪 Status of AI & Advanced Features
+
+The codebase includes integration points for AI functionality via [`lib/ai.ts`](lib/ai.ts:1) and related services. Before treating AI behaviors as production-ready, you should:
+
+- Validate prompt design and outputs.
+- Add rate limiting and abuse protection.
+- Add robust error handling and logging.
+- Ensure costs and usage are monitored.
+
+Similarly, features such as:
+
+- Automatic deadline reminders
+- Real-time notification streaming
+- Full document version history UI
+- Rich notification preferences
+- External email notifications
+
+are partially supported by the schema or structure, but require additional work before being advertised as complete production features.
+
+## 🛠 Local Development
+
+1. Clone the repository:
+
    ```bash
    git clone https://github.com/NajibOladosu/Trackly.git
    cd Trackly
    ```
 
-2. **Install dependencies**
+2. Install dependencies:
+
    ```bash
    npm install
    ```
 
-3. **Set up environment variables**
+3. Configure environment variables:
 
-   The `.env.local` file is already configured with Supabase credentials:
-   ```env
-   NEXT_PUBLIC_SUPABASE_URL=your-supabase-public-url
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+   - Create `.env.local` as described above.
 
-   # Add your Google Gemini API key for AI features
-   GEMINI_API_KEY=your_gemini_api_key_here
-   ```
+4. Set up the database:
 
-   To get your Gemini API key:
-   1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
-   2. Sign in with your Google account
-   3. Click "Create API Key"
-   4. Copy your API key and paste it in the `.env.local` file
+   - In your Supabase project, open the SQL editor.
+   - Apply the SQL from:
+     - [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1)
 
-4. **Set up the database**
+5. Run the development server:
 
-   Apply the database migration to your Supabase instance:
-   - Go to your Supabase project dashboard
-   - Navigate to SQL Editor
-   - Copy the contents of `supabase/migrations/001_initial_schema.sql`
-   - Run the migration
-
-5. **Run the development server**
    ```bash
    npm run dev
    ```
 
-   Open [http://localhost:3000](http://localhost:3000) in your browser.
+   Then open `http://localhost:3000` in your browser.
 
-## 📁 Project Structure
+## 🚀 Deployment Notes
 
-```
-Trackly/
-├── app/                          # Next.js app directory
-│   ├── auth/                     # Authentication pages
-│   │   ├── login/                # Login page
-│   │   ├── signup/               # Signup page
-│   │   └── callback/             # OAuth callback
-│   ├── dashboard/                # Dashboard page
-│   ├── applications/             # Applications list & detail
-│   ├── documents/                # Documents management
-│   ├── upload/                   # File upload page
-│   ├── notifications/            # Notifications center
-│   ├── profile/                  # User profile
-│   ├── settings/                 # App settings
-│   ├── layout.tsx                # Root layout
-│   ├── page.tsx                  # Landing page
-│   └── globals.css               # Global styles
-├── components/                   # React components
-│   ├── ui/                       # shadcn/ui components
-│   └── layout/                   # Layout components
-├── lib/                          # Utility functions
-│   ├── supabase/                 # Supabase clients
-│   ├── utils.ts                  # Helper functions
-│   └── ai.ts                     # AI service functions
-├── supabase/                     # Supabase configuration
-│   └── migrations/               # Database migrations
-├── public/                       # Static assets
-└── ...config files
-```
+For deployment (e.g. Vercel):
 
-## 🎨 Color Palette
+- Set all required environment variables in the hosting platform.
+- Ensure your Supabase project has:
+  - The schema from [`supabase/migrations/001_initial_schema.sql`](supabase/migrations/001_initial_schema.sql:1)
+  - A `documents` storage bucket with appropriate policies (public or private + signed URLs).
+- Confirm Next.js runtime settings for routes that rely on Node-only modules (e.g. document parsing).
 
-The app uses a Leadverse-inspired dark theme:
-
-| Color | Hex | Usage |
-|-------|-----|-------|
-| Background | `#0A0A0A` | Main background |
-| Surface | `#101010` | Cards, panels |
-| Border | `#1A1A1A` | Borders, dividers |
-| Primary | `#00FF88` | Accent, buttons, links |
-| Text Primary | `#EDEDED` | Main text |
-| Text Secondary | `#B5B5B5` | Muted text |
-
-## 📊 Database Schema
-
-The application uses the following main tables:
-
-- **users**: User profiles (extends Supabase auth.users)
-- **applications**: Job and scholarship applications
-- **questions**: Application questions and AI-generated answers
-- **documents**: Uploaded files with AI analysis
-- **notifications**: User notifications
-- **status_history**: Application status change tracking
-
-All tables have Row Level Security (RLS) enabled for data protection.
-
-## 🔒 Security Features
-
-- **Row Level Security**: All database tables protected with RLS policies
-- **Authentication**: Secure email and OAuth authentication
-- **Data Encryption**: All data encrypted at rest and in transit
-- **Environment Variables**: Sensitive data stored in environment variables
-- **HTTPS Only**: Production deployment requires HTTPS
-
-## 🚀 Deployment
-
-### Deploy to Vercel (Recommended)
-
-1. Push your code to GitHub
-2. Import your repository in Vercel
-3. Add environment variables from `.env.local`
-4. Deploy!
-
-[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/NajibOladosu/Trackly)
-
-### Other Platforms
-
-You can also deploy to:
-- Netlify
-- Railway
-- Render
-- Any platform that supports Next.js
-
-## 🎯 Key Features in Detail
-
-### AI Question Extraction
-1. User pastes a job posting URL
-2. AI fetches and analyzes the page content
-3. Questions are extracted and stored in the database
-4. User can review and edit extracted questions
-
-### AI Answer Generation
-1. User's documents are analyzed and parsed
-2. AI generates personalized answers based on:
-   - Extracted resume data
-   - Education history
-   - Work experience
-   - Skills and qualifications
-3. Answers can be edited and saved
-
-### Application Tracking
-- **Draft**: Initial stage, can be edited
-- **Submitted**: Application sent
-- **In Review**: Under consideration
-- **Interview**: Interview scheduled
-- **Offer**: Offer received
-- **Rejected**: Application declined
+This repository should be treated as a strong foundation that requires the hardening steps described in the architecture/roadmap before true production exposure.
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please feel free to submit a Pull Request.
+Contributions that move Trackly toward full production readiness are welcome, especially:
 
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- Improved validation and error handling
+- Upload and AI safety controls
+- Notification channels and preferences
+- Observability and testing
+
+Standard flow:
+
+1. Fork the repository.
+2. Create a feature branch.
+3. Commit and push your changes.
+4. Open a Pull Request.
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the LICENSE file for details.
-
-## 🙏 Acknowledgments
-
-- Design inspiration from [Leadverse.ai](https://leadverse.ai)
-- UI components from [shadcn/ui](https://ui.shadcn.com)
-- Backend powered by [Supabase](https://supabase.com)
-- AI features powered by [Google Gemini](https://ai.google.dev)
-
-## 📧 Contact
-
-For questions or support, please open an issue on GitHub.
-
----
-
-<div align="center">
-  Made with ❤️ using Next.js, Supabase, and AI
-</div>
+This project is licensed under the MIT License. See `LICENSE` for details.

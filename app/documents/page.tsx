@@ -17,10 +17,17 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Document } from "@/types/database"
-import { getDocuments, deleteDocument } from "@/lib/services/documents"
+import { getDocuments, deleteDocument, updateDocumentParsedData } from "@/lib/services/documents"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { summarizeDocument } from "@/lib/ai"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B"
@@ -33,6 +40,8 @@ export default function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [processingId, setProcessingId] = useState<string | null>(null)
+  const [summarizingId, setSummarizingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; fileUrl: string; fileName: string } | null>(null)
 
@@ -88,6 +97,112 @@ export default function DocumentsPage() {
     } finally {
       setDeletingId(null)
       setDeleteTarget(null)
+    }
+  }
+
+  // Re-process flow (production, via backend pipeline):
+  // - Calls /api/documents/reprocess with the document id
+  // - Backend:
+  //   - Validates auth & ownership (RLS + auth.getUser)
+  //   - Loads document (including file_url)
+  //   - Fetches the raw file from storage
+  //   - Extracts text for supported types
+  //   - Calls parseDocument() (Gemini models/gemini-2.0-flash)
+  //   - Persists structured data into documents.parsed_data
+  // - On success we refresh local state with updated parsed_data.
+  const handleReprocess = async (doc: Document) => {
+    if (processingId) return
+
+    setProcessingId(doc.id)
+    try {
+      const res = await fetch("/api/documents/reprocess", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ id: doc.id }),
+      })
+
+      const payload = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        console.error("Re-process error:", payload)
+        toast({
+          title: "Re-process failed",
+          description:
+            payload?.error ||
+            "Unable to re-process this document. Please try again or contact support.",
+          variant: "destructive",
+        })
+        return
+      }
+
+      // Update local state with new parsed_data from backend
+      const updatedParsed = payload.parsed_data
+      setDocuments((prev) =>
+        prev.map((d) =>
+          d.id === doc.id ? { ...d, parsed_data: updatedParsed } : d
+        )
+      )
+
+      toast({
+        title: "Document re-processed",
+        description:
+          "The document has been analyzed and its structured data has been updated.",
+      })
+    } catch (error) {
+      console.error("Error during re-process handler:", error)
+      toast({
+        title: "Re-process failed",
+        description:
+          "An unexpected error occurred while trying to re-process this document.",
+        variant: "destructive",
+      })
+    } finally {
+      setProcessingId(null)
+    }
+  }
+
+  const handleSummarize = async (doc: Document) => {
+    if (summarizingId) return
+
+    setSummarizingId(doc.id)
+    try {
+      const summary = await summarizeDocument({
+        fileName: doc.file_name,
+        parsedData: doc.parsed_data ?? undefined,
+      })
+
+      // Merge summary into parsed_data without mutating original reference.
+      const currentParsed =
+        (doc.parsed_data && typeof doc.parsed_data === "object"
+          ? (doc.parsed_data as Record<string, unknown>)
+          : {}) || {}
+
+      const updatedParsed = {
+        ...currentParsed,
+        summary,
+      }
+
+      const updated = await updateDocumentParsedData(doc.id, updatedParsed)
+
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === doc.id ? { ...d, parsed_data: updated.parsed_data } : d))
+      )
+
+      toast({
+        title: "Summary generated",
+        description: "An AI summary has been generated and saved for this document.",
+      })
+    } catch (error) {
+      console.error("Error generating summary:", error)
+      toast({
+        title: "Summary failed",
+        description: "Unable to generate a summary at this time. Please try again later.",
+        variant: "destructive",
+      })
+    } finally {
+      setSummarizingId(null)
     }
   }
 
@@ -219,52 +334,109 @@ export default function DocumentsPage() {
               >
                 <Card className="hover:border-primary/40 transition-all">
                   <CardHeader>
-                    <div className="flex items-start justify-between">
+                    <div className="flex items-start justify-between gap-3">
                       <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
                         <FileText className="h-6 w-6 text-primary" />
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "text-muted-foreground hover:text-destructive",
-                          deletingId === doc.id && "opacity-50 cursor-not-allowed"
-                        )}
-                        onClick={() => requestDelete(doc)}
-                        disabled={deletingId === doc.id}
-                      >
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </div>
-
-                    <div className="mt-4">
-                      <h3 className="font-semibold truncate">{doc.file_name}</h3>
-                      <p className="text-sm text-muted-foreground mt-1">
-                        {formatFileSize(doc.file_size || 0)}
-                        {doc.created_at && (
-                          <> • {new Date(doc.created_at).toLocaleDateString()}</>
-                        )}
-                      </p>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">{doc.file_name}</h3>
+                        <p className="text-sm text-muted-foreground mt-1">
+                          {formatFileSize(doc.file_size || 0)}
+                          {doc.created_at && (
+                            <> • {new Date(doc.created_at).toLocaleDateString()}</>
+                          )}
+                        </p>
+                      </div>
+                      {/* 3-dot menu for non-destructive AI actions */}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-muted-foreground hover:text-primary"
+                          >
+                            <MoreVertical className="h-4 w-4" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end" className="w-52">
+                          {/* Re-process flow (see handler for detailed behavior notes) */}
+                          <DropdownMenuItem
+                            onClick={() => handleReprocess(doc)}
+                            disabled={processingId === doc.id}
+                            className="cursor-pointer"
+                          >
+                            {processingId === doc.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Re-processing...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="mr-2 h-3 w-3" />
+                                Re-process document
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={() => handleSummarize(doc)}
+                            disabled={summarizingId === doc.id}
+                            className="cursor-pointer"
+                          >
+                            {summarizingId === doc.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Generating summary...
+                              </>
+                            ) : (
+                              <>
+                                <FileText className="mr-2 h-3 w-3" />
+                                Generate summary
+                              </>
+                            )}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </CardHeader>
 
                   <CardContent>
-                    {doc.parsed_data && (
-                      <div className="mb-4">
+                    {/* AI Analysis badges (including persisted summary flag) */}
+                    {doc.parsed_data && typeof doc.parsed_data === "object" && (
+                      <div className="mb-3">
                         <p className="text-xs text-muted-foreground mb-2">
                           AI Analysis
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {Object.entries(doc.parsed_data).map(([key, value]) => (
-                            <Badge key={key} variant="outline" className="text-xs">
-                              {Array.isArray(value)
-                                ? `${value.length} ${key}`
-                                : `${value} ${key}`}
-                            </Badge>
-                          ))}
+                          {Object.entries(doc.parsed_data as Record<string, unknown>)
+                            .filter(([key]) => key !== "summary")
+                            .map(([key, value]) => (
+                              <Badge key={key} variant="outline" className="text-xs">
+                                {Array.isArray(value)
+                                  ? `${value.length} ${key}`
+                                  : `${String(value)} ${key}`}
+                              </Badge>
+                            ))}
+                          {typeof (doc.parsed_data as Record<string, unknown>).summary ===
+                            "string" &&
+                            (doc.parsed_data as Record<string, unknown>).summary !== "" && (
+                              <Badge variant="outline" className="text-xs">
+                                Summary available
+                              </Badge>
+                            )}
                         </div>
                       </div>
                     )}
+
+                    {/* Inline summary display if available */}
+                    {doc.parsed_data &&
+                      typeof doc.parsed_data === "object" &&
+                      typeof (doc.parsed_data as Record<string, unknown>).summary ===
+                        "string" &&
+                      (doc.parsed_data as Record<string, unknown>).summary !== "" && (
+                        <div className="mb-4 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
+                          {(doc.parsed_data as Record<string, unknown>).summary as string}
+                        </div>
+                      )}
 
                     <div className="flex items-center space-x-2">
                       <Button
@@ -293,10 +465,14 @@ export default function DocumentsPage() {
                         <Download className="mr-2 h-3 w-3" />
                         Download
                       </Button>
+                      {/* Explicit, visible destructive delete button with confirm dialog */}
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="text-destructive hover:text-destructive"
+                        className={cn(
+                          "text-destructive hover:text-destructive",
+                          deletingId === doc.id && "opacity-50 cursor-not-allowed"
+                        )}
                         onClick={() => requestDelete(doc)}
                         disabled={deletingId === doc.id}
                       >

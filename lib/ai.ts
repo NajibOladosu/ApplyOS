@@ -91,10 +91,11 @@ export async function parseDocument(
   skills: string[]
 }> {
   if (!genAI) {
+    // Fallback: return empty structured data instead of mock content to avoid misleading results in production
     return {
-      education: ['Bachelor of Science in Computer Science'],
-      experience: ['Software Engineer at Tech Company'],
-      skills: ['JavaScript', 'React', 'Node.js'],
+      education: [],
+      experience: [],
+      skills: [],
     }
   }
 
@@ -131,5 +132,93 @@ Return only the JSON object in this exact format:
   } catch (error) {
     console.error('Error parsing document:', error)
     return { education: [], experience: [], skills: [] }
+  }
+}
+
+/**
+ * Summarize a document using Gemini based on its filename and optional parsed_data.
+ * - Uses models/gemini-2.0-flash
+ * - Produces a concise summary (3-5 bullets or a short paragraph) as plain text.
+ * - Safe for unknown parsed_data shapes via runtime checks.
+ */
+export async function summarizeDocument(input: {
+  fileName: string
+  parsedData?: unknown
+}): Promise<string> {
+  const { fileName, parsedData } = input
+
+  if (!genAI) {
+    console.warn('Gemini API key not configured for summarizeDocument')
+    return `Summary is unavailable because AI is not configured for this deployment. (${fileName})`
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
+
+    // Extract known structures from parsedData in a type-safe way
+    let education: unknown
+    let experience: unknown
+    let skills: unknown
+
+    if (parsedData && typeof parsedData === 'object') {
+      const obj = parsedData as Record<string, unknown>
+      if (Array.isArray(obj.education)) {
+        education = obj.education
+      }
+      if (Array.isArray(obj.experience)) {
+        experience = obj.experience
+      }
+      if (Array.isArray(obj.skills)) {
+        skills = obj.skills
+      }
+    }
+
+    const contextParts: string[] = []
+
+    if (education) {
+      contextParts.push(`Education entries:\n${JSON.stringify(education, null, 2)}`)
+    }
+    if (experience) {
+      contextParts.push(`Experience entries:\n${JSON.stringify(experience, null, 2)}`)
+    }
+    if (skills) {
+      contextParts.push(`Skills:\n${JSON.stringify(skills, null, 2)}`)
+    }
+    if (!contextParts.length && parsedData) {
+      // Fallback: include generic snapshot of parsedData if it exists but isn't in the expected shape
+      contextParts.push(
+        `Additional structured data:\n${JSON.stringify(parsedData, null, 2).slice(0, 2000)}`
+      )
+    }
+
+    const contextBlock = contextParts.length
+      ? contextParts.join('\n\n')
+      : 'No structured data is available; infer a generic but helpful summary from the file name only.'
+
+    const prompt = `You are an AI assistant helping summarize user documents (resumes, transcripts, certificates, etc).
+
+File name: ${fileName}
+
+Structured context (if available):
+${contextBlock}
+
+Task:
+- Produce a concise, user-friendly summary of this document.
+- Prefer 3-5 bullet points OR a short paragraph (max ~120 words).
+- Highlight key qualifications, experience, education, skills, or document purpose.
+- Output plain text only (no markdown fences).`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    const text = response.text().trim()
+
+    if (!text) {
+      return `Summary could not be generated for "${fileName}".`
+    }
+
+    return text
+  } catch (error) {
+    console.error('Error summarizing document:', error)
+    return 'Summary could not be generated due to an internal error.'
   }
 }
