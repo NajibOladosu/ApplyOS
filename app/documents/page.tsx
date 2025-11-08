@@ -89,10 +89,13 @@ export default function DocumentsPage() {
               Manage your resumes, transcripts, and certificates
             </p>
           </div>
-          <Button className="glow-effect" asChild>
-            <Link href="/upload">
-              <Upload className="mr-2 h-4 w-4" />
-              Upload Document
+          <Button
+            className="glow-effect inline-flex items-center justify-center gap-2"
+            asChild
+          >
+            <Link href="/upload" className="flex items-center gap-2">
+              <Upload className="h-4 w-4" />
+              <span>Upload Document</span>
             </Link>
           </Button>
         </div>
@@ -169,10 +172,13 @@ export default function DocumentsPage() {
                 <p className="text-sm text-muted-foreground">
                   Start by uploading your first resume, transcript, or certificate.
                 </p>
-                <Button className="mt-2" asChild>
-                  <Link href="/upload">
-                    <Upload className="mr-2 h-4 w-4" />
-                    Upload Document
+                <Button
+                  className="mt-2 inline-flex items-center justify-center gap-2"
+                  asChild
+                >
+                  <Link href="/upload" className="flex items-center gap-2">
+                    <Upload className="h-4 w-4" />
+                    <span>Upload Document</span>
                   </Link>
                 </Button>
               </CardContent>

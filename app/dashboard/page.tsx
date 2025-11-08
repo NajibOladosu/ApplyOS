@@ -1,9 +1,11 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Link from "next/link"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -17,7 +19,6 @@ import {
 import { getApplications, getApplicationStats } from "@/lib/services/applications"
 import { getDocuments } from "@/lib/services/documents"
 import type { Application } from "@/types/database"
-import Link from "next/link"
 
 const statusConfig = {
   draft: { label: "Draft", variant: "outline" as const },
@@ -111,11 +112,21 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-          <p className="text-muted-foreground">
-            Welcome back! Here's an overview of your applications.
-          </p>
+        <div className="flex items-center justify-between gap-4">
+          <div>
+            <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
+            <p className="text-muted-foreground">
+              Welcome back! Here's an overview of your applications.
+            </p>
+          </div>
+          <Button
+            className="glow-effect"
+            asChild
+          >
+            <Link href="/applications">
+              Add Application
+            </Link>
+          </Button>
         </div>
 
         {/* Stats Grid */}
