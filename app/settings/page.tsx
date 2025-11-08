@@ -92,14 +92,14 @@ export default function SettingsPage() {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="openai-key" className="text-sm font-medium">
-                OpenAI API Key
+              <label htmlFor="gemini-key" className="text-sm font-medium">
+                Google Gemini API Key
               </label>
               <div className="flex space-x-2">
                 <Input
-                  id="openai-key"
+                  id="gemini-key"
                   type="password"
-                  placeholder="sk-..."
+                  placeholder="AIza..."
                   defaultValue="••••••••••••••••"
                 />
                 <Button>Update</Button>

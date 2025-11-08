@@ -61,8 +61,8 @@ Trackly is a production-ready, full-stack web application that automates the way
 - **Row Level Security**: Enabled on all tables
 
 ### AI Integration
-- **Provider**: OpenAI API
-- **Models**: GPT-4 for question extraction and answer generation
+- **Provider**: Google Gemini API
+- **Models**: Gemini Pro for question extraction and answer generation
 - **Document Processing**: AI-powered data extraction
 
 ## 📋 Prerequisites
@@ -70,7 +70,7 @@ Trackly is a production-ready, full-stack web application that automates the way
 Before you begin, ensure you have the following installed:
 - Node.js 18+ and npm
 - A Supabase account
-- (Optional) An OpenAI API key for AI features
+- (Optional) A Google Gemini API key for AI features
 
 ## 🛠️ Installation
 
@@ -92,9 +92,15 @@ Before you begin, ensure you have the following installed:
    NEXT_PUBLIC_SUPABASE_URL=your-supabase-public-url
    NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
-   # Optional: Add your OpenAI API key for AI features
-   OPENAI_API_KEY=sk-...
+   # Add your Google Gemini API key for AI features
+   GEMINI_API_KEY=your_gemini_api_key_here
    ```
+
+   To get your Gemini API key:
+   1. Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
+   2. Sign in with your Google account
+   3. Click "Create API Key"
+   4. Copy your API key and paste it in the `.env.local` file
 
 4. **Set up the database**
 
@@ -240,7 +246,7 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Design inspiration from [Leadverse.ai](https://leadverse.ai)
 - UI components from [shadcn/ui](https://ui.shadcn.com)
 - Backend powered by [Supabase](https://supabase.com)
-- AI features powered by [OpenAI](https://openai.com)
+- AI features powered by [Google Gemini](https://ai.google.dev)
 
 ## 📧 Contact
 
