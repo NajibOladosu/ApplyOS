@@ -53,6 +53,7 @@ export interface Document {
   analysis_error: string | null
   parsed_at: string | null
   application_id: string | null
+  extracted_text: string | null
 }
 
 export interface Notification {
