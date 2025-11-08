@@ -1,13 +1,141 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { User, Mail, Calendar, Link as LinkIcon, Github, Linkedin } from "lucide-react"
+import { User, Mail, Calendar, Github, Linkedin, Loader2 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
+import type { User as SupabaseUser } from "@supabase/supabase-js"
+
+interface Profile {
+  id: string
+  email: string
+  name: string | null
+  avatar_url: string | null
+  created_at: string
+}
 
 export default function ProfilePage() {
+  const supabase = createClient()
+  const [user, setUser] = useState<SupabaseUser | null>(null)
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [name, setName] = useState("")
+  const [avatarUrl, setAvatarUrl] = useState("")
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [success, setSuccess] = useState(false)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const {
+          data: { user },
+          error: userError,
+        } = await supabase.auth.getUser()
+
+        if (userError) throw userError
+        if (!user) {
+          setError("You must be logged in to view your profile.")
+          setLoading(false)
+          return
+        }
+
+        setUser(user)
+
+        const { data, error: profileError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .single()
+
+        if (profileError) throw profileError
+
+        const p = data as Profile
+        setProfile(p)
+        setName(p.name || user.user_metadata?.name || user.email || "")
+        setAvatarUrl(p.avatar_url || user.user_metadata?.avatar_url || "")
+      } catch (err) {
+        console.error("Error loading profile:", err)
+        setError("Unable to load your profile. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void load()
+  }, [supabase])
+
+  const initials =
+    (name || profile?.email || user?.email || "?")
+      .split(" ")
+      .filter((part) => part)
+      .slice(0, 2)
+      .map((part) => part[0]?.toUpperCase())
+      .join("") || "U"
+
+  const handleSave = async () => {
+    if (!user || !profile) return
+    setSaving(true)
+    setError(null)
+    setSuccess(false)
+    try {
+      const { error: updateError } = await supabase
+        .from("users")
+        .update({
+          name: name || null,
+          avatar_url: avatarUrl || null,
+        })
+        .eq("id", user.id)
+
+      if (updateError) throw updateError
+
+      setProfile((prev) =>
+        prev
+          ? {
+              ...prev,
+              name: name || prev.name,
+              avatar_url: avatarUrl || prev.avatar_url,
+            }
+          : prev
+      )
+      setSuccess(true)
+    } catch (err) {
+      console.error("Error updating profile:", err)
+      setError("Failed to save changes. Please try again.")
+    } finally {
+      setSaving(false)
+      setTimeout(() => setSuccess(false), 2500)
+    }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    )
+  }
+
+  if (!user || !profile) {
+    return (
+      <DashboardLayout>
+        <div className="min-h-[60vh] flex items-center justify-center">
+          <p className="text-sm text-destructive">
+            {error || "Unable to load profile."}
+          </p>
+        </div>
+      </DashboardLayout>
+    )
+  }
+
   return (
     <DashboardLayout>
       <div className="space-y-6 max-w-4xl">
@@ -29,13 +157,29 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex items-center space-x-6">
-              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-3xl font-bold text-primary-foreground">
-                JD
+              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-3xl font-bold text-primary-foreground overflow-hidden">
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt={name || profile.email}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span>{initials}</span>
+                )}
               </div>
-              <div>
-                <Button variant="outline">Change Photo</Button>
-                <p className="text-sm text-muted-foreground mt-2">
-                  JPG, PNG or GIF. Max size 2MB.
+              <div className="space-y-2">
+                <label className="text-sm font-medium">
+                  Avatar URL
+                </label>
+                <Input
+                  value={avatarUrl}
+                  onChange={(e) => setAvatarUrl(e.target.value)}
+                  placeholder="https://..."
+                />
+                <p className="text-xs text-muted-foreground">
+                  Use a public image URL for your avatar.
                 </p>
               </div>
             </div>
@@ -45,32 +189,53 @@ export default function ProfilePage() {
                 <label htmlFor="name" className="text-sm font-medium">
                   Full Name
                 </label>
-                <Input id="name" defaultValue="John Doe" />
+                <Input
+                  id="name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Your name"
+                />
               </div>
 
               <div className="space-y-2">
                 <label htmlFor="email" className="text-sm font-medium">
                   Email
                 </label>
-                <Input id="email" type="email" defaultValue="john@example.com" />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="phone" className="text-sm font-medium">
-                  Phone Number
-                </label>
-                <Input id="phone" type="tel" defaultValue="+1 (555) 123-4567" />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="location" className="text-sm font-medium">
-                  Location
-                </label>
-                <Input id="location" defaultValue="San Francisco, CA" />
+                <Input
+                  id="email"
+                  type="email"
+                  value={profile.email}
+                  disabled
+                />
               </div>
             </div>
 
-            <Button className="glow-effect">Save Changes</Button>
+            <div className="flex items-center space-x-3">
+              <Button
+                className="glow-effect"
+                onClick={handleSave}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+              {success && (
+                <span className="text-xs text-primary">
+                  Profile updated.
+                </span>
+              )}
+              {error && (
+                <span className="text-xs text-destructive">
+                  {error}
+                </span>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -90,7 +255,11 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="font-semibold">November 2024</p>
+                  <p className="font-semibold">
+                    {profile.created_at
+                      ? new Date(profile.created_at).toLocaleDateString()
+                      : "—"}
+                  </p>
                 </div>
               </div>
 
@@ -117,7 +286,7 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Connected Accounts */}
+        {/* Connected Accounts (placeholder, no fake connections) */}
         <Card>
           <CardHeader>
             <CardTitle>Connected Accounts</CardTitle>
@@ -131,10 +300,14 @@ export default function ProfilePage() {
                 <Linkedin className="h-5 w-5 text-blue-500" />
                 <div>
                   <p className="font-medium">LinkedIn</p>
-                  <p className="text-sm text-muted-foreground">Not connected</p>
+                  <p className="text-sm text-muted-foreground">
+                    Integration not configured
+                  </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm">Connect</Button>
+              <Button variant="outline" size="sm" disabled>
+                Coming soon
+              </Button>
             </div>
 
             <div className="flex items-center justify-between p-4 rounded-lg border border-border">
@@ -142,20 +315,24 @@ export default function ProfilePage() {
                 <Github className="h-5 w-5" />
                 <div>
                   <p className="font-medium">GitHub</p>
-                  <p className="text-sm text-muted-foreground">Not connected</p>
+                  <p className="text-sm text-muted-foreground">
+                    Integration not configured
+                  </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm">Connect</Button>
+              <Button variant="outline" size="sm" disabled>
+                Coming soon
+              </Button>
             </div>
           </CardContent>
         </Card>
 
-        {/* Danger Zone */}
+        {/* Danger Zone (disabled until backend flow is implemented) */}
         <Card className="border-destructive/50">
           <CardHeader>
             <CardTitle className="text-destructive">Danger Zone</CardTitle>
             <CardDescription>
-              Irreversible and destructive actions
+              Account deletion requires a secure backend flow.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -163,10 +340,13 @@ export default function ProfilePage() {
               <div>
                 <p className="font-medium">Delete Account</p>
                 <p className="text-sm text-muted-foreground">
-                  Permanently delete your account and all data
+                  Contact support or implement a verified deletion endpoint
+                  before enabling this action.
                 </p>
               </div>
-              <Button variant="destructive">Delete Account</Button>
+              <Button variant="destructive" disabled>
+                Disabled
+              </Button>
             </div>
           </CardContent>
         </Card>

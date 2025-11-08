@@ -1,5 +1,6 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -12,45 +13,14 @@ import {
   FileText,
   TrendingUp,
   AlertCircle,
+  Loader2,
 } from "lucide-react"
-
-const notifications = [
-  {
-    id: "1",
-    type: "deadline",
-    message: "Application deadline for 'Software Engineer - Google' is in 5 days",
-    is_read: false,
-    created_at: "2024-11-08T10:30:00",
-  },
-  {
-    id: "2",
-    type: "status_update",
-    message: "Application 'Product Designer - Meta' status changed to Interview",
-    is_read: false,
-    created_at: "2024-11-08T09:15:00",
-  },
-  {
-    id: "3",
-    type: "success",
-    message: "Document 'Resume_2024.pdf' was successfully analyzed",
-    is_read: true,
-    created_at: "2024-11-07T14:20:00",
-  },
-  {
-    id: "4",
-    type: "info",
-    message: "New AI-generated answers are ready for your review",
-    is_read: true,
-    created_at: "2024-11-07T11:00:00",
-  },
-  {
-    id: "5",
-    type: "warning",
-    message: "You have 3 applications in draft status. Complete them soon!",
-    is_read: true,
-    created_at: "2024-11-06T16:45:00",
-  },
-]
+import type { Notification } from "@/types/database"
+import {
+  getNotifications,
+  markAllAsRead,
+  markAsRead,
+} from "@/lib/services/notifications"
 
 const typeConfig = {
   deadline: { icon: Calendar, color: "text-red-500", bg: "bg-red-500/10" },
@@ -62,7 +32,68 @@ const typeConfig = {
 }
 
 export default function NotificationsPage() {
+  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [loading, setLoading] = useState(true)
+  const [updating, setUpdating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const items = await getNotifications()
+        setNotifications(items)
+      } catch (err) {
+        console.error("Error loading notifications:", err)
+        setError("Unable to load notifications. Please try again.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    void load()
+  }, [])
+
   const unreadCount = notifications.filter((n) => !n.is_read).length
+
+  const handleMarkAllAsRead = async () => {
+    if (notifications.length === 0 || unreadCount === 0) return
+    setUpdating(true)
+    try {
+      await markAllAsRead()
+      setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
+    } catch (err) {
+      console.error("Error marking all as read:", err)
+      alert("Failed to mark notifications as read.")
+    } finally {
+      setUpdating(false)
+    }
+  }
+
+  const handleMarkAsRead = async (notification: Notification) => {
+    if (notification.is_read) return
+    try {
+      await markAsRead(notification.id)
+      setNotifications((prev) =>
+        prev.map((n) =>
+          n.id === notification.id ? { ...n, is_read: true } : n
+        )
+      )
+    } catch (err) {
+      console.error("Error marking notification as read:", err)
+    }
+  }
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="flex items-center justify-center min-h-[60vh]">
+          <Loader2 className="h-8 w-8 animate-spin text-primary" />
+        </div>
+      </DashboardLayout>
+    )
+  }
 
   return (
     <DashboardLayout>
@@ -72,19 +103,38 @@ export default function NotificationsPage() {
           <div>
             <h1 className="text-3xl font-bold mb-2">Notifications</h1>
             <p className="text-muted-foreground">
-              {unreadCount > 0 ? `You have ${unreadCount} unread notification${unreadCount > 1 ? "s" : ""}` : "All caught up!"}
+              {unreadCount > 0
+                ? `You have ${unreadCount} unread notification${
+                    unreadCount > 1 ? "s" : ""
+                  }`
+                : "All caught up!"}
             </p>
           </div>
-          <Button variant="outline">
-            <CheckCheck className="mr-2 h-4 w-4" />
-            Mark All as Read
+          <Button
+            variant="outline"
+            onClick={handleMarkAllAsRead}
+            disabled={updating || unreadCount === 0}
+          >
+            {updating ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Updating...
+              </>
+            ) : (
+              <>
+                <CheckCheck className="mr-2 h-4 w-4" />
+                Mark All as Read
+              </>
+            )}
           </Button>
         </div>
 
         {/* Notifications List */}
         <div className="space-y-2">
           {notifications.map((notification, index) => {
-            const config = typeConfig[notification.type as keyof typeof typeConfig]
+            const config =
+              typeConfig[notification.type as keyof typeof typeConfig] ||
+              typeConfig.info
             const Icon = config.icon
 
             return (
@@ -93,6 +143,7 @@ export default function NotificationsPage() {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
+                onClick={() => handleMarkAsRead(notification)}
               >
                 <Card
                   className={`hover:border-primary/40 transition-all cursor-pointer ${
@@ -101,13 +152,21 @@ export default function NotificationsPage() {
                 >
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-4">
-                      <div className={`h-10 w-10 rounded-full ${config.bg} flex items-center justify-center shrink-0`}>
+                      <div
+                        className={`h-10 w-10 rounded-full ${config.bg} flex items-center justify-center shrink-0`}
+                      >
                         <Icon className={`h-5 w-5 ${config.color}`} />
                       </div>
 
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between mb-1">
-                          <p className={`font-medium ${!notification.is_read ? "text-foreground" : "text-muted-foreground"}`}>
+                          <p
+                            className={`font-medium ${
+                              !notification.is_read
+                                ? "text-foreground"
+                                : "text-muted-foreground"
+                            }`}
+                          >
                             {notification.message}
                           </p>
                           {!notification.is_read && (
@@ -115,7 +174,11 @@ export default function NotificationsPage() {
                           )}
                         </div>
                         <p className="text-xs text-muted-foreground">
-                          {new Date(notification.created_at).toLocaleString()}
+                          {notification.created_at
+                            ? new Date(
+                                notification.created_at as any
+                              ).toLocaleString()
+                            : ""}
                         </p>
                       </div>
                     </div>
@@ -138,6 +201,12 @@ export default function NotificationsPage() {
               </p>
             </CardContent>
           </Card>
+        )}
+
+        {error && (
+          <p className="text-xs text-destructive">
+            {error}
+          </p>
         )}
       </div>
     </DashboardLayout>
