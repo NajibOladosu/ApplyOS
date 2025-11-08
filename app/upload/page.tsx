@@ -30,11 +30,37 @@ export default function UploadPage() {
   })
 
   const handleUpload = async () => {
-    setUploading(true)
-    // Simulate upload
-    await new Promise((resolve) => setTimeout(resolve, 2000))
-    setUploading(false)
-    setUploaded(true)
+    if (files.length === 0) return
+
+    try {
+      setUploading(true)
+
+      const formData = new FormData()
+      files.forEach((file) => {
+        formData.append("files", file)
+      })
+
+      const res = await fetch("/api/documents/upload", {
+        method: "POST",
+        body: formData,
+      })
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        throw new Error(data.error || "Failed to upload documents")
+      }
+
+      setUploaded(true)
+    } catch (error) {
+      console.error("Upload failed:", error)
+      alert(
+        error instanceof Error
+          ? error.message
+          : "Failed to upload documents. Please try again."
+      )
+    } finally {
+      setUploading(false)
+    }
   }
 
   const removeFile = (index: number) => {
@@ -161,11 +187,23 @@ export default function UploadPage() {
               </div>
 
               <Button
-                className="w-full mt-4 glow-effect"
+                className="w-full mt-4 glow-effect inline-flex items-center justify-center gap-2"
                 onClick={handleUpload}
                 disabled={uploading}
               >
-                {uploading ? "Uploading..." : `Upload ${files.length} File${files.length > 1 ? "s" : ""}`}
+                {uploading ? (
+                  <>
+                    <Upload className="h-4 w-4 animate-pulse" />
+                    <span>Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <Upload className="h-4 w-4" />
+                    <span>
+                      Upload {files.length} File{files.length > 1 ? "s" : ""}
+                    </span>
+                  </>
+                )}
               </Button>
             </CardContent>
           </Card>

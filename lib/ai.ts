@@ -15,7 +15,7 @@ export async function extractQuestionsFromURL(url: string): Promise<string[]> {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
     const prompt = `You are an assistant that extracts application questions from job postings or scholarship pages.
 
@@ -57,7 +57,7 @@ export async function generateAnswer(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
     const prompt = `You are a helpful assistant that generates professional, tailored answers to job and scholarship application questions.
 
@@ -99,7 +99,7 @@ export async function parseDocument(
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'gemini-pro' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-1.5-flash' })
 
     const prompt = `You are an assistant that extracts structured data from resumes and documents.
 
