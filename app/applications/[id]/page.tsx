@@ -33,6 +33,7 @@ import {
   buildContextFromDocument,
 } from "@/lib/services/documents"
 import { generateAnswer } from "@/lib/ai"
+import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -54,6 +55,8 @@ export default function ApplicationDetailPage() {
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [showDocumentModal, setShowDocumentModal] = useState(false)
   const [isSavingChanges, setIsSavingChanges] = useState(false)
+  const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
 
   useEffect(() => {
     if (!id) return
@@ -326,7 +329,7 @@ export default function ApplicationDetailPage() {
           )}
           <Button
             variant="outline"
-            onClick={() => router.push(`/applications`)}
+            onClick={() => setShowEditModal(true)}
           >
             <Edit className="mr-2 h-4 w-4" />
             Manage
@@ -402,9 +405,30 @@ export default function ApplicationDetailPage() {
 
 
             {application.notes && (
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Notes</p>
-                <p className="text-sm whitespace-pre-wrap">{application.notes}</p>
+              <div className="border-t pt-4">
+                <p className="text-sm font-medium mb-3">
+                  {application.type === 'scholarship' ? 'Scholarship Details' : 'Job Description'}
+                </p>
+                <motion.div
+                  animate={{ height: "auto" }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <div
+                    className={`text-sm whitespace-pre-wrap text-muted-foreground bg-muted/30 p-3 rounded border border-input transition-all ${
+                      jobDescriptionExpanded ? "" : "line-clamp-3"
+                    }`}
+                  >
+                    {application.notes}
+                  </div>
+                </motion.div>
+                {application.notes.split("\n").length > 3 && (
+                  <button
+                    onClick={() => setJobDescriptionExpanded(!jobDescriptionExpanded)}
+                    className="mt-2 text-xs text-primary hover:underline transition-colors"
+                  >
+                    {jobDescriptionExpanded ? "Show Less" : "Show More"}
+                  </button>
+                )}
               </div>
             )}
 
@@ -641,6 +665,26 @@ export default function ApplicationDetailPage() {
         </div>
 
       </div>
+
+      {/* Edit Application Modal */}
+      <EditApplicationModal
+        isOpen={showEditModal}
+        onClose={() => setShowEditModal(false)}
+        onSuccess={() => {
+          setShowEditModal(false)
+          // Reload application data
+          const load = async () => {
+            try {
+              const app = await getApplication(id!)
+              setApplication(app)
+            } catch (err) {
+              console.error("Error reloading application:", err)
+            }
+          }
+          void load()
+        }}
+        application={application}
+      />
     </DashboardLayout>
   )
 }
