@@ -31,10 +31,22 @@ Return only the JSON array:`
     const response = await result.response
     const text = response.text()
 
-    const jsonMatch = text.match(/\[[\s\S]*\]/)
+    // Handle markdown code fences
+    let jsonText = text
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim()
+    }
+
+    const jsonMatch = jsonText.match(/\[[\s\S]*\]/)
     if (jsonMatch) {
-      const questions = JSON.parse(jsonMatch[0])
-      return Array.isArray(questions) ? questions : []
+      try {
+        const questions = JSON.parse(jsonMatch[0])
+        return Array.isArray(questions) ? questions : []
+      } catch (error) {
+        console.error('Failed to parse questions JSON:', error)
+        return []
+      }
     }
     return []
   } catch (error) {
@@ -142,69 +154,80 @@ export async function parseDocument(fileContent: string): Promise<ParsedDocument
   try {
     const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
 
-    const prompt = `You are an assistant that extracts structured data from resumes and related documents.
+    const prompt = `Extract structured information from this resume/document:
 
-Document content:
 ${fileContent}
 
-Task:
-Return a STRICT JSON object capturing the candidate's profile. Follow EXACTLY this schema:
+IMPORTANT: Return ONLY valid JSON (no markdown, no code fences, no extra text). Extract EVERYTHING you can find:
 
 {
   "education": [
     {
-      "institution": "string",
-      "degree": "string",
-      "field": "string",
-      "start_date": "string",
-      "end_date": "string",
-      "description": "string"
+      "institution": "school/university name",
+      "degree": "Bachelor/Master/PhD/Certificate etc",
+      "field": "major/subject",
+      "start_date": "2020 or 2020-01",
+      "end_date": "2024 or 2024-05",
+      "description": "relevant coursework or achievements"
     }
   ],
   "experience": [
     {
-      "company": "string",
-      "role": "string",
-      "start_date": "string",
-      "end_date": "string",
-      "description": "string"
+      "company": "company name",
+      "role": "job title",
+      "start_date": "2022 or 2022-01",
+      "end_date": "2023 or 2023-12",
+      "description": "what you did, achievements, impact"
     }
   ],
   "skills": {
-    "technical": ["string"],
-    "soft": ["string"],
-    "other": ["string"]
+    "technical": ["Python", "JavaScript", "React", etc],
+    "soft": ["Leadership", "Communication", etc],
+    "other": ["Languages", "Tools", etc]
   },
-  "achievements": ["string"],
+  "achievements": ["Notable accomplishment 1", "Notable accomplishment 2"],
   "certifications": [
     {
-      "name": "string",
-      "issuer": "string",
-      "date": "string"
+      "name": "Certification name",
+      "issuer": "Issuing organization",
+      "date": "2023"
     }
   ],
-  "keywords": ["string"],
-  "raw_highlights": ["string"]
+  "keywords": ["Key terms", "Industries", "Technologies"],
+  "raw_highlights": ["Bullet point 1", "Bullet point 2"]
 }
 
 Rules:
-- Return ONLY the JSON object.
-- Use empty arrays or empty strings when uncertain.
-- Do NOT include comments or additional text.`
+- Return ONLY the JSON object, nothing else
+- Include ALL education found
+- Include ALL work experience found
+- Extract technical AND soft skills
+- Use empty arrays [] if section not found
+- Use empty strings "" for missing details
+- NO markdown, NO code fences, NO explanations`
 
     const result = await model.generateContent(prompt)
     const response = await result.response
     const text = response.text().trim()
 
-    const jsonMatch = text.match(/\{[\s\S]*\}$/)
+    // Handle markdown code fences (```json...``` or ```...```)
+    let jsonText = text
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim()
+    }
+
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
     if (!jsonMatch) {
+      console.warn('No JSON object found in response:', text.substring(0, 100))
       return empty
     }
 
     let parsed: unknown
     try {
       parsed = JSON.parse(jsonMatch[0])
-    } catch {
+    } catch (error) {
+      console.error('Failed to parse JSON:', error, 'Text:', jsonMatch[0].substring(0, 100))
       return empty
     }
 
@@ -352,11 +375,8 @@ Available context:
 ${contextBlock}
 
 Task:
-- Produce a concise, user-friendly summary of this document.
-- Prefer 3-5 bullet points OR a short paragraph (max ~150 words).
-- Highlight key qualifications, experience, education, skills, or document purpose.
-- If the document content is available, focus on the actual content rather than just metadata.
-- Output plain text only (no markdown fences).`
+Produce ONE concise sentence summarizing this document's main purpose and content. Be general and focus on what the document is about.
+Output plain text only (no markdown fences, no bullet points, just one sentence).`
 
     const result = await model.generateContent(prompt)
     const response = await result.response

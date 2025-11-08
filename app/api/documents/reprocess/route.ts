@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { parseDocument } from "@/lib/ai"
+import { extractTextFromPDF } from "@/lib/pdf-utils"
 import type { Document } from "@/types/database"
 
 export const runtime = "nodejs"
@@ -189,24 +190,7 @@ export async function POST(request: Request) {
         if (contentType.startsWith("text/") || contentType.includes("json")) {
           extractedText = Buffer.from(arrayBuffer).toString("utf-8")
         } else if (contentType.includes("application/pdf")) {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const pdfParse: (data: Buffer) => Promise<{ text: string }> = require("pdf-parse")
-            const parsed = await pdfParse(Buffer.from(arrayBuffer))
-            extractedText = parsed.text || ""
-          } catch (pdfError) {
-            console.error("PDF parsing error:", pdfError)
-            const msg = `PDF parsing failed: ${pdfError}`
-            await supabase
-              .from("documents")
-              .update({
-                analysis_status: "failed",
-                analysis_error: msg,
-              })
-              .eq("id", id)
-
-            return NextResponse.json({ error: msg }, { status: 500 })
-          }
+          extractedText = await extractTextFromPDF(Buffer.from(arrayBuffer))
         } else if (
           contentType.includes("application/vnd.openxmlformats-officedocument") ||
           contentType.includes("application/msword")

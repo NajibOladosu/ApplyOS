@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { parseDocument } from "@/lib/ai"
+import { extractTextFromPDF } from "@/lib/pdf-utils"
 
 /**
  * Handles document upload + analysis.
@@ -81,15 +82,7 @@ export async function POST(req: NextRequest) {
         if (contentType.startsWith("text/") || contentType.includes("json")) {
           extractedText = buffer.toString("utf-8")
         } else if (contentType.includes("application/pdf")) {
-          try {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const pdfParse: (data: Buffer) => Promise<{ text: string }> = require("pdf-parse")
-            const parsed = await pdfParse(buffer)
-            extractedText = parsed.text || ""
-          } catch (pdfError) {
-            console.error("PDF parsing error:", pdfError)
-            extractedText = ""
-          }
+          extractedText = await extractTextFromPDF(buffer)
         }
 
         // Truncate if too long (100KB limit)
