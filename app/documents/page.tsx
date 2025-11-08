@@ -17,11 +17,10 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Document } from "@/types/database"
-import { getDocuments, deleteDocument, updateDocumentParsedData } from "@/lib/services/documents"
+import { getDocuments, deleteDocument } from "@/lib/services/documents"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
 import { ConfirmDialog } from "@/components/ui/confirm-dialog"
-import { summarizeDocument } from "@/lib/ai"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -100,17 +99,10 @@ export default function DocumentsPage() {
     }
   }
 
-  // Re-process flow (production, via backend pipeline):
-  // - Calls /api/documents/reprocess with the document id
-  // - Backend:
-  //   - Validates auth & ownership (RLS + auth.getUser)
-  //   - Loads document (including file_url)
-  //   - Fetches the raw file from storage
-  //   - Extracts text for supported types
-  //   - Calls parseDocument() (Gemini models/gemini-2.0-flash)
-  //   - Persists structured data into documents.parsed_data
-  // - On success we refresh local state with updated parsed_data.
-  const handleReprocess = async (doc: Document) => {
+  // Analyze document via backend pipeline:
+  // - POST /api/documents/reprocess with { id }
+  // - Backend enforces auth/RLS, fetches file, calls parseDocument, and persists parsed_data & status.
+  const handleAnalyze = async (doc: Document) => {
     if (processingId) return
 
     setProcessingId(doc.id)
@@ -126,36 +118,40 @@ export default function DocumentsPage() {
       const payload = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        console.error("Re-process error:", payload)
+        console.error("Analyze error:", payload)
         toast({
-          title: "Re-process failed",
+          title: "Analyze failed",
           description:
             payload?.error ||
-            "Unable to re-process this document. Please try again or contact support.",
+            "Unable to analyze this document. Please try again or contact support.",
           variant: "destructive",
         })
         return
       }
 
-      // Update local state with new parsed_data from backend
-      const updatedParsed = payload.parsed_data
       setDocuments((prev) =>
         prev.map((d) =>
-          d.id === doc.id ? { ...d, parsed_data: updatedParsed } : d
+          d.id === doc.id
+            ? {
+                ...d,
+                parsed_data: payload.parsed_data ?? d.parsed_data,
+                // analysis_status / parsed_at are surfaced via refetch on detail page; here we optimistically mark analyzed.
+              }
+            : d
         )
       )
 
       toast({
-        title: "Document re-processed",
+        title: "Document analyzed",
         description:
           "The document has been analyzed and its structured data has been updated.",
       })
     } catch (error) {
-      console.error("Error during re-process handler:", error)
+      console.error("Error during analyze handler:", error)
       toast({
-        title: "Re-process failed",
+        title: "Analyze failed",
         description:
-          "An unexpected error occurred while trying to re-process this document.",
+          "An unexpected error occurred while trying to analyze this document.",
         variant: "destructive",
       })
     } finally {
@@ -163,42 +159,69 @@ export default function DocumentsPage() {
     }
   }
 
+  // Generate summary via backend:
+  // - POST /api/documents/[id]/summary
+  // - Backend uses summarizeDocument(), persists summary & summary_generated_at.
   const handleSummarize = async (doc: Document) => {
     if (summarizingId) return
 
     setSummarizingId(doc.id)
     try {
-      const summary = await summarizeDocument({
-        fileName: doc.file_name,
-        parsedData: doc.parsed_data ?? undefined,
+      const res = await fetch(`/api/documents/${doc.id}/summary`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({}),
       })
 
-      // Merge summary into parsed_data without mutating original reference.
-      const currentParsed =
-        (doc.parsed_data && typeof doc.parsed_data === "object"
-          ? (doc.parsed_data as Record<string, unknown>)
-          : {}) || {}
+      const payload = await res.json().catch(() => ({}))
 
-      const updatedParsed = {
-        ...currentParsed,
-        summary,
+      if (!res.ok) {
+        console.error("Summary error:", payload)
+        toast({
+          title: "Summary failed",
+          description:
+            payload?.error ||
+            "Unable to generate a summary for this document.",
+          variant: "destructive",
+        })
+        return
       }
 
-      const updated = await updateDocumentParsedData(doc.id, updatedParsed)
-
       setDocuments((prev) =>
-        prev.map((d) => (d.id === doc.id ? { ...d, parsed_data: updated.parsed_data } : d))
+        prev.map((d) =>
+          d.id === doc.id
+            ? {
+                ...d,
+                // Store summary in-memory for badges/preview; detail page uses API for source of truth.
+                // We attach it under a synthetic field to avoid conflicting with typed Document.
+                parsed_data: {
+                  ...(d.parsed_data as any),
+                },
+                // store summary metadata on the object for UI usage
+                ...(payload.summary !== undefined && {
+                  // cast via any to avoid changing the generated types
+                  ...(d as any),
+                  summary: payload.summary,
+                  summary_generated_at: payload.summary_generated_at,
+                }),
+              }
+            : d
+        )
       )
 
       toast({
         title: "Summary generated",
-        description: "An AI summary has been generated and saved for this document.",
+        description:
+          "Summary has been generated and saved for this document.",
       })
     } catch (error) {
       console.error("Error generating summary:", error)
       toast({
         title: "Summary failed",
-        description: "Unable to generate a summary at this time. Please try again later.",
+        description:
+          "Unable to generate a summary at this time. Please try again later.",
         variant: "destructive",
       })
     } finally {
@@ -361,22 +384,22 @@ export default function DocumentsPage() {
                         <DropdownMenuContent align="end" className="w-52">
                           {/* Re-process flow (see handler for detailed behavior notes) */}
                           <DropdownMenuItem
-                            onClick={() => handleReprocess(doc)}
-                            disabled={processingId === doc.id}
-                            className="cursor-pointer"
-                          >
-                            {processingId === doc.id ? (
-                              <>
-                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                Re-processing...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="mr-2 h-3 w-3" />
-                                Re-process document
-                              </>
-                            )}
-                          </DropdownMenuItem>
+                             onClick={() => handleAnalyze(doc)}
+                             disabled={processingId === doc.id}
+                             className="cursor-pointer"
+                           >
+                             {processingId === doc.id ? (
+                               <>
+                                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                 Analyzing...
+                               </>
+                             ) : (
+                               <>
+                                 <Upload className="mr-2 h-3 w-3" />
+                                 Analyze document
+                               </>
+                             )}
+                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleSummarize(doc)}
                             disabled={summarizingId === doc.id}
@@ -407,50 +430,37 @@ export default function DocumentsPage() {
                           AI Analysis
                         </p>
                         <div className="flex flex-wrap gap-2">
-                          {Object.entries(doc.parsed_data as Record<string, unknown>)
-                            .filter(([key]) => key !== "summary")
-                            .map(([key, value]) => (
+                          {Object.entries(doc.parsed_data as Record<string, unknown>).map(
+                            ([key, value]) => (
                               <Badge key={key} variant="outline" className="text-xs">
                                 {Array.isArray(value)
                                   ? `${value.length} ${key}`
                                   : `${String(value)} ${key}`}
                               </Badge>
-                            ))}
-                          {typeof (doc.parsed_data as Record<string, unknown>).summary ===
-                            "string" &&
-                            (doc.parsed_data as Record<string, unknown>).summary !== "" && (
-                              <Badge variant="outline" className="text-xs">
-                                Summary available
-                              </Badge>
-                            )}
+                            )
+                          )}
                         </div>
                       </div>
                     )}
 
                     {/* Inline summary display if available */}
-                    {doc.parsed_data &&
-                      typeof doc.parsed_data === "object" &&
-                      typeof (doc.parsed_data as Record<string, unknown>).summary ===
-                        "string" &&
-                      (doc.parsed_data as Record<string, unknown>).summary !== "" && (
-                        <div className="mb-4 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
-                          {(doc.parsed_data as Record<string, unknown>).summary as string}
-                        </div>
-                      )}
+                    {(doc as any).summary && (
+                      <div className="mb-4 rounded-md bg-muted/60 p-2 text-xs text-muted-foreground max-h-32 overflow-y-auto">
+                        {(doc as any).summary as string}
+                      </div>
+                    )}
 
                     <div className="flex items-center space-x-2">
                       <Button
                         variant="outline"
                         size="sm"
                         className="flex-1"
-                        onClick={() => {
-                          if (doc.file_url) {
-                            window.open(doc.file_url, "_blank", "noopener,noreferrer")
-                          }
-                        }}
+                        asChild
                       >
-                        <Eye className="mr-2 h-3 w-3" />
-                        View
+                        <Link href={`/documents/${doc.id}`} className="flex items-center justify-center gap-2">
+                          <Eye className="h-3 w-3" />
+                          <span>View</span>
+                        </Link>
                       </Button>
                       <Button
                         variant="outline"
