@@ -89,8 +89,8 @@ Before you begin, ensure you have the following installed:
 
    The `.env.local` file is already configured with Supabase credentials:
    ```env
-   NEXT_PUBLIC_SUPABASE_URL=https://hvmaerptxgeldviarcuj.supabase.co
-   NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+   NEXT_PUBLIC_SUPABASE_URL=your-supabase-public-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
 
    # Optional: Add your OpenAI API key for AI features
    OPENAI_API_KEY=sk-...
