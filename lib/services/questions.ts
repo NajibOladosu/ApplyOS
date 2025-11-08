@@ -1,27 +1,35 @@
-import { createClient } from '@/lib/supabase/client'
-import type { Question } from '@/types/database'
+import { createClient } from "@/lib/supabase/client"
+import type { Question } from "@/types/database"
 
-export async function getQuestionsByApplication(applicationId: string) {
+export async function getQuestionsByApplicationId(applicationId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('questions')
-    .select('*')
-    .eq('application_id', applicationId)
-    .order('created_at', { ascending: true })
+    .from("questions")
+    .select("*")
+    .eq("application_id", applicationId)
+    .order("created_at", { ascending: true })
 
   if (error) throw error
   return data as Question[]
 }
 
-export async function createQuestion(question: {
+export async function createQuestion(input: {
   application_id: string
   question_text: string
-  ai_answer?: string
+  ai_answer?: string | null
+  manual_answer?: string | null
 }) {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('questions')
-    .insert([question])
+    .from("questions")
+    .insert([
+      {
+        application_id: input.application_id,
+        question_text: input.question_text,
+        ai_answer: input.ai_answer ?? null,
+        manual_answer: input.manual_answer ?? null,
+      },
+    ])
     .select()
     .single()
 
@@ -32,9 +40,9 @@ export async function createQuestion(question: {
 export async function updateQuestion(id: string, updates: Partial<Question>) {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('questions')
+    .from("questions")
     .update(updates)
-    .eq('id', id)
+    .eq("id", id)
     .select()
     .single()
 
@@ -45,9 +53,9 @@ export async function updateQuestion(id: string, updates: Partial<Question>) {
 export async function deleteQuestion(id: string) {
   const supabase = createClient()
   const { error } = await supabase
-    .from('questions')
+    .from("questions")
     .delete()
-    .eq('id', id)
+    .eq("id", id)
 
   if (error) throw error
 }
