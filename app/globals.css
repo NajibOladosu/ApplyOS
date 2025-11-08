@@ -1,0 +1,57 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer utilities {
+  .glow-effect {
+    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+  }
+
+  .glow-effect-strong {
+    box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+  }
+
+  .glass-effect {
+    background: rgba(16, 16, 16, 0.7);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(26, 26, 26, 0.5);
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #00FF88 0%, #00CC6A 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #1A1A1A;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #00FF88;
+}
