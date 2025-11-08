@@ -58,6 +58,7 @@ export async function POST(
           "parsed_data",
           "summary",
           "summary_generated_at",
+          "extracted_text",
         ].join(",")
       )
       .eq("id", id)
@@ -75,6 +76,7 @@ export async function POST(
       parsed_data,
       summary,
       summary_generated_at,
+      extracted_text,
     } = doc as unknown as {
       id: string
       file_name: string
@@ -83,6 +85,7 @@ export async function POST(
       parsed_data: unknown
       summary?: string | null
       summary_generated_at?: string | null
+      extracted_text?: string | null
     }
 
     if (!force && summary && summary_generated_at) {
@@ -107,9 +110,11 @@ export async function POST(
       )
     }
 
-    // Fetch and extract document content for better summarization
-    let extractedText = ""
-    if (file_url) {
+    // Use stored extracted text (much faster!)
+    // Only fetch and extract if no stored text is available
+    let textContent = extracted_text || ""
+
+    if (!textContent && file_url) {
       try {
         const fileResponse = await fetch(file_url)
         if (fileResponse.ok) {
@@ -118,12 +123,24 @@ export async function POST(
 
           // Extract text based on content type
           if (contentType.startsWith("text/") || contentType.includes("json")) {
-            extractedText = Buffer.from(arrayBuffer).toString("utf-8")
+            textContent = Buffer.from(arrayBuffer).toString("utf-8")
           } else if (contentType.includes("application/pdf")) {
-            // eslint-disable-next-line @typescript-eslint/no-var-requires
-            const pdfParse: (data: Buffer) => Promise<{ text: string }> = require("pdf-parse")
-            const parsed = await pdfParse(Buffer.from(arrayBuffer))
-            extractedText = parsed.text || ""
+            try {
+              // eslint-disable-next-line @typescript-eslint/no-var-requires
+              const pdfParse: (data: Buffer) => Promise<{ text: string }> = require("pdf-parse")
+              const parsed = await pdfParse(Buffer.from(arrayBuffer))
+              textContent = parsed.text || ""
+            } catch (pdfError) {
+              console.error("PDF parsing error:", pdfError)
+            }
+          }
+
+          // Store for future use
+          if (textContent) {
+            await supabase
+              .from("documents")
+              .update({ extracted_text: textContent })
+              .eq("id", id)
           }
         }
       } catch (err) {
@@ -135,7 +152,7 @@ export async function POST(
     const generated = await summarizeDocument({
       fileName: file_name,
       parsedData: parsed_data ?? undefined,
-      extractedText: extractedText || undefined,
+      extractedText: textContent || undefined,
     })
 
     const { data: updated, error: updateError } = await supabase
