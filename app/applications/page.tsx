@@ -199,7 +199,9 @@ export default function ApplicationsPage() {
 
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center space-x-3 mb-2">
-                            <h3 className="text-lg font-semibold truncate">{app.title}</h3>
+                            <Link href={`/applications/${app.id}`} className="flex-1">
+                              <h3 className="text-lg font-semibold truncate hover:text-primary transition-colors cursor-pointer">{app.title}</h3>
+                            </Link>
                             <div className={`h-2 w-2 rounded-full ${priorityConfig[app.priority].color}`} />
                           </div>
 
