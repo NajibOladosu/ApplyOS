@@ -19,6 +19,13 @@
 .DS_Store
 *.pem
 
+# local tools/config that should not be pushed
+.kilocode
+
+# markdown: ignore all .md files except README.md
+*.md
+!README.md
+
 # debug
 npm-debug.log*
 yarn-debug.log*
