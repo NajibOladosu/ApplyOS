@@ -218,7 +218,7 @@ export default function DocumentDetailPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ id: doc.id }),
+        body: JSON.stringify({ id: doc.id, force: true }),
       })
       const payload = await res.json().catch(() => ({}))
 
@@ -261,7 +261,7 @@ export default function DocumentDetailPage() {
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({}),
+        body: JSON.stringify({ force: true }),
       })
       const payload = await res.json().catch(() => ({}))
 
