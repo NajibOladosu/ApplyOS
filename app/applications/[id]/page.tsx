@@ -27,6 +27,7 @@ import { getApplication, updateApplication, getApplicationDocuments, updateAppli
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
+import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -51,6 +52,7 @@ export default function ApplicationDetailPage() {
   const [isSavingChanges, setIsSavingChanges] = useState(false)
   const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const [showEditQuestionsModal, setShowEditQuestionsModal] = useState(false)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
 
   useEffect(() => {
@@ -629,6 +631,18 @@ export default function ApplicationDetailPage() {
                   </>
                 )}
               </Button>
+              {questions.length > 0 && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowEditQuestionsModal(true)}
+                  disabled={regenerating !== null || extracting}
+                  title="Edit, delete, or add new questions"
+                >
+                  <Edit className="mr-2 h-4 w-4" />
+                  Edit Questions
+                </Button>
+              )}
               <Button
                 variant="outline"
                 size="sm"
@@ -773,6 +787,26 @@ export default function ApplicationDetailPage() {
           void load()
         }}
         application={application}
+      />
+
+      {/* Edit Questions Modal */}
+      <EditQuestionsModal
+        isOpen={showEditQuestionsModal}
+        onClose={() => setShowEditQuestionsModal(false)}
+        onSuccess={() => {
+          // Reload questions data
+          const load = async () => {
+            try {
+              const qs = await getQuestionsByApplicationId(id!)
+              setQuestions(qs)
+            } catch (err) {
+              console.error("Error reloading questions:", err)
+            }
+          }
+          void load()
+        }}
+        questions={questions}
+        applicationId={application?.id || ""}
       />
     </DashboardLayout>
   )
