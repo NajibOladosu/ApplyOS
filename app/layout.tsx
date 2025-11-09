@@ -1,14 +1,24 @@
 import type { Metadata } from "next"
-import { Manrope } from "next/font/google"
+import { Manrope, Crimson_Text } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ToastProvider } from "@/components/ui/use-toast"
 
 const manrope = Manrope({ subsets: ["latin"] })
+const crimsonText = Crimson_Text({
+  subsets: ["latin"],
+  weight: ["400", "600", "700"],
+  variable: "--font-crimson"
+})
 
 export const metadata: Metadata = {
   title: "Trackly - AI-Powered Application Manager",
   description: "Automate the way you apply for jobs and scholarships with AI-powered intelligence",
+  icons: {
+    icon: "/favicon.svg",
+    shortcut: "/favicon.svg",
+    apple: "/apple-icon?v=1",
+  },
 }
 
 export default function RootLayout({
@@ -18,7 +28,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" className="dark">
-      <body className={manrope.className}>
+      <body className={`${manrope.className} ${crimsonText.variable}`}>
         <AuthProvider>
           <ToastProvider>
             {children}

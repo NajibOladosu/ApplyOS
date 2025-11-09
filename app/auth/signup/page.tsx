@@ -96,9 +96,12 @@ export default function SignupPage() {
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
               <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect">
-                <span className="text-2xl font-bold text-primary-foreground">T</span>
+                <span className="text-2xl font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
               </div>
-              <span className="text-3xl font-bold text-gradient">Trackly</span>
+              <span className="text-3xl font-bold">
+                <span className="text-primary">Track</span>
+                <span className="text-white">ly</span>
+              </span>
             </div>
           </Link>
           <h1 className="text-2xl font-bold text-foreground">Create an account</h1>
