@@ -9,6 +9,7 @@ import { X, Loader2, Plus, Trash2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import type { Question } from "@/types/database"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 interface EditQuestionsModalProps {
   isOpen: boolean
@@ -29,6 +30,7 @@ export function EditQuestionsModal({
   const [editedQuestions, setEditedQuestions] = useState<Question[]>([])
   const [bulkQuestionsText, setBulkQuestionsText] = useState("")
   const [showBulkAdd, setShowBulkAdd] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Initialize form with questions data
   useEffect(() => {
@@ -56,7 +58,7 @@ export function EditQuestionsModal({
       .filter((text) => text.length > 0)
 
     if (newQuestions.length === 0) {
-      alert("Please enter at least one question.")
+      setErrorMessage("Please enter at least one question.")
       return
     }
 
@@ -116,7 +118,7 @@ export function EditQuestionsModal({
       handleClose()
     } catch (error) {
       console.error("Error updating questions:", error)
-      alert("Error updating questions. Please try again.")
+      setErrorMessage("Error updating questions. Please try again.")
     } finally {
       setLoading(false)
     }
@@ -282,6 +284,15 @@ export function EditQuestionsModal({
           </Card>
         </motion.div>
       </div>
+
+      {/* Error Modal */}
+      <AlertModal
+        isOpen={!!errorMessage}
+        title="Error"
+        message={errorMessage || ""}
+        type="error"
+        onClose={() => setErrorMessage(null)}
+      />
     </AnimatePresence>
   )
 }

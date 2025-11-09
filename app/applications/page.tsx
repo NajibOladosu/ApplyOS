@@ -21,6 +21,8 @@ import Link from "next/link"
 import { getApplications, deleteApplication } from "@/lib/services/applications"
 import type { Application } from "@/types/database"
 import { AddApplicationModal } from "@/components/modals/add-application-modal"
+import { ConfirmModal } from "@/components/modals/confirm-modal"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 const statusConfig = {
   draft: { label: "Draft", variant: "outline" as const, color: "bg-muted" },
@@ -43,6 +45,10 @@ export default function ApplicationsPage() {
   const [searchQuery, setSearchQuery] = useState("")
   const [selectedStatus, setSelectedStatus] = useState("all")
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+  const [deleteLoading, setDeleteLoading] = useState(false)
 
   useEffect(() => {
     fetchApplications()
@@ -59,16 +65,31 @@ export default function ApplicationsPage() {
     }
   }
 
-  const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to delete this application?')) return
+  const handleDeleteClick = (id: string) => {
+    setDeletingId(id)
+    setDeleteConfirmOpen(true)
+  }
 
+  const handleConfirmDelete = async () => {
+    if (!deletingId) return
+
+    setDeleteLoading(true)
     try {
-      await deleteApplication(id)
-      setApplications(apps => apps.filter(app => app.id !== id))
+      await deleteApplication(deletingId)
+      setApplications(apps => apps.filter(app => app.id !== deletingId))
+      setDeleteConfirmOpen(false)
+      setDeletingId(null)
     } catch (error) {
       console.error('Error deleting application:', error)
-      alert('Error deleting application')
+      setDeleteError('Failed to delete application. Please try again.')
+    } finally {
+      setDeleteLoading(false)
     }
+  }
+
+  const handleCancelDelete = () => {
+    setDeleteConfirmOpen(false)
+    setDeletingId(null)
   }
 
   const filteredApplications = applications.filter((app) => {
@@ -249,7 +270,7 @@ export default function ApplicationsPage() {
                           variant="ghost"
                           size="icon"
                           className="text-destructive hover:text-destructive"
-                          onClick={() => handleDelete(app.id)}
+                          onClick={() => handleDeleteClick(app.id)}
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -268,6 +289,28 @@ export default function ApplicationsPage() {
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
         onSuccess={fetchApplications}
+      />
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteConfirmOpen}
+        title="Delete Application?"
+        description="This action cannot be undone. Are you sure you want to delete this application?"
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        isLoading={deleteLoading}
+      />
+
+      {/* Delete Error Modal */}
+      <AlertModal
+        isOpen={!!deleteError}
+        title="Error"
+        message={deleteError || ""}
+        type="error"
+        onClose={() => setDeleteError(null)}
       />
     </DashboardLayout>
   )

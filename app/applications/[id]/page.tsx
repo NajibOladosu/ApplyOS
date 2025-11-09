@@ -28,6 +28,8 @@ import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQues
 import { getDocuments } from "@/lib/services/documents"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
+import { ConfirmModal } from "@/components/modals/confirm-modal"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -53,6 +55,8 @@ export default function ApplicationDetailPage() {
   const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showEditQuestionsModal, setShowEditQuestionsModal] = useState(false)
+  const [showExtractConfirmModal, setShowExtractConfirmModal] = useState(false)
+  const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
 
   useEffect(() => {
@@ -141,19 +145,21 @@ export default function ApplicationDetailPage() {
     }
   }
 
-  const handleExtractQuestions = async () => {
+  const handleExtractQuestions = () => {
     if (!application || !application.url) {
       setError("No application URL found. Please add a URL to the application first.")
       return
     }
 
-    const confirmExtract = confirm(
-      "This will replace all existing questions with newly extracted ones. Continue?"
-    )
-    if (!confirmExtract) return
+    setShowExtractConfirmModal(true)
+  }
+
+  const handleConfirmExtractQuestions = async () => {
+    if (!application) return
 
     setExtracting(true)
     setError(null)
+    setShowExtractConfirmModal(false)
 
     try {
       // Call the extract-from-url API
@@ -188,7 +194,7 @@ export default function ApplicationDetailPage() {
       setQuestions(newQuestions)
 
       // Show success message
-      alert(`Successfully extracted ${newQuestions.length} question(s)!`)
+      setSuccessMessage(`Successfully extracted ${newQuestions.length} question(s)!`)
     } catch (err) {
       console.error('Error extracting questions:', err)
       setError('Failed to extract questions. Please try again.')
@@ -807,6 +813,27 @@ export default function ApplicationDetailPage() {
         }}
         questions={questions}
         applicationId={application?.id || ""}
+      />
+
+      {/* Extract Questions Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showExtractConfirmModal}
+        title="Extract Questions?"
+        description="This will replace all existing questions with newly extracted ones from the URL. Continue?"
+        confirmText="Extract"
+        cancelText="Cancel"
+        onConfirm={handleConfirmExtractQuestions}
+        onCancel={() => setShowExtractConfirmModal(false)}
+        isLoading={extracting}
+      />
+
+      {/* Success Message Modal */}
+      <AlertModal
+        isOpen={!!successMessage}
+        title="Success"
+        message={successMessage || ""}
+        type="success"
+        onClose={() => setSuccessMessage(null)}
       />
     </DashboardLayout>
   )
