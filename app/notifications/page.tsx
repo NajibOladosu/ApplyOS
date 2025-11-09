@@ -19,6 +19,7 @@ import {
   markAllAsRead,
   markAsRead,
 } from "@/lib/services/notifications"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 const typeConfig = {
   deadline: { icon: Calendar, color: "text-red-500", bg: "bg-red-500/10" },
@@ -34,6 +35,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [markReadError, setMarkReadError] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -63,7 +65,7 @@ export default function NotificationsPage() {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })))
     } catch (err) {
       console.error("Error marking all as read:", err)
-      alert("Failed to mark notifications as read.")
+      setMarkReadError("Failed to mark notifications as read.")
     } finally {
       setUpdating(false)
     }
@@ -206,6 +208,15 @@ export default function NotificationsPage() {
             {error}
           </p>
         )}
+
+        {/* Error Modal */}
+        <AlertModal
+          isOpen={!!markReadError}
+          title="Error"
+          message={markReadError || ""}
+          type="error"
+          onClose={() => setMarkReadError(null)}
+        />
       </div>
     </DashboardLayout>
   )

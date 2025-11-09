@@ -8,11 +8,13 @@ import { motion } from "framer-motion"
 import { Upload, FileText, CheckCircle, X } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import Link from "next/link"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploaded, setUploaded] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(acceptedFiles)
@@ -53,7 +55,7 @@ export default function UploadPage() {
       setUploaded(true)
     } catch (error) {
       console.error("Upload failed:", error)
-      alert(
+      setErrorMessage(
         error instanceof Error
           ? error.message
           : "Failed to upload documents. Please try again."
@@ -239,6 +241,15 @@ export default function UploadPage() {
             </CardContent>
           </Card>
         </div>
+
+        {/* Error Modal */}
+        <AlertModal
+          isOpen={!!errorMessage}
+          title="Upload Failed"
+          message={errorMessage || ""}
+          type="error"
+          onClose={() => setErrorMessage(null)}
+        />
       </div>
     </DashboardLayout>
   )

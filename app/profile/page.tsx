@@ -9,6 +9,8 @@ import { Badge } from "@/components/ui/badge"
 import { User, Mail, Calendar, Github, Linkedin, Loader2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import { PromptModal } from "@/components/modals/prompt-modal"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 interface Profile {
   id: string
@@ -28,6 +30,9 @@ export default function ProfilePage() {
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
+  const [showDeletePrompt, setShowDeletePrompt] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
+  const [deletingAccount, setDeletingAccount] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -111,6 +116,43 @@ export default function ProfilePage() {
     } finally {
       setSaving(false)
       setTimeout(() => setSuccess(false), 2500)
+    }
+  }
+
+  const handleDeleteAccount = async () => {
+    if (!user) return
+
+    setDeletingAccount(true)
+    try {
+      // Deleting from public.users will cascade to related tables due to FKs
+      const { error: deleteError } = await supabase
+        .from("users")
+        .delete()
+        .eq("id", user.id)
+
+      if (deleteError) {
+        console.error("Error deleting user profile:", deleteError)
+        setDeleteError("Failed to delete your account. Please try again or contact support.")
+        return
+      }
+
+      // Also remove the auth user (session + auth identity)
+      const { error: authError } = await supabase.auth.admin.deleteUser(
+        user.id
+      )
+
+      if (authError) {
+        console.error("Error deleting auth user:", authError)
+        // At this point profile is gone; inform user to contact support if issues
+      }
+
+      await supabase.auth.signOut()
+      window.location.href = "/"
+    } catch (err) {
+      console.error("Unexpected error during account deletion:", err)
+      setDeleteError("An unexpected error occurred while deleting your account.")
+    } finally {
+      setDeletingAccount(false)
     }
   }
 
@@ -347,48 +389,7 @@ export default function ProfilePage() {
               </div>
               <Button
                 variant="destructive"
-                onClick={async () => {
-                  if (!user) return
-                  const confirmed = window.prompt(
-                    'Type DELETE to confirm permanent deletion of your account.'
-                  )
-                  if (confirmed !== "DELETE") {
-                    return
-                  }
-                  try {
-                    // Deleting from public.users will cascade to related tables due to FKs
-                    const { error: deleteError } = await supabase
-                      .from("users")
-                      .delete()
-                      .eq("id", user.id)
-
-                    if (deleteError) {
-                      console.error("Error deleting user profile:", deleteError)
-                      alert(
-                        "Failed to delete your account. Please try again or contact support."
-                      )
-                      return
-                    }
-
-                    // Also remove the auth user (session + auth identity)
-                    const { error: authError } = await supabase.auth.admin.deleteUser(
-                      user.id
-                    )
-
-                    if (authError) {
-                      console.error("Error deleting auth user:", authError)
-                      // At this point profile is gone; inform user to contact support if issues
-                    }
-
-                    await supabase.auth.signOut()
-                    window.location.href = "/"
-                  } catch (err) {
-                    console.error("Unexpected error during account deletion:", err)
-                    alert(
-                      "An unexpected error occurred while deleting your account."
-                    )
-                  }
-                }}
+                onClick={() => setShowDeletePrompt(true)}
               >
                 Delete Account
               </Button>
@@ -402,6 +403,30 @@ export default function ProfilePage() {
             </p>
           </CardContent>
         </Card>
+
+        {/* Delete Account Prompt Modal */}
+        <PromptModal
+          isOpen={showDeletePrompt}
+          title="Delete Your Account?"
+          description="This action is permanent and cannot be undone. All your data including applications, documents, and settings will be deleted."
+          placeholder="Type DELETE to confirm"
+          requiredValue="DELETE"
+          confirmText="Delete My Account"
+          cancelText="Cancel"
+          variant="destructive"
+          onConfirm={handleDeleteAccount}
+          onCancel={() => setShowDeletePrompt(false)}
+          isLoading={deletingAccount}
+        />
+
+        {/* Delete Error Modal */}
+        <AlertModal
+          isOpen={!!deleteError}
+          title="Error"
+          message={deleteError || ""}
+          type="error"
+          onClose={() => setDeleteError(null)}
+        />
       </div>
     </DashboardLayout>
   )
