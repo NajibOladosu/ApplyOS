@@ -199,16 +199,18 @@ export default function ProfilePage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="flex flex-col items-center space-y-4">
-              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-3xl font-bold text-primary-foreground overflow-hidden glow-effect">
+              <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden glow-effect flex items-center justify-center">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={avatarUrl}
-                    alt={name || profile.email}
-                    className="w-full h-full object-cover"
+                    alt="User avatar"
+                    className="h-full w-full object-cover"
                   />
                 ) : (
-                  <span>{initials}</span>
+                  <span className="text-3xl font-bold text-slate-700 select-none">
+                    {initials}
+                  </span>
                 )}
               </div>
               <div className="space-y-2 w-full max-w-md">
