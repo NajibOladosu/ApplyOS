@@ -6,6 +6,7 @@
   <img src="https://img.shields.io/badge/TypeScript-5.4.0-blue" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Supabase-Enabled-green" alt="Supabase" />
   <img src="https://img.shields.io/badge/Tailwind-3.4.3-38bdf8" alt="Tailwind" />
+  <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel" alt="Vercel" />
   <img src="https://img.shields.io/badge/License-MIT-yellow" alt="License" />
 </div>
 
@@ -276,6 +277,12 @@ Trackly uses a sophisticated document processing pipeline:
 
 ## Deployment
 
+### ✅ Live on Vercel
+
+This project is deployed on **Vercel** with automatic deployments enabled. Every push to the `main` branch triggers an automatic build and deployment.
+
+**Live URL:** Your deployment will be available at `https://your-project.vercel.app` after setup.
+
 ### Deploy to Vercel (Recommended)
 
 1. **Push to GitHub**
@@ -291,25 +298,37 @@ Trackly uses a sophisticated document processing pipeline:
    - Go to [Vercel Dashboard](https://vercel.com/dashboard)
    - Click "New Project"
    - Import your GitHub repository
-   - Configure project settings
+   - Vercel will automatically detect it's a Next.js project
 
 3. **Add Environment Variables**
 
-   Add all variables from your `.env.local`:
+   In Vercel project settings, add all variables from your `.env.local`:
    - `NEXT_PUBLIC_SUPABASE_URL`
    - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
    - `GEMINI_API_KEY`
    - `SUPABASE_SERVICE_ROLE_KEY` (optional)
 
-4. **Deploy**
+4. **Enable Automatic Deployments**
 
-   Click "Deploy" and wait for the build to complete
+   - Vercel automatically deploys on every push to `main`
+   - Preview deployments are created for all pull requests
+   - Deployments are available within minutes
 
 5. **Configure Production Database**
 
    - Apply all migrations to your production Supabase instance
    - Create the `documents` storage bucket
    - Configure storage policies
+
+### Vercel Configuration
+
+The project includes a `vercel.json` configuration file that defines:
+- Build command: `npm run build`
+- Development command: `npm run dev`
+- Framework: Next.js
+- Required environment variables
+
+No additional configuration is needed—just push to main!
 
 ### Environment Variables for Production
 
