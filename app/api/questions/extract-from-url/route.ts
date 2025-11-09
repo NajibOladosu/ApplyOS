@@ -72,12 +72,8 @@ export async function POST(request: NextRequest) {
     if (!genAI) {
       return NextResponse.json(
         {
-          error: 'AI service not configured',
-          questions: [
-            'Why are you interested in this position?',
-            'What are your key qualifications?',
-            'What are your salary expectations?',
-          ],
+          error: 'AI service not configured. Please add Gemini API key to enable question extraction.',
+          questions: [],
         },
         { status: 200 }
       )
@@ -131,13 +127,10 @@ export async function POST(request: NextRequest) {
       console.error('Error fetching URL:', error)
       return NextResponse.json(
         {
-          error: 'Failed to fetch URL content. Please check the URL and try again.',
-          questions: [
-            'Why are you interested in this position?',
-            'What are your key qualifications?',
-          ],
+          error: 'Failed to fetch URL content. The page may be protected or inaccessible. Please check the URL or add questions manually.',
+          questions: [],
         },
-        { status: 200 } // Return 200 with fallback questions instead of failing
+        { status: 200 } // Return 200 with empty array instead of failing
       )
     }
 
@@ -147,11 +140,8 @@ export async function POST(request: NextRequest) {
     if (!textContent || textContent.length < 50) {
       return NextResponse.json(
         {
-          error: 'Could not extract meaningful content from the URL',
-          questions: [
-            'Why are you interested in this position?',
-            'What are your key qualifications?',
-          ],
+          error: 'Could not extract meaningful content from the URL. The page may be empty or use JavaScript rendering.',
+          questions: [],
         },
         { status: 200 }
       )
@@ -170,7 +160,11 @@ Below is the text content extracted from a job/scholarship posting webpage:
 
 ${truncatedText}
 
-CRITICAL RULE: Only extract questions where an AI would need to use the applicant's resume/experience to generate a thoughtful answer. If the applicant already knows the answer without needing to think deeply or reference their background, DO NOT include it.
+CRITICAL RULES:
+1. ONLY extract questions that are LITERALLY WRITTEN on the page - do NOT make up, invent, or hallucinate any questions
+2. Copy the EXACT WORDING from the page - do not paraphrase or rewrite
+3. Only extract questions where an AI would need the applicant's resume/experience to generate a thoughtful answer
+4. If you don't see any essay questions on the page, return an empty array []
 
 INCLUDE ONLY these types of questions (essay/open-ended questions that need AI assistance):
 - "Why are you interested in this company/position?" or "Why do you want to work here?"
@@ -217,17 +211,24 @@ Examples of BAD questions to SKIP (applicant already knows the answer):
 ✗ "Are you authorized to work in the US?"
 ✗ "What is your current GPA?"
 
-TEST: Before including a question, ask yourself: "Would an AI need to analyze the applicant's resume/background to answer this, or does the applicant already know the simple factual answer?" If they already know, EXCLUDE it.
+VERIFICATION STEPS:
+1. Find the actual question text on the page
+2. Check: Is this an essay/open-ended question requiring 100+ word thoughtful response?
+3. Check: Would an AI need resume/experience to answer this?
+4. Check: Is this NOT a basic form field the applicant already knows?
+5. If all checks pass, copy the EXACT question text and include it
+6. If NO questions pass all checks, return empty array []
+
+WARNING: Do NOT invent questions like "Why are you interested in this position?" if they don't actually appear on the page. Only extract questions that are literally written in the text above.
 
 IMPORTANT:
-- Return ONLY a JSON array of strings
-- Each string should be a complete question that requires a 100+ word thoughtful essay response
-- Only include questions where AI would reference resume/experience to answer
-- If no meaningful essay questions are found, return an empty array []
+- Return ONLY a JSON array of strings with EXACT question text from the page
+- If you don't see any essay questions in the text, return []
+- Do NOT make up generic questions - only extract what's actually there
 - Do NOT include markdown code fences
 - Do NOT include any explanatory text
 
-Extract ONLY the meaningful essay questions now:`
+Extract ONLY the actual essay questions found on this page:`
 
       const result = await model.generateContent(prompt)
       const response = await result.response
@@ -245,10 +246,8 @@ Extract ONLY the meaningful essay questions now:`
         console.warn('No JSON array found in Gemini response')
         return NextResponse.json(
           {
-            questions: [
-              'Why are you interested in this position?',
-              'What are your key qualifications?',
-            ],
+            error: 'Could not parse AI response. Please try again or add questions manually.',
+            questions: [],
           },
           { status: 200 }
         )
@@ -265,21 +264,25 @@ Extract ONLY the meaningful essay questions now:`
         .filter((q) => typeof q === 'string' && q.trim().length > 0)
         .map((q) => q.trim())
 
+      if (validQuestions.length === 0) {
+        return NextResponse.json(
+          {
+            error: 'No essay questions found on this page. The application may not have open-ended questions, or they may be in a format that cannot be extracted.',
+            questions: [],
+          },
+          { status: 200 }
+        )
+      }
+
       return NextResponse.json({
-        questions: validQuestions.length > 0 ? validQuestions : [
-          'Why are you interested in this position?',
-          'What are your key qualifications?',
-        ],
+        questions: validQuestions,
       })
     } catch (error) {
       console.error('Error extracting questions with AI:', error)
       return NextResponse.json(
         {
-          error: 'AI extraction failed',
-          questions: [
-            'Why are you interested in this position?',
-            'What are your key qualifications?',
-          ],
+          error: 'AI extraction failed. Please try again or add questions manually.',
+          questions: [],
         },
         { status: 200 }
       )
