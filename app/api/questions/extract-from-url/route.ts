@@ -154,7 +154,7 @@ export async function POST(request: NextRequest) {
     try {
       const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
 
-      const prompt = `You are an AI assistant that extracts meaningful application questions from job postings and scholarship pages.
+      const prompt = `You are an AI assistant that extracts open-ended application questions from job postings and scholarship pages.
 
 Below is the text content extracted from a job/scholarship posting webpage:
 
@@ -163,72 +163,75 @@ ${truncatedText}
 CRITICAL RULES:
 1. ONLY extract questions that are LITERALLY WRITTEN on the page - do NOT make up, invent, or hallucinate any questions
 2. Copy the EXACT WORDING from the page - do not paraphrase or rewrite
-3. Only extract questions where an AI would need the applicant's resume/experience to generate a thoughtful answer
-4. If you don't see any essay questions on the page, return an empty array []
+3. Extract ALL open-ended questions that require written text responses (paragraphs, not just single words)
+4. If you don't see any open-ended questions on the page, return an empty array []
 
-INCLUDE ONLY these types of questions (essay/open-ended questions that need AI assistance):
-- "Why are you interested in this company/position?" or "Why do you want to work here?"
-- "What excites you about this opportunity/role/product?"
-- "Tell us about a time when..." or "Describe an experience where..."
-- Questions asking for specific examples from their background
-- Questions about challenges, problem-solving, or achievements
-- Questions about goals, aspirations, or motivations
-- "What would you bring to this role/team?"
-- Questions asking for their perspective on industry topics or challenges
+WHAT IS AN OPEN-ENDED QUESTION?
+Any question that requires the applicant to write at least a few sentences explaining their thoughts, experiences, or perspectives. This includes:
+- "Why" questions (Why are you interested? Why do you want to work here?)
+- "What" questions about experiences, motivations, or perspectives
+- "How" questions about approaches or methods
+- "Describe" or "Tell us about" prompts
+- Questions asking for examples, stories, or explanations
+- Questions about goals, challenges, interests, or opinions
+- Cover letter or personal statement prompts
 
-EXCLUDE ALL of these (the applicant knows these without needing AI):
-- ANY personal information: name, preferred name, pronouns, name pronunciation
-- Contact details: email, phone, address, city, state, country
-- Links: resume, portfolio, GitHub, LinkedIn, personal website, social media
-- Education details: university name, major, graduation date, GPA
-- Simple factual questions: "What languages do you speak?", "What degree are you pursuing?"
-- Work authorization, visa status, citizenship
-- Availability: start date, work schedule, hours per week
+EXCLUDE ONLY these basic form fields (NOT open-ended):
+- Personal information: name, preferred name, pronouns, name pronunciation
+- Contact details: email, phone, address, city, state, country, zip code
+- Links to files: resume, portfolio, GitHub, LinkedIn, website URLs
+- Education factual data: university name, major, graduation date, GPA, degree type
+- Simple factual questions with one-word answers: "What languages do you speak?", "What year are you?"
+- Work authorization: visa status, citizenship, eligibility questions
+- Availability: start date, work schedule, "When can you start?"
 - Demographics: race, ethnicity, gender, age, disability status
-- Simple preferences: remote/in-office, location preference
-- Salary/compensation expectations
-- Yes/no questions or checkbox items
-- Dropdown selections
-- "Are you willing to..." or "Do you have..." questions
+- Simple preferences answered with dropdowns: location, remote/hybrid/in-office
+- Salary numbers: expected salary, compensation range
+- Yes/No questions or checkbox items
+- Questions answered by selecting from a dropdown list
 
-Examples of GOOD questions to extract (require thoughtful AI-generated answers):
-✓ "What's most exciting to you about Palantir's offerings and why do you want to work here?"
-✓ "Please share one problem you've been able to solve more efficiently with the help of AI."
-✓ "Tell us one thing that's not on your resume that you're proud of."
-✓ "Describe a challenging technical problem you solved and your approach."
-✓ "Why are you interested in this internship and what do you hope to gain?"
-✓ "What unique perspective or experience would you bring to our team?"
+INCLUDE - Examples of GOOD open-ended questions to extract:
+✓ "What's most exciting to you about this company and why do you want to work here?"
+✓ "Please share one problem you've solved more efficiently with the help of AI"
+✓ "Tell us one thing that's not on your resume that you're proud of"
+✓ "Describe a challenging technical problem you solved"
+✓ "Why are you interested in this internship?"
+✓ "What unique perspective would you bring to our team?"
+✓ "How did you hear about this position and what interests you?"
+✓ "What are your career goals?"
+✓ "Describe your experience with [specific technology/skill]"
+✓ "Tell us about a time when you demonstrated leadership"
+✓ "What motivates you to apply for this role?"
 
-Examples of BAD questions to SKIP (applicant already knows the answer):
+EXCLUDE - Examples of BAD questions to SKIP:
 ✗ "Preferred Name | What would you like us to call you?"
 ✗ "Name Pronunciation | How do you pronounce your name?"
 ✗ "What is your GitHub username?"
-✗ "Which university do you attend?"
-✗ "What languages do you speak?"
+✗ "Which university do you attend?" (unless asking WHY you chose it)
+✗ "What languages do you speak?" (factual list)
 ✗ "Link to your resume"
-✗ "When can you start?"
-✗ "What is your expected salary?"
-✗ "Are you authorized to work in the US?"
-✗ "What is your current GPA?"
+✗ "When can you start?" (just a date)
+✗ "What is your expected salary?" (just a number)
+✗ "Are you authorized to work in the US?" (yes/no)
+✗ "What is your current GPA?" (just a number)
+✗ "What year are you in school?" (dropdown/number)
 
-VERIFICATION STEPS:
-1. Find the actual question text on the page
-2. Check: Is this an essay/open-ended question requiring 100+ word thoughtful response?
-3. Check: Would an AI need resume/experience to answer this?
-4. Check: Is this NOT a basic form field the applicant already knows?
-5. If all checks pass, copy the EXACT question text and include it
-6. If NO questions pass all checks, return empty array []
+VERIFICATION TEST:
+Before including a question, ask: "Does this require the applicant to write sentences explaining their thoughts/experiences, or can it be answered with just a name/link/number/dropdown?"
+- If it needs sentences/paragraphs → INCLUDE
+- If it's just a factual field → EXCLUDE
 
-WARNING: Do NOT invent questions like "Why are you interested in this position?" if they don't actually appear on the page. Only extract questions that are literally written in the text above.
+WARNING: Do NOT invent questions. Only extract questions that are literally written in the text above.
 
 IMPORTANT:
 - Return ONLY a JSON array of strings with EXACT question text from the page
-- If you don't see any essay questions in the text, return []
+- Extract ALL open-ended questions you find - be inclusive, not exclusive
+- If you don't see any open-ended questions in the text, return []
 - Do NOT make up generic questions - only extract what's actually there
 - Do NOT include markdown code fences
 - Do NOT include any explanatory text
 
-Extract ONLY the actual essay questions found on this page:`
+Extract ALL the open-ended questions found on this page:`
 
       const result = await model.generateContent(prompt)
       const response = await result.response
@@ -267,7 +270,7 @@ Extract ONLY the actual essay questions found on this page:`
       if (validQuestions.length === 0) {
         return NextResponse.json(
           {
-            error: 'No essay questions found on this page. The application may not have open-ended questions, or they may be in a format that cannot be extracted.',
+            error: 'No open-ended questions found on this page. The application may only have basic form fields, or questions may be in a format that cannot be extracted (e.g., embedded in images or JavaScript forms).',
             questions: [],
           },
           { status: 200 }
