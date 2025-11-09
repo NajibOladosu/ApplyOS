@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { X, Sparkles, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createApplication } from "@/lib/services/applications"
-import { extractQuestionsFromURL } from "@/lib/ai"
 import { createQuestion } from "@/lib/services/questions"
 
 interface AddApplicationModalProps {
@@ -37,9 +36,25 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
 
     setExtracting(true)
     try {
-      const questions = await extractQuestionsFromURL(url)
-      setExtractedQuestions(questions)
-      setStep(2)
+      const response = await fetch('/api/questions/extract-from-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok && data.questions) {
+        setExtractedQuestions(data.questions)
+        setStep(2)
+      } else {
+        console.error('Error extracting questions:', data.error)
+        alert(data.error || 'Error extracting questions. Continuing without AI extraction.')
+        // Still proceed to step 2 even if extraction fails
+        setStep(2)
+      }
     } catch (error) {
       console.error('Error extracting questions:', error)
       alert('Error extracting questions. Continuing without AI extraction.')
