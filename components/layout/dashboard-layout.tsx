@@ -11,7 +11,7 @@ export function DashboardLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-background">
       {/* Desktop Sidebar - Always visible on md and up */}
       <div className="hidden md:block fixed left-0 top-0 z-40 h-screen w-64">
-        <Sidebar />
+        <Sidebar isOpen={true} />
       </div>
 
       {/* Mobile/Tablet Sidebar - Drawer modal on smaller screens */}
