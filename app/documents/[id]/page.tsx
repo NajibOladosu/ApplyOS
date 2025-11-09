@@ -366,33 +366,35 @@ export default function DocumentDetailPage() {
 
     return (
       <Card className="bg-background/60 border-primary/10">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-lg">Summary</CardTitle>
-          <div className="flex items-center gap-2">
-            {doc.summary && (
-              <Badge variant="outline" className="text-xs">
-                Updated {formatDate(doc.summary_generated_at)}
-              </Badge>
-            )}
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1"
-              onClick={handleGenerateSummary}
-              disabled={loadingSummary}
-            >
-              {loadingSummary ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <FileText className="h-3 w-3" />
-                  Generate summary
-                </>
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-base sm:text-lg">Summary</CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              {doc.summary && (
+                <Badge variant="outline" className="text-xs">
+                  Updated {formatDate(doc.summary_generated_at)}
+                </Badge>
               )}
-            </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1 text-xs sm:text-sm"
+                onClick={handleGenerateSummary}
+                disabled={loadingSummary}
+              >
+                {loadingSummary ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Generating...
+                  </>
+                ) : (
+                  <>
+                    <FileText className="h-3 w-3" />
+                    Generate summary
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent>
@@ -434,29 +436,31 @@ export default function DocumentDetailPage() {
 
     return (
       <Card className="bg-background/60 border-primary/10">
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle className="text-lg">AI Analysis</CardTitle>
-          <div className="flex items-center gap-2">
-            {renderAnalysisStatusBadge()}
-            <Button
-              size="sm"
-              variant="outline"
-              className="gap-1"
-              onClick={handleAnalyze}
-              disabled={loadingAnalysis}
-            >
-              {loadingAnalysis ? (
-                <>
-                  <Loader2 className="h-3 w-3 animate-spin" />
-                  Analyzing...
-                </>
-              ) : (
-                <>
-                  <RefreshCw className="h-3 w-3" />
-                  Analyze document
-                </>
-              )}
-            </Button>
+        <CardHeader className="p-4 sm:p-6">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <CardTitle className="text-base sm:text-lg">AI Analysis</CardTitle>
+            <div className="flex flex-wrap items-center gap-2">
+              {renderAnalysisStatusBadge()}
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1 text-xs sm:text-sm"
+                onClick={handleAnalyze}
+                disabled={loadingAnalysis}
+              >
+                {loadingAnalysis ? (
+                  <>
+                    <Loader2 className="h-3 w-3 animate-spin" />
+                    Analyzing...
+                  </>
+                ) : (
+                  <>
+                    <RefreshCw className="h-3 w-3" />
+                    Analyze document
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
@@ -723,19 +727,19 @@ export default function DocumentDetailPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div className="flex items-start gap-3">
+        <div className="flex flex-col gap-4">
+          <div className="flex items-start gap-2 sm:gap-3">
             <button
               onClick={() => router.push("/documents")}
-              className="mt-1 text-muted-foreground hover:text-primary transition-colors"
+              className="mt-1 text-muted-foreground hover:text-primary transition-colors shrink-0"
             >
-              <ArrowLeft className="h-5 w-5" />
+              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold">
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">
                 {doc.file_name}
               </h1>
-              <div className="flex flex-wrap gap-2 mt-2 text-xs text-muted-foreground">
+              <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 text-xs text-muted-foreground">
                 <span>{formatFileSize(doc.file_size)}</span>
                 <span>• Uploaded {formatDate(doc.created_at)}</span>
                 {doc.file_type && <span>• {doc.file_type}</span>}
@@ -770,7 +774,7 @@ export default function DocumentDetailPage() {
               onClick={handleOpenOriginal}
             >
               <ExternalLink className="h-3 w-3" />
-              View original
+              <span className="text-xs sm:text-sm">View original</span>
             </Button>
           </div>
         </div>

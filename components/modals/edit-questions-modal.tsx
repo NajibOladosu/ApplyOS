@@ -135,19 +135,19 @@ export function EditQuestionsModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="w-full max-w-2xl max-h-[80vh] overflow-y-auto"
+          className="w-full max-w-2xl my-8"
         >
           <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>Edit Questions</CardTitle>
-                  <CardDescription>
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base sm:text-lg">Edit Questions</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Edit, delete, or add new application questions
                   </CardDescription>
                 </div>
@@ -156,12 +156,13 @@ export function EditQuestionsModal({
                   size="icon"
                   onClick={handleClose}
                   disabled={loading}
+                  className="h-8 w-8 sm:h-9 sm:w-9 shrink-0"
                 >
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-4 sm:p-6 pt-0 max-h-[70vh] overflow-y-auto">
               {/* Current Questions List */}
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
@@ -176,32 +177,32 @@ export function EditQuestionsModal({
                     No questions yet. Add questions below.
                   </p>
                 ) : (
-                  <div className="space-y-2 max-h-64 overflow-y-auto">
+                  <div className="space-y-2 max-h-48 sm:max-h-64 overflow-y-auto">
                     {editedQuestions.map((question, index) => (
                       <div
                         key={question.id}
-                        className="flex gap-2 items-start p-2 rounded border border-input hover:border-primary/50 transition-colors"
+                        className="flex gap-2 items-start p-2 sm:p-3 rounded border border-input hover:border-primary/50 transition-colors"
                       >
-                        <span className="text-xs font-medium text-muted-foreground mt-2.5 min-w-fit">
+                        <span className="text-xs font-medium text-muted-foreground mt-2.5 min-w-fit shrink-0">
                           Q{index + 1}
                         </span>
-                        <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex-1 min-w-0">
                           <Input
                             value={question.question_text}
                             onChange={(e) =>
                               handleQuestionChange(question.id, e.target.value)
                             }
                             placeholder="Enter question text"
-                            className="text-sm"
+                            className="text-xs sm:text-sm"
                           />
                         </div>
                         <button
                           onClick={() => handleDeleteQuestion(question.id)}
-                          className="p-1.5 hover:bg-destructive/10 rounded transition-colors text-destructive hover:text-destructive"
+                          className="p-1.5 hover:bg-destructive/10 rounded transition-colors text-destructive hover:text-destructive shrink-0"
                           aria-label="Delete question"
                           disabled={loading}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                         </button>
                       </div>
                     ))}
@@ -236,7 +237,7 @@ export function EditQuestionsModal({
                     placeholder="Enter one question per line&#10;e.g.&#10;What is your experience with React?&#10;Why are you interested in this role?&#10;Tell us about a challenging project."
                     rows={5}
                   />
-                  <div className="flex gap-2">
+                  <div className="flex flex-col sm:flex-row gap-2">
                     <Button
                       variant="outline"
                       size="sm"
@@ -261,14 +262,14 @@ export function EditQuestionsModal({
               )}
 
               {/* Form Actions */}
-              <div className="border-t pt-4 flex justify-end space-x-2">
-                <Button variant="outline" onClick={handleClose} disabled={loading}>
+              <div className="border-t pt-4 flex flex-col sm:flex-row justify-end gap-2 sm:gap-2">
+                <Button variant="outline" onClick={handleClose} disabled={loading} className="w-full sm:w-auto">
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={loading}
-                  className="glow-effect"
+                  className="glow-effect w-full sm:w-auto"
                 >
                   {loading ? (
                     <>

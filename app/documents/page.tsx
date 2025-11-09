@@ -246,15 +246,15 @@ export default function DocumentsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Documents</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Documents</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Manage your resumes, transcripts, and certificates
             </p>
           </div>
           <Button
-            className="glow-effect inline-flex items-center justify-center gap-2"
+            className="glow-effect inline-flex items-center justify-center gap-2 w-full sm:w-auto"
             asChild
           >
             <Link href="/upload" className="flex items-center gap-2">
@@ -265,49 +265,49 @@ export default function DocumentsPage() {
         </div>
 
         {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Total Documents
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">{documents.length}</p>
+              <p className="text-xl sm:text-2xl font-bold">{documents.length}</p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Total Size
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">
+              <p className="text-xl sm:text-2xl font-bold">
                 {formatFileSize(totalSize)}
               </p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 Analyzed
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">
+              <p className="text-xl sm:text-2xl font-bold">
                 {analyzedCount}
               </p>
             </CardContent>
           </Card>
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium text-muted-foreground">
+            <CardHeader className="pb-2 sm:pb-3">
+              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
                 This Month
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <p className="text-2xl font-bold">
+              <p className="text-xl sm:text-2xl font-bold">
                 {
                   documents.filter((d) => {
                     if (!d.created_at) return false
@@ -356,14 +356,14 @@ export default function DocumentsPage() {
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
                 <Card className="hover:border-primary/40 transition-all">
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-3">
-                      <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileText className="h-6 w-6 text-primary" />
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex items-start justify-between gap-2 sm:gap-3">
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                        <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="font-semibold truncate">{doc.file_name}</h3>
-                        <p className="text-sm text-muted-foreground mt-1">
+                        <h3 className="text-sm sm:text-base font-semibold truncate">{doc.file_name}</h3>
+                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
                           {formatFileSize(doc.file_size || 0)}
                           {doc.created_at && (
                             <> • {new Date(doc.created_at).toLocaleDateString()}</>
@@ -376,17 +376,17 @@ export default function DocumentsPage() {
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="text-muted-foreground hover:text-primary"
+                            className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
                           >
                             <MoreVertical className="h-4 w-4" />
                           </Button>
                         </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-52">
+                        <DropdownMenuContent align="end" className="w-48 sm:w-52">
                           {/* Re-process flow (see handler for detailed behavior notes) */}
                           <DropdownMenuItem
                              onClick={() => handleAnalyze(doc)}
                              disabled={processingId === doc.id}
-                             className="cursor-pointer"
+                             className="cursor-pointer text-xs sm:text-sm"
                            >
                              {processingId === doc.id ? (
                                <>
@@ -403,7 +403,7 @@ export default function DocumentsPage() {
                           <DropdownMenuItem
                             onClick={() => handleSummarize(doc)}
                             disabled={summarizingId === doc.id}
-                            className="cursor-pointer"
+                            className="cursor-pointer text-xs sm:text-sm"
                           >
                             {summarizingId === doc.id ? (
                               <>
@@ -422,7 +422,7 @@ export default function DocumentsPage() {
                     </div>
                   </CardHeader>
 
-                  <CardContent>
+                  <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                     {/* AI Analysis summary */}
                     {doc.parsed_data && typeof doc.parsed_data === "object" && (
                       <div className="mb-4">
@@ -466,37 +466,37 @@ export default function DocumentsPage() {
                       </div>
                     )}
 
-                    <div className="flex items-center space-x-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 min-w-[100px]"
                         asChild
                       >
-                        <Link href={`/documents/${doc.id}`} className="flex items-center justify-center gap-2">
+                        <Link href={`/documents/${doc.id}`} className="flex items-center justify-center gap-1.5">
                           <Eye className="h-3 w-3" />
-                          <span>View</span>
+                          <span className="text-xs sm:text-sm">View</span>
                         </Link>
                       </Button>
                       <Button
                         variant="outline"
                         size="sm"
-                        className="flex-1"
+                        className="flex-1 min-w-[100px]"
                         onClick={() => {
                           if (doc.file_url) {
                             window.open(doc.file_url, "_blank", "noopener,noreferrer")
                           }
                         }}
                       >
-                        <Download className="mr-2 h-3 w-3" />
-                        Download
+                        <Download className="mr-1.5 h-3 w-3" />
+                        <span className="text-xs sm:text-sm">Download</span>
                       </Button>
                       {/* Explicit, visible destructive delete button with confirm dialog */}
                       <Button
                         variant="ghost"
                         size="icon"
                         className={cn(
-                          "text-destructive hover:text-destructive",
+                          "text-destructive hover:text-destructive h-9 w-9",
                           deletingId === doc.id && "opacity-50 cursor-not-allowed"
                         )}
                         onClick={() => requestDelete(doc)}
