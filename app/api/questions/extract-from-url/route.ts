@@ -170,49 +170,64 @@ Below is the text content extracted from a job/scholarship posting webpage:
 
 ${truncatedText}
 
-Task: Extract ONLY substantive questions that require thoughtful written responses and help the company/organization understand the applicant better.
+CRITICAL RULE: Only extract questions where an AI would need to use the applicant's resume/experience to generate a thoughtful answer. If the applicant already knows the answer without needing to think deeply or reference their background, DO NOT include it.
 
-INCLUDE these types of questions:
-- Essay questions (e.g., "Why do you want to work here?", "What excites you about this role?")
-- Open-ended questions about experience, motivation, or perspective
-- Questions asking for specific examples or stories
-- Questions about goals, challenges, or problem-solving
-- "Tell us about..." or "Describe a time when..." prompts
+INCLUDE ONLY these types of questions (essay/open-ended questions that need AI assistance):
+- "Why are you interested in this company/position?" or "Why do you want to work here?"
+- "What excites you about this opportunity/role/product?"
+- "Tell us about a time when..." or "Describe an experience where..."
+- Questions asking for specific examples from their background
+- Questions about challenges, problem-solving, or achievements
+- Questions about goals, aspirations, or motivations
+- "What would you bring to this role/team?"
+- Questions asking for their perspective on industry topics or challenges
 
-EXCLUDE these types of questions:
-- Basic form fields (name, email, phone, address)
-- Simple yes/no questions
-- Dropdown selections (language proficiency, university selection, degree type)
-- Links to resume/portfolio/GitHub/LinkedIn
-- Start date or availability questions
-- Salary expectations or compensation preferences
-- Demographic information
-- Work authorization status
-- Questions with obvious factual answers the applicant already knows
+EXCLUDE ALL of these (the applicant knows these without needing AI):
+- ANY personal information: name, preferred name, pronouns, name pronunciation
+- Contact details: email, phone, address, city, state, country
+- Links: resume, portfolio, GitHub, LinkedIn, personal website, social media
+- Education details: university name, major, graduation date, GPA
+- Simple factual questions: "What languages do you speak?", "What degree are you pursuing?"
+- Work authorization, visa status, citizenship
+- Availability: start date, work schedule, hours per week
+- Demographics: race, ethnicity, gender, age, disability status
+- Simple preferences: remote/in-office, location preference
+- Salary/compensation expectations
+- Yes/no questions or checkbox items
+- Dropdown selections
+- "Are you willing to..." or "Do you have..." questions
 
-Examples of GOOD questions to extract:
-- "What's most exciting to you about our company's offerings and why do you want to work here?"
-- "Please share one problem you've been able to solve more efficiently with the help of AI."
-- "Tell us one thing that's not on your resume that you're proud of."
-- "Describe a challenging technical problem you solved and your approach."
+Examples of GOOD questions to extract (require thoughtful AI-generated answers):
+✓ "What's most exciting to you about Palantir's offerings and why do you want to work here?"
+✓ "Please share one problem you've been able to solve more efficiently with the help of AI."
+✓ "Tell us one thing that's not on your resume that you're proud of."
+✓ "Describe a challenging technical problem you solved and your approach."
+✓ "Why are you interested in this internship and what do you hope to gain?"
+✓ "What unique perspective or experience would you bring to our team?"
 
-Examples of BAD questions to SKIP:
-- "What is your GitHub username?"
-- "Which languages do you speak?"
-- "What university do you attend?"
-- "Link to your resume"
-- "When can you start?"
-- "What is your expected salary?"
+Examples of BAD questions to SKIP (applicant already knows the answer):
+✗ "Preferred Name | What would you like us to call you?"
+✗ "Name Pronunciation | How do you pronounce your name?"
+✗ "What is your GitHub username?"
+✗ "Which university do you attend?"
+✗ "What languages do you speak?"
+✗ "Link to your resume"
+✗ "When can you start?"
+✗ "What is your expected salary?"
+✗ "Are you authorized to work in the US?"
+✗ "What is your current GPA?"
+
+TEST: Before including a question, ask yourself: "Would an AI need to analyze the applicant's resume/background to answer this, or does the applicant already know the simple factual answer?" If they already know, EXCLUDE it.
 
 IMPORTANT:
 - Return ONLY a JSON array of strings
-- Each string should be a complete, meaningful question
-- Only include questions requiring 2+ sentence written responses
-- If no meaningful questions are found, return an empty array []
+- Each string should be a complete question that requires a 100+ word thoughtful essay response
+- Only include questions where AI would reference resume/experience to answer
+- If no meaningful essay questions are found, return an empty array []
 - Do NOT include markdown code fences
 - Do NOT include any explanatory text
 
-Extract the meaningful questions now:`
+Extract ONLY the meaningful essay questions now:`
 
       const result = await model.generateContent(prompt)
       const response = await result.response
