@@ -432,4 +432,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-**[Trackly](https://github.com/NajibOladosu/Trackly)** - Manage your career journey with AI-powered intelligence
+**[Trackly](https://trackly-chi.vercel.app/)** - Manage your career journey with AI-powered intelligence
