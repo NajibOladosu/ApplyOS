@@ -256,8 +256,8 @@ export default function Home() {
       {/* Footer */}
       <footer className="border-t border-border py-12 px-6">
         <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+            <div className="flex items-center space-x-2">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
                 <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
               </div>
@@ -267,8 +267,23 @@ export default function Home() {
               </span>
             </div>
 
+            <div className="flex items-center gap-6">
+              <Link
+                href="/privacy"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Privacy Policy
+              </Link>
+              <Link
+                href="/terms"
+                className="text-sm text-muted-foreground hover:text-primary transition-colors"
+              >
+                Terms of Service
+              </Link>
+            </div>
+
             <p className="text-sm text-muted-foreground">
-              © 2024 Trackly. All rights reserved.
+              © {new Date().getFullYear()} Trackly. All rights reserved.
             </p>
           </div>
         </div>
