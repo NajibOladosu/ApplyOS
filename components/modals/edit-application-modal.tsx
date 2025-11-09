@@ -85,28 +85,28 @@ export function EditApplicationModal({
 
   return (
     <AnimatePresence>
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm overflow-y-auto">
         <motion.div
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className="w-full max-w-2xl"
+          className="w-full max-w-2xl my-8"
         >
           <Card>
-            <CardHeader>
-              <div className="flex items-start justify-between">
-                <div>
-                  <CardTitle>Edit Application</CardTitle>
-                  <CardDescription>
+            <CardHeader className="p-4 sm:p-6">
+              <div className="flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <CardTitle className="text-base sm:text-lg">Edit Application</CardTitle>
+                  <CardDescription className="text-xs sm:text-sm">
                     Update the details of this application
                   </CardDescription>
                 </div>
-                <Button variant="ghost" size="icon" onClick={handleClose}>
+                <Button variant="ghost" size="icon" onClick={handleClose} className="h-8 w-8 sm:h-9 sm:w-9 shrink-0">
                   <X className="h-4 w-4" />
                 </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-4">
+            <CardContent className="space-y-4 p-4 sm:p-6 pt-0 max-h-[70vh] overflow-y-auto">
               <div className="space-y-2">
                 <label className="text-sm font-medium">Application Title *</label>
                 <Input
@@ -125,9 +125,9 @@ export function EditApplicationModal({
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Type</label>
+                  <label className="text-xs sm:text-sm font-medium">Type</label>
                   <select
                     value={type}
                     onChange={(e) => setType(e.target.value)}
@@ -141,7 +141,7 @@ export function EditApplicationModal({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Priority</label>
+                  <label className="text-xs sm:text-sm font-medium">Priority</label>
                   <select
                     value={priority}
                     onChange={(e) => setPriority(e.target.value)}
@@ -176,14 +176,14 @@ export function EditApplicationModal({
                 />
               </div>
 
-              <div className="flex justify-end space-x-2">
-                <Button variant="outline" onClick={handleClose}>
+              <div className="flex flex-col sm:flex-row justify-end gap-2 sm:gap-2 pt-2">
+                <Button variant="outline" onClick={handleClose} className="w-full sm:w-auto">
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSubmit}
                   disabled={loading || !title || ((type === 'job' || type === 'scholarship' || type === 'internship') && !jobDescription)}
-                  className="glow-effect"
+                  className="glow-effect w-full sm:w-auto"
                 >
                   {loading ? (
                     <>

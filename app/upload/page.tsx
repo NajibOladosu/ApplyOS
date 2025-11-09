@@ -108,41 +108,41 @@ export default function UploadPage() {
       <div className="space-y-6">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold mb-2">Upload Documents</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-2xl sm:text-3xl font-bold mb-2">Upload Documents</h1>
+          <p className="text-sm sm:text-base text-muted-foreground">
             Upload your resume, transcripts, and other documents for AI analysis
           </p>
         </div>
 
         {/* Upload Area */}
         <Card>
-          <CardHeader>
-            <CardTitle>Select Files</CardTitle>
-            <CardDescription>
+          <CardHeader className="p-4 sm:p-6">
+            <CardTitle className="text-base sm:text-lg">Select Files</CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
               Supported formats: PDF, DOC, DOCX, PNG, JPG (Max 10MB each)
             </CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="p-4 sm:p-6 pt-0">
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-12 text-center cursor-pointer transition-all ${
+              className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center cursor-pointer transition-all ${
                 isDragActive
                   ? "border-primary bg-primary/5"
                   : "border-border hover:border-primary/40"
               }`}
             >
               <input {...getInputProps()} />
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Upload className="h-8 w-8 text-primary" />
+              <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 sm:mb-4">
+                <Upload className="h-6 w-6 sm:h-8 sm:w-8 text-primary" />
               </div>
               {isDragActive ? (
-                <p className="text-lg font-medium text-primary">Drop files here...</p>
+                <p className="text-base sm:text-lg font-medium text-primary">Drop files here...</p>
               ) : (
                 <>
-                  <p className="text-lg font-medium mb-2">
+                  <p className="text-base sm:text-lg font-medium mb-2">
                     Drag & drop files here, or click to select
                   </p>
-                  <p className="text-sm text-muted-foreground">
+                  <p className="text-xs sm:text-sm text-muted-foreground">
                     PDF, DOC, DOCX, PNG, JPG up to 10MB
                   </p>
                 </>
@@ -154,10 +154,10 @@ export default function UploadPage() {
         {/* Selected Files */}
         {files.length > 0 && (
           <Card>
-            <CardHeader>
-              <CardTitle>Selected Files ({files.length})</CardTitle>
+            <CardHeader className="p-4 sm:p-6">
+              <CardTitle className="text-base sm:text-lg">Selected Files ({files.length})</CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="p-4 sm:p-6 pt-0">
               <div className="space-y-2">
                 {files.map((file, index) => (
                   <motion.div
@@ -165,12 +165,12 @@ export default function UploadPage() {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ duration: 0.3, delay: index * 0.05 }}
-                    className="flex items-center justify-between p-4 rounded-lg border border-border"
+                    className="flex items-center justify-between p-3 sm:p-4 rounded-lg border border-border"
                   >
-                    <div className="flex items-center space-x-3">
-                      <FileText className="h-5 w-5 text-primary" />
-                      <div>
-                        <p className="font-medium">{file.name}</p>
+                    <div className="flex items-center gap-2 sm:gap-3 flex-1 min-w-0">
+                      <FileText className="h-4 w-4 sm:h-5 sm:w-5 text-primary shrink-0" />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm sm:text-base font-medium truncate">{file.name}</p>
                         <p className="text-xs text-muted-foreground">
                           {(file.size / 1024).toFixed(1)} KB
                         </p>
@@ -180,7 +180,7 @@ export default function UploadPage() {
                       variant="ghost"
                       size="icon"
                       onClick={() => removeFile(index)}
-                      className="text-destructive hover:text-destructive"
+                      className="text-destructive hover:text-destructive h-8 w-8 sm:h-9 sm:w-9 shrink-0"
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -196,12 +196,12 @@ export default function UploadPage() {
                 {uploading ? (
                   <>
                     <Upload className="h-4 w-4 animate-pulse" />
-                    <span>Uploading...</span>
+                    <span className="text-sm sm:text-base">Uploading...</span>
                   </>
                 ) : (
                   <>
                     <Upload className="h-4 w-4" />
-                    <span>
+                    <span className="text-sm sm:text-base">
                       Upload {files.length} File{files.length > 1 ? "s" : ""}
                     </span>
                   </>
@@ -212,7 +212,7 @@ export default function UploadPage() {
         )}
 
         {/* Info Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6">
               <div className="text-4xl mb-2">📄</div>

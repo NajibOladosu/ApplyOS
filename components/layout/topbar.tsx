@@ -2,14 +2,18 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Bell, Search } from "lucide-react"
+import { Bell, Search, Menu } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
 import { getNotifications } from "@/lib/services/notifications"
 
-export function TopBar() {
+interface TopBarProps {
+  onMenuClick?: () => void
+}
+
+export function TopBar({ onMenuClick }: TopBarProps) {
   const router = useRouter()
   const { user } = useAuth()
   const [unreadCount, setUnreadCount] = useState<number>(0)
@@ -48,24 +52,39 @@ export function TopBar() {
     .join("") || "U"
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-8">
-      <div className="flex-1 max-w-xl">
-        <div className="relative">
+    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-4 sm:px-6 md:px-8 gap-4">
+      {/* Mobile Menu Button */}
+      <Button
+        variant="ghost"
+        size="icon"
+        className="md:hidden flex-shrink-0"
+        onClick={onMenuClick}
+        aria-label="Toggle menu"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+
+      {/* Search Bar - Hidden on mobile, shown on tablet and up */}
+      <div className="hidden sm:flex flex-1 max-w-xl">
+        <div className="relative w-full">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             type="search"
             placeholder="Search applications, documents..."
-            className="pl-10"
+            className="pl-10 text-sm"
           />
         </div>
       </div>
 
-      <div className="flex items-center space-x-4">
+      {/* Right Side Actions */}
+      <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+        {/* Notifications Bell */}
         <Button
           variant="ghost"
           size="icon"
           className="relative"
           onClick={() => router.push("/notifications")}
+          aria-label="Notifications"
         >
           <Bell className="h-5 w-5" />
           {unreadCount > 0 && (
@@ -78,22 +97,30 @@ export function TopBar() {
           )}
         </Button>
 
-        <div className="flex items-center space-x-3">
+        {/* User Profile Section - Hidden on small mobile, shown on larger screens */}
+        <div className="hidden sm:flex items-center gap-2 md:gap-3">
           <div className="text-right">
-            <p className="text-sm font-medium truncate max-w-[140px]">
+            <p className="text-sm font-medium truncate max-w-[100px] md:max-w-[140px]">
               {name}
             </p>
             {email && (
-              <p className="text-xs text-muted-foreground truncate max-w-[160px]">
+              <p className="text-xs text-muted-foreground truncate max-w-[100px] md:max-w-[160px]">
                 {email}
               </p>
             )}
           </div>
-          <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+          <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
             <span className="text-sm font-bold text-primary-foreground">
               {initials}
             </span>
           </div>
+        </div>
+
+        {/* Avatar Only on Small Mobile */}
+        <div className="sm:hidden h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+          <span className="text-sm font-bold text-primary-foreground">
+            {initials}
+          </span>
         </div>
       </div>
     </header>

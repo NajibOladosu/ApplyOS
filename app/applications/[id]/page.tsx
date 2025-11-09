@@ -348,51 +348,56 @@ export default function ApplicationDetailPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center space-x-4">
-          <Button variant="ghost" size="icon" asChild>
-            <Link href="/applications">
-              <ArrowLeft className="h-4 w-4" />
-            </Link>
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-3xl font-bold">{application.title}</h1>
-            {application.url ? (
-              <a
-                href={application.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-sm text-primary hover:underline flex items-center space-x-1 mt-1"
-              >
-                <span>{application.url}</span>
-                <ExternalLink className="h-3 w-3" />
-              </a>
-            ) : (
-              <div className="h-5 mt-1" />
-            )}
-          </div>
-          {hasChanges() && (
-            <Button
-              onClick={saveChanges}
-              disabled={isSavingChanges}
-              className="glow-effect"
-            >
-              {isSavingChanges ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
+        <div className="flex flex-col gap-3 sm:gap-4">
+          <div className="flex items-start gap-2 sm:gap-4">
+            <Button variant="ghost" size="icon" asChild className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 mt-1">
+              <Link href="/applications">
+                <ArrowLeft className="h-4 w-4" />
+              </Link>
             </Button>
-          )}
-          <Button
-            variant="outline"
-            onClick={() => setShowEditModal(true)}
-          >
-            <Edit className="mr-2 h-4 w-4" />
-            Manage
-          </Button>
+            <div className="flex-1 min-w-0">
+              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">{application.title}</h1>
+              {application.url ? (
+                <a
+                  href={application.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1 mt-1 break-all"
+                >
+                  <span className="truncate">{application.url}</span>
+                  <ExternalLink className="h-3 w-3 shrink-0" />
+                </a>
+              ) : (
+                <div className="h-5 mt-1" />
+              )}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {hasChanges() && (
+              <Button
+                onClick={saveChanges}
+                disabled={isSavingChanges}
+                className="glow-effect flex-1 sm:flex-none"
+              >
+                {isSavingChanges ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
+            )}
+            <Button
+              variant="outline"
+              onClick={() => setShowEditModal(true)}
+              className="flex-1 sm:flex-none"
+            >
+              <Edit className="mr-2 h-4 w-4" />
+              Manage
+            </Button>
+          </div>
         </div>
 
         {/* Application Info */}
@@ -401,7 +406,7 @@ export default function ApplicationDetailPage() {
             <CardTitle>Application Information</CardTitle>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Status</p>
                 <div className="relative inline-block w-full">
@@ -615,9 +620,9 @@ export default function ApplicationDetailPage() {
 
         {/* Questions and Answers */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-2xl font-bold">Application Questions</h2>
-            <div className="flex gap-2">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold">Application Questions</h2>
+            <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
                 size="sm"
@@ -683,13 +688,13 @@ export default function ApplicationDetailPage() {
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
                 <Card>
-                  <CardHeader>
-                    <div className="flex items-start justify-between gap-4">
-                      <div>
-                        <CardTitle className="text-lg">
+                  <CardHeader className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                      <div className="flex-1 min-w-0">
+                        <CardTitle className="text-base sm:text-lg">
                           Question {index + 1}
                         </CardTitle>
-                        <CardDescription className="text-base font-medium text-foreground">
+                        <CardDescription className="text-sm sm:text-base font-medium text-foreground break-words">
                           {question.question_text}
                         </CardDescription>
                       </div>
@@ -698,15 +703,16 @@ export default function ApplicationDetailPage() {
                         size="sm"
                         onClick={() => handleRegenerate(question.id)}
                         disabled={regenerating === question.id || regenerating === "all"}
+                        className="shrink-0 text-xs sm:text-sm self-end sm:self-start"
                       >
                         {regenerating === question.id ? (
                           <>
-                            <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                            <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
                             {question.ai_answer ? "Regenerating" : "Generating"}
                           </>
                         ) : (
                           <>
-                            <RotateCw className="mr-2 h-3 w-3" />
+                            <RotateCw className="mr-1.5 h-3 w-3" />
                             {question.ai_answer ? "Regenerate" : "Generate"}
                           </>
                         )}

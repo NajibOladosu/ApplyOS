@@ -13,6 +13,7 @@ import {
   User,
   Settings,
   LogOut,
+  X,
 } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -26,7 +27,12 @@ const navItems = [
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
-export function Sidebar() {
+interface SidebarProps {
+  isOpen?: boolean
+  onClose?: () => void
+}
+
+export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const { signOut } = useAuth()
@@ -36,69 +42,101 @@ export function Sidebar() {
     router.push('/auth/login')
   }
 
+  const handleNavClick = () => {
+    onClose?.()
+  }
+
   return (
-    <aside className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-secondary/50 backdrop-blur-xl">
-      <div className="flex h-full flex-col">
-        {/* Logo */}
-        <div className="flex h-16 items-center border-b border-border px-6">
-          <Link href="/dashboard" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
-            </div>
-            <span className="text-xl font-bold">
-              <span className="text-primary">Track</span>
-              <span className="text-white">ly</span>
-            </span>
-          </Link>
-        </div>
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          onClick={onClose}
+          className="fixed inset-0 z-30 bg-black/40 md:hidden"
+        />
+      )}
 
-        {/* Navigation */}
-        <nav className="flex-1 space-y-1 p-4">
-          {navItems.map((item) => {
-            const Icon = item.icon
-            const isActive = pathname === item.href
+      {/* Sidebar */}
+      <motion.aside
+        initial={{ x: -256 }}
+        animate={{ x: isOpen ? 0 : -256 }}
+        transition={{ type: "spring", stiffness: 300, damping: 30 }}
+        className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-secondary/50 backdrop-blur-xl md:static md:transform-none md:translate-x-0 md:z-auto"
+      >
+        <div className="flex h-full flex-col">
+          {/* Logo */}
+          <div className="flex h-16 items-center border-b border-border px-6 justify-between">
+            <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavClick}>
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+              </div>
+              <span className="text-xl font-bold">
+                <span className="text-primary">Track</span>
+                <span className="text-white">ly</span>
+              </span>
+            </Link>
+            {/* Close button for mobile */}
+            <button
+              onClick={onClose}
+              className="md:hidden p-2 hover:bg-accent/10 rounded-lg transition-colors"
+              aria-label="Close menu"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
 
-            return (
-              <Link
-                key={item.href}
-                href={item.href}
-                className="relative"
-              >
-                <motion.div
-                  whileHover={{ x: 4 }}
-                  className={cn(
-                    "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
-                    isActive
-                      ? "bg-primary/10 text-primary border border-primary/20 glow-effect"
-                      : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
-                  )}
+          {/* Navigation */}
+          <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+            {navItems.map((item) => {
+              const Icon = item.icon
+              const isActive = pathname === item.href
+
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="relative"
+                  onClick={handleNavClick}
                 >
-                  <Icon className="h-5 w-5" />
-                  <span>{item.label}</span>
-                  {isActive && (
-                    <motion.div
-                      layoutId="active-pill"
-                      className="absolute right-3 h-2 w-2 rounded-full bg-primary"
-                      transition={{ type: "spring", stiffness: 380, damping: 30 }}
-                    />
-                  )}
-                </motion.div>
-              </Link>
-            )
-          })}
-        </nav>
+                  <motion.div
+                    whileHover={{ x: 4 }}
+                    className={cn(
+                      "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
+                      isActive
+                        ? "bg-primary/10 text-primary border border-primary/20 glow-effect"
+                        : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+                    )}
+                  >
+                    <Icon className="h-5 w-5 flex-shrink-0" />
+                    <span className="flex-1">{item.label}</span>
+                    {isActive && (
+                      <motion.div
+                        layoutId="active-pill"
+                        className="h-2 w-2 rounded-full bg-primary flex-shrink-0"
+                        transition={{ type: "spring", stiffness: 380, damping: 30 }}
+                      />
+                    )}
+                  </motion.div>
+                </Link>
+              )
+            })}
+          </nav>
 
-        {/* Logout */}
-        <div className="border-t border-border p-4">
-          <button
-            onClick={handleLogout}
-            className="flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
-          >
-            <LogOut className="h-5 w-5" />
-            <span>Logout</span>
-          </button>
+          {/* Logout */}
+          <div className="border-t border-border p-4">
+            <button
+              onClick={handleLogout}
+              className="flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
+            >
+              <LogOut className="h-5 w-5 flex-shrink-0" />
+              <span>Logout</span>
+            </button>
+          </div>
         </div>
-      </div>
-    </aside>
+      </motion.aside>
+    </>
   )
 }

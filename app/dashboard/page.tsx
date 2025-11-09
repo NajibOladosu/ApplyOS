@@ -112,15 +112,15 @@ export default function DashboardPage() {
     <DashboardLayout>
       <div className="space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Dashboard</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Welcome back! Here's an overview of your applications.
             </p>
           </div>
           <Button
-            className="glow-effect"
+            className="glow-effect w-full sm:w-auto"
             asChild
           >
             <Link href="/applications">
@@ -130,7 +130,7 @@ export default function DashboardPage() {
         </div>
 
         {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
           {statsCards.map((stat, index) => {
             const Icon = stat.icon
             return (
@@ -141,14 +141,14 @@ export default function DashboardPage() {
                 transition={{ duration: 0.5, delay: index * 0.1 }}
               >
                 <Card className="hover:border-primary/40 transition-all">
-                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                    <CardTitle className="text-sm font-medium">
+                  <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2 p-4 sm:p-6">
+                    <CardTitle className="text-xs sm:text-sm font-medium">
                       {stat.title}
                     </CardTitle>
-                    <Icon className={`h-4 w-4 ${stat.color}`} />
+                    <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${stat.color}`} />
                   </CardHeader>
-                  <CardContent>
-                    <div className="text-2xl font-bold">{stat.value}</div>
+                  <CardContent className="p-4 sm:p-6 pt-0">
+                    <div className="text-xl sm:text-2xl font-bold">{stat.value}</div>
                   </CardContent>
                 </Card>
               </motion.div>
@@ -213,16 +213,16 @@ export default function DashboardPage() {
                     transition={{ duration: 0.3, delay: index * 0.1 }}
                   >
                     <Link href={`/applications/${app.id}`}>
-                      <div className="flex items-center justify-between p-4 rounded-lg border border-border hover:border-primary/40 transition-all cursor-pointer">
-                        <div className="flex items-center space-x-4">
-                          <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                            <Briefcase className="h-5 w-5 text-primary" />
+                      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-lg border border-border hover:border-primary/40 transition-all cursor-pointer">
+                        <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
+                          <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                            <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
                           </div>
-                          <div>
-                            <h4 className="font-medium">{app.title}</h4>
-                            <div className="flex items-center space-x-2 mt-1">
-                              <Calendar className="h-3 w-3 text-muted-foreground" />
-                              <span className="text-xs text-muted-foreground">
+                          <div className="flex-1 min-w-0">
+                            <h4 className="text-sm sm:text-base font-medium truncate">{app.title}</h4>
+                            <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
+                              <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
+                              <span className="text-xs text-muted-foreground truncate">
                                 {app.deadline
                                   ? `Deadline: ${new Date(app.deadline).toLocaleDateString()}`
                                   : 'No deadline set'}
@@ -231,12 +231,12 @@ export default function DashboardPage() {
                           </div>
                         </div>
 
-                        <div className="flex items-center space-x-3">
-                          <Badge variant={statusConfig[app.status].variant}>
+                        <div className="flex items-center gap-2 sm:gap-3 self-end sm:self-auto">
+                          <Badge variant={statusConfig[app.status].variant} className="text-xs">
                             {statusConfig[app.status].label}
                           </Badge>
                           <div
-                            className={`h-2 w-2 rounded-full ${priorityConfig[app.priority].color}`}
+                            className={`h-2 w-2 rounded-full shrink-0 ${priorityConfig[app.priority].color}`}
                           />
                         </div>
                       </div>

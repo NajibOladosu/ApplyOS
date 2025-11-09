@@ -112,14 +112,14 @@ export default function ApplicationsPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Applications</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Applications</h1>
+            <p className="text-sm sm:text-base text-muted-foreground">
               Manage and track all your job and scholarship applications
             </p>
           </div>
-          <Button className="glow-effect" onClick={() => setIsModalOpen(true)}>
+          <Button className="glow-effect w-full sm:w-auto" onClick={() => setIsModalOpen(true)}>
             <Plus className="mr-2 h-4 w-4" />
             Add Application
           </Button>
@@ -127,8 +127,8 @@ export default function ApplicationsPage() {
 
         {/* Filters */}
         <Card>
-          <CardContent className="pt-6">
-            <div className="flex flex-col md:flex-row gap-4">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex flex-col gap-4">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -211,37 +211,37 @@ export default function ApplicationsPage() {
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
                 <Card className="hover:border-primary/40 transition-all">
-                  <CardContent className="p-6">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-start space-x-4 flex-1">
-                        <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Briefcase className="h-6 w-6 text-primary" />
+                  <CardContent className="p-4 sm:p-6">
+                    <div className="flex flex-col sm:flex-row sm:items-start gap-4">
+                      <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                          <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
                         </div>
 
                         <div className="flex-1 min-w-0">
-                          <div className="flex items-center space-x-3 mb-2">
-                            <Link href={`/applications/${app.id}`} className="flex-1">
-                              <h3 className="text-lg font-semibold truncate hover:text-primary transition-colors cursor-pointer">{app.title}</h3>
+                          <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                            <Link href={`/applications/${app.id}`} className="flex-1 min-w-0">
+                              <h3 className="text-base sm:text-lg font-semibold truncate hover:text-primary transition-colors cursor-pointer">{app.title}</h3>
                             </Link>
-                            <div className={`h-2 w-2 rounded-full ${priorityConfig[app.priority].color}`} />
+                            <div className={`h-2 w-2 rounded-full shrink-0 ${priorityConfig[app.priority].color}`} />
                           </div>
 
-                          <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center space-x-2">
-                              <Calendar className="h-4 w-4" />
+                          <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mb-3">
+                            <div className="flex items-center gap-1.5 sm:gap-2">
+                              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
                               <span>
                                 {app.deadline
                                   ? `Deadline: ${new Date(app.deadline).toLocaleDateString()}`
                                   : 'No deadline'}
                               </span>
                             </div>
-                            <Badge variant="outline" className="capitalize">
+                            <Badge variant="outline" className="capitalize text-xs">
                               {app.type}
                             </Badge>
                           </div>
 
-                          <div className="flex items-center space-x-2">
-                            <Badge variant={statusConfig[app.status].variant}>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <Badge variant={statusConfig[app.status].variant} className="text-xs">
                               {statusConfig[app.status].label}
                             </Badge>
                             {app.url && (
@@ -249,7 +249,7 @@ export default function ApplicationsPage() {
                                 href={app.url}
                                 target="_blank"
                                 rel="noopener noreferrer"
-                                className="text-xs text-primary hover:underline flex items-center space-x-1"
+                                className="text-xs text-primary hover:underline flex items-center gap-1"
                                 onClick={(e) => e.stopPropagation()}
                               >
                                 <span>View posting</span>
@@ -260,8 +260,8 @@ export default function ApplicationsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="icon" asChild>
+                      <div className="flex items-center gap-2 sm:flex-col sm:gap-2 self-end sm:self-start">
+                        <Button variant="ghost" size="icon" asChild className="h-9 w-9">
                           <Link href={`/applications/${app.id}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
@@ -269,7 +269,7 @@ export default function ApplicationsPage() {
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="text-destructive hover:text-destructive"
+                          className="text-destructive hover:text-destructive h-9 w-9"
                           onClick={() => handleDeleteClick(app.id)}
                         >
                           <Trash2 className="h-4 w-4" />
