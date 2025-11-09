@@ -1,12 +1,12 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { User, Mail, Calendar, Github, Linkedin, Loader2 } from "lucide-react"
+import { User, Mail, Calendar, Github, Linkedin, Loader2, Edit2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { PromptModal } from "@/components/modals/prompt-modal"
@@ -22,13 +22,16 @@ interface Profile {
 
 export default function ProfilePage() {
   const supabase = createClient()
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [name, setName] = useState("")
   const [avatarUrl, setAvatarUrl] = useState("")
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [avatarError, setAvatarError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [showDeletePrompt, setShowDeletePrompt] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
@@ -119,6 +122,46 @@ export default function ProfilePage() {
     }
   }
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file || !user) return
+
+    setUploadingAvatar(true)
+    setAvatarError(null)
+
+    try {
+      const formData = new FormData()
+      formData.append("file", file)
+
+      const response = await fetch("/api/account/avatar", {
+        method: "POST",
+        body: formData,
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        setAvatarError(data.error || "Failed to upload avatar")
+        return
+      }
+
+      setAvatarUrl(data.avatar_url)
+      setProfile((prev) =>
+        prev
+          ? { ...prev, avatar_url: data.avatar_url }
+          : prev
+      )
+    } catch (err) {
+      console.error("Error uploading avatar:", err)
+      setAvatarError("An error occurred while uploading your avatar")
+    } finally {
+      setUploadingAvatar(false)
+      if (fileInputRef.current) {
+        fileInputRef.current.value = ""
+      }
+    }
+  }
+
   const handleDeleteAccount = async () => {
     if (!user) return
 
@@ -198,59 +241,74 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex flex-col items-center space-y-4">
-              <div className="relative h-24 w-24 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden glow-effect flex items-center justify-center">
-                {avatarUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img
-                    src={avatarUrl}
-                    alt="User avatar"
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <span className="text-3xl font-bold text-slate-700 select-none">
-                    {initials}
-                  </span>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
+              {/* Avatar Section */}
+              <div className="flex flex-col items-center md:items-start space-y-2">
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarUpload}
+                  className="hidden"
+                  disabled={uploadingAvatar}
+                />
+                <button
+                  onClick={() => fileInputRef.current?.click()}
+                  disabled={uploadingAvatar}
+                  className="relative h-32 w-32 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden glow-effect flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-50"
+                  title="Click to change avatar"
+                >
+                  {avatarUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={avatarUrl}
+                      alt="User avatar"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <span className="text-4xl font-bold text-slate-700 select-none">
+                      {initials}
+                    </span>
+                  )}
+                  {/* Edit Icon Overlay */}
+                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
+                    {uploadingAvatar ? (
+                      <Loader2 className="h-6 w-6 text-white animate-spin" />
+                    ) : (
+                      <Edit2 className="h-6 w-6 text-white" />
+                    )}
+                  </div>
+                </button>
+                {avatarError && (
+                  <p className="text-xs text-destructive text-center">{avatarError}</p>
                 )}
               </div>
-              <div className="space-y-2 w-full max-w-md">
-                <label className="text-sm font-medium">
-                  Avatar URL
-                </label>
-                <Input
-                  value={avatarUrl}
-                  onChange={(e) => setAvatarUrl(e.target.value)}
-                  placeholder="https://..."
-                />
-                <p className="text-xs text-muted-foreground">
-                  Use a public image URL for your avatar.
-                </p>
-              </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label htmlFor="name" className="text-sm font-medium">
-                  Full Name
-                </label>
-                <Input
-                  id="name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Your name"
-                />
-              </div>
+              {/* Form Fields Section */}
+              <div className="md:col-span-2 space-y-4">
+                <div className="space-y-2">
+                  <label htmlFor="name" className="text-sm font-medium">
+                    Full Name
+                  </label>
+                  <Input
+                    id="name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Your name"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={profile.email}
-                  disabled
-                />
+                <div className="space-y-2">
+                  <label htmlFor="email" className="text-sm font-medium">
+                    Email
+                  </label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={profile.email}
+                    disabled
+                  />
+                </div>
               </div>
             </div>
 
