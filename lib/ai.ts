@@ -61,6 +61,7 @@ export async function generateAnswer(
     resume?: string
     experience?: string
     education?: string
+    jobDescription?: string
   }
 ): Promise<string> {
   if (!genAI) {
@@ -70,20 +71,25 @@ export async function generateAnswer(
   try {
     const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
 
-    const prompt = `You are a helpful assistant that generates professional, tailored answers to job and scholarship application questions.
+    const prompt = `You are helping a candidate answer a job or scholarship application question. Your job is to write the answer AS IF you are the candidate.
 
 Question: ${question}
 
-Context about the candidate:
-${JSON.stringify(context, null, 2)}
+${context.jobDescription ? `Position/Opportunity Description:\n${context.jobDescription}\n\n` : ''}Candidate's Background:
+${context.resume ? `Resume/Profile:\n${context.resume}` : '(No resume provided)'}
 
-Task: Generate a professional, compelling answer to the question above based on the candidate's context. The answer should be:
-- Specific and tailored to the candidate's background
-- Professional and well-structured
+Important Instructions:
+- Write the answer in first person (as the candidate responding)
+- Do NOT provide templates, disclaimers, or bracketed placeholders
+- Do NOT say "Here's a template answer" or "Replace X with your own Y"
+- Do NOT prefix with explanations or caveats
+- Assume all provided information is the candidate's ACTUAL background
+- Write a direct, authentic response that the candidate can use
+- Make it specific to the candidate's actual experience
 - Between 100-200 words
-- Honest and authentic
+- Professional and compelling
 
-Answer:`
+Answer (write as if you are the candidate):`
 
     const result = await model.generateContent(prompt)
     const response = await result.response

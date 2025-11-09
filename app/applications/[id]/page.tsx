@@ -23,16 +23,8 @@ import {
 import Link from "next/link"
 import type { Application, Question, Document } from "@/types/database"
 import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments } from "@/lib/services/applications"
-import {
-  getQuestionsByApplicationId,
-  updateQuestion,
-} from "@/lib/services/questions"
-import {
-  getDocuments,
-  getAnalyzedDocuments,
-  buildContextFromDocument,
-} from "@/lib/services/documents"
-import { generateAnswer } from "@/lib/ai"
+import { getQuestionsByApplicationId, updateQuestion } from "@/lib/services/questions"
+import { getDocuments } from "@/lib/services/documents"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 
 export default function ApplicationDetailPage() {
@@ -95,61 +87,50 @@ export default function ApplicationDetailPage() {
     if (!application) return
 
     try {
-      // Build context from selected documents
-      let context: {
-        resume?: string
-        experience?: string
-        education?: string
-      } = {
-        resume: undefined,
-        experience: undefined,
-        education: undefined,
-      }
-
-      // Use selected documents for context
-      if (selectedDocumentIds.length > 0) {
-        const selectedDocs = documents.filter((d) =>
-          selectedDocumentIds.includes(d.id)
-        )
-        // Merge context from all selected documents
-        for (const doc of selectedDocs) {
-          if (doc.analysis_status === "success" && doc.parsed_data) {
-            const docContext = buildContextFromDocument(doc)
-            // Merge contexts (later documents add to earlier ones)
-            if (docContext.resume) context.resume = docContext.resume
-            if (docContext.experience) context.experience = docContext.experience
-            if (docContext.education) context.education = docContext.education
-          }
-        }
-      } else {
-        // Fallback: use the most recent analyzed document
-        const analyzedDocs = await getAnalyzedDocuments()
-        if (analyzedDocs.length > 0) {
-          context = buildContextFromDocument(analyzedDocs[0])
-        }
-      }
-
       if (!questionId) {
-        // Regenerate all questions
         setRegenerating("all")
-        const updated: Question[] = []
-        for (const q of questions) {
-          const answer = await generateAnswer(q.question_text, context)
-          const saved = await updateQuestion(q.id, { ai_answer: answer })
-          updated.push(saved)
-        }
-        setQuestions(updated)
       } else {
-        // Regenerate single question
         setRegenerating(questionId)
-        const target = questions.find((q) => q.id === questionId)
-        if (!target) return
-        const answer = await generateAnswer(target.question_text, context)
-        const saved = await updateQuestion(target.id, { ai_answer: answer })
-        setQuestions((prev) => prev.map((q) => (q.id === saved.id ? saved : q)))
+      }
+
+      const response = await fetch("/api/questions/regenerate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          applicationId: application.id,
+          ...(questionId && { questionId }), // Only include questionId if provided (for single question)
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error regenerating answer:", errorData.error)
+        setError(errorData.error || "Failed to regenerate answers")
+        return
+      }
+
+      const data = await response.json()
+      if (data.questions && data.questions.length > 0) {
+        if (questionId) {
+          // Update single question
+          setQuestions((prev) =>
+            prev.map((q) => {
+              const updated = data.questions.find(
+                (uq: Question) => uq.id === q.id
+              )
+              return updated || q
+            })
+          )
+        } else {
+          // Update all questions
+          setQuestions(data.questions)
+        }
       }
     } catch (err) {
       console.error("Error regenerating answer:", err)
+      setError("Failed to regenerate answers. Please try again.")
     } finally {
       setRegenerating(null)
     }
