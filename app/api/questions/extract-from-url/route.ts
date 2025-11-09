@@ -19,7 +19,12 @@ function extractTextFromHTML(html: string): string {
     // Remove HTML comments
     text = text.replace(/<!--[\s\S]*?-->/g, '')
 
-    // Remove HTML tags but keep the content
+    // Add newlines for better structure preservation
+    // Convert common block elements to newlines
+    text = text.replace(/<\/(div|p|h[1-6]|li|tr|section|article|header|footer|form|fieldset|label)>/gi, '\n')
+    text = text.replace(/<(br|hr)\s*\/?>/gi, '\n')
+
+    // Remove remaining HTML tags but keep the content
     text = text.replace(/<[^>]+>/g, ' ')
 
     // Decode HTML entities
@@ -29,9 +34,13 @@ function extractTextFromHTML(html: string): string {
     text = text.replace(/&gt;/g, '>')
     text = text.replace(/&quot;/g, '"')
     text = text.replace(/&#39;/g, "'")
+    text = text.replace(/&apos;/g, "'")
 
-    // Clean up whitespace
-    text = text.replace(/\s+/g, ' ')
+    // Clean up excessive whitespace while preserving line breaks
+    text = text.replace(/[ \t]+/g, ' ')  // Multiple spaces/tabs to single space
+    text = text.replace(/\n\s+/g, '\n')  // Remove spaces at start of lines
+    text = text.replace(/\s+\n/g, '\n')  // Remove spaces at end of lines
+    text = text.replace(/\n{3,}/g, '\n\n')  // Max 2 consecutive newlines
     text = text.trim()
 
     return text
@@ -137,7 +146,9 @@ export async function POST(request: NextRequest) {
     // Extract text from HTML
     const textContent = extractTextFromHTML(htmlContent)
 
-    if (!textContent || textContent.length < 50) {
+    console.log(`Extracted ${textContent.length} characters from ${url}`)
+
+    if (!textContent || textContent.length < 20) {
       return NextResponse.json(
         {
           error: 'Could not extract meaningful content from the URL. The page may be empty or use JavaScript rendering.',
@@ -147,8 +158,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Limit text length to avoid token limits (use first 8000 characters)
-    const truncatedText = textContent.slice(0, 8000)
+    // Limit text length to avoid token limits (use first 20000 characters)
+    // Most application pages should have questions within this range
+    const truncatedText = textContent.slice(0, 20000)
 
     // Use Gemini to extract questions
     try {
@@ -164,7 +176,8 @@ CRITICAL RULES:
 1. ONLY extract questions that are LITERALLY WRITTEN on the page - do NOT make up, invent, or hallucinate any questions
 2. Copy the EXACT WORDING from the page - do not paraphrase or rewrite
 3. Extract ALL open-ended questions that require written text responses (paragraphs, not just single words)
-4. If you don't see any open-ended questions on the page, return an empty array []
+4. Look for questions in ALL parts of the page: form labels, field descriptions, application instructions, section headers
+5. If you don't see any open-ended questions on the page, return an empty array []
 
 WHAT IS AN OPEN-ENDED QUESTION?
 Any question that requires the applicant to write at least a few sentences explaining their thoughts, experiences, or perspectives. This includes:
@@ -237,6 +250,8 @@ Extract ALL the open-ended questions found on this page:`
       const response = await result.response
       let text = response.text().trim()
 
+      console.log(`Gemini response length: ${text.length} characters`)
+
       // Handle markdown code fences
       const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
       if (codeBlockMatch) {
@@ -246,7 +261,7 @@ Extract ALL the open-ended questions found on this page:`
       // Extract JSON array
       const jsonMatch = text.match(/\[[\s\S]*\]/)
       if (!jsonMatch) {
-        console.warn('No JSON array found in Gemini response')
+        console.warn('No JSON array found in Gemini response:', text.substring(0, 200))
         return NextResponse.json(
           {
             error: 'Could not parse AI response. Please try again or add questions manually.',
@@ -257,6 +272,7 @@ Extract ALL the open-ended questions found on this page:`
       }
 
       const questions = JSON.parse(jsonMatch[0])
+      console.log(`Gemini extracted ${questions.length} questions`)
 
       if (!Array.isArray(questions)) {
         throw new Error('Response is not an array')
