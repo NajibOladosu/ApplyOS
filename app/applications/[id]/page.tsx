@@ -652,12 +652,12 @@ export default function ApplicationDetailPage() {
                 {regenerating === "all" ? (
                   <>
                     <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    Regenerating...
+                    Generating...
                   </>
                 ) : (
                   <>
                     <Sparkles className="mr-2 h-4 w-4" />
-                    Regenerate All
+                    Generate All
                   </>
                 )}
               </Button>
@@ -696,12 +696,12 @@ export default function ApplicationDetailPage() {
                         {regenerating === question.id ? (
                           <>
                             <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                            Regenerating
+                            {question.ai_answer ? "Regenerating" : "Generating"}
                           </>
                         ) : (
                           <>
                             <RotateCw className="mr-2 h-3 w-3" />
-                            Regenerate
+                            {question.ai_answer ? "Regenerate" : "Generate"}
                           </>
                         )}
                       </Button>
