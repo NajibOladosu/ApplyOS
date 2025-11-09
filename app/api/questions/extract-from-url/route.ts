@@ -160,7 +160,7 @@ export async function POST(request: NextRequest) {
 
     // Limit text length to avoid token limits (use first 20000 characters)
     // Most application pages should have questions within this range
-    const truncatedText = textContent.slice(0, 20000)
+    const truncatedText = textContent.slice(0, 200000)
 
     // Use Gemini to extract questions
     try {
@@ -189,7 +189,7 @@ Any question that requires the applicant to write at least a few sentences expla
 - Questions about goals, challenges, interests, or opinions
 - Cover letter or personal statement prompts
 
-EXCLUDE ONLY these basic form fields (NOT open-ended):
+EXCLUDE QUESTIONS that are or related to these (NOT open-ended):
 - Personal information: name, preferred name, pronouns, name pronunciation
 - Contact details: email, phone, address, city, state, country, zip code
 - Links to files: resume, portfolio, GitHub, LinkedIn, website URLs
@@ -215,19 +215,6 @@ INCLUDE - Examples of GOOD open-ended questions to extract:
 ✓ "Describe your experience with [specific technology/skill]"
 ✓ "Tell us about a time when you demonstrated leadership"
 ✓ "What motivates you to apply for this role?"
-
-EXCLUDE - Examples of BAD questions to SKIP:
-✗ "Preferred Name | What would you like us to call you?"
-✗ "Name Pronunciation | How do you pronounce your name?"
-✗ "What is your GitHub username?"
-✗ "Which university do you attend?" (unless asking WHY you chose it)
-✗ "What languages do you speak?" (factual list)
-✗ "Link to your resume"
-✗ "When can you start?" (just a date)
-✗ "What is your expected salary?" (just a number)
-✗ "Are you authorized to work in the US?" (yes/no)
-✗ "What is your current GPA?" (just a number)
-✗ "What year are you in school?" (dropdown/number)
 
 VERIFICATION TEST:
 Before including a question, ask: "Does this require the applicant to write sentences explaining their thoughts/experiences, or can it be answered with just a name/link/number/dropdown?"
