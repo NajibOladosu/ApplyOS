@@ -198,8 +198,8 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
-            <div className="flex items-center space-x-6">
-              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-3xl font-bold text-primary-foreground overflow-hidden">
+            <div className="flex flex-col items-center space-y-4">
+              <div className="h-24 w-24 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center text-3xl font-bold text-primary-foreground overflow-hidden glow-effect">
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -211,7 +211,7 @@ export default function ProfilePage() {
                   <span>{initials}</span>
                 )}
               </div>
-              <div className="space-y-2">
+              <div className="space-y-2 w-full max-w-md">
                 <label className="text-sm font-medium">
                   Avatar URL
                 </label>
