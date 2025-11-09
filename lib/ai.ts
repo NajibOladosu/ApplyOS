@@ -4,56 +4,13 @@ const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null
 
-export async function extractQuestionsFromURL(url: string): Promise<string[]> {
-  if (!genAI) {
-    console.warn('Gemini API key not configured')
-    return [
-      'Why are you interested in this position?',
-      'What are your key qualifications?',
-      'What are your salary expectations?',
-    ]
-  }
-
-  try {
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
-
-    const prompt = `You are an assistant that extracts application questions from job postings or scholarship pages.
-
-URL: ${url}
-
-Task: Extract all application questions from this job posting or scholarship page and return them as a JSON array of strings. Only include the questions, nothing else.
-
-Example format: ["Question 1?", "Question 2?", "Question 3?"]
-
-Return only the JSON array:`
-
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text()
-
-    // Handle markdown code fences
-    let jsonText = text
-    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
-    if (codeBlockMatch) {
-      jsonText = codeBlockMatch[1].trim()
-    }
-
-    const jsonMatch = jsonText.match(/\[[\s\S]*\]/)
-    if (jsonMatch) {
-      try {
-        const questions = JSON.parse(jsonMatch[0])
-        return Array.isArray(questions) ? questions : []
-      } catch (error) {
-        console.error('Failed to parse questions JSON:', error)
-        return []
-      }
-    }
-    return []
-  } catch (error) {
-    console.error('Error extracting questions:', error)
-    return []
-  }
-}
+/**
+ * NOTE: Question extraction from URLs is now handled by the API route:
+ * /api/questions/extract-from-url
+ *
+ * This route properly scrapes the URL content and passes it to Gemini for analysis.
+ * Use that endpoint instead of trying to extract questions client-side.
+ */
 
 export async function generateAnswer(
   question: string,
