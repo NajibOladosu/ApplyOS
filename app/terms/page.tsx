@@ -296,7 +296,7 @@ export default function TermsOfService() {
       <footer className="border-t border-border py-8 px-6">
         <div className="container mx-auto text-center">
           <p className="text-sm text-muted-foreground">
-            © 2024 Trackly. All rights reserved.
+            © {new Date().getFullYear()} Trackly. All rights reserved.
           </p>
         </div>
       </footer>
