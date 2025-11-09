@@ -10,6 +10,7 @@ import { X, Sparkles, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createApplication } from "@/lib/services/applications"
 import { createQuestion } from "@/lib/services/questions"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 interface AddApplicationModalProps {
   isOpen: boolean
@@ -21,6 +22,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [extracting, setExtracting] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Form data
   const [title, setTitle] = useState("")
@@ -51,13 +53,13 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
         setStep(2)
       } else {
         console.error('Error extracting questions:', data.error)
-        alert(data.error || 'Error extracting questions. Continuing without AI extraction.')
+        setErrorMessage(data.error || 'Error extracting questions. Continuing without AI extraction.')
         // Still proceed to step 2 even if extraction fails
         setStep(2)
       }
     } catch (error) {
       console.error('Error extracting questions:', error)
-      alert('Error extracting questions. Continuing without AI extraction.')
+      setErrorMessage('Error extracting questions. Continuing without AI extraction.')
       setStep(2)
     } finally {
       setExtracting(false)
@@ -93,7 +95,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
       handleClose()
     } catch (error) {
       console.error('Error creating application:', error)
-      alert('Error creating application')
+      setErrorMessage('Error creating application')
     } finally {
       setLoading(false)
     }
@@ -299,6 +301,15 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
           </Card>
         </motion.div>
       </div>
+
+      {/* Error Modal */}
+      <AlertModal
+        isOpen={!!errorMessage}
+        title="Error"
+        message={errorMessage || ""}
+        type="error"
+        onClose={() => setErrorMessage(null)}
+      />
     </AnimatePresence>
   )
 }

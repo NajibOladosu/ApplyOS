@@ -9,6 +9,7 @@ import { X, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { updateApplication } from "@/lib/services/applications"
 import type { Application } from "@/types/database"
+import { AlertModal } from "@/components/modals/alert-modal"
 
 interface EditApplicationModalProps {
   isOpen: boolean
@@ -24,6 +25,7 @@ export function EditApplicationModal({
   application,
 }: EditApplicationModalProps) {
   const [loading, setLoading] = useState(false)
+  const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
   // Form data
   const [title, setTitle] = useState("")
@@ -63,7 +65,7 @@ export function EditApplicationModal({
       handleClose()
     } catch (error) {
       console.error("Error updating application:", error)
-      alert("Error updating application")
+      setErrorMessage("Error updating application")
     } finally {
       setLoading(false)
     }
@@ -197,6 +199,15 @@ export function EditApplicationModal({
           </Card>
         </motion.div>
       </div>
+
+      {/* Error Modal */}
+      <AlertModal
+        isOpen={!!errorMessage}
+        title="Error"
+        message={errorMessage || ""}
+        type="error"
+        onClose={() => setErrorMessage(null)}
+      />
     </AnimatePresence>
   )
 }
