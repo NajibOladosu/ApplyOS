@@ -24,7 +24,7 @@ import {
 import Link from "next/link"
 import type { Application, Question, Document } from "@/types/database"
 import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments } from "@/lib/services/applications"
-import { getQuestionsByApplicationId, updateQuestion } from "@/lib/services/questions"
+import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 
@@ -42,6 +42,7 @@ export default function ApplicationDetailPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState<string | "all" | null>(null)
+  const [extracting, setExtracting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendingStatus, setPendingStatus] = useState<Application["status"] | null>(null)
   const [initialStatus, setInitialStatus] = useState<Application["status"] | null>(null)
@@ -135,6 +136,62 @@ export default function ApplicationDetailPage() {
       setError("Failed to regenerate answers. Please try again.")
     } finally {
       setRegenerating(null)
+    }
+  }
+
+  const handleExtractQuestions = async () => {
+    if (!application || !application.url) {
+      setError("No application URL found. Please add a URL to the application first.")
+      return
+    }
+
+    const confirmExtract = confirm(
+      "This will replace all existing questions with newly extracted ones. Continue?"
+    )
+    if (!confirmExtract) return
+
+    setExtracting(true)
+    setError(null)
+
+    try {
+      // Call the extract-from-url API
+      const response = await fetch('/api/questions/extract-from-url', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: application.url }),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok || !data.questions || data.questions.length === 0) {
+        setError(data.error || 'No questions could be extracted from the URL.')
+        return
+      }
+
+      // Delete all existing questions
+      await Promise.all(questions.map(q => deleteQuestion(q.id)))
+
+      // Create new questions
+      const newQuestions = await Promise.all(
+        data.questions.map((questionText: string) =>
+          createQuestion({
+            application_id: application.id,
+            question_text: questionText,
+          })
+        )
+      )
+
+      setQuestions(newQuestions)
+
+      // Show success message
+      alert(`Successfully extracted ${newQuestions.length} question(s)!`)
+    } catch (err) {
+      console.error('Error extracting questions:', err)
+      setError('Failed to extract questions. Please try again.')
+    } finally {
+      setExtracting(false)
     }
   }
 
@@ -552,30 +609,50 @@ export default function ApplicationDetailPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">Application Questions</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleRegenerate()}
-              disabled={regenerating !== null || questions.length === 0}
-            >
-              {regenerating === "all" ? (
-                <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  Regenerating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Regenerate All
-                </>
-              )}
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExtractQuestions}
+                disabled={extracting || regenerating !== null || !application.url}
+                title={!application.url ? "Add a URL to the application first" : "Extract questions from the application URL"}
+              >
+                {extracting ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Extracting...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Extract Questions
+                  </>
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleRegenerate()}
+                disabled={regenerating !== null || questions.length === 0}
+              >
+                {regenerating === "all" ? (
+                  <>
+                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                    Regenerating...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="mr-2 h-4 w-4" />
+                    Regenerate All
+                  </>
+                )}
+              </Button>
+            </div>
           </div>
 
           {questions.length === 0 ? (
             <p className="text-sm text-muted-foreground">
-              No questions found for this application yet. You can add questions when creating or
-              editing the application.
+              No questions found for this application yet. {application.url ? "Click 'Extract Questions' above to automatically extract questions from the application URL, or" : "You can"} add questions when creating or editing the application.
             </p>
           ) : (
             questions.map((question, index) => (
