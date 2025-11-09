@@ -19,6 +19,7 @@ import {
   ChevronDown,
   Plus,
   X,
+  Copy,
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document } from "@/types/database"
@@ -49,6 +50,7 @@ export default function ApplicationDetailPage() {
   const [isSavingChanges, setIsSavingChanges] = useState(false)
   const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
+  const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
 
   useEffect(() => {
     if (!id) return
@@ -203,6 +205,17 @@ export default function ApplicationDetailPage() {
       console.error("Error saving answer:", err)
     } finally {
       setSaving(null)
+    }
+  }
+
+  const handleCopyAIAnswer = async (questionId: string, aiAnswer: string) => {
+    // Save the AI answer as manual answer
+    await handleSaveManual(questionId, aiAnswer)
+
+    // Update the textarea visual
+    const textarea = textareaRefs.get(questionId)
+    if (textarea) {
+      textarea.value = aiAnswer
     }
   }
 
@@ -618,11 +631,29 @@ export default function ApplicationDetailPage() {
                       />
                     </div>
 
+                    {question.ai_answer && (
+                      <div className="flex justify-center">
+                        <Button
+                          variant="outline"
+                          size="icon"
+                          onClick={() => handleCopyAIAnswer(question.id, question.ai_answer || "")}
+                          disabled={saving === question.id}
+                          className="glow-effect"
+                          title="Copy AI answer to your edited answer"
+                        >
+                          <Copy className="h-4 w-4 text-primary" />
+                        </Button>
+                      </div>
+                    )}
+
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">
                         Your edited answer (saved privately for this application)
                       </p>
                       <Textarea
+                        ref={(el) => {
+                          if (el) textareaRefs.set(question.id, el)
+                        }}
                         defaultValue={question.manual_answer || ""}
                         rows={4}
                         onBlur={(e) =>
