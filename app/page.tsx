@@ -80,9 +80,12 @@ export default function Home() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground">T</span>
+              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
             </div>
-            <span className="text-xl font-bold text-gradient">Trackly</span>
+            <span className="text-xl font-bold">
+              <span className="text-primary">Track</span>
+              <span className="text-white">ly</span>
+            </span>
           </Link>
 
           <div className="flex items-center space-x-4">
@@ -256,9 +259,12 @@ export default function Home() {
           <div className="flex flex-col md:flex-row items-center justify-between">
             <div className="flex items-center space-x-2 mb-4 md:mb-0">
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-lg font-bold text-primary-foreground">T</span>
+                <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
               </div>
-              <span className="text-xl font-bold text-gradient">Trackly</span>
+              <span className="text-xl font-bold">
+                <span className="text-primary">Track</span>
+                <span className="text-white">ly</span>
+              </span>
             </div>
 
             <p className="text-sm text-muted-foreground">

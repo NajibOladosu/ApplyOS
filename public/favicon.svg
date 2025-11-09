@@ -1,0 +1,7 @@
+<svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Black background rounded square -->
+  <rect width="192" height="192" rx="32" fill="#000000"/>
+
+  <!-- Green T letter in Old English Gothic style -->
+  <text x="96" y="140" font-family="'Crimson Text', serif" font-size="130" font-weight="700" fill="#00FF88" text-anchor="middle" letter-spacing="2">T</text>
+</svg>

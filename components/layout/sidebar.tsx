@@ -43,9 +43,12 @@ export function Sidebar() {
         <div className="flex h-16 items-center border-b border-border px-6">
           <Link href="/dashboard" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground">T</span>
+              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
             </div>
-            <span className="text-xl font-bold text-gradient">Trackly</span>
+            <span className="text-xl font-bold">
+              <span className="text-primary">Track</span>
+              <span className="text-white">ly</span>
+            </span>
           </Link>
         </div>
 
