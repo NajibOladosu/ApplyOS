@@ -164,31 +164,55 @@ export async function POST(request: NextRequest) {
     try {
       const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
 
-      const prompt = `You are an AI assistant that extracts application questions from job postings and scholarship pages.
+      const prompt = `You are an AI assistant that extracts meaningful application questions from job postings and scholarship pages.
 
 Below is the text content extracted from a job/scholarship posting webpage:
 
 ${truncatedText}
 
-Task: Carefully read the content and extract ALL application questions that candidates need to answer. These could be:
-- Direct questions (e.g., "Why do you want to work here?")
-- Required essay prompts
-- Screening questions
-- Application form fields that require written responses
-- Any questions about qualifications, experience, or motivation
+Task: Extract ONLY substantive questions that require thoughtful written responses and help the company/organization understand the applicant better.
+
+INCLUDE these types of questions:
+- Essay questions (e.g., "Why do you want to work here?", "What excites you about this role?")
+- Open-ended questions about experience, motivation, or perspective
+- Questions asking for specific examples or stories
+- Questions about goals, challenges, or problem-solving
+- "Tell us about..." or "Describe a time when..." prompts
+
+EXCLUDE these types of questions:
+- Basic form fields (name, email, phone, address)
+- Simple yes/no questions
+- Dropdown selections (language proficiency, university selection, degree type)
+- Links to resume/portfolio/GitHub/LinkedIn
+- Start date or availability questions
+- Salary expectations or compensation preferences
+- Demographic information
+- Work authorization status
+- Questions with obvious factual answers the applicant already knows
+
+Examples of GOOD questions to extract:
+- "What's most exciting to you about our company's offerings and why do you want to work here?"
+- "Please share one problem you've been able to solve more efficiently with the help of AI."
+- "Tell us one thing that's not on your resume that you're proud of."
+- "Describe a challenging technical problem you solved and your approach."
+
+Examples of BAD questions to SKIP:
+- "What is your GitHub username?"
+- "Which languages do you speak?"
+- "What university do you attend?"
+- "Link to your resume"
+- "When can you start?"
+- "What is your expected salary?"
 
 IMPORTANT:
 - Return ONLY a JSON array of strings
-- Each string should be a complete question
-- Include only actual questions, not instructions or headings
-- If no questions are found, return an empty array []
+- Each string should be a complete, meaningful question
+- Only include questions requiring 2+ sentence written responses
+- If no meaningful questions are found, return an empty array []
 - Do NOT include markdown code fences
 - Do NOT include any explanatory text
 
-Example format:
-["Why are you interested in this position?", "What are your key qualifications?", "Describe a challenging project you've worked on."]
-
-Extract the questions now:`
+Extract the meaningful questions now:`
 
       const result = await model.generateContent(prompt)
       const response = await result.response
