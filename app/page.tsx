@@ -283,7 +283,7 @@ export default function Home() {
             </div>
 
             <p className="text-sm text-muted-foreground">
-              © 2024 Trackly. All rights reserved.
+              © {new Date().getFullYear()} Trackly. All rights reserved.
             </p>
           </div>
         </div>
