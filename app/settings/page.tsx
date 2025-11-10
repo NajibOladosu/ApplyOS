@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -29,6 +30,7 @@ type AiSettings = {
 
 export default function SettingsPage() {
   const supabase = createClient()
+  const router = useRouter()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -355,7 +357,7 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Data & Privacy (clearly marked as pending backend implementation) */}
+        {/* Data & Privacy (coming soon) */}
         <Card>
           <CardHeader>
             <CardTitle>Data & Privacy</CardTitle>
