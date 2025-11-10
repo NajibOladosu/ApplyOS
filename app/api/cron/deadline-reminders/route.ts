@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
             .eq('user_id', app.user_id)
             .eq('type', 'deadline')
             .contains('message', app.title)
+            .not('created_at', 'is', null)
             .gte('created_at', today.toISOString());
 
           if (existingNotif && existingNotif.length > 0) {
