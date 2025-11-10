@@ -452,13 +452,6 @@ export default function ProfilePage() {
                 Delete Account
               </Button>
             </div>
-            <p className="text-xs text-muted-foreground">
-              Note: This flow relies on your Supabase service configuration:
-              deleting from public.users cascades via foreign keys defined in
-              your migration, and auth user deletion uses Supabase Admin API.
-              Ensure the client has appropriate privileges (or move this logic
-              to a secure server-side endpoint) before using in production.
-            </p>
           </CardContent>
         </Card>
 
