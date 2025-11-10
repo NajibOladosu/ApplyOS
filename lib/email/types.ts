@@ -4,6 +4,7 @@
 
 export type EmailTemplateType =
   | 'welcome'
+  | 'verification'
   | 'status_update'
   | 'deadline_reminder'
   | 'weekly_digest';
@@ -36,6 +37,12 @@ export interface EmailSendOptions {
 export interface WelcomeEmailData {
   userName: string;
   userEmail: string;
+}
+
+export interface VerificationEmailData {
+  userName: string;
+  userEmail: string;
+  verificationUrl: string;
 }
 
 export interface StatusUpdateEmailData {
@@ -81,6 +88,7 @@ export interface WeeklyDigestEmailData {
 
 export interface EmailService {
   sendWelcomeEmail(data: WelcomeEmailData): Promise<void>;
+  sendVerificationEmail(data: VerificationEmailData): Promise<void>;
   sendStatusUpdateEmail(data: StatusUpdateEmailData): Promise<void>;
   sendDeadlineReminderEmail(data: DeadlineReminderEmailData): Promise<void>;
   sendWeeklyDigestEmail(data: WeeklyDigestEmailData): Promise<void>;

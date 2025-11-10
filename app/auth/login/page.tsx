@@ -15,6 +15,10 @@ export default function LoginPage() {
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
+  const [unverifiedEmail, setUnverifiedEmail] = useState("")
+  const [showResendModal, setShowResendModal] = useState(false)
+  const [resending, setResending] = useState(false)
+  const [resendSuccess, setResendSuccess] = useState(false)
   const router = useRouter()
   const supabase = createClient()
 
@@ -22,17 +26,76 @@ export default function LoginPage() {
     e.preventDefault()
     setLoading(true)
     setError("")
+    setUnverifiedEmail("")
+    setShowResendModal(false)
 
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
 
-    if (error) {
-      setError(error.message)
+    if (authError) {
+      setError(authError.message)
       setLoading(false)
-    } else {
+      return
+    }
+
+    // Check if user's email is verified
+    try {
+      const { data: userData, error: fetchError } = await supabase
+        .from('users')
+        .select('email_verified, email')
+        .eq('email', email)
+        .single()
+
+      if (fetchError || !userData) {
+        setError('Failed to verify email status')
+        setLoading(false)
+        return
+      }
+
+      if (!userData.email_verified) {
+        // Email not verified - sign out and show modal
+        await supabase.auth.signOut()
+        setUnverifiedEmail(userData.email)
+        setShowResendModal(true)
+        setLoading(false)
+        return
+      }
+
+      // Email verified - proceed to dashboard
       router.push("/dashboard")
+    } catch (err) {
+      setError('An error occurred')
+      setLoading(false)
+    }
+  }
+
+  const handleResendVerification = async () => {
+    setResending(true)
+    setResendSuccess(false)
+
+    try {
+      const response = await fetch('/api/auth/resend-verification', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: unverifiedEmail }),
+      })
+
+      if (response.ok) {
+        setResendSuccess(true)
+        setTimeout(() => {
+          setShowResendModal(false)
+          setResendSuccess(false)
+          setUnverifiedEmail("")
+        }, 3000)
+      } else {
+        setError('Failed to resend verification email')
+      }
+    } catch (err) {
+      setError('An error occurred')
+    } finally {
+      setResending(false)
     }
   }
 
@@ -154,6 +217,67 @@ export default function LoginPage() {
           </CardContent>
         </Card>
       </motion.div>
+
+      {/* Unverified Email Modal */}
+      {showResendModal && (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
+        >
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="w-full max-w-sm"
+          >
+            <Card className="glass-effect">
+              <CardHeader>
+                <CardTitle className="text-primary">Verify Your Email</CardTitle>
+                <CardDescription>
+                  Please verify your email address to continue
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  We sent a verification link to <strong>{unverifiedEmail}</strong>. Please check your email and click the link to verify your account.
+                </p>
+                <div className="p-3 bg-muted rounded-lg border border-border">
+                  <p className="text-xs text-muted-foreground">
+                    Didn't receive the email? Check your spam folder or click below to resend it.
+                  </p>
+                </div>
+
+                {resendSuccess && (
+                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 text-sm">
+                    ✓ Verification email resent successfully!
+                  </div>
+                )}
+
+                <div className="space-y-2">
+                  <Button
+                    onClick={handleResendVerification}
+                    className="w-full"
+                    disabled={resending || resendSuccess}
+                  >
+                    {resending ? "Sending..." : resendSuccess ? "Email Sent" : "Resend Verification Email"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="w-full"
+                    onClick={() => {
+                      setShowResendModal(false)
+                      setUnverifiedEmail("")
+                      setResendSuccess(false)
+                    }}
+                  >
+                    Back to Login
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          </motion.div>
+        </motion.div>
+      )}
     </div>
   )
 }

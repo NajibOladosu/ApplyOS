@@ -1,7 +1,4 @@
 import { createClient } from '@/lib/supabase/server'
-import { sendEmailDirectly } from '@/lib/email'
-import { welcomeEmailTemplate, welcomeEmailSubject } from '@/lib/email/templates/welcome'
-import { emailConfig } from '@/lib/email/config'
 import { NextResponse } from 'next/server'
 
 export async function GET(request: Request) {
@@ -35,33 +32,28 @@ export async function GET(request: Request) {
         }
 
         if (user && !userError) {
-          // Send welcome email to new user
+          // Mark OAuth user as verified (they already verified via OAuth provider)
           try {
-            const userName = user.user_metadata?.name || user.email?.split('@')[0] || 'User'
-            const userEmail = user.email
+            console.log(`✓ Marking OAuth user as verified: ${user.email}...`)
 
-            console.log(`📧 Preparing welcome email for ${userEmail}...`)
+            const { error: updateError } = await supabase
+              .from('users')
+              .update({
+                email_verified: true,
+                verification_token: null,
+                verification_token_expires_at: null,
+              })
+              .eq('id', user.id)
 
-            if (userEmail) {
-              const htmlBody = welcomeEmailTemplate(
-                {
-                  userName,
-                  userEmail,
-                },
-                emailConfig.appUrl
-              )
-              const subject = welcomeEmailSubject()
-
-              console.log(`📤 Sending welcome email to ${userEmail}...`)
-              // Send welcome email
-              const result = await sendEmailDirectly(userEmail, subject, htmlBody)
-              console.log(`✅ Welcome email sent to ${userEmail}`)
+            if (updateError) {
+              console.error('⚠️ Failed to mark user as verified:', updateError)
+              // Don't fail the auth flow if update fails
             } else {
-              console.log('⚠️ No email found for user')
+              console.log(`✅ User marked as verified: ${user.email}`)
             }
-          } catch (emailError) {
-            console.error('❌ Failed to send welcome email:', emailError)
-            // Don't fail the auth flow if email fails
+          } catch (error) {
+            console.error('❌ Error marking user as verified:', error)
+            // Don't fail the auth flow if verification marking fails
           }
         }
       }
