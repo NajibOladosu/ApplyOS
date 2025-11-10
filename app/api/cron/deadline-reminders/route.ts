@@ -33,7 +33,6 @@ export async function POST(request: NextRequest) {
     const { data: applications, error: appsError } = await supabase
       .from('applications')
       .select('id, user_id, title, deadline')
-      .neq('deadline', null)
       .not('deadline', 'is', null);
 
     if (appsError) {
