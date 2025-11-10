@@ -240,8 +240,26 @@ export default function ApplicationDetailPage() {
     setIsSavingChanges(true)
     try {
       if (pendingStatus && pendingStatus !== application.status) {
+        const previousStatus = application.status
         await updateApplication(application.id, { status: pendingStatus })
         setApplication((prev) => prev ? { ...prev, status: pendingStatus } : null)
+
+        // Send status update email notification
+        try {
+          await fetch('/api/notifications/send-status-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              applicationId: application.id,
+              applicationTitle: application.title,
+              previousStatus,
+              newStatus: pendingStatus,
+            }),
+          })
+        } catch (emailErr) {
+          console.error('Failed to send status update email:', emailErr)
+          // Don't fail the save if email fails
+        }
       }
 
       // Save document relationships if they changed

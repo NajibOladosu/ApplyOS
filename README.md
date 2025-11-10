@@ -128,6 +128,14 @@ Before you begin, ensure you have the following installed:
    # AI Configuration (Optional - Required for document analysis)
    GEMINI_API_KEY=your-google-gemini-api-key
 
+   # Email Configuration (Optional - For email notifications)
+   GMAIL_USER=your-email@gmail.com
+   GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx  # 16-character Gmail app password
+   NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+   # Cron Jobs (Optional - For scheduled emails)
+   CRON_SECRET=your-secret-key-for-cron-jobs
+
    # Backend Configuration (Optional - For advanced features)
    SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
    ```
@@ -144,6 +152,15 @@ Before you begin, ensure you have the following installed:
    - Visit [Google AI Studio](https://makersuite.google.com/app/apikey)
    - Create a new API key
    - Copy and add to `.env.local`
+
+4. **Set up Gmail SMTP** (optional - for email notifications)
+
+   To enable email notifications:
+   - Enable 2-Factor Authentication on your Gmail account
+   - Generate an App Password for Trackly
+   - Add `GMAIL_USER` and `GMAIL_APP_PASSWORD` to `.env.local`
+
+   **For detailed instructions, see [EMAIL_SETUP.md](./EMAIL_SETUP.md)**
 
 ## Database Setup
 
@@ -184,6 +201,17 @@ This adds:
 - Extracted text caching for performance
 - Full-text search capabilities
 - Optimized indexes
+
+**Migration 4: Email Tracking** (Optional - only if using email features)
+```sql
+-- Run the contents of: supabase/migrations/004_add_email_tracking.sql
+```
+
+This adds:
+- Email sending status tracking in notifications
+- Email queue table for reliable delivery
+- Email retry mechanism
+- Email error logging
 
 ### Step 2: Create Storage Bucket
 
@@ -401,7 +429,7 @@ We welcome contributions! Here's how you can help:
 
 - 🧪 Testing infrastructure and test coverage
 - 📄 Support for Word documents (.docx)
-- 📧 Email notification system
+- ✅ ~~📧 Email notification system~~ (Implemented - Gmail SMTP)
 - 🔔 Real-time notifications with WebSockets
 - 📱 Mobile app development
 - 🔒 Enhanced security features

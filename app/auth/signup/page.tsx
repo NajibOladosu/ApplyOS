@@ -23,22 +23,29 @@ export default function SignupPage() {
     setLoading(true)
     setError("")
 
-    const { error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        data: {
+    try {
+      // Call custom signup API that sends welcome email
+      const response = await fetch('/api/auth/signup', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email,
+          password,
           name,
-        },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+        }),
+      })
 
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
-      setSuccess(true)
+      const data = await response.json()
+
+      if (!response.ok) {
+        setError(data.error || 'Signup failed')
+        setLoading(false)
+      } else {
+        setSuccess(true)
+        setLoading(false)
+      }
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
       setLoading(false)
     }
   }
@@ -68,12 +75,15 @@ export default function SignupPage() {
         >
           <Card className="glass-effect text-center">
             <CardHeader>
-              <CardTitle className="text-primary">Check your email</CardTitle>
+              <CardTitle className="text-primary">Welcome to Trackly!</CardTitle>
               <CardDescription>
-                We've sent you a confirmation link to verify your account.
+                Your account has been created successfully. A welcome email has been sent to your inbox.
               </CardDescription>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                You can now log in with your email and password.
+              </p>
               <Button asChild className="w-full">
                 <Link href="/auth/login">Go to Login</Link>
               </Button>

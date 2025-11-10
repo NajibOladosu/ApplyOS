@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -16,6 +17,7 @@ import {
   Briefcase,
   Loader2
 } from "lucide-react"
+import { createClient } from "@/lib/supabase/client"
 import { getApplications, getApplicationStats } from "@/lib/services/applications"
 import { getDocuments } from "@/lib/services/documents"
 import type { Application } from "@/types/database"
@@ -36,6 +38,8 @@ const priorityConfig = {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
+  const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({ total: 0, pending: 0, upcomingDeadlines: 0 })
   const [documentsCount, setDocumentsCount] = useState(0)
@@ -43,8 +47,25 @@ export default function DashboardPage() {
   const [statusDistribution, setStatusDistribution] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    fetchData()
-  }, [])
+    const verifyAuth = async () => {
+      const {
+        data: { user },
+        error,
+      } = await supabase.auth.getUser()
+
+      if (error || !user) {
+        // User is not authenticated, redirect to login
+        console.log('Dashboard: User not authenticated, redirecting to login')
+        router.push('/auth/login')
+        return
+      }
+
+      // User is authenticated, fetch dashboard data
+      fetchData()
+    }
+
+    verifyAuth()
+  }, [router, supabase])
 
   const fetchData = async () => {
     try {
