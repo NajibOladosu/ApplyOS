@@ -8,15 +8,18 @@ import { emailConfig } from './config';
 import { createClient } from '@/lib/supabase/server';
 import {
   WelcomeEmailData,
+  VerificationEmailData,
   StatusUpdateEmailData,
   DeadlineReminderEmailData,
   WeeklyDigestEmailData,
   EmailTemplateType,
   EmailService,
 } from './types';
+import { render } from '@react-email/render';
 
 // Import templates
 import { welcomeEmailTemplate, welcomeEmailSubject } from './templates/welcome';
+import VerifyEmailTemplate from '../../emails/verify-email';
 import {
   statusUpdateEmailTemplate,
   statusUpdateEmailSubject,
@@ -152,6 +155,27 @@ export const emailService: EmailService = {
       subject,
       htmlBody,
       'welcome'
+    );
+  },
+
+  /**
+   * Send email verification email
+   */
+  async sendVerificationEmail(data: VerificationEmailData) {
+    const htmlBody = await render(
+      VerifyEmailTemplate({
+        userName: data.userName,
+        verificationUrl: data.verificationUrl,
+      })
+    );
+    const subject = 'Verify your Trackly email address';
+
+    await queueEmail(
+      '', // Will be set by API route
+      data.userEmail,
+      subject,
+      htmlBody,
+      'verification'
     );
   },
 

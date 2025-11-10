@@ -1,14 +1,14 @@
 /**
  * Custom Signup API Route
  * POST /api/auth/signup
- * Handles email signup and sends welcome email instead of Supabase confirmation
+ * Handles email signup with email verification
  */
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { sendEmailDirectly } from '@/lib/email';
-import { welcomeEmailTemplate, welcomeEmailSubject } from '@/lib/email/templates/welcome';
+import { emailService } from '@/lib/email';
 import { emailConfig } from '@/lib/email/config';
+import crypto from 'crypto';
 
 export async function POST(request: NextRequest) {
   try {
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`📝 Signing up user: ${email}`);
 
-    // Sign up user without email confirmation (we'll send welcome email instead)
+    // Sign up user without email confirmation
     const { data, error: signupError } = await supabase.auth.signUp({
       email,
       password,
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
         data: {
           name,
         },
-        // Don't send Supabase's confirmation email - we'll send our own welcome email
+        // Don't send Supabase's confirmation email - we'll send our own verification email
         emailRedirectTo: undefined,
       },
     });
@@ -47,37 +47,72 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (!data.user?.id) {
+      console.error('❌ User created but no user ID returned');
+      return NextResponse.json(
+        { error: 'Failed to create user' },
+        { status: 500 }
+      );
+    }
+
     console.log(`✅ User created: ${email}`);
 
-    // Send custom welcome email
+    // Generate verification token
+    const verificationToken = crypto.randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+
+    // Store verification token in database
     try {
-      console.log(`📧 Sending welcome email to ${email}...`);
+      const { error: updateError } = await supabase
+        .from('users')
+        .update({
+          verification_token: verificationToken,
+          verification_token_expires_at: expiresAt.toISOString(),
+        })
+        .eq('id', data.user.id);
+
+      if (updateError) {
+        console.error('❌ Failed to store verification token:', updateError);
+        return NextResponse.json(
+          { error: 'Failed to create user' },
+          { status: 500 }
+        );
+      }
+    } catch (dbError) {
+      console.error('❌ Database error:', dbError);
+      return NextResponse.json(
+        { error: 'Internal server error' },
+        { status: 500 }
+      );
+    }
+
+    // Send verification email
+    try {
+      console.log(`📧 Sending verification email to ${email}...`);
 
       const userName = name || email.split('@')[0];
-      const htmlBody = welcomeEmailTemplate(
-        {
-          userName,
-          userEmail: email,
-        },
-        emailConfig.appUrl
-      );
-      const subject = welcomeEmailSubject();
+      const verificationUrl = `${emailConfig.appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-      await sendEmailDirectly(email, subject, htmlBody);
-      console.log(`✅ Welcome email sent to ${email}`);
+      await emailService.sendVerificationEmail({
+        userName,
+        userEmail: email,
+        verificationUrl,
+      });
+
+      console.log(`✅ Verification email sent to ${email}`);
     } catch (emailError) {
-      console.error('⚠️ Failed to send welcome email:', emailError);
-      // Don't fail the signup if email fails - user can still login
+      console.error('⚠️ Failed to send verification email:', emailError);
+      // Don't fail the signup if email fails
     }
 
     return NextResponse.json(
       {
         success: true,
-        message: 'Signup successful! Check your email for a welcome message.',
+        message: 'Signup successful! Please check your email to verify your account.',
         user: {
-          id: data.user?.id,
-          email: data.user?.email,
-          user_metadata: data.user?.user_metadata,
+          id: data.user.id,
+          email: data.user.email,
+          user_metadata: data.user.user_metadata,
         },
       },
       { status: 201 }
