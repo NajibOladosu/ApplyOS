@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { render } from '@react-email/render';
 import VerifyEmailTemplate from '@/emails/verify-email';
 import { sendEmailViaSMTP } from '@/lib/email/transport';
@@ -25,10 +25,22 @@ export async function POST(request: NextRequest) {
 
     console.log(`📧 Resending verification email to ${email}...`);
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS (user may not be authenticated)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    // Find user with this email
-    const { data: users, error: findError } = await supabase
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey);
+
+    // Find user with this email (using admin API to bypass RLS)
+    const { data: users, error: findError } = await adminClient
       .from('users')
       .select('id, full_name')
       .eq('email', email)
@@ -49,8 +61,8 @@ export async function POST(request: NextRequest) {
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
-    // Update user with new token
-    const { error: updateError } = await supabase
+    // Update user with new token (using admin API to bypass RLS)
+    const { error: updateError } = await adminClient
       .from('users')
       .update({
         verification_token: verificationToken,

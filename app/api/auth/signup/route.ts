@@ -41,8 +41,11 @@ export async function POST(request: NextRequest) {
 
     const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey);
 
-    // Create user with admin API (doesn't send confirmation email automatically)
-    const { data, error: createError } = await adminClient.auth.admin.createUser({
+    // Try to create user with admin API (doesn't send confirmation email automatically)
+    let data: any;
+    let userExisted = false;
+
+    const { data: createData, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
       email_confirm: false, // Don't auto-confirm - user must verify with our custom link
@@ -51,32 +54,67 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    if (createError) {
+    // If user already exists in auth, handle re-registration case
+    if (createError && createError.message.includes('already')) {
+      console.log(`⚠️ User already exists: ${email}, checking verification status...`);
+      userExisted = true;
+
+      // Check if user is verified in our database
+      const { data: existingUsers, error: checkError } = await adminClient
+        .from('users')
+        .select('id, email_verified')
+        .eq('email', email)
+        .limit(1);
+
+      if (checkError || !existingUsers || existingUsers.length === 0) {
+        console.error('❌ Could not check existing user:', checkError);
+        return NextResponse.json(
+          { error: 'Account already exists. Please log in.' },
+          { status: 400 }
+        );
+      }
+
+      const existingUser = existingUsers[0];
+
+      // If user is already verified, don't allow re-registration
+      if (existingUser.email_verified) {
+        console.log(`❌ User already verified: ${email}`);
+        return NextResponse.json(
+          { error: 'Email already registered. Please log in.' },
+          { status: 400 }
+        );
+      }
+
+      // User exists but not verified - allow re-sending verification email
+      console.log(`✅ User exists but unverified: ${email}, will send new verification email`);
+      data = { user: { id: existingUser.id } };
+    } else if (createError) {
       console.error('❌ User creation error:', createError);
       return NextResponse.json(
         { error: createError.message },
         { status: 400 }
       );
+    } else {
+      data = createData;
     }
 
     if (!data.user?.id) {
-      console.error('❌ User created but no user ID returned');
+      console.error('❌ No user ID available');
       return NextResponse.json(
         { error: 'Failed to create user' },
         { status: 500 }
       );
     }
 
-    console.log(`✅ User created (without Supabase email): ${email}`);
+    console.log(`✅ User ${userExisted ? 're-registration' : 'created'}: ${email}`);
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
 
-    // Store verification token in database
+    // Store verification token in database (using admin client to bypass RLS)
     try {
-      const supabase = await createClient();
-      const { error: updateError } = await supabase
+      const { error: updateError } = await adminClient
         .from('users')
         .update({
           verification_token: verificationToken,
