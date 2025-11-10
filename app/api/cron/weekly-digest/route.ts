@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     const { data: usersData, error: usersError } = await supabase
       .from('applications')
       .select('user_id', { count: 'exact' })
-      .neq('user_id', null);
+      .not('user_id', 'is', null);
 
     if (usersError) {
       console.error('Failed to fetch users:', usersError);
