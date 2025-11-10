@@ -63,6 +63,9 @@ export interface Notification {
   message: string
   is_read: boolean
   created_at: string
+  email_sent?: boolean
+  email_sent_at?: string | null
+  email_error?: string | null
 }
 
 export interface StatusHistory {

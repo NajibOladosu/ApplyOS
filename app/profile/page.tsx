@@ -166,35 +166,33 @@ export default function ProfilePage() {
     if (!user) return
 
     setDeletingAccount(true)
-    try {
-      // Deleting from public.users will cascade to related tables due to FKs
-      const { error: deleteError } = await supabase
-        .from("users")
-        .delete()
-        .eq("id", user.id)
+    setDeleteError(null)
 
-      if (deleteError) {
-        console.error("Error deleting user profile:", deleteError)
-        setDeleteError("Failed to delete your account. Please try again or contact support.")
+    try {
+      console.log("🗑️ Calling account deletion API...")
+      const response = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        console.error("❌ Deletion failed:", data)
+        setDeleteError(data.error || "Failed to delete account. Please try again.")
+        setDeletingAccount(false)
         return
       }
 
-      // Also remove the auth user (session + auth identity)
-      const { error: authError } = await supabase.auth.admin.deleteUser(
-        user.id
-      )
+      console.log("✅ Account deleted successfully")
 
-      if (authError) {
-        console.error("Error deleting auth user:", authError)
-        // At this point profile is gone; inform user to contact support if issues
-      }
-
-      await supabase.auth.signOut()
-      window.location.href = "/"
+      // Wait a moment for backend to process, then redirect to home
+      setTimeout(() => {
+        window.location.href = "/"
+      }, 1000)
     } catch (err) {
-      console.error("Unexpected error during account deletion:", err)
-      setDeleteError("An unexpected error occurred while deleting your account.")
-    } finally {
+      console.error("Error deleting account:", err)
+      setDeleteError("An unexpected error occurred. Please try again.")
       setDeletingAccount(false)
     }
   }
