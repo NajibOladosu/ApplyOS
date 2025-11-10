@@ -380,21 +380,6 @@ export default function SettingsPage() {
                 Coming soon
               </Button>
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Globe className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Data Storage Location</p>
-                  <p className="text-sm text-muted-foreground">
-                    Managed by your Supabase project region.
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                Managed via Supabase
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
