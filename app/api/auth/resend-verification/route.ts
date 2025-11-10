@@ -6,7 +6,9 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { emailService } from '@/lib/email';
+import { render } from '@react-email/render';
+import VerifyEmailTemplate from '@/emails/verify-email';
+import { sendEmailViaSMTP } from '@/lib/email/transport';
 import { emailConfig } from '@/lib/email/config';
 import crypto from 'crypto';
 
@@ -64,16 +66,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send verification email
+    // Send verification email directly (not queued)
     try {
       const userName = user.full_name || email.split('@')[0];
       const verificationUrl = `${emailConfig.appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-      await emailService.sendVerificationEmail({
-        userName,
-        userEmail: email,
-        verificationUrl,
-      });
+      // Render React Email template
+      const htmlBody = await render(
+        VerifyEmailTemplate({
+          userName,
+          verificationUrl,
+        })
+      );
+
+      // Send directly via SMTP (not queued)
+      await sendEmailViaSMTP(
+        email,
+        'Verify your Trackly email address',
+        htmlBody
+      );
 
       console.log(`✅ Verification email resent to ${email}`);
     } catch (emailError) {
