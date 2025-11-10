@@ -5,7 +5,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
 
 export async function GET(request: NextRequest) {
   try {
@@ -20,17 +20,29 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Verifying email with token...');
 
-    const supabase = await createClient();
+    // Use admin client to bypass RLS (user is not authenticated yet)
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
-    // Find user with matching verification token
-    const { data: users, error: findError } = await supabase
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey);
+
+    // Find user with matching verification token (using admin API to bypass RLS)
+    const { data: users, error: findError } = await adminClient
       .from('users')
       .select('id, email, verification_token_expires_at')
       .eq('verification_token', token)
       .limit(1);
 
     if (findError || !users || users.length === 0) {
-      console.error('❌ Invalid or expired verification token');
+      console.error('❌ Invalid or expired verification token:', findError);
       return NextResponse.json(
         { error: 'Invalid or expired verification token' },
         { status: 400 }
@@ -53,8 +65,26 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Mark user as verified and clear verification token
-    const { error: updateError } = await supabase
+    // Mark user as verified in Supabase Auth (so they can log in)
+    try {
+      const { error: authError } = await adminClient.auth.admin.updateUserById(
+        user.id,
+        { email_confirm: true }
+      );
+
+      if (authError) {
+        console.error('⚠️ Failed to confirm email in auth:', authError);
+        // Continue anyway - we'll still mark as verified in our database
+      } else {
+        console.log(`✅ Email confirmed in Supabase Auth: ${user.email}`);
+      }
+    } catch (authError) {
+      console.error('⚠️ Auth confirmation error:', authError);
+      // Continue anyway
+    }
+
+    // Mark user as verified in our users table and clear verification token
+    const { error: updateError } = await adminClient
       .from('users')
       .update({
         email_verified: true,
