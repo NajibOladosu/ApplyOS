@@ -75,17 +75,22 @@ export default function SignupPage() {
         >
           <Card className="glass-effect text-center">
             <CardHeader>
-              <CardTitle className="text-primary">Welcome to Trackly!</CardTitle>
+              <CardTitle className="text-primary">Verify Your Email</CardTitle>
               <CardDescription>
-                Your account has been created successfully. A welcome email has been sent to your inbox.
+                Account created successfully! Please check your email to verify your address.
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                You can now log in with your email and password.
+                We've sent you a verification link. Click the link in your email to complete your signup and access Trackly.
               </p>
+              <div className="p-3 bg-muted rounded-lg border border-border">
+                <p className="text-xs text-muted-foreground">
+                  The link will expire in 24 hours. If you don't see the email, check your spam folder.
+                </p>
+              </div>
               <Button asChild className="w-full">
-                <Link href="/auth/login">Go to Login</Link>
+                <Link href="/auth/login">Back to Login</Link>
               </Button>
             </CardContent>
           </Card>

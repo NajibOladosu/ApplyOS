@@ -11,6 +11,7 @@ export type {
   EmailQueueEntry,
   EmailSendOptions,
   WelcomeEmailData,
+  VerificationEmailData,
   StatusUpdateEmailData,
   DeadlineReminderEmailData,
   WeeklyDigestEmailData,
