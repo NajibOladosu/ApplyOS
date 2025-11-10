@@ -6,7 +6,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { emailService } from '@/lib/email';
+import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { render } from '@react-email/render';
+import VerifyEmailTemplate from '@/emails/verify-email';
+import { sendEmailViaSMTP } from '@/lib/email/transport';
 import { emailConfig } from '@/lib/email/config';
 import crypto from 'crypto';
 
@@ -22,27 +25,36 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const supabase = await createClient();
-
     console.log(`📝 Signing up user: ${email}`);
 
-    // Sign up user without email confirmation
-    const { data, error: signupError } = await supabase.auth.signUp({
+    // Get Supabase admin client for user creation without auto-sending confirmation email
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      console.error('❌ Missing Supabase environment variables');
+      return NextResponse.json(
+        { error: 'Server configuration error' },
+        { status: 500 }
+      );
+    }
+
+    const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey);
+
+    // Create user with admin API (doesn't send confirmation email automatically)
+    const { data, error: createError } = await adminClient.auth.admin.createUser({
       email,
       password,
-      options: {
-        data: {
-          name,
-        },
-        // Don't send Supabase's confirmation email - we'll send our own verification email
-        emailRedirectTo: undefined,
+      email_confirm: false, // Don't auto-confirm - user must verify with our custom link
+      user_metadata: {
+        name,
       },
     });
 
-    if (signupError) {
-      console.error('❌ Signup error:', signupError);
+    if (createError) {
+      console.error('❌ User creation error:', createError);
       return NextResponse.json(
-        { error: signupError.message },
+        { error: createError.message },
         { status: 400 }
       );
     }
@@ -55,7 +67,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`✅ User created: ${email}`);
+    console.log(`✅ User created (without Supabase email): ${email}`);
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -63,6 +75,7 @@ export async function POST(request: NextRequest) {
 
     // Store verification token in database
     try {
+      const supabase = await createClient();
       const { error: updateError } = await supabase
         .from('users')
         .update({
@@ -86,18 +99,27 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Send verification email
+    // Send verification email directly (not queued, so it sends immediately)
     try {
       console.log(`📧 Sending verification email to ${email}...`);
 
       const userName = name || email.split('@')[0];
       const verificationUrl = `${emailConfig.appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-      await emailService.sendVerificationEmail({
-        userName,
-        userEmail: email,
-        verificationUrl,
-      });
+      // Render React Email template
+      const htmlBody = await render(
+        VerifyEmailTemplate({
+          userName,
+          verificationUrl,
+        })
+      );
+
+      // Send directly via SMTP (not queued)
+      await sendEmailViaSMTP(
+        email,
+        'Verify your Trackly email address',
+        htmlBody
+      );
 
       console.log(`✅ Verification email sent to ${email}`);
     } catch (emailError) {
