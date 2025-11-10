@@ -71,7 +71,7 @@ export async function POST(request: NextRequest) {
       const userName = user.full_name || email.split('@')[0];
       const verificationUrl = `${emailConfig.appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
-      // Render React Email template
+      // Render React Email template (both HTML and plain text)
       const htmlBody = await render(
         VerifyEmailTemplate({
           userName,
@@ -79,11 +79,20 @@ export async function POST(request: NextRequest) {
         })
       );
 
-      // Send directly via SMTP (not queued)
+      const textBody = await render(
+        VerifyEmailTemplate({
+          userName,
+          verificationUrl,
+        }),
+        { plainText: true }
+      );
+
+      // Send directly via SMTP (not queued) with both HTML and plain text
       await sendEmailViaSMTP(
         email,
         'Verify your Trackly email address',
-        htmlBody
+        htmlBody,
+        textBody
       );
 
       console.log(`✅ Verification email resent to ${email}`);
