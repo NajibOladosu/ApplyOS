@@ -87,13 +87,26 @@ export async function GET(request: Request) {
     console.log('🔐 Auth callback invoked')
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
-    const intent = requestUrl.searchParams.get('intent') || 'login' // Default to login
-    const returnTo = requestUrl.searchParams.get('returnTo') // Get the original URL to return to
+
+    // Parse cookies from request headers
+    const cookieHeader = request.headers.get('cookie') || ''
+    const cookies = Object.fromEntries(
+      cookieHeader
+        .split('; ')
+        .map(c => c.split('='))
+        .filter(([key]) => key)
+        .map(([key, value]) => [key, decodeURIComponent(value)])
+    )
+
+    // Get intent and returnTo from cookies, with fallbacks to query params for backward compatibility
+    const intent = cookies['auth_intent'] || requestUrl.searchParams.get('intent') || 'login'
+    const returnTo = cookies['auth_returnTo'] ? decodeURIComponent(cookies['auth_returnTo']) : requestUrl.searchParams.get('returnTo')
 
     console.log(`📍 Full Request URL: ${requestUrl.toString()}`)
     console.log(`📍 Request origin: ${requestUrl.origin}`)
     console.log(`📝 Code: ${code ? 'present' : 'missing'}, Intent: ${intent}, ReturnTo: ${returnTo || 'none'}`)
-    console.log(`📝 All query params:`, Object.fromEntries(requestUrl.searchParams))
+    console.log(`📝 Intent source: ${cookies['auth_intent'] ? 'cookie' : 'query param or default'}`)
+    console.log(`📝 ReturnTo source: ${cookies['auth_returnTo'] ? 'cookie' : 'query param or none'}`)
 
     if (!code) {
       console.log('⚠️ No code parameter in callback URL')
@@ -238,12 +251,23 @@ export async function GET(request: Request) {
       // Use the request origin to ensure we stay on the correct domain (Vercel, localhost, etc)
       const finalRedirectUrl = new URL(finalRedirectPath, requestUrl.origin + '/')
       console.log(`✅ Login successful - redirecting to ${finalRedirectUrl.toString()}`)
-      return NextResponse.redirect(finalRedirectUrl)
+
+      // Create response with redirect
+      const response = NextResponse.redirect(finalRedirectUrl)
+
+      // Clear the auth cookies
+      response.cookies.delete('auth_intent')
+      response.cookies.delete('auth_returnTo')
+
+      return response
     }
 
     // Fallback
     console.log('⚠️ Unknown intent, redirecting to dashboard')
-    return NextResponse.redirect(new URL('/dashboard', requestUrl.origin + '/'))
+    const fallbackResponse = NextResponse.redirect(new URL('/dashboard', requestUrl.origin + '/'))
+    fallbackResponse.cookies.delete('auth_intent')
+    fallbackResponse.cookies.delete('auth_returnTo')
+    return fallbackResponse
   } catch (error) {
     console.error('❌ Callback route error:', error)
     // Try to extract origin from request URL, fallback to localhost
@@ -254,6 +278,9 @@ export async function GET(request: Request) {
     } catch (e) {
       // If URL parsing fails, use default
     }
-    return NextResponse.redirect(new URL('/auth/login?error=callback', origin + '/'))
+    const errorResponse = NextResponse.redirect(new URL('/auth/login?error=callback', origin + '/'))
+    errorResponse.cookies.delete('auth_intent')
+    errorResponse.cookies.delete('auth_returnTo')
+    return errorResponse
   }
 }
