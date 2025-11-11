@@ -118,70 +118,171 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Send email notification directly
+          // Send email notification directly using Trackly theme
           try {
+            const urgencyEmoji =
+              daysUntil === 1 ? '🔴' : daysUntil <= 3 ? '🟠' : '🟡';
+            const urgencyColor =
+              daysUntil === 1
+                ? '#dc2626'
+                : daysUntil <= 3
+                  ? '#f97316'
+                  : '#eab308';
+
             const emailHtml = `
-              <!DOCTYPE html>
-              <html>
-                <head>
-                  <meta charset="UTF-8">
-                  <style>
-                    body {
-                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-                      line-height: 1.6;
-                      color: #333;
-                    }
-                    .container {
-                      max-width: 600px;
-                      margin: 0 auto;
-                      padding: 20px;
-                      background-color: #f9fafb;
-                    }
-                    .card {
-                      background-color: #ffffff;
-                      padding: 30px;
-                      border-radius: 8px;
-                      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                    }
-                    h2 {
-                      color: ${daysUntil === 0 ? '#dc2626' : daysUntil <= 3 ? '#f97316' : '#eab308'};
-                      margin-bottom: 16px;
-                    }
-                    .button {
-                      display: inline-block;
-                      background-color: #00FF88;
-                      color: #000;
-                      padding: 12px 24px;
-                      border-radius: 6px;
-                      text-decoration: none;
-                      font-weight: 600;
-                      margin-top: 20px;
-                    }
-                    .urgent {
-                      color: #dc2626;
-                      font-weight: 700;
-                    }
-                  </style>
-                </head>
-                <body>
-                  <div class="container">
-                    <div class="card">
-                      <h2>⏰ Deadline Reminder ${daysUntil === 0 ? '🔴' : daysUntil <= 3 ? '🟠' : '🟡'}</h2>
-                      <p>Hi,</p>
-                      <p>
-                        Your application for <strong>${app.title}</strong>
-                        <span class="urgent"> has a deadline in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}!</span>
-                      </p>
-                      <p>
-                        Make sure to submit before the deadline to ensure your application is reviewed.
-                      </p>
-                      <p>
-                        <a href="${emailConfig.appUrl}/applications" class="button">View Applications</a>
-                      </p>
-                    </div>
-                  </div>
-                </body>
-              </html>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trackly</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+      background-color: #f9fafb;
+    }
+    .container {
+      max-width: 600px;
+      margin: 0 auto;
+      background-color: #ffffff;
+    }
+    .header {
+      background: linear-gradient(135deg, #00FF88 0%, #00CC66 100%);
+      color: #000;
+      padding: 40px 20px;
+      text-align: center;
+    }
+    .header h1 {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+    .content {
+      padding: 40px 30px;
+    }
+    .footer {
+      background-color: #f3f4f6;
+      padding: 30px;
+      text-align: center;
+      border-top: 1px solid #e5e7eb;
+      font-size: 12px;
+      color: #6b7280;
+    }
+    .button {
+      display: inline-block;
+      background-color: #00FF88;
+      color: #000;
+      padding: 12px 24px;
+      border-radius: 6px;
+      text-decoration: none;
+      font-weight: 600;
+      margin: 20px 0;
+      transition: background-color 0.2s;
+    }
+    .button:hover {
+      background-color: #00CC66;
+    }
+    h2 {
+      font-size: 20px;
+      margin-bottom: 16px;
+      color: #1f2937;
+    }
+    p {
+      margin-bottom: 16px;
+      color: #4b5563;
+    }
+    .divider {
+      height: 1px;
+      background-color: #e5e7eb;
+      margin: 30px 0;
+    }
+    .card {
+      background-color: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    .card-title {
+      font-weight: 600;
+      color: #1f2937;
+      margin-bottom: 8px;
+      font-size: 16px;
+    }
+    .deadline-info {
+      margin-bottom: 12px;
+      font-size: 13px;
+    }
+    .urgency-text {
+      font-weight: 700;
+      color: ${urgencyColor};
+    }
+    .tip {
+      font-size: 12px;
+      color: #6b7280;
+      margin-top: 20px;
+      text-align: center;
+    }
+    a {
+      color: #00FF88;
+      text-decoration: none;
+      font-weight: 600;
+    }
+    a:hover {
+      color: #00CC66;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>📊 Trackly</h1>
+    </div>
+    <div class="content">
+      <h2>⏰ Deadline Reminder ${urgencyEmoji}</h2>
+
+      <p>Hi,</p>
+
+      <p>You have an upcoming application deadline that needs your attention!</p>
+
+      <div class="divider"></div>
+
+      <div class="card">
+        <div class="card-title">${app.title}</div>
+        <div class="deadline-info">
+          <strong>Days Remaining:</strong> <span class="urgency-text">${daysUntil} day${daysUntil !== 1 ? 's' : ''} ${urgencyEmoji}</span>
+        </div>
+        <p style="margin: 0;">
+          Make sure to submit your application before the deadline to ensure it gets reviewed.
+        </p>
+      </div>
+
+      <div style="text-align: center;">
+        <a href="${emailConfig.appUrl}/applications" class="button">View Applications</a>
+      </div>
+
+      <div class="divider"></div>
+
+      <p class="tip">
+        💡 Tip: Update your notification preferences to control how often you receive deadline reminders.
+      </p>
+    </div>
+    <div class="footer">
+      <p>© ${new Date().getFullYear()} Trackly. All rights reserved.</p>
+      <p>
+        <a href="${emailConfig.appUrl}/settings" style="color: #6b7280;">Manage email preferences</a>
+      </p>
+    </div>
+  </div>
+</body>
+</html>
             `;
 
             const emailSubject = `⏰ Deadline Reminder: ${app.title} (${daysUntil} days)`;
