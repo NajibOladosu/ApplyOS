@@ -143,37 +143,46 @@ export async function POST(request: NextRequest) {
       box-sizing: border-box;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Oxygen', 'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue', sans-serif;
       line-height: 1.6;
-      color: #333;
-      background-color: #f9fafb;
+      color: #EDEDED;
+      background-color: #0A0A0A;
     }
     .container {
       max-width: 600px;
       margin: 0 auto;
-      background-color: #ffffff;
+      padding: 20px;
     }
     .header {
       background: linear-gradient(135deg, #00FF88 0%, #00CC66 100%);
       color: #000;
       padding: 40px 20px;
       text-align: center;
+      border-radius: 12px 12px 0 0;
     }
     .header h1 {
       font-size: 28px;
       font-weight: 700;
       letter-spacing: -0.5px;
+      margin: 0 0 8px 0;
+    }
+    .header-subtitle {
+      font-size: 14px;
+      color: #1A1A1A;
+      margin: 0;
     }
     .content {
+      background-color: #101010;
       padding: 40px 30px;
+      border-radius: 0 0 12px 12px;
     }
     .footer {
-      background-color: #f3f4f6;
-      padding: 30px;
+      background-color: #0A0A0A;
+      padding: 20px;
       text-align: center;
-      border-top: 1px solid #e5e7eb;
-      font-size: 12px;
-      color: #6b7280;
+      border-top: 1px solid #1A1A1A;
+      margin-top: 20px;
+      border-radius: 8px;
     }
     .button {
       display: inline-block;
@@ -192,33 +201,36 @@ export async function POST(request: NextRequest) {
     h2 {
       font-size: 20px;
       margin-bottom: 16px;
-      color: #1f2937;
+      color: #EDEDED;
     }
     p {
       margin-bottom: 16px;
-      color: #4b5563;
+      color: #B5B5B5;
+      font-size: 14px;
+      line-height: 1.6;
     }
     .divider {
       height: 1px;
-      background-color: #e5e7eb;
+      background-color: #1A1A1A;
       margin: 30px 0;
     }
     .card {
-      background-color: #f9fafb;
-      border: 1px solid #e5e7eb;
+      background-color: #0A0A0A;
+      border: 1px solid #1A1A1A;
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
     }
     .card-title {
       font-weight: 600;
-      color: #1f2937;
+      color: #EDEDED;
       margin-bottom: 8px;
       font-size: 16px;
     }
     .deadline-info {
       margin-bottom: 12px;
       font-size: 13px;
+      color: #B5B5B5;
     }
     .urgency-text {
       font-weight: 700;
@@ -226,16 +238,21 @@ export async function POST(request: NextRequest) {
     }
     .tip {
       font-size: 12px;
-      color: #6b7280;
+      color: #808080;
       margin-top: 20px;
       text-align: center;
     }
-    a {
+    .footer-text {
+      font-size: 12px;
+      color: #808080;
+      margin: 0 0 10px 0;
+    }
+    .footer-link {
       color: #00FF88;
       text-decoration: none;
       font-weight: 600;
     }
-    a:hover {
+    .footer-link:hover {
       color: #00CC66;
     }
   </style>
@@ -243,11 +260,10 @@ export async function POST(request: NextRequest) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>📊 Trackly</h1>
+      <h1>⏰ Deadline Reminder</h1>
+      <p class="header-subtitle">Don't miss your deadline</p>
     </div>
     <div class="content">
-      <h2>⏰ Deadline Reminder ${urgencyEmoji}</h2>
-
       <p>Hi,</p>
 
       <p>You have an upcoming application deadline that needs your attention!</p>
@@ -259,7 +275,7 @@ export async function POST(request: NextRequest) {
         <div class="deadline-info">
           <strong>Days Remaining:</strong> <span class="urgency-text">${daysUntil} day${daysUntil !== 1 ? 's' : ''} ${urgencyEmoji}</span>
         </div>
-        <p style="margin: 0;">
+        <p style="margin: 0; color: #B5B5B5;">
           Make sure to submit your application before the deadline to ensure it gets reviewed.
         </p>
       </div>
@@ -275,9 +291,12 @@ export async function POST(request: NextRequest) {
       </p>
     </div>
     <div class="footer">
-      <p>© ${new Date().getFullYear()} Trackly. All rights reserved.</p>
-      <p>
-        <a href="${emailConfig.appUrl}/settings" style="color: #6b7280;">Manage email preferences</a>
+      <p class="footer-text">© ${new Date().getFullYear()} Trackly. All rights reserved.</p>
+      <p class="footer-text">
+        <a href="${emailConfig.appUrl}/settings" class="footer-link">Manage email preferences</a>
+      </p>
+      <p class="footer-text">
+        Questions? Contact <a href="mailto:support@trackly.app" class="footer-link">support@trackly.app</a>
       </p>
     </div>
   </div>
