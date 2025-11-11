@@ -146,15 +146,15 @@ export default function Home() {
             <div className="mt-12 flex items-center justify-center space-x-8 text-sm text-muted-foreground">
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
-                <span>No credit card required</span>
+                <span>Smart AI Assistance</span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Free forever plan</span>
+                <span>Apply 10x Faster</span>
               </div>
               <div className="flex items-center space-x-2">
                 <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Cancel anytime</span>
+                <span>Unlimited Applications</span>
               </div>
             </div>
           </motion.div>
