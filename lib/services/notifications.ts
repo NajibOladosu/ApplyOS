@@ -7,6 +7,7 @@ export async function getNotifications() {
     .from('notifications')
     .select('*')
     .order('created_at', { ascending: false })
+    .limit(10)
 
   if (error) throw error
   return data as Notification[]
