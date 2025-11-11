@@ -6,8 +6,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { createDeadlineNotification } from '@/lib/services/notifications-with-email';
+import { createClient as createServerClient } from '@supabase/supabase-js';
+import { sendEmailDirectly } from '@/lib/email';
+import { emailConfig } from '@/lib/email/config';
 
 /**
  * Check deadline reminders
@@ -23,11 +24,16 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    // Use service role key to bypass RLS policies for cron jobs
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      process.env.SUPABASE_SERVICE_ROLE_KEY || ''
+    );
 
     // Get all applications with upcoming deadlines that we should remind about
+    // Use UTC to match database timezone
     const today = new Date();
-    today.setHours(0, 0, 0, 0);
+    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0, 0));
 
     // Get applications with deadlines in 1, 3, or 7 days
     const { data: applications, error: appsError } = await supabase
@@ -51,16 +57,16 @@ export async function POST(request: NextRequest) {
     }
 
     let emailsSent = 0;
-    const remindDays = [1, 3, 7];
+    const remindDays = [0, 1, 3, 7]; // 0 = today, 1 = tomorrow, etc.
 
     // Check each application for deadline reminders
     for (const app of applications) {
       const deadline = new Date(app.deadline);
-      const daysUntil = Math.ceil(
-        (deadline.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+      const daysUntil = Math.floor(
+        (deadline.getTime() - todayUTC.getTime()) / (1000 * 60 * 60 * 24)
       );
 
-      // Send reminder if deadline is in 1, 3, or 7 days
+      // Send reminder if deadline is today or in 1, 3, or 7 days
       if (remindDays.includes(daysUntil)) {
         try {
           // Get user email
@@ -83,20 +89,108 @@ export async function POST(request: NextRequest) {
             .eq('type', 'deadline')
             .contains('message', app.title)
             .not('created_at', 'is', null)
-            .gte('created_at', today.toISOString());
+            .gte('created_at', todayUTC.toISOString());
 
           if (existingNotif && existingNotif.length > 0) {
             console.log(`Already sent deadline reminder for ${app.title}`);
             continue;
           }
 
-          // Create notification and send email
-          await createDeadlineNotification(
-            app.user_id,
-            userData.user.email,
-            app.title,
-            daysUntil
-          );
+          // Create notification directly with service role to bypass RLS
+          const urgencyWord =
+            daysUntil === 1 ? 'TODAY' : daysUntil <= 3 ? 'SOON' : 'UPCOMING';
+          const message = `Deadline ${urgencyWord}: ${app.title} due in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}`;
+
+          const { error: notifError } = await supabase
+            .from('notifications')
+            .insert({
+              user_id: app.user_id,
+              type: 'deadline',
+              message,
+              is_read: false,
+            });
+
+          if (notifError) {
+            console.error(
+              `Failed to create deadline notification for app ${app.id}:`,
+              notifError
+            );
+            continue;
+          }
+
+          // Send email notification directly
+          try {
+            const emailHtml = `
+              <!DOCTYPE html>
+              <html>
+                <head>
+                  <meta charset="UTF-8">
+                  <style>
+                    body {
+                      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                      line-height: 1.6;
+                      color: #333;
+                    }
+                    .container {
+                      max-width: 600px;
+                      margin: 0 auto;
+                      padding: 20px;
+                      background-color: #f9fafb;
+                    }
+                    .card {
+                      background-color: #ffffff;
+                      padding: 30px;
+                      border-radius: 8px;
+                      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                    }
+                    h2 {
+                      color: ${daysUntil === 0 ? '#dc2626' : daysUntil <= 3 ? '#f97316' : '#eab308'};
+                      margin-bottom: 16px;
+                    }
+                    .button {
+                      display: inline-block;
+                      background-color: #00FF88;
+                      color: #000;
+                      padding: 12px 24px;
+                      border-radius: 6px;
+                      text-decoration: none;
+                      font-weight: 600;
+                      margin-top: 20px;
+                    }
+                    .urgent {
+                      color: #dc2626;
+                      font-weight: 700;
+                    }
+                  </style>
+                </head>
+                <body>
+                  <div class="container">
+                    <div class="card">
+                      <h2>⏰ Deadline Reminder ${daysUntil === 0 ? '🔴' : daysUntil <= 3 ? '🟠' : '🟡'}</h2>
+                      <p>Hi,</p>
+                      <p>
+                        Your application for <strong>${app.title}</strong>
+                        <span class="urgent"> has a deadline in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}!</span>
+                      </p>
+                      <p>
+                        Make sure to submit before the deadline to ensure your application is reviewed.
+                      </p>
+                      <p>
+                        <a href="${emailConfig.appUrl}/applications" class="button">View Applications</a>
+                      </p>
+                    </div>
+                  </div>
+                </body>
+              </html>
+            `;
+
+            const emailSubject = `⏰ Deadline Reminder: ${app.title} (${daysUntil} days)`;
+            await sendEmailDirectly(userData.user.email, emailSubject, emailHtml);
+            console.log(`✓ Email sent for ${app.title}`);
+          } catch (emailError) {
+            console.error(`Failed to send email for ${app.title}:`, emailError);
+            // Notification was created, just email failed - that's ok
+          }
 
           emailsSent++;
           console.log(
