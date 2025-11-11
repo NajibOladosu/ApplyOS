@@ -127,8 +127,6 @@ function LoginContent() {
       document.cookie = `auth_returnTo=${encodeURIComponent(returnTo)}; path=/; max-age=3600; SameSite=Lax`
     }
 
-    console.log('🔍 Google Login - Intent: login, State:', state, 'ReturnTo:', returnTo || 'none')
-
     // Use the environment variable if available, otherwise fall back to window.location.origin
     const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const redirectTo = `${origin}/auth/callback`

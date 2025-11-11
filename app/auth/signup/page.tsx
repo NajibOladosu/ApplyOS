@@ -63,15 +63,11 @@ function SignupContent() {
     setLoading(true)
 
     // Store intent in cookie so callback can access it
-    document.cookie = 'auth_intent=signup; path=/; max-age=3600'
-
-    console.log('🔍 Google Signup - stored intent=signup in cookie')
+    document.cookie = 'auth_intent=signup; path=/; max-age=3600; SameSite=Lax'
 
     // Use the environment variable if available, otherwise fall back to window.location.origin
     const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const redirectTo = `${origin}/auth/callback`
-
-    console.log('🔍 Google Signup - clean redirectTo URL:', redirectTo)
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
