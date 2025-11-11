@@ -105,8 +105,9 @@ export async function GET(request: Request) {
     console.log(`📍 Full Request URL: ${requestUrl.toString()}`)
     console.log(`📍 Request origin: ${requestUrl.origin}`)
     console.log(`📝 Code: ${code ? 'present' : 'missing'}, Intent: ${intent}, ReturnTo: ${returnTo || 'none'}`)
-    console.log(`📝 Intent source: ${cookies['auth_intent'] ? 'cookie' : 'query param or default'}`)
+    console.log(`📝 Intent source: ${cookies['auth_intent'] ? 'cookie (auth_intent=' + cookies['auth_intent'] + ')' : 'query param or default'}`)
     console.log(`📝 ReturnTo source: ${cookies['auth_returnTo'] ? 'cookie' : 'query param or none'}`)
+    console.log(`📝 All cookies received:`, Object.keys(cookies).length > 0 ? cookies : 'none')
 
     if (!code) {
       console.log('⚠️ No code parameter in callback URL')
@@ -158,9 +159,14 @@ export async function GET(request: Request) {
     const profileExists = !!existingProfile
 
     console.log(`📋 Profile exists: ${profileExists}, Verified: ${profileExists ? existingProfile.email_verified : 'n/a'}`)
+    console.log(`🎯 About to process intent: ${intent}`)
 
     // ===== INTENT: SIGNUP =====
     if (intent === 'signup') {
+      console.log(`✨ SIGNUP INTENT DETECTED`)
+      console.log(`   - profileExists: ${profileExists}`)
+      console.log(`   - user.email: ${user.email}`)
+
       if (profileExists) {
         if (existingProfile.email_verified) {
           // Already registered and verified - show error
@@ -206,6 +212,11 @@ export async function GET(request: Request) {
 
     // ===== INTENT: LOGIN =====
     if (intent === 'login') {
+      console.log(`🔐 LOGIN INTENT DETECTED`)
+      console.log(`   - profileExists: ${profileExists}`)
+      console.log(`   - user.id: ${user.id}`)
+      console.log(`   - user.email: ${user.email}`)
+
       if (!profileExists) {
         // No account found - delete the auth.users record created by trigger
         console.log('❌ Login attempt with unregistered email - deleting auth record')
@@ -219,6 +230,7 @@ export async function GET(request: Request) {
         }
 
         await supabase.auth.signOut()
+        console.log(`✅ Redirecting to /auth/login?error=no_account`)
         return NextResponse.redirect(
           new URL('/auth/login?error=no_account', requestUrl.origin + '/')
         )
