@@ -117,12 +117,17 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setLoading(true)
 
-    // Build the full callback URL with intent and returnTo
-    const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
+    // Use the environment variable if available, otherwise fall back to window.location.origin
+    const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    console.log('🔍 Google Login - using origin:', origin)
+
+    const callbackUrl = new URL(`${origin}/auth/callback`)
     callbackUrl.searchParams.set('intent', 'login')
     if (returnTo) {
       callbackUrl.searchParams.set('returnTo', returnTo)
     }
+
+    console.log('🔍 Google Login - redirectTo URL:', callbackUrl.toString())
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",

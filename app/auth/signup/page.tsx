@@ -61,10 +61,18 @@ function SignupContent() {
 
   const handleGoogleSignup = async () => {
     setLoading(true)
+
+    // Use the environment variable if available, otherwise fall back to window.location.origin
+    const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
+    const redirectTo = `${origin}/auth/callback?intent=signup`
+
+    console.log('🔍 Google Signup - using origin:', origin)
+    console.log('🔍 Google Signup - redirectTo URL:', redirectTo)
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?intent=signup`,
+        redirectTo,
       },
     })
 
