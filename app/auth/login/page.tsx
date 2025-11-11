@@ -116,6 +116,8 @@ function LoginContent() {
 
   const handleGoogleLogin = async () => {
     setLoading(true)
+
+    // Build the full callback URL with intent and returnTo
     const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
     callbackUrl.searchParams.set('intent', 'login')
     if (returnTo) {
