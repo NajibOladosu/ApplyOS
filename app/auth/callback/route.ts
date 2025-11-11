@@ -90,11 +90,12 @@ export async function GET(request: Request) {
     const intent = requestUrl.searchParams.get('intent') || 'login' // Default to login
     const returnTo = requestUrl.searchParams.get('returnTo') // Get the original URL to return to
 
+    console.log(`📍 Request origin: ${requestUrl.origin}`)
     console.log(`📝 Code: ${code ? 'present' : 'missing'}, Intent: ${intent}, ReturnTo: ${returnTo || 'none'}`)
 
     if (!code) {
       console.log('⚠️ No code parameter in callback URL')
-      return NextResponse.redirect(new URL('/auth/login', request.url))
+      return NextResponse.redirect(new URL('/auth/login', requestUrl.origin + '/'))
     }
 
     // Create Supabase clients
@@ -104,7 +105,7 @@ export async function GET(request: Request) {
 
     if (!supabaseUrl || !supabaseServiceKey) {
       console.error('❌ Missing Supabase environment variables')
-      return NextResponse.redirect(new URL('/auth/login?error=config', request.url))
+      return NextResponse.redirect(new URL('/auth/login?error=config', requestUrl.origin + '/'))
     }
 
     const adminClient = createAdminClient<Database>(supabaseUrl, supabaseServiceKey)
@@ -114,7 +115,7 @@ export async function GET(request: Request) {
 
     if (exchangeError) {
       console.error('❌ Exchange error:', exchangeError)
-      return NextResponse.redirect(new URL('/auth/login?error=exchange', request.url))
+      return NextResponse.redirect(new URL('/auth/login?error=exchange', requestUrl.origin + '/'))
     }
 
     // Get authenticated user
@@ -122,7 +123,7 @@ export async function GET(request: Request) {
 
     if (userError || !user) {
       console.error('❌ User fetch error:', userError)
-      return NextResponse.redirect(new URL('/auth/login?error=user', request.url))
+      return NextResponse.redirect(new URL('/auth/login?error=user', requestUrl.origin + '/'))
     }
 
     console.log(`👤 User: ${user.email}`)
@@ -151,7 +152,7 @@ export async function GET(request: Request) {
           console.log('ℹ️ User already registered and verified')
           await supabase.auth.signOut()
           return NextResponse.redirect(
-            new URL('/auth/signup?error=already_registered', request.url)
+            new URL('/auth/signup?error=already_registered', requestUrl.origin + '/')
           )
         } else {
           // Registered but not verified - send verification email and redirect to check-email
@@ -162,7 +163,7 @@ export async function GET(request: Request) {
             console.log('⏱️ Rate limit: verification email sent too recently')
             await supabase.auth.signOut()
             return NextResponse.redirect(
-              new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, request.url)
+              new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
             )
           }
 
@@ -171,7 +172,7 @@ export async function GET(request: Request) {
 
           await supabase.auth.signOut()
           return NextResponse.redirect(
-            new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, request.url)
+            new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
           )
         }
       } else {
@@ -183,7 +184,7 @@ export async function GET(request: Request) {
 
         await supabase.auth.signOut()
         return NextResponse.redirect(
-          new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, request.url)
+          new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
         )
       }
     }
@@ -204,7 +205,7 @@ export async function GET(request: Request) {
 
         await supabase.auth.signOut()
         return NextResponse.redirect(
-          new URL('/auth/login?error=no_account', request.url)
+          new URL('/auth/login?error=no_account', requestUrl.origin + '/')
         )
       }
 
@@ -217,7 +218,7 @@ export async function GET(request: Request) {
           console.log('⏱️ Rate limit: verification email sent too recently')
           await supabase.auth.signOut()
           return NextResponse.redirect(
-            new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, request.url)
+            new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
           )
         }
 
@@ -226,21 +227,31 @@ export async function GET(request: Request) {
 
         await supabase.auth.signOut()
         return NextResponse.redirect(
-          new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, request.url)
+          new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
         )
       }
 
       // Profile exists and verified - keep signed in and redirect to original page or dashboard
-      const finalRedirectUrl = returnTo || '/dashboard'
-      console.log(`✅ Login successful - redirecting to ${finalRedirectUrl}`)
-      return NextResponse.redirect(new URL(finalRedirectUrl, request.url))
+      const finalRedirectPath = returnTo || '/dashboard'
+      // Use the request origin to ensure we stay on the correct domain (Vercel, localhost, etc)
+      const finalRedirectUrl = new URL(finalRedirectPath, requestUrl.origin + '/')
+      console.log(`✅ Login successful - redirecting to ${finalRedirectUrl.toString()}`)
+      return NextResponse.redirect(finalRedirectUrl)
     }
 
     // Fallback
     console.log('⚠️ Unknown intent, redirecting to dashboard')
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+    return NextResponse.redirect(new URL('/dashboard', requestUrl.origin + '/'))
   } catch (error) {
     console.error('❌ Callback route error:', error)
-    return NextResponse.redirect(new URL('/auth/login?error=callback', request.url))
+    // Try to extract origin from request URL, fallback to localhost
+    let origin = 'http://localhost:3000'
+    try {
+      const requestUrl = new URL(request.url)
+      origin = requestUrl.origin
+    } catch (e) {
+      // If URL parsing fails, use default
+    }
+    return NextResponse.redirect(new URL('/auth/login?error=callback', origin + '/'))
   }
 }
