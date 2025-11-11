@@ -88,8 +88,9 @@ export async function GET(request: Request) {
     const requestUrl = new URL(request.url)
     const code = requestUrl.searchParams.get('code')
     const intent = requestUrl.searchParams.get('intent') || 'login' // Default to login
+    const returnTo = requestUrl.searchParams.get('returnTo') // Get the original URL to return to
 
-    console.log(`📝 Code: ${code ? 'present' : 'missing'}, Intent: ${intent}`)
+    console.log(`📝 Code: ${code ? 'present' : 'missing'}, Intent: ${intent}, ReturnTo: ${returnTo || 'none'}`)
 
     if (!code) {
       console.log('⚠️ No code parameter in callback URL')
@@ -229,9 +230,10 @@ export async function GET(request: Request) {
         )
       }
 
-      // Profile exists and verified - keep signed in and go to dashboard
-      console.log('✅ Login successful - redirecting to dashboard')
-      return NextResponse.redirect(new URL('/dashboard', request.url))
+      // Profile exists and verified - keep signed in and redirect to original page or dashboard
+      const finalRedirectUrl = returnTo || '/dashboard'
+      console.log(`✅ Login successful - redirecting to ${finalRedirectUrl}`)
+      return NextResponse.redirect(new URL(finalRedirectUrl, request.url))
     }
 
     // Fallback
