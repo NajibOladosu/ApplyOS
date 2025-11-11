@@ -117,23 +117,21 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setLoading(true)
 
-    // Store intent and returnTo in cookies so callback can access them
-    document.cookie = 'auth_intent=login; path=/; max-age=3600'
+    // Generate a random state to track this OAuth session
+    const state = Math.random().toString(36).substring(7)
+
+    // Store intent and returnTo in cookies with SameSite=Lax for better persistence through redirects
+    document.cookie = `auth_intent=login; path=/; max-age=3600; SameSite=Lax`
+    document.cookie = `auth_state=${state}; path=/; max-age=3600; SameSite=Lax`
     if (returnTo) {
-      // Encode the returnTo value in case it contains special characters
-      document.cookie = `auth_returnTo=${encodeURIComponent(returnTo)}; path=/; max-age=3600`
+      document.cookie = `auth_returnTo=${encodeURIComponent(returnTo)}; path=/; max-age=3600; SameSite=Lax`
     }
 
-    console.log('🔍 Google Login - stored intent=login in cookie')
-    if (returnTo) {
-      console.log('🔍 Google Login - stored returnTo in cookie:', returnTo)
-    }
+    console.log('🔍 Google Login - Intent: login, State:', state, 'ReturnTo:', returnTo || 'none')
 
     // Use the environment variable if available, otherwise fall back to window.location.origin
     const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const redirectTo = `${origin}/auth/callback`
-
-    console.log('🔍 Google Login - clean redirectTo URL:', redirectTo)
 
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
