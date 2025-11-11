@@ -187,16 +187,19 @@ export async function POST(request: NextRequest) {
     .button {
       display: inline-block;
       background-color: #00FF88;
-      color: #000;
+      color: #000 !important;
       padding: 12px 24px;
       border-radius: 6px;
-      text-decoration: none;
+      text-decoration: none !important;
       font-weight: 600;
       margin: 20px 0;
       transition: background-color 0.2s;
     }
     .button:hover {
       background-color: #00CC66;
+    }
+    .button:visited {
+      color: #000 !important;
     }
     h2 {
       font-size: 20px;
@@ -281,7 +284,7 @@ export async function POST(request: NextRequest) {
       </div>
 
       <div style="text-align: center;">
-        <a href="${emailConfig.appUrl}/applications" class="button">View Applications</a>
+        <a href="${emailConfig.appUrl}/applications" class="button" style="color: #000 !important; text-decoration: none;">View Applications</a>
       </div>
 
       <div class="divider"></div>
