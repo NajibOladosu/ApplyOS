@@ -90,8 +90,10 @@ export async function GET(request: Request) {
     const intent = requestUrl.searchParams.get('intent') || 'login' // Default to login
     const returnTo = requestUrl.searchParams.get('returnTo') // Get the original URL to return to
 
+    console.log(`📍 Full Request URL: ${requestUrl.toString()}`)
     console.log(`📍 Request origin: ${requestUrl.origin}`)
     console.log(`📝 Code: ${code ? 'present' : 'missing'}, Intent: ${intent}, ReturnTo: ${returnTo || 'none'}`)
+    console.log(`📝 All query params:`, Object.fromEntries(requestUrl.searchParams))
 
     if (!code) {
       console.log('⚠️ No code parameter in callback URL')
