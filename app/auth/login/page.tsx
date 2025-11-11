@@ -20,13 +20,20 @@ function LoginContent() {
   const [showResendModal, setShowResendModal] = useState(false)
   const [resending, setResending] = useState(false)
   const [resendSuccess, setResendSuccess] = useState(false)
+  const [returnTo, setReturnTo] = useState("")
   const router = useRouter()
   const supabase = createClient()
 
   useEffect(() => {
     const errorParam = searchParams.get('error')
+    const returnToParam = searchParams.get('returnTo')
+
     if (errorParam === 'no_account') {
       setError('No account found. Please sign up first to create an account.')
+    }
+
+    if (returnToParam) {
+      setReturnTo(returnToParam)
     }
   }, [searchParams])
 
@@ -109,10 +116,16 @@ function LoginContent() {
 
   const handleGoogleLogin = async () => {
     setLoading(true)
+    const callbackUrl = new URL(`${window.location.origin}/auth/callback`)
+    callbackUrl.searchParams.set('intent', 'login')
+    if (returnTo) {
+      callbackUrl.searchParams.set('returnTo', returnTo)
+    }
+
     const { error } = await supabase.auth.signInWithOAuth({
       provider: "google",
       options: {
-        redirectTo: `${window.location.origin}/auth/callback?intent=login`,
+        redirectTo: callbackUrl.toString(),
       },
     })
 
