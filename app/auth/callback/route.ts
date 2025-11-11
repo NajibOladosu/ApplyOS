@@ -102,12 +102,7 @@ export async function GET(request: Request) {
     const intent = cookies['auth_intent'] || requestUrl.searchParams.get('intent') || 'login'
     const returnTo = cookies['auth_returnTo'] ? decodeURIComponent(cookies['auth_returnTo']) : requestUrl.searchParams.get('returnTo')
 
-    console.log(`📍 Full Request URL: ${requestUrl.toString()}`)
-    console.log(`📍 Request origin: ${requestUrl.origin}`)
-    console.log(`📝 Code: ${code ? 'present' : 'missing'}, Intent: ${intent}, ReturnTo: ${returnTo || 'none'}`)
-    console.log(`📝 Intent source: ${cookies['auth_intent'] ? 'cookie (auth_intent=' + cookies['auth_intent'] + ')' : 'query param or default'}`)
-    console.log(`📝 ReturnTo source: ${cookies['auth_returnTo'] ? 'cookie' : 'query param or none'}`)
-    console.log(`📝 All cookies received:`, Object.keys(cookies).length > 0 ? cookies : 'none')
+    console.log(`🔐 Auth callback: Code=${code ? 'present' : 'missing'}, Intent=${intent}, ReturnTo=${returnTo || 'none'}`)
 
     if (!code) {
       console.log('⚠️ No code parameter in callback URL')
@@ -159,13 +154,10 @@ export async function GET(request: Request) {
     const profileExists = !!existingProfile
 
     console.log(`📋 Profile exists: ${profileExists}, Verified: ${profileExists ? existingProfile.email_verified : 'n/a'}`)
-    console.log(`🎯 About to process intent: ${intent}`)
 
     // ===== INTENT: SIGNUP =====
     if (intent === 'signup') {
-      console.log(`✨ SIGNUP INTENT DETECTED`)
-      console.log(`   - profileExists: ${profileExists}`)
-      console.log(`   - user.email: ${user.email}`)
+      console.log(`✨ Processing signup for ${user.email}`)
 
       if (profileExists) {
         if (existingProfile.email_verified) {
@@ -212,14 +204,9 @@ export async function GET(request: Request) {
 
     // ===== INTENT: LOGIN =====
     if (intent === 'login') {
-      console.log(`🔐 LOGIN INTENT DETECTED`)
-      console.log(`   - profileExists: ${profileExists}`)
-      console.log(`   - user.id: ${user.id}`)
-      console.log(`   - user.email: ${user.email}`)
-
       if (!profileExists) {
         // No account found - delete the auth.users record created by trigger
-        console.log('❌ Login attempt with unregistered email - deleting auth record')
+        console.log(`❌ Login failed: No profile found for ${user.email}`)
 
         try {
           await adminClient.auth.admin.deleteUser(user.id)
@@ -230,7 +217,6 @@ export async function GET(request: Request) {
         }
 
         await supabase.auth.signOut()
-        console.log(`✅ Redirecting to /auth/login?error=no_account`)
         return NextResponse.redirect(
           new URL('/auth/login?error=no_account', requestUrl.origin + '/')
         )
