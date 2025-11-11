@@ -1,46 +1,81 @@
 "use client"
 
+import { useEffect } from "react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { CheckCircle } from "lucide-react"
+import { Check } from "lucide-react"
 
 export default function VerifiedPage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    // Redirect to login after 3 seconds
+    const timer = setTimeout(() => {
+      router.push("/auth/login")
+    }, 3000)
+
+    return () => clearTimeout(timer)
+  }, [router])
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <motion.div
-        initial={{ opacity: 0, scale: 0.95 }}
-        animate={{ opacity: 1, scale: 1 }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
         className="w-full max-w-md"
       >
-        <Card className="glass-effect text-center">
-          <CardHeader className="pb-3">
+        <div className="text-center mb-8">
+          <Link href="/" className="inline-block">
+            <div className="flex items-center justify-center space-x-2 mb-4">
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect">
+                <span className="text-2xl font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+              </div>
+              <span className="text-3xl font-bold">
+                <span className="text-primary">Track</span>
+                <span className="text-white">ly</span>
+              </span>
+            </div>
+          </Link>
+        </div>
+
+        <Card className="glass-effect">
+          <CardHeader className="text-center">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
-              transition={{ type: "spring", delay: 0.2 }}
+              transition={{ type: "spring", stiffness: 200, damping: 15 }}
               className="flex justify-center mb-4"
             >
-              <CheckCircle className="h-12 w-12 text-primary" />
+              <div className="h-16 w-16 rounded-full bg-green-500/10 flex items-center justify-center">
+                <Check className="h-8 w-8 text-green-600" />
+              </div>
             </motion.div>
-            <CardTitle className="text-primary">Email Verified!</CardTitle>
-            <CardDescription>
-              Your email has been verified successfully.
+            <CardTitle className="text-2xl">Email Verified!</CardTitle>
+            <CardDescription className="text-base mt-2">
+              Your email has been successfully verified
             </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-sm text-muted-foreground">
-              You're all set! You can now log in with your email and password to access your Trackly account.
-            </p>
-            <div className="p-3 bg-muted rounded-lg border border-border">
-              <p className="text-xs text-muted-foreground">
-                Welcome to Trackly! Start managing your applications and documents with AI-powered insights.
+          <CardContent className="space-y-6">
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground text-center">
+                You can now sign in to your account and start using Trackly.
               </p>
             </div>
-            <Button asChild className="w-full">
-              <Link href="/auth/login">Log In to Your Account</Link>
-            </Button>
+
+            <div className="space-y-3">
+              <Button asChild className="w-full" size="lg">
+                <Link href="/auth/login">
+                  Sign In to Your Account
+                </Link>
+              </Button>
+              <p className="text-xs text-muted-foreground text-center">
+                Redirecting to login in 3 seconds...
+              </p>
+            </div>
           </CardContent>
         </Card>
       </motion.div>

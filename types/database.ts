@@ -8,6 +8,10 @@ export interface User {
   email: string
   name: string | null
   avatar_url: string | null
+  email_verified: boolean | null
+  verification_token: string | null
+  verification_token_expires_at: string | null
+  last_verification_email_sent: string | null
   created_at: string
   updated_at: string
 }
