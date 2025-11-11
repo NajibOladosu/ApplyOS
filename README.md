@@ -73,10 +73,17 @@ Trackly is a full-stack web application that helps you manage job and scholarshi
 ### Authentication & Security
 
 - **Secure Authentication** - Email/password authentication via Supabase
-- **OAuth Ready** - Support for Google, GitHub, and other OAuth providers
+- **Email Verification** - Required email verification for all signup methods
+- **OAuth Google Integration** - Seamless Google OAuth with email verification flow
+- **Smart OAuth Verification** -
+  - New signups: Email verification required before access
+  - Returning unverified users: Auto-resend verification email
+  - Unregistered login attempts: Clear error message
+  - Cross-provider linking: Auto-link Google to verified email accounts
 - **Protected Routes** - Automatic middleware-based route protection
 - **Row-Level Security** - Database-level access control for all user data
 - **Automatic User Profiles** - Profile creation on first signup
+- **Rate-Limited Verification** - 5-minute rate limit on verification email resends
 - **Secure File Storage** - Cloud-based document storage with access control
 
 ### User Interface
@@ -87,6 +94,7 @@ Trackly is a full-stack web application that helps you manage job and scholarshi
 - **Toast Notifications** - Real-time feedback for user actions
 - **Dark Mode Support** - Automatic theme adaptation
 - **Intuitive Navigation** - Easy-to-use sidebar and navigation system
+- **Email Verification Pages** - Beautiful verification check and success pages
 
 ## Prerequisites
 
@@ -127,11 +135,6 @@ Before you begin, ensure you have the following installed:
 
    # AI Configuration (Optional - Required for document analysis)
    GEMINI_API_KEY=your-google-gemini-api-key
-
-   # Email Configuration (Optional - For email notifications)
-   GMAIL_USER=your-email@gmail.com
-   GMAIL_APP_PASSWORD=xxxx xxxx xxxx xxxx  # 16-character Gmail app password
-   NEXT_PUBLIC_APP_URL=http://localhost:3000
 
    # Cron Jobs (Optional - For scheduled emails)
    CRON_SECRET=your-secret-key-for-cron-jobs
@@ -212,6 +215,17 @@ This adds:
 - Email queue table for reliable delivery
 - Email retry mechanism
 - Email error logging
+
+**Migration 5: Email Verification** (Required for OAuth flows)
+```sql
+-- Run the contents of: supabase/migrations/006_add_email_verification.sql
+```
+
+This adds:
+- Email verification tracking for all users
+- Verification token management with 24-hour expiration
+- Rate limiting timestamps for verification emails
+- OAuth auto-verification support
 
 ### Step 2: Create Storage Bucket
 
@@ -367,8 +381,6 @@ GEMINI_API_KEY=your-gemini-api-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
-⚠️ **Important:** Never commit `.env.local` or expose `GEMINI_API_KEY` or `SUPABASE_SERVICE_ROLE_KEY` to the client.
-
 ## Project Structure
 
 ```
@@ -419,7 +431,22 @@ Trackly/
 
 ### Authentication
 
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/auth/signup` | POST | Create user account with email/password |
+| `/api/auth/verify-email` | GET | Verify email with token from email link |
+| `/api/auth/resend-verification` | POST | Resend verification email |
+| `/auth/callback` | GET | OAuth callback handler (Google, GitHub) |
+
 Authentication is handled by Supabase Auth with automatic middleware protection on all dashboard routes.
+
+#### OAuth Flow
+
+The application supports Google OAuth with automatic email verification:
+- **New Users**: Sign up with Google → verify email → access granted
+- **Existing Verified Users**: Sign in with Google → instant access
+- **Returning Unverified Users**: Sign in with Google → verification email sent
+- **Unregistered Users**: Sign in with Google → error message "User not registered"
 
 ## Contributing
 
@@ -429,7 +456,6 @@ We welcome contributions! Here's how you can help:
 
 - 🧪 Testing infrastructure and test coverage
 - 📄 Support for Word documents (.docx)
-- ✅ ~~📧 Email notification system~~ (Implemented - Gmail SMTP)
 - 🔔 Real-time notifications with WebSockets
 - 📱 Mobile app development
 - 🔒 Enhanced security features
