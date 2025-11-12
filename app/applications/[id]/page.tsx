@@ -821,10 +821,10 @@ export default function ApplicationDetailPage() {
                           size="icon"
                           onClick={() => handleCopyAIAnswer(question.id, question.ai_answer || "")}
                           disabled={saving === question.id}
-                          className="glow-effect"
+                          className="glow-effect hover:bg-primary group"
                           title="Copy AI answer to your edited answer"
                         >
-                          <Copy className="h-4 w-4 text-primary" />
+                          <Copy className="h-4 w-4 text-primary group-hover:text-background" />
                         </Button>
                       </div>
                     )}
@@ -916,10 +916,10 @@ export default function ApplicationDetailPage() {
                         size="icon"
                         onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
                         disabled={savingCoverLetter}
-                        className="glow-effect"
+                        className="glow-effect hover:bg-primary group"
                         title="Copy AI cover letter to your edited cover letter"
                       >
-                        <Copy className="h-4 w-4 text-primary" />
+                        <Copy className="h-4 w-4 text-primary group-hover:text-background" />
                       </Button>
                     </div>
 
