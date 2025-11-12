@@ -3,6 +3,20 @@ export type ApplicationPriority = 'low' | 'medium' | 'high'
 export type ApplicationType = 'job' | 'scholarship' | 'internship' | 'other'
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'deadline' | 'status_update'
 
+export interface ReportCategory {
+  name: string
+  score: number
+  strengths: string[]
+  improvements: string[]
+}
+
+export interface DocumentReport {
+  documentType: string
+  overallScore: number
+  overallAssessment: string
+  categories: ReportCategory[]
+}
+
 export interface User {
   id: string
   email: string
@@ -51,8 +65,8 @@ export interface Document {
   version: number
   created_at: string
   updated_at: string
-  summary: string | null
-  summary_generated_at: string | null
+  report: DocumentReport | null
+  report_generated_at: string | null
   analysis_status: 'not_analyzed' | 'pending' | 'success' | 'failed'
   analysis_error: string | null
   parsed_at: string | null

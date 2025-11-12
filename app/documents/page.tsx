@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react"
 import Link from "next/link"
-import type { Document } from "@/types/database"
+import type { Document, DocumentReport } from "@/types/database"
 import { getDocuments, deleteDocument } from "@/lib/services/documents"
 import { cn } from "@/lib/utils"
 import { useToast } from "@/components/ui/use-toast"
@@ -40,7 +40,7 @@ export default function DocumentsPage() {
   const [loading, setLoading] = useState(true)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [processingId, setProcessingId] = useState<string | null>(null)
-  const [summarizingId, setSummarizingId] = useState<string | null>(null)
+  const [reportingId, setReportingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; fileUrl: string; fileName: string } | null>(null)
 
@@ -159,15 +159,15 @@ export default function DocumentsPage() {
     }
   }
 
-  // Generate summary via backend:
-  // - POST /api/documents/[id]/summary
-  // - Backend uses summarizeDocument(), persists summary & summary_generated_at.
-  const handleSummarize = async (doc: Document) => {
-    if (summarizingId) return
+  // Generate report via backend:
+  // - POST /api/documents/[id]/report
+  // - Backend uses generateDocumentReport(), persists report & report_generated_at.
+  const handleGenerateReport = async (doc: Document) => {
+    if (reportingId) return
 
-    setSummarizingId(doc.id)
+    setReportingId(doc.id)
     try {
-      const res = await fetch(`/api/documents/${doc.id}/summary`, {
+      const res = await fetch(`/api/documents/${doc.id}/report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -178,12 +178,12 @@ export default function DocumentsPage() {
       const payload = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        console.error("Summary error:", payload)
+        console.error("Report error:", payload)
         toast({
-          title: "Summary failed",
+          title: "Report generation failed",
           description:
             payload?.error ||
-            "Unable to generate a summary for this document.",
+            "Unable to generate a report for this document.",
           variant: "destructive",
         })
         return
@@ -194,17 +194,17 @@ export default function DocumentsPage() {
           d.id === doc.id
             ? {
                 ...d,
-                // Store summary in-memory for badges/preview; detail page uses API for source of truth.
+                // Store report in-memory for display; detail page uses API for source of truth.
                 // We attach it under a synthetic field to avoid conflicting with typed Document.
                 parsed_data: {
                   ...(d.parsed_data as any),
                 },
-                // store summary metadata on the object for UI usage
-                ...(payload.summary !== undefined && {
+                // store report metadata on the object for UI usage
+                ...(payload.report !== undefined && {
                   // cast via any to avoid changing the generated types
                   ...(d as any),
-                  summary: payload.summary,
-                  summary_generated_at: payload.summary_generated_at,
+                  report: payload.report,
+                  report_generated_at: payload.report_generated_at,
                 }),
               }
             : d
@@ -212,20 +212,20 @@ export default function DocumentsPage() {
       )
 
       toast({
-        title: "Summary generated",
+        title: "Report generated",
         description:
-          "Summary has been generated and saved for this document.",
+          "Comprehensive report has been generated and saved for this document.",
       })
     } catch (error) {
-      console.error("Error generating summary:", error)
+      console.error("Error generating report:", error)
       toast({
-        title: "Summary failed",
+        title: "Report generation failed",
         description:
-          "Unable to generate a summary at this time. Please try again later.",
+          "Unable to generate a report at this time. Please try again later.",
         variant: "destructive",
       })
     } finally {
-      setSummarizingId(null)
+      setReportingId(null)
     }
   }
 
@@ -401,19 +401,19 @@ export default function DocumentsPage() {
                              )}
                            </DropdownMenuItem>
                           <DropdownMenuItem
-                            onClick={() => handleSummarize(doc)}
-                            disabled={summarizingId === doc.id}
+                            onClick={() => handleGenerateReport(doc)}
+                            disabled={reportingId === doc.id}
                             className="cursor-pointer text-xs sm:text-sm"
                           >
-                            {summarizingId === doc.id ? (
+                            {reportingId === doc.id ? (
                               <>
                                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                Generating summary...
+                                Generating report...
                               </>
                             ) : (
                               <>
                                 <FileText className="mr-2 h-3 w-3" />
-                                Generate summary
+                                Generate report
                               </>
                             )}
                           </DropdownMenuItem>
@@ -464,10 +464,20 @@ export default function DocumentsPage() {
                           )}
                         </div>
 
-                        {/* Inline summary display if available */}
-                        {(doc as any).summary && (
-                          <div className="rounded-md bg-muted/60 p-2.5 text-xs leading-relaxed text-muted-foreground">
-                            <p className="line-clamp-2">{(doc as any).summary as string}</p>
+                        {/* Inline report display if available */}
+                        {(doc as any).report && (
+                          <div className="rounded-md bg-muted/60 p-2.5 mb-2.5">
+                            <div className="flex items-center justify-between mb-1.5">
+                              <p className="text-xs font-medium text-muted-foreground">
+                                {((doc as any).report as DocumentReport).documentType}
+                              </p>
+                              <span className="text-xs font-bold text-primary">
+                                {((doc as any).report as DocumentReport).overallScore}/10
+                              </span>
+                            </div>
+                            <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">
+                              {((doc as any).report as DocumentReport).overallAssessment}
+                            </p>
                           </div>
                         )}
                       </div>
