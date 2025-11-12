@@ -96,7 +96,7 @@ Important Instructions:
 - Make it specific to the candidate's actual experience and the position
 - Structure: Opening paragraph (express interest), 2-3 body paragraphs (highlight relevant experience and skills), closing paragraph (express enthusiasm and call to action)
 - Professional, compelling, and persuasive tone
-- Between 300-400 words
+- Between 250-350 words
 - Focus on why the candidate is a great fit for this specific position
 
 Cover Letter (write as if you are the candidate):`
