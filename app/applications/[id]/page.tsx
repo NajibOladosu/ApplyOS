@@ -893,54 +893,58 @@ export default function ApplicationDetailPage() {
                 <CardHeader className="p-4 sm:p-6">
                   <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <div className="flex items-center space-x-2 mb-2">
-                      <Sparkles className="h-4 w-4 text-primary" />
-                      <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+                <CardContent className="p-4 sm:p-6">
+                  <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                    {/* AI-Generated Cover Letter */}
+                    <div className="flex-1 flex flex-col">
+                      <div className="flex items-center space-x-2 mb-2">
+                        <Sparkles className="h-4 w-4 text-primary" />
+                        <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+                      </div>
+                      <Textarea
+                        value={application.ai_cover_letter || ""}
+                        className="resize-none flex-1 min-h-[400px]"
+                        readOnly
+                        placeholder="No AI-generated cover letter yet."
+                      />
                     </div>
-                    <Textarea
-                      value={application.ai_cover_letter || ""}
-                      rows={12}
-                      className="resize-none"
-                      readOnly
-                      placeholder="No AI-generated cover letter yet."
-                    />
-                  </div>
 
-                  <div className="flex justify-center">
-                    <Button
-                      variant="outline"
-                      size="icon"
-                      onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
-                      disabled={savingCoverLetter}
-                      className="glow-effect"
-                      title="Copy AI cover letter to your edited cover letter"
-                    >
-                      <Copy className="h-4 w-4 text-primary" />
-                    </Button>
-                  </div>
+                    {/* Copy Button */}
+                    <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
+                      <Button
+                        variant="outline"
+                        size="icon"
+                        onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
+                        disabled={savingCoverLetter}
+                        className="glow-effect"
+                        title="Copy AI cover letter to your edited cover letter"
+                      >
+                        <Copy className="h-4 w-4 text-primary" />
+                      </Button>
+                    </div>
 
-                  <div>
-                    <p className="text-xs text-muted-foreground mb-1">
-                      Your edited cover letter (saved privately for this application)
-                    </p>
-                    <Textarea
-                      ref={coverLetterTextareaRef}
-                      defaultValue={application.manual_cover_letter || ""}
-                      rows={12}
-                      onBlur={(e) =>
-                        e.target.value !== (application.manual_cover_letter || "")
-                          ? handleSaveManualCoverLetter(e.target.value)
-                          : undefined
-                      }
-                      disabled={savingCoverLetter}
-                    />
-                    {savingCoverLetter && (
-                      <p className="text-xs text-muted-foreground mt-1">
-                        Saving...
+                    {/* Your Edited Cover Letter */}
+                    <div className="flex-1 flex flex-col">
+                      <p className="text-xs text-muted-foreground mb-2">
+                        Your edited cover letter (saved privately for this application)
                       </p>
-                    )}
+                      <Textarea
+                        ref={coverLetterTextareaRef}
+                        defaultValue={application.manual_cover_letter || ""}
+                        className="resize-none flex-1 min-h-[400px]"
+                        onBlur={(e) =>
+                          e.target.value !== (application.manual_cover_letter || "")
+                            ? handleSaveManualCoverLetter(e.target.value)
+                            : undefined
+                        }
+                        disabled={savingCoverLetter}
+                      />
+                      {savingCoverLetter && (
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Saving...
+                        </p>
+                      )}
+                    </div>
                   </div>
                 </CardContent>
               </Card>
