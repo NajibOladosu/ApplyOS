@@ -35,11 +35,12 @@ export async function POST(request: NextRequest) {
     const today = new Date();
     const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate(), 0, 0, 0, 0));
 
-    // Get applications with deadlines in 1, 3, or 7 days
+    // Get applications with deadlines in 1, 3, or 7 days (only draft status)
     const { data: applications, error: appsError } = await supabase
       .from('applications')
-      .select('id, user_id, title, deadline')
-      .not('deadline', 'is', null);
+      .select('id, user_id, title, deadline, status')
+      .not('deadline', 'is', null)
+      .eq('status', 'draft');
 
     if (appsError) {
       console.error('Failed to fetch applications:', appsError);
