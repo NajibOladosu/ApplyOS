@@ -26,6 +26,8 @@ export interface Application {
   type: ApplicationType
   deadline: string | null
   notes: string | null
+  ai_cover_letter: string | null
+  manual_cover_letter: string | null
   created_at: string
   updated_at: string
 }
