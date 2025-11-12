@@ -56,8 +56,8 @@ export async function POST(request: NextRequest) {
       .select('id')
       .eq('user_id', user.id)
       .eq('type', 'status_update')
-      .contains('message', applicationTitle)
-      .contains('message', newStatus)
+      .ilike('message', `%${applicationTitle}%`)
+      .ilike('message', `%${newStatus}%`)
       .gte('created_at', new Date(Date.now() - 60000).toISOString())
       .limit(1);
 
