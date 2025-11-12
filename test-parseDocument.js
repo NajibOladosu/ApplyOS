@@ -38,6 +38,7 @@ async function testParseDocument() {
     console.log('📊 Parsed Data Summary:');
     console.log(`  - Education entries: ${Array.isArray(result.education) ? result.education.length : 0}`);
     console.log(`  - Experience entries: ${Array.isArray(result.experience) ? result.experience.length : 0}`);
+    console.log(`  - Projects entries: ${Array.isArray(result.projects) ? result.projects.length : 0}`);
     console.log(`  - Technical skills: ${Array.isArray(result.skills?.technical) ? result.skills.technical.length : 0}`);
     console.log(`  - Soft skills: ${Array.isArray(result.skills?.soft) ? result.skills.soft.length : 0}`);
     console.log(`  - Other skills: ${Array.isArray(result.skills?.other) ? result.skills.other.length : 0}`);
@@ -48,11 +49,13 @@ async function testParseDocument() {
     // Validate that we have actual data
     const hasEducation = Array.isArray(result.education) && result.education.length > 0;
     const hasExperience = Array.isArray(result.experience) && result.experience.length > 0;
+    const hasProjects = Array.isArray(result.projects) && result.projects.length > 0;
     const hasSkills = result.skills && (result.skills.technical?.length > 0 || result.skills.soft?.length > 0 || result.skills.other?.length > 0);
 
     console.log('\n✨ Data Validation:');
     console.log(`  ${hasEducation ? '✅' : '❌'} Education found`);
     console.log(`  ${hasExperience ? '✅' : '❌'} Experience found`);
+    console.log(`  ${hasProjects ? '✅' : '❌'} Projects found`);
     console.log(`  ${hasSkills ? '✅' : '❌'} Skills found`);
 
     if (hasEducation) {
@@ -70,6 +73,17 @@ async function testParseDocument() {
       });
     }
 
+    if (hasProjects) {
+      console.log('\n🚀 Projects Data:');
+      result.projects.forEach((proj, i) => {
+        console.log(`  [${i}] ${proj.name}${proj.start_date || proj.end_date ? ` (${proj.start_date}-${proj.end_date})` : ''}`);
+        console.log(`      ${proj.description.substring(0, 80)}...`);
+        if (proj.technologies?.length > 0) {
+          console.log(`      Technologies: ${proj.technologies.join(', ')}`);
+        }
+      });
+    }
+
     if (hasSkills) {
       console.log('\n🛠️ Skills Data:');
       if (result.skills.technical?.length > 0) {
@@ -84,8 +98,11 @@ async function testParseDocument() {
     }
 
     console.log('\n' + '='.repeat(50));
-    if (hasEducation && hasExperience && hasSkills) {
-      console.log('✅ TEST PASSED: All data extracted successfully!');
+    if (hasEducation && hasExperience && hasProjects && hasSkills) {
+      console.log('✅ TEST PASSED: All data extracted successfully (including projects)!');
+    } else if (hasEducation && hasExperience && hasSkills) {
+      console.log('⚠️ TEST PARTIAL: Core data extracted (no projects found)');
+      console.log('\nFull result:', JSON.stringify(result, null, 2));
     } else {
       console.log('⚠️ TEST INCOMPLETE: Some expected data is missing');
       console.log('\nFull result:', JSON.stringify(result, null, 2));
