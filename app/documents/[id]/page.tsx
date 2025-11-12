@@ -6,10 +6,11 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Loader2, ArrowLeft, ExternalLink, RefreshCw, FileText } from "lucide-react"
+import { Loader2, ArrowLeft, ExternalLink, RefreshCw, FileText, ChevronDown } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/components/ui/use-toast"
 import { cn } from "@/lib/utils"
+import type { DocumentReport } from "@/types/database"
 
 type ParsedEducation = {
   institution: string
@@ -67,8 +68,8 @@ type DocumentDetail = {
   file_size: number | null
   created_at: string | null
   updated_at: string | null
-  summary: string | null
-  summary_generated_at: string | null
+  report: DocumentReport | null
+  report_generated_at: string | null
   parsed_data: ParsedDocument | null
   parsed_at: string | null
   analysis_status: "not_analyzed" | "pending" | "success" | "failed"
@@ -97,9 +98,10 @@ export default function DocumentDetailPage() {
 
   const [doc, setDoc] = useState<DocumentDetail | null>(null)
   const [loading, setLoading] = useState(true)
-  const [loadingSummary, setLoadingSummary] = useState(false)
+  const [loadingReport, setLoadingReport] = useState(false)
   const [loadingAnalysis, setLoadingAnalysis] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
   const documentId = typeof params?.id === "string" ? params.id : Array.isArray(params?.id) ? params.id[0] : ""
 
@@ -139,8 +141,8 @@ export default function DocumentDetailPage() {
           file_size: typeof payload.file_size === "number" ? payload.file_size : null,
           created_at: payload.created_at ?? null,
           updated_at: payload.updated_at ?? null,
-          summary: payload.summary ?? null,
-          summary_generated_at: payload.summary_generated_at ?? null,
+          report: payload.report ?? null,
+          report_generated_at: payload.report_generated_at ?? null,
           parsed_data: payload.parsed_data ?? null,
           parsed_at: payload.parsed_at ?? null,
           analysis_status: payload.analysis_status ?? "not_analyzed",
@@ -184,8 +186,8 @@ export default function DocumentDetailPage() {
               file_url: payload.file_url ?? prev.file_url,
               file_type: payload.file_type ?? prev.file_type,
               file_size: payload.file_size ?? prev.file_size,
-              summary: payload.summary ?? prev.summary,
-              summary_generated_at: payload.summary_generated_at ?? prev.summary_generated_at,
+              report: payload.report ?? prev.report,
+              report_generated_at: payload.report_generated_at ?? prev.report_generated_at,
               parsed_data: parsedData ?? prev.parsed_data,
               parsed_at: payload.parsed_at ?? prev.parsed_at,
               analysis_status: payload.analysis_status ?? prev.analysis_status,
@@ -199,8 +201,8 @@ export default function DocumentDetailPage() {
               file_size: typeof payload.file_size === "number" ? payload.file_size : null,
               created_at: payload.created_at ?? null,
               updated_at: payload.updated_at ?? null,
-              summary: payload.summary ?? null,
-              summary_generated_at: payload.summary_generated_at ?? null,
+              report: payload.report ?? null,
+              report_generated_at: payload.report_generated_at ?? null,
               parsed_data: parsedData ?? null,
               parsed_at: payload.parsed_at ?? null,
               analysis_status: payload.analysis_status ?? "not_analyzed",
@@ -285,11 +287,11 @@ export default function DocumentDetailPage() {
     }
   }
 
-  const handleGenerateSummary = async () => {
-    if (!doc || loadingSummary) return
-    setLoadingSummary(true)
+  const handleGenerateReport = async () => {
+    if (!doc || loadingReport) return
+    setLoadingReport(true)
     try {
-      const res = await fetch(`/api/documents/${doc.id}/summary`, {
+      const res = await fetch(`/api/documents/${doc.id}/report`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -299,40 +301,42 @@ export default function DocumentDetailPage() {
       const payload = await res.json().catch(() => ({}))
 
       if (!res.ok) {
-        console.error("Summary error:", payload)
+        console.error("Report error:", payload)
         toast({
           variant: "destructive",
-          title: "Summary failed",
+          title: "Report generation failed",
           description:
             payload?.error ||
-            "Unable to generate a summary for this document.",
+            "Unable to generate a report for this document.",
         })
       } else {
         toast({
-          title: "Summary generated",
-          description: "Summary has been generated and saved.",
+          title: "Report generated",
+          description: "Comprehensive report has been generated and saved.",
         })
         setDoc((prev) =>
           prev
             ? {
                 ...prev,
-                summary: payload.summary ?? prev.summary,
-                summary_generated_at:
-                  payload.summary_generated_at ?? prev.summary_generated_at,
+                report: payload.report ?? prev.report,
+                report_generated_at:
+                  payload.report_generated_at ?? prev.report_generated_at,
               }
             : prev
         )
+        // Reset expanded categories when new report is generated
+        setExpandedCategories(new Set())
       }
     } catch (err) {
-      console.error("Summary exception:", err)
+      console.error("Report exception:", err)
       toast({
         variant: "destructive",
-        title: "Summary failed",
+        title: "Report generation failed",
         description:
-          "An unexpected error occurred while generating summary.",
+          "An unexpected error occurred while generating report.",
       })
     } finally {
-      setLoadingSummary(false)
+      setLoadingReport(false)
     }
   }
 
@@ -370,28 +374,40 @@ export default function DocumentDetailPage() {
     )
   }
 
-  const renderSummarySection = () => {
+  const toggleCategory = (categoryName: string) => {
+    const newExpanded = new Set(expandedCategories)
+    if (newExpanded.has(categoryName)) {
+      newExpanded.delete(categoryName)
+    } else {
+      newExpanded.add(categoryName)
+    }
+    setExpandedCategories(newExpanded)
+  }
+
+  const renderReportSection = () => {
     if (!doc) return null
+
+    const report = doc.report as DocumentReport | null
 
     return (
       <Card className="bg-background/60 border-primary/10">
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-base sm:text-lg">Summary</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Document Report</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
-              {doc.summary && (
+              {report && (
                 <Badge variant="outline" className="text-xs">
-                  Updated {formatDate(doc.summary_generated_at)}
+                  Updated {formatDate(doc.report_generated_at)}
                 </Badge>
               )}
               <Button
                 size="sm"
                 variant="outline"
                 className="gap-1 text-xs sm:text-sm"
-                onClick={handleGenerateSummary}
-                disabled={loadingSummary}
+                onClick={handleGenerateReport}
+                disabled={loadingReport}
               >
-                {loadingSummary ? (
+                {loadingReport ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin" />
                     Generating...
@@ -399,36 +415,150 @@ export default function DocumentDetailPage() {
                 ) : (
                   <>
                     <FileText className="h-3 w-3" />
-                    Generate summary
+                    Generate report
                   </>
                 )}
               </Button>
             </div>
           </div>
         </CardHeader>
-        <CardContent>
-          {doc.summary ? (
-            <div className="text-sm text-muted-foreground whitespace-pre-line max-h-64 overflow-y-auto">
-              {doc.summary}
-            </div>
+        <CardContent className="space-y-4">
+          {report ? (
+            <>
+              {/* Header */}
+              <div className="space-y-2 pb-4 border-b border-border/50">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-sm font-semibold text-foreground">
+                    {report.documentType || "Document"}
+                  </h3>
+                  <div className="text-sm font-bold text-primary">
+                    {report.overallScore}/10
+                  </div>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  {report.overallAssessment}
+                </p>
+                {/* Overall score bar */}
+                <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
+                  <div
+                    className="h-full bg-primary transition-all duration-300"
+                    style={{ width: `${(report.overallScore / 10) * 100}%` }}
+                  />
+                </div>
+              </div>
+
+              {/* Categories */}
+              {report.categories && report.categories.length > 0 ? (
+                <div className="space-y-2">
+                  {report.categories.map((category, idx) => {
+                    const isExpanded = expandedCategories.has(category.name)
+                    const scorePercentage = (category.score / 10) * 100
+                    const scoreColor =
+                      category.score >= 8
+                        ? "text-emerald-400"
+                        : category.score >= 6
+                        ? "text-amber-400"
+                        : "text-red-400"
+
+                    return (
+                      <div key={idx} className="border border-border/50 rounded-lg overflow-hidden">
+                        <button
+                          onClick={() => toggleCategory(category.name)}
+                          className="w-full p-3 flex items-center justify-between hover:bg-muted/40 transition-colors"
+                        >
+                          <div className="flex items-center gap-3 flex-1">
+                            <div className="flex-1 text-left">
+                              <div className="text-sm font-medium text-foreground">
+                                {category.name}
+                              </div>
+                              <div className="w-24 bg-muted/30 rounded-full h-1.5 mt-1.5 overflow-hidden">
+                                <div
+                                  className="h-full bg-primary transition-all duration-300"
+                                  style={{ width: `${scorePercentage}%` }}
+                                />
+                              </div>
+                            </div>
+                            <div className={cn("text-sm font-bold min-w-12 text-right", scoreColor)}>
+                              {category.score}/10
+                            </div>
+                          </div>
+                          <ChevronDown
+                            className={cn(
+                              "h-4 w-4 text-muted-foreground transition-transform ml-2",
+                              isExpanded && "rotate-180"
+                            )}
+                          />
+                        </button>
+
+                        {isExpanded && (
+                          <div className="px-3 pb-3 space-y-3 border-t border-border/50 bg-muted/20">
+                            {category.strengths && category.strengths.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-emerald-400 mb-1.5">
+                                  Strengths
+                                </h4>
+                                <ul className="space-y-1">
+                                  {category.strengths.map((strength, i) => (
+                                    <li key={i} className="text-xs text-muted-foreground flex gap-2">
+                                      <span className="text-emerald-400/60 mt-0.5">✓</span>
+                                      <span>{strength}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {category.improvements && category.improvements.length > 0 && (
+                              <div>
+                                <h4 className="text-xs font-semibold text-amber-400 mb-1.5">
+                                  Areas for Improvement
+                                </h4>
+                                <ul className="space-y-1">
+                                  {category.improvements.map((improvement, i) => (
+                                    <li key={i} className="text-xs text-muted-foreground flex gap-2">
+                                      <span className="text-amber-400/60 mt-0.5">→</span>
+                                      <span>{improvement}</span>
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
+                            )}
+
+                            {(!category.improvements || category.improvements.length === 0) &&
+                              (!category.strengths || category.strengths.length === 0) && (
+                                <p className="text-xs text-muted-foreground">
+                                  No details available for this category.
+                                </p>
+                              )}
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">
+                  No detailed feedback available.
+                </p>
+              )}
+            </>
           ) : (
             <div className="text-sm text-muted-foreground">
-              <p className="mb-2">
-                No summary has been generated for this document yet.
+              <p className="mb-3">
+                No report has been generated for this document yet.
               </p>
               <Button
                 size="sm"
-                className="mt-1"
-                onClick={handleGenerateSummary}
-                disabled={loadingSummary}
+                onClick={handleGenerateReport}
+                disabled={loadingReport}
               >
-                {loadingSummary ? (
+                {loadingReport ? (
                   <>
                     <Loader2 className="h-3 w-3 animate-spin mr-2" />
                     Generating...
                   </>
                 ) : (
-                  "Generate summary"
+                  "Generate report"
                 )}
               </Button>
             </div>
@@ -810,12 +940,12 @@ export default function DocumentDetailPage() {
           </div>
           <div className="flex flex-wrap items-center gap-2">
             {renderAnalysisStatusBadge()}
-            {doc.summary && (
+            {doc.report && (
               <Badge
                 variant="outline"
                 className="border-primary/40 text-primary text-xs"
               >
-                Summary available
+                Report available
               </Badge>
             )}
             <Button
@@ -832,7 +962,7 @@ export default function DocumentDetailPage() {
 
         {/* Content */}
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {renderSummarySection()}
+          {renderReportSection()}
           {renderAnalysisSection()}
         </div>
       </div>
