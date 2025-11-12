@@ -98,7 +98,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         </Button>
 
         {/* User Profile Section - Hidden on small mobile, shown on larger screens */}
-        <div className="hidden sm:flex items-center gap-2 md:gap-3">
+        <div className="hidden sm:flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => router.push('/profile')}>
           <div className="text-right">
             <p className="text-sm font-medium truncate max-w-[100px] md:max-w-[140px]">
               {name}
@@ -117,7 +117,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
         </div>
 
         {/* Avatar Only on Small Mobile */}
-        <div className="sm:hidden h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center">
+        <div className="sm:hidden h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center cursor-pointer hover:opacity-75 transition-opacity" onClick={() => router.push('/profile')}>
           <span className="text-sm font-bold text-primary-foreground">
             {initials}
           </span>
