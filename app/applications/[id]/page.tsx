@@ -660,18 +660,16 @@ export default function ApplicationDetailPage() {
                   </>
                 )}
               </Button>
-              {questions.length > 0 && (
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowEditQuestionsModal(true)}
-                  disabled={regenerating !== null || extracting}
-                  title="Edit, delete, or add new questions"
-                >
-                  <Edit className="mr-2 h-4 w-4" />
-                  Edit Questions
-                </Button>
-              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowEditQuestionsModal(true)}
+                disabled={regenerating !== null || extracting}
+                title="Edit, delete, or add new questions"
+              >
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Questions
+              </Button>
               <Button
                 variant="outline"
                 size="sm"
