@@ -49,6 +49,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if a duplicate notification was already created in the last 60 seconds
+    // This prevents duplicate notifications from double-clicks or request retries
+    const { data: recentNotif } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('user_id', user.id)
+      .eq('type', 'status_update')
+      .contains('message', applicationTitle)
+      .contains('message', newStatus)
+      .gte('created_at', new Date(Date.now() - 60000).toISOString())
+      .limit(1);
+
+    if (recentNotif && recentNotif.length > 0) {
+      // Duplicate notification detected, skip creating it
+      console.log(`Duplicate status update notification skipped for ${applicationTitle}`);
+      return NextResponse.json(
+        {
+          success: true,
+          message: 'Status update email already sent',
+          duplicate: true,
+        },
+        { status: 200 }
+      );
+    }
+
     // Create notification and send email
     await createStatusUpdateNotification(
       user.id,
