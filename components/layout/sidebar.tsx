@@ -68,7 +68,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
-          <div className="flex h-16 items-center border-b border-border px-6 justify-between">
+          <div className="flex h-16 flex-shrink-0 items-center border-b border-border px-6 justify-between">
             <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavClick}>
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
                 <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
@@ -89,7 +89,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-1 p-4 overflow-y-auto">
+          <nav className="flex-1 space-y-1 p-4 overflow-y-auto min-h-0">
             {navItems.map((item) => {
               const Icon = item.icon
               const isActive = pathname === item.href
@@ -125,8 +125,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
             })}
           </nav>
 
-          {/* Logout */}
-          <div className="border-t border-border p-4">
+          {/* Logout - sticky at bottom */}
+          <div className="flex-shrink-0 border-t border-border p-4">
             <button
               onClick={handleLogout}
               className="flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
