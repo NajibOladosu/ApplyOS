@@ -110,7 +110,7 @@ export default function DashboardPage() {
       color: "text-blue-500",
     },
     {
-      title: "Pending Decisions",
+      title: "In Review",
       value: stats.pending.toString(),
       icon: Clock,
       color: "text-yellow-500",
