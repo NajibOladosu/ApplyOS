@@ -28,6 +28,14 @@ type ParsedExperience = {
   description: string
 }
 
+type ParsedProject = {
+  name: string
+  description: string
+  technologies?: string[]
+  start_date?: string
+  end_date?: string
+}
+
 type ParsedSkills = {
   technical: string[]
   soft: string[]
@@ -43,6 +51,7 @@ type ParsedCertification = {
 type ParsedDocument = {
   education: ParsedEducation[]
   experience: ParsedExperience[]
+  projects: ParsedProject[]
   skills: ParsedSkills
   achievements: string[]
   certifications: ParsedCertification[]
@@ -549,6 +558,48 @@ export default function DocumentDetailPage() {
                         {e.description && (
                           <div className="text-xs mt-0.5">
                             {e.description}
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {parsed.projects?.length > 0 && (
+                <section>
+                  <h3 className="font-semibold text-foreground mb-1">
+                    Projects
+                  </h3>
+                  <div className="space-y-1">
+                    {parsed.projects.map((p, idx) => (
+                      <div key={idx} className="border-l border-primary/30 pl-3">
+                        <div className="font-medium text-foreground">
+                          {p.name || "Project"}
+                        </div>
+                        <div className="text-xs">
+                          {p.start_date || p.end_date
+                            ? `${[p.start_date, p.end_date]
+                                .filter(Boolean)
+                                .join(" - ")}`
+                            : ""}
+                        </div>
+                        {p.description && (
+                          <div className="text-xs mt-0.5">
+                            {p.description}
+                          </div>
+                        )}
+                        {p.technologies && p.technologies.length > 0 && (
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {p.technologies.map((tech, i) => (
+                              <Badge
+                                key={i}
+                                variant="outline"
+                                className="border-amber-400/40 text-amber-300 text-[10px]"
+                              >
+                                {tech}
+                              </Badge>
+                            ))}
                           </div>
                         )}
                       </div>

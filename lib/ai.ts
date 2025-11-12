@@ -76,6 +76,13 @@ export type ParsedDocument = {
     end_date: string
     description: string
   }[]
+  projects: {
+    name: string
+    description: string
+    technologies?: string[]
+    start_date?: string
+    end_date?: string
+  }[]
   skills: {
     technical: string[]
     soft: string[]
@@ -99,6 +106,7 @@ export async function parseDocument(fileContent: string): Promise<ParsedDocument
   const empty: ParsedDocument = {
     education: [],
     experience: [],
+    projects: [],
     skills: {
       technical: [],
       soft: [],
@@ -143,6 +151,15 @@ IMPORTANT: Return ONLY valid JSON (no markdown, no code fences, no extra text). 
       "description": "what you did, achievements, impact"
     }
   ],
+  "projects": [
+    {
+      "name": "Project name",
+      "description": "What the project does and your role in it",
+      "technologies": ["Tech1", "Tech2"],
+      "start_date": "2023 or 2023-01",
+      "end_date": "2023 or 2023-12"
+    }
+  ],
   "skills": {
     "technical": ["Python", "JavaScript", "React", etc],
     "soft": ["Leadership", "Communication", etc],
@@ -164,6 +181,7 @@ Rules:
 - Return ONLY the JSON object, nothing else
 - Include ALL education found
 - Include ALL work experience found
+- Include ALL projects found (personal, academic, or professional)
 - Extract technical AND soft skills
 - Use empty arrays [] if section not found
 - Use empty strings "" for missing details
@@ -223,6 +241,15 @@ Rules:
             description: String(e?.description || ''),
           }))
         : [],
+      projects: Array.isArray(obj.projects)
+        ? obj.projects.map((p: any) => ({
+            name: String(p?.name || ''),
+            description: String(p?.description || ''),
+            technologies: normalizeArray(p?.technologies),
+            start_date: p?.start_date ? String(p.start_date) : undefined,
+            end_date: p?.end_date ? String(p.end_date) : undefined,
+          }))
+        : [],
       skills: {
         technical: normalizeArray(obj.skills?.technical),
         soft: normalizeArray(obj.skills?.soft),
@@ -271,6 +298,7 @@ export async function summarizeDocument(input: {
 
     let education: unknown
     let experience: unknown
+    let projects: unknown
     let skills: unknown
     let achievements: unknown
     let certifications: unknown
@@ -281,6 +309,7 @@ export async function summarizeDocument(input: {
       const obj = parsedData as Record<string, unknown>
       if (Array.isArray(obj.education)) education = obj.education
       if (Array.isArray(obj.experience)) experience = obj.experience
+      if (Array.isArray(obj.projects)) projects = obj.projects
       if (obj.skills && typeof obj.skills === 'object') skills = obj.skills
       if (Array.isArray(obj.achievements)) achievements = obj.achievements
       if (Array.isArray(obj.certifications)) certifications = obj.certifications
@@ -303,6 +332,9 @@ export async function summarizeDocument(input: {
     }
     if (experience) {
       contextParts.push(`Experience entries:\n${JSON.stringify(experience, null, 2)}`)
+    }
+    if (projects) {
+      contextParts.push(`Projects:\n${JSON.stringify(projects, null, 2)}`)
     }
     if (skills) {
       contextParts.push(`Skills:\n${JSON.stringify(skills, null, 2)}`)
