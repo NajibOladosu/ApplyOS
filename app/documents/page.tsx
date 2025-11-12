@@ -441,6 +441,13 @@ export default function DocumentsPage() {
                             </Badge>
                           )}
 
+                          {/* Projects */}
+                          {Array.isArray((doc.parsed_data as any).projects) && (doc.parsed_data as any).projects.length > 0 && (
+                            <Badge variant="secondary" className="text-xs">
+                              {(doc.parsed_data as any).projects.length} {(doc.parsed_data as any).projects.length === 1 ? 'Project' : 'Projects'}
+                            </Badge>
+                          )}
+
                           {/* Skills */}
                           {(doc.parsed_data as any).skills && (
                             ((doc.parsed_data as any).skills.technical?.length || 0) +
