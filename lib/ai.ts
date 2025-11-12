@@ -59,6 +59,58 @@ Answer (write as if you are the candidate):`
 }
 
 /**
+ * Generate a cover letter for a job or scholarship application.
+ * Uses the candidate's background and position description to create a compelling cover letter.
+ */
+export async function generateCoverLetter(
+  applicationTitle: string,
+  context: {
+    resume?: string
+    experience?: string
+    education?: string
+    jobDescription?: string
+  }
+): Promise<string> {
+  if (!genAI) {
+    return 'AI cover letter generation is not configured. Please add your Gemini API key to use this feature.'
+  }
+
+  try {
+    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
+
+    const prompt = `You are helping a candidate write a professional cover letter for a job or scholarship application. Write the cover letter AS IF you are the candidate.
+
+Application: ${applicationTitle}
+
+${context.jobDescription ? `Position/Opportunity Description:\n${context.jobDescription}\n\n` : ''}Candidate's Background:
+${context.resume ? `Resume/Profile:\n${context.resume}` : '(No resume provided)'}
+
+Important Instructions:
+- Write the cover letter in first person (as the candidate)
+- Do NOT use templates, placeholders like [Your Name], [Company Name], or bracketed sections
+- Do NOT include a date, address block, or signature line
+- Start directly with the opening paragraph (e.g., "I am writing to express my strong interest...")
+- Do NOT say "Here's a cover letter" or provide meta-commentary
+- Assume all provided information is the candidate's ACTUAL background
+- Write a direct, authentic cover letter that the candidate can use immediately
+- Make it specific to the candidate's actual experience and the position
+- Structure: Opening paragraph (express interest), 2-3 body paragraphs (highlight relevant experience and skills), closing paragraph (express enthusiasm and call to action)
+- Professional, compelling, and persuasive tone
+- Between 300-400 words
+- Focus on why the candidate is a great fit for this specific position
+
+Cover Letter (write as if you are the candidate):`
+
+    const result = await model.generateContent(prompt)
+    const response = await result.response
+    return response.text()
+  } catch (error) {
+    console.error('Error generating cover letter:', error)
+    return 'Error generating cover letter. Please try again.'
+  }
+}
+
+/**
  * Structured analysis shape for documents.
  */
 export type ParsedDocument = {

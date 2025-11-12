@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -57,7 +57,10 @@ export default function ApplicationDetailPage() {
   const [showEditQuestionsModal, setShowEditQuestionsModal] = useState(false)
   const [showExtractConfirmModal, setShowExtractConfirmModal] = useState(false)
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
+  const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false)
+  const [savingCoverLetter, setSavingCoverLetter] = useState(false)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
+  const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
   useEffect(() => {
     if (!id) return
@@ -299,6 +302,67 @@ export default function ApplicationDetailPage() {
     const textarea = textareaRefs.get(questionId)
     if (textarea) {
       textarea.value = aiAnswer
+    }
+  }
+
+  const handleGenerateCoverLetter = async () => {
+    if (!application) return
+
+    setGeneratingCoverLetter(true)
+    setError(null)
+
+    try {
+      const response = await fetch("/api/cover-letter/generate", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          applicationId: application.id,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error("Error generating cover letter:", errorData.error)
+        setError(errorData.error || "Failed to generate cover letter")
+        return
+      }
+
+      const data = await response.json()
+      if (data.coverLetter) {
+        setApplication((prev) => prev ? { ...prev, ai_cover_letter: data.coverLetter } : null)
+      }
+    } catch (err) {
+      console.error("Error generating cover letter:", err)
+      setError("Failed to generate cover letter. Please try again.")
+    } finally {
+      setGeneratingCoverLetter(false)
+    }
+  }
+
+  const handleSaveManualCoverLetter = async (value: string) => {
+    if (!application) return
+
+    setSavingCoverLetter(true)
+    try {
+      await updateApplication(application.id, { manual_cover_letter: value })
+      setApplication((prev) => prev ? { ...prev, manual_cover_letter: value } : null)
+    } catch (err) {
+      console.error("Error saving cover letter:", err)
+    } finally {
+      setSavingCoverLetter(false)
+    }
+  }
+
+  const handleCopyAICoverLetter = async (aiCoverLetter: string) => {
+    // Save the AI cover letter as manual cover letter
+    await handleSaveManualCoverLetter(aiCoverLetter)
+
+    // Update the textarea visual
+    const textarea = coverLetterTextareaRef.current
+    if (textarea) {
+      textarea.value = aiCoverLetter
     }
   }
 
@@ -792,6 +856,95 @@ export default function ApplicationDetailPage() {
                 </Card>
               </motion.div>
             ))
+          )}
+        </div>
+
+        {/* Cover Letter Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleGenerateCoverLetter}
+              disabled={generatingCoverLetter}
+            >
+              {generatingCoverLetter ? (
+                <>
+                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                  Generating...
+                </>
+              ) : (
+                <>
+                  <Sparkles className="mr-2 h-4 w-4" />
+                  Generate Cover Letter
+                </>
+              )}
+            </Button>
+          </div>
+
+          {application?.ai_cover_letter && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3 }}
+            >
+              <Card>
+                <CardHeader className="p-4 sm:p-6">
+                  <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <div className="flex items-center space-x-2 mb-2">
+                      <Sparkles className="h-4 w-4 text-primary" />
+                      <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+                    </div>
+                    <Textarea
+                      value={application.ai_cover_letter || ""}
+                      rows={12}
+                      className="resize-none"
+                      readOnly
+                      placeholder="No AI-generated cover letter yet."
+                    />
+                  </div>
+
+                  <div className="flex justify-center">
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
+                      disabled={savingCoverLetter}
+                      className="glow-effect"
+                      title="Copy AI cover letter to your edited cover letter"
+                    >
+                      <Copy className="h-4 w-4 text-primary" />
+                    </Button>
+                  </div>
+
+                  <div>
+                    <p className="text-xs text-muted-foreground mb-1">
+                      Your edited cover letter (saved privately for this application)
+                    </p>
+                    <Textarea
+                      ref={coverLetterTextareaRef}
+                      defaultValue={application.manual_cover_letter || ""}
+                      rows={12}
+                      onBlur={(e) =>
+                        e.target.value !== (application.manual_cover_letter || "")
+                          ? handleSaveManualCoverLetter(e.target.value)
+                          : undefined
+                      }
+                      disabled={savingCoverLetter}
+                    />
+                    {savingCoverLetter && (
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Saving...
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
         </div>
 
