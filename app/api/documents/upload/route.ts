@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { parseDocument } from "@/lib/ai"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
+import { extractTextFromDOCX } from "@/lib/docx-utils"
 
 /**
  * Handles document upload + analysis.
@@ -83,6 +84,11 @@ export async function POST(req: NextRequest) {
           extractedText = buffer.toString("utf-8")
         } else if (contentType.includes("application/pdf")) {
           extractedText = await extractTextFromPDF(buffer)
+        } else if (
+          contentType.includes("application/vnd.openxmlformats-officedocument.wordprocessingml.document") ||
+          contentType.includes("application/msword")
+        ) {
+          extractedText = await extractTextFromDOCX(buffer)
         }
 
         // Truncate if too long (100KB limit)
