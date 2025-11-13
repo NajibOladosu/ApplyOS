@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { parseDocument } from "@/lib/ai"
+import { AIRateLimitError } from "@/lib/ai/model-manager"
+import RetryQueueService from "@/lib/ai/retry-queue"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
 import { extractTextFromDOCX } from "@/lib/docx-utils"
 
@@ -163,15 +165,44 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (parseError) {
-        // Parsing is best-effort; log but do not fail the upload pipeline
-        console.error("Error parsing document with AI:", parseError)
-        await supabase
-          .from("documents")
-          .update({
-            analysis_status: "failed",
-            analysis_error: String(parseError),
+        // Handle rate limit errors by queuing for retry
+        if (parseError instanceof AIRateLimitError) {
+          console.warn(
+            `[Documents Upload] Rate limit hit, queueing document ${docRow.id} for retry`
+          )
+
+          // Mark document as pending analysis
+          await supabase
+            .from("documents")
+            .update({
+              analysis_status: "pending_analysis",
+              analysis_error: parseError.message,
+            })
+            .eq("id", docRow.id)
+
+          // Queue for retry
+          const retryTime = new Date(parseError.nextAvailableTime)
+          await RetryQueueService.queueTask({
+            userId: user.id,
+            taskType: "parse_document",
+            taskData: {
+              documentId: docRow.id,
+              extractedText,
+              fileName: file.name,
+            },
+            scheduledRetryTime: retryTime,
           })
-          .eq("id", docRow.id)
+        } else {
+          // Parsing is best-effort; log but do not fail the upload pipeline
+          console.error("Error parsing document with AI:", parseError)
+          await supabase
+            .from("documents")
+            .update({
+              analysis_status: "failed",
+              analysis_error: String(parseError),
+            })
+            .eq("id", docRow.id)
+        }
       }
 
       createdDocuments.push({

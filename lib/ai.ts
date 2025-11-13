@@ -1,9 +1,85 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { DocumentReport } from '@/types/database'
+import ModelManager, { AIRateLimitError } from '@/lib/ai/model-manager'
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null
+
+/**
+ * Extract retry-after header value from error response
+ */
+function getRetryAfterFromError(error: any): string | null {
+  if (!error) return null
+
+  // Try various error formats
+  if (error.headers?.['retry-after']) {
+    return error.headers['retry-after']
+  }
+
+  if (error.message?.includes('429')) {
+    // Rate limit error detected
+    return '60' // Default 60 seconds
+  }
+
+  return null
+}
+
+/**
+ * Check if error is a rate limit error
+ */
+function isRateLimitError(error: any): boolean {
+  const errorStr = String(error?.message || error?.toString() || '').toLowerCase()
+  return errorStr.includes('429') || errorStr.includes('rate limit') || errorStr.includes('quota exceeded')
+}
+
+/**
+ * Helper to call Gemini with fallback logic
+ */
+async function callGeminiWithFallback(
+  prompt: string,
+  complexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX' = 'MEDIUM'
+): Promise<string> {
+  let lastError: Error | null = null
+
+  // Try available models in order of preference
+  while (true) {
+    const model = ModelManager.getAvailableModel(complexity)
+
+    if (!model) {
+      // No models available, check when next will be available
+      const nextAvailableTime = ModelManager.getNextAvailableTime()
+      const now = Date.now()
+      const waitSeconds = Math.ceil((nextAvailableTime - now) / 1000)
+
+      throw new AIRateLimitError(
+        nextAvailableTime,
+        true,
+        `All AI models are currently rate limited due to high demand. Please try again in about ${waitSeconds} seconds.`
+      )
+    }
+
+    try {
+      const genModel = genAI!.getGenerativeModel({ model })
+      const result = await genModel.generateContent(prompt)
+      const response = await result.response
+      return response.text()
+    } catch (error) {
+      lastError = error as Error
+
+      if (isRateLimitError(error)) {
+        const retryAfter = getRetryAfterFromError(error)
+        ModelManager.markModelRateLimited(model, retryAfter)
+        console.warn(`[AI] Model ${model} hit rate limit, trying fallback...`)
+        // Continue to next iteration to try another model
+        continue
+      }
+
+      // For non-rate-limit errors, rethrow
+      throw error
+    }
+  }
+}
 
 /**
  * NOTE: Question extraction from URLs is now handled by the API route:
@@ -26,10 +102,7 @@ export async function generateAnswer(
     return 'AI answer generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
-  try {
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
-
-    const prompt = `You are helping a candidate answer a job or scholarship application question. Your job is to write the answer AS IF you are the candidate.
+  const prompt = `You are helping a candidate answer a job or scholarship application question. Your job is to write the answer AS IF you are the candidate.
 
 Question: ${question}
 
@@ -49,10 +122,12 @@ Important Instructions:
 
 Answer (write as if you are the candidate):`
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    return response.text()
+  try {
+    return await callGeminiWithFallback(prompt, 'SIMPLE')
   } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error // Re-throw rate limit errors to be handled by caller
+    }
     console.error('Error generating answer:', error)
     return 'Error generating answer. Please try again.'
   }
@@ -75,10 +150,7 @@ export async function generateCoverLetter(
     return 'AI cover letter generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
-  try {
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
-
-    const prompt = `You are helping a candidate write a professional cover letter for a job or scholarship application. Write the cover letter AS IF you are the candidate.
+  const prompt = `You are helping a candidate write a professional cover letter for a job or scholarship application. Write the cover letter AS IF you are the candidate.
 
 Application: ${applicationTitle}
 
@@ -101,10 +173,12 @@ Important Instructions:
 
 Cover Letter (write as if you are the candidate):`
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    return response.text()
+  try {
+    return await callGeminiWithFallback(prompt, 'MEDIUM')
   } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error // Re-throw rate limit errors to be handled by caller
+    }
     console.error('Error generating cover letter:', error)
     return 'Error generating cover letter. Please try again.'
   }
@@ -175,10 +249,7 @@ export async function parseDocument(fileContent: string): Promise<ParsedDocument
     return empty
   }
 
-  try {
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
-
-    const prompt = `Extract structured information from this resume/document:
+  const prompt = `Extract structured information from this resume/document:
 
 ${fileContent}
 
@@ -240,9 +311,8 @@ Rules:
 - Use empty strings "" for missing details
 - NO markdown, NO code fences, NO explanations`
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text().trim()
+  try {
+    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
 
     // Handle markdown code fences (```json...``` or ```...```)
     let jsonText = text
@@ -322,6 +392,9 @@ Rules:
 
     return normalized
   } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error // Re-throw rate limit errors to be handled by caller
+    }
     console.error('Error parsing document:', error)
     return empty
   }
@@ -365,8 +438,6 @@ export async function generateDocumentReport(input: {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
-
     let education: unknown
     let experience: unknown
     let projects: unknown
@@ -497,9 +568,7 @@ Important Rules:
 6. Industry Keywords should check for relevant, unique terms (NOT buzzwords or repetition)
 7. Return ONLY the JSON object, nothing else`
 
-    const result = await model.generateContent(prompt)
-    const response = await result.response
-    const text = response.text().trim()
+    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
 
     // Handle markdown code fences
     let jsonText = text
@@ -545,6 +614,9 @@ Important Rules:
 
     return report
   } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error // Re-throw rate limit errors to be handled by caller
+    }
     console.error('Error generating document report:', error)
     return defaultReport
   }
