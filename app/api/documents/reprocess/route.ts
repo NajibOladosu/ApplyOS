@@ -2,6 +2,7 @@ import { NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { parseDocument } from "@/lib/ai"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
+import { extractTextFromDOCX } from "@/lib/docx-utils"
 import type { Document } from "@/types/database"
 
 export const runtime = "nodejs"
@@ -195,16 +196,7 @@ export async function POST(request: Request) {
           contentType.includes("application/vnd.openxmlformats-officedocument") ||
           contentType.includes("application/msword")
         ) {
-          const msg = "DOC/DOCX files are not supported yet. Please convert to PDF."
-          await supabase
-            .from("documents")
-            .update({
-              analysis_status: "failed",
-              analysis_error: msg,
-            })
-            .eq("id", id)
-
-          return NextResponse.json({ error: msg }, { status: 501 })
+          extractedText = await extractTextFromDOCX(Buffer.from(arrayBuffer))
         } else {
           const msg = `Unsupported file type: ${contentType}`
           await supabase
