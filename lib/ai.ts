@@ -435,47 +435,49 @@ ${contextBlock}
 
 Task: Provide a comprehensive evaluation of this document across 6 key dimensions. Return ONLY valid JSON (no markdown, no code fences, no extra text).
 
+CRITICAL: Analyze the ACTUAL document provided. Do NOT copy or reuse example values. Generate unique scores, strengths, and improvements specific to THIS document.
+
 Return JSON with this exact structure:
 {
-  "documentType": "Resume" or "Cover Letter" or "Transcript" or "Portfolio" or other identified type,
-  "overallScore": 7,
-  "overallAssessment": "Brief 1-2 sentence overall assessment of document quality",
+  "documentType": "<Resume | Cover Letter | Transcript | Portfolio | Other - identify based on document>",
+  "overallScore": <number 1-10 based on comprehensive analysis of THIS document>,
+  "overallAssessment": "<1-2 sentences describing THIS specific document's overall quality and key impression>",
   "categories": [
     {
       "name": "Content Quality & Completeness",
-      "score": 8,
-      "strengths": ["Clear description of key achievements", "Relevant experience highlighted"],
-      "improvements": ["Consider adding metrics or quantifiable results"]
+      "score": <number 1-10>,
+      "strengths": ["<specific strength you identified in THIS document>", "<another strength>"],
+      "improvements": ["<actionable improvement specific to THIS document gaps>"]
     },
     {
       "name": "Formatting & Structure",
-      "score": 9,
-      "strengths": ["Well-organized sections", "Easy to scan"],
-      "improvements": []
+      "score": <number 1-10>,
+      "strengths": ["<what THIS document does well structurally>"],
+      "improvements": ["<specific formatting suggestions for THIS document>"]
     },
     {
       "name": "ATS Compatibility",
-      "score": 7,
-      "strengths": ["Clean formatting", "Standard sections"],
-      "improvements": ["Ensure no special characters that may not parse correctly"]
+      "score": <number 1-10>,
+      "strengths": ["<ATS-friendly aspects THIS document has>"],
+      "improvements": ["<ATS improvements needed for THIS document>"]
     },
     {
       "name": "Language & Clarity",
-      "score": 8,
-      "strengths": ["Professional tone", "Clear writing"],
-      "improvements": []
+      "score": <number 1-10>,
+      "strengths": ["<writing quality observations in THIS document>"],
+      "improvements": ["<clarity improvements for THIS document>"]
     },
     {
       "name": "Achievement Demonstration",
-      "score": 7,
-      "strengths": ["Shows impact in previous roles"],
-      "improvements": ["Add more specific metrics to demonstrate impact"]
+      "score": <number 1-10>,
+      "strengths": ["<how THIS document demonstrates impact and accomplishments>"],
+      "improvements": ["<specific suggestions to better demonstrate achievements in THIS document>"]
     },
     {
       "name": "Industry Keywords & Relevance",
-      "score": 8,
-      "strengths": ["Relevant technical skills mentioned", "Industry terminology used appropriately"],
-      "improvements": []
+      "score": <number 1-10>,
+      "strengths": ["<relevant keywords and terms found in THIS document>"],
+      "improvements": ["<opportunities to add industry-specific keywords to THIS document>"]
     }
   ]
 }
