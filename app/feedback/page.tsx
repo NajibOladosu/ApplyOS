@@ -17,23 +17,20 @@ export default function FeedbackPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  const feedbackTypes: { value: FeedbackType; label: string; icon: string; description: string }[] = [
+  const feedbackTypes: { value: FeedbackType; label: string; description: string }[] = [
     {
       value: "general",
       label: "General Feedback",
-      icon: "💭",
       description: "Share your thoughts and ideas about Trackly",
     },
     {
       value: "bug",
       label: "Bug Report",
-      icon: "🐛",
       description: "Report issues or unexpected behavior",
     },
     {
       value: "feature",
       label: "Feature Request",
-      icon: "✨",
       description: "Suggest new features or improvements",
     },
   ]
@@ -186,7 +183,6 @@ export default function FeedbackPage() {
                             : "border-border hover:border-border/75 bg-background"
                         }`}
                       >
-                        <div className="text-2xl mb-2">{type.icon}</div>
                         <div className="font-medium">{type.label}</div>
                         <div className="text-xs text-muted-foreground mt-1">{type.description}</div>
                       </motion.button>
