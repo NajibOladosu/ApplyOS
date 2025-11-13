@@ -2,6 +2,8 @@ export type ApplicationStatus = 'draft' | 'submitted' | 'in_review' | 'interview
 export type ApplicationPriority = 'low' | 'medium' | 'high'
 export type ApplicationType = 'job' | 'scholarship' | 'internship' | 'other'
 export type NotificationType = 'info' | 'success' | 'warning' | 'error' | 'deadline' | 'status_update'
+export type FeedbackType = 'general' | 'bug' | 'feature'
+export type FeedbackStatus = 'pending' | 'reviewed' | 'resolved'
 
 export interface ReportCategory {
   name: string
@@ -95,4 +97,15 @@ export interface StatusHistory {
   new_status: string
   changed_by: string | null
   timestamp: string
+}
+
+export interface Feedback {
+  id: string
+  user_id: string
+  type: FeedbackType
+  title: string
+  description: string
+  status: FeedbackStatus
+  created_at: string
+  updated_at: string
 }
