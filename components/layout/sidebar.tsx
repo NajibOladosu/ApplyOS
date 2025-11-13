@@ -14,6 +14,7 @@ import {
   Settings,
   LogOut,
   X,
+  MessageSquare,
 } from "lucide-react"
 import { motion } from "framer-motion"
 
@@ -23,6 +24,7 @@ const navItems = [
   { href: "/documents", label: "Documents", icon: FolderOpen },
   { href: "/upload", label: "Upload", icon: Upload },
   { href: "/notifications", label: "Notifications", icon: Bell },
+  { href: "/feedback", label: "Feedback", icon: MessageSquare },
   { href: "/profile", label: "Profile", icon: User },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
