@@ -14,9 +14,18 @@ import {
   Palette,
   Globe,
   Loader2,
+  X,
 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog"
 
 type NotificationPrefs = {
   email_notifications: boolean
@@ -46,6 +55,15 @@ export default function SettingsPage() {
   const [aiSettings, setAiSettings] = useState<AiSettings>({
     auto_generate_answers: true,
   })
+
+  // Password change modal state
+  const [showPasswordModal, setShowPasswordModal] = useState(false)
+  const [currentPassword, setCurrentPassword] = useState("")
+  const [newPassword, setNewPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
+  const [passwordLoading, setPasswordLoading] = useState(false)
+  const [passwordError, setPasswordError] = useState<string | null>(null)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
 
   useEffect(() => {
     const load = async () => {
@@ -122,6 +140,79 @@ export default function SettingsPage() {
       setError("Failed to save settings. Please try again.")
     } finally {
       setSaving(false)
+    }
+  }
+
+  const handleChangePassword = async () => {
+    setPasswordError(null)
+    setPasswordSuccess(false)
+
+    // Validation
+    if (!currentPassword.trim()) {
+      setPasswordError("Current password is required")
+      return
+    }
+    if (!newPassword.trim()) {
+      setPasswordError("New password is required")
+      return
+    }
+    if (!confirmPassword.trim()) {
+      setPasswordError("Password confirmation is required")
+      return
+    }
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match")
+      return
+    }
+    if (newPassword === currentPassword) {
+      setPasswordError("New password must be different from current password")
+      return
+    }
+
+    setPasswordLoading(true)
+    try {
+      // First, verify current password by attempting to sign in
+      if (!user?.email) {
+        throw new Error("User email not found")
+      }
+
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email: user.email,
+        password: currentPassword,
+      })
+
+      if (signInError) {
+        setPasswordError("Current password is incorrect")
+        return
+      }
+
+      // If verification successful, update password
+      const { error: updateError } = await supabase.auth.updateUser({
+        password: newPassword,
+      })
+
+      if (updateError) {
+        setPasswordError(
+          updateError.message || "Failed to update password. Please try again."
+        )
+        return
+      }
+
+      setPasswordSuccess(true)
+      // Clear form
+      setCurrentPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+      // Close modal after success
+      setTimeout(() => {
+        setShowPasswordModal(false)
+        setPasswordSuccess(false)
+      }, 1500)
+    } catch (err) {
+      console.error("Error changing password:", err)
+      setPasswordError("An error occurred while changing your password")
+    } finally {
+      setPasswordLoading(false)
     }
   }
 
@@ -316,12 +407,12 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Security (informational: flows depend on Supabase auth UIs) */}
+        {/* Security */}
         <Card>
           <CardHeader>
             <CardTitle>Security</CardTitle>
             <CardDescription>
-              Core security is handled by Supabase Auth. Use its built-in flows for password reset and MFA.
+              Manage your account security and authentication settings.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -331,12 +422,16 @@ export default function SettingsPage() {
                 <div>
                   <p className="font-medium">Change Password</p>
                   <p className="text-sm text-muted-foreground">
-                    Use the password reset link sent via email from Supabase.
+                    Update your account password securely.
                   </p>
                 </div>
               </div>
-              <Button variant="outline" size="sm" disabled>
-                Managed via Supabase
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPasswordModal(true)}
+              >
+                Change
               </Button>
             </div>
 
@@ -406,6 +501,95 @@ export default function SettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Password Change Modal */}
+        <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Change Password</DialogTitle>
+              <DialogDescription>
+                Enter your current password and choose a new one.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4">
+              {/* Current Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Current Password</label>
+                <Input
+                  type="password"
+                  placeholder="Enter your current password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  disabled={passwordLoading}
+                />
+              </div>
+
+              {/* New Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">New Password</label>
+                <Input
+                  type="password"
+                  placeholder="Enter your new password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  disabled={passwordLoading}
+                />
+              </div>
+
+              {/* Confirm Password */}
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Confirm New Password</label>
+                <Input
+                  type="password"
+                  placeholder="Confirm your new password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  disabled={passwordLoading}
+                />
+              </div>
+
+              {/* Error Message */}
+              {passwordError && (
+                <div className="rounded-md bg-destructive/10 p-3">
+                  <p className="text-sm text-destructive">{passwordError}</p>
+                </div>
+              )}
+
+              {/* Success Message */}
+              {passwordSuccess && (
+                <div className="rounded-md bg-primary/10 p-3">
+                  <p className="text-sm text-primary">
+                    Password changed successfully!
+                  </p>
+                </div>
+              )}
+            </div>
+
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={() => setShowPasswordModal(false)}
+                disabled={passwordLoading}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleChangePassword}
+                disabled={passwordLoading}
+              >
+                {passwordLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Updating...
+                  </>
+                ) : (
+                  "Update Password"
+                )}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   )
