@@ -524,7 +524,14 @@ ${contextBlock}
 
 Task: Provide a comprehensive evaluation of this document across 6 key dimensions. Return ONLY valid JSON (no markdown, no code fences, no extra text).
 
-CRITICAL: Analyze the ACTUAL document provided. Do NOT copy or reuse example values. Generate unique scores, strengths, and improvements specific to THIS document.
+CRITICAL INSTRUCTIONS - READ CAREFULLY:
+1. Analyze ONLY the ACTUAL data provided above. Do NOT make assumptions or invent details.
+2. ONLY report issues/improvements if they are verifiable from the provided context.
+3. Do NOT mention issues that don't exist in the data (e.g., don't report "future dates" if no future dates are present).
+4. If an improvement doesn't apply or isn't needed, leave the improvements array EMPTY rather than making up suggestions.
+5. All feedback MUST be specific to THIS document's actual content.
+6. Do NOT use generic or templated feedback - every point must relate to what you see in the data.
+7. If you cannot verify an issue from the provided data, DO NOT report it.
 
 Return JSON with this exact structure:
 {
@@ -536,37 +543,37 @@ Return JSON with this exact structure:
       "name": "Content Quality & Completeness",
       "score": <number 1-10>,
       "strengths": ["<specific strength you identified in THIS document>", "<another strength>"],
-      "improvements": ["<actionable improvement specific to THIS document gaps>"]
+      "improvements": ["<actionable improvement based on actual gaps in THIS document>"]
     },
     {
       "name": "Formatting & Structure",
       "score": <number 1-10>,
       "strengths": ["<what THIS document does well structurally>"],
-      "improvements": ["<specific formatting suggestions for THIS document>"]
+      "improvements": ["<specific formatting suggestions ONLY if issues are visible in the data>"]
     },
     {
       "name": "ATS Compatibility",
       "score": <number 1-10>,
       "strengths": ["<ATS-friendly aspects THIS document has>"],
-      "improvements": ["<ATS improvements needed for THIS document>"]
+      "improvements": ["<ATS improvements ONLY if actual issues exist in THIS document>"]
     },
     {
       "name": "Language & Clarity",
       "score": <number 1-10>,
       "strengths": ["<writing quality observations in THIS document>"],
-      "improvements": ["<clarity improvements for THIS document>"]
+      "improvements": ["<clarity improvements ONLY if actual issues exist>"]
     },
     {
       "name": "Achievement Demonstration",
       "score": <number 1-10>,
       "strengths": ["<how THIS document demonstrates impact and accomplishments>"],
-      "improvements": ["<specific suggestions to better demonstrate achievements in THIS document>"]
+      "improvements": ["<suggestions ONLY if THIS document lacks achievement details>"]
     },
     {
       "name": "Industry Keywords & Relevance",
       "score": <number 1-10>,
       "strengths": ["<relevant keywords and terms found in THIS document>"],
-      "improvements": ["<opportunities to add industry-specific keywords to THIS document>"]
+      "improvements": ["<opportunities to add keywords ONLY if THIS document is missing important ones>"]
     }
   ]
 }
@@ -577,14 +584,16 @@ Scoring Guidelines (1-10):
 - 7-8: Good, solid performance with minor areas to improve
 - 9-10: Excellent, best practices demonstrated
 
-Important Rules:
-1. Only include "improvements" if there are genuinely actionable suggestions
-2. If a category is strong (score 7+), the improvements array should be empty
-3. Be honest - if the document is excellent in a category, don't force feedback
-4. Base scores on actual content quality, not appearance alone
-5. Achievement Demonstration should rate how well the document shows the person's actual accomplishments
-6. Industry Keywords should check for relevant, unique terms (NOT buzzwords or repetition)
-7. Return ONLY the JSON object, nothing else`
+MANDATORY RULES - DO NOT BREAK THESE:
+1. Only include "improvements" if you can point to an actual gap in the provided data
+2. If you cannot verify an issue from the provided context, DO NOT report it
+3. If a category is strong (score 7+), the improvements array should be EMPTY
+4. Better to have empty improvements than to hallucinate issues
+5. Base scores on actual content quality, not appearance alone
+6. Achievement Demonstration should rate how well the document shows the person's actual accomplishments from the data
+7. Industry Keywords should check for relevant terms found in THIS document (NOT generic suggestions)
+8. Return ONLY the JSON object, nothing else
+9. VERIFY each improvement suggestion against the provided data - if not in data, don't include it`
 
     const text = await callGeminiWithFallback(prompt, 'COMPLEX')
 
