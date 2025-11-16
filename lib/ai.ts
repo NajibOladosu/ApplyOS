@@ -515,7 +515,17 @@ export async function generateDocumentReport(input: {
       ? contextParts.join('\n\n')
       : 'No content or structured data available.'
 
+    // Get today's date for reference
+    const today = new Date()
+    const todayString = today.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+    })
+
     const prompt = `You are an expert resume and document reviewer. Analyze the following document and provide a detailed scorecard report.
+
+IMPORTANT: Today's date is ${todayString}. Use this to evaluate whether dates are in the past or future.
 
 File name: ${fileName}
 
@@ -532,6 +542,8 @@ CRITICAL INSTRUCTIONS - READ CAREFULLY:
 5. All feedback MUST be specific to THIS document's actual content.
 6. Do NOT use generic or templated feedback - every point must relate to what you see in the data.
 7. If you cannot verify an issue from the provided data, DO NOT report it.
+8. DATE VALIDATION: Before reporting any date as "in the future", compare it to today's date (${todayString}). Only report dates that are ACTUALLY in the future. Do NOT report dates that are in the past or present as problematic.
+9. Do NOT report date issues unless dates are genuinely in the future (AFTER ${todayString}).
 
 Return JSON with this exact structure:
 {
