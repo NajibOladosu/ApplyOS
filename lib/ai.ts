@@ -17,7 +17,12 @@ function getRetryAfterFromError(error: any): string | null {
     return error.headers['retry-after']
   }
 
-  if (error.message?.includes('429')) {
+  // 503 Service Unavailable - model is overloaded
+  if (error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('overloaded')) {
+    return '120' // 2 minutes for overload
+  }
+
+  if (error?.status === 429 || error?.message?.includes('429')) {
     // Rate limit error detected
     return '60' // Default 60 seconds
   }
@@ -26,11 +31,24 @@ function getRetryAfterFromError(error: any): string | null {
 }
 
 /**
- * Check if error is a rate limit error
+ * Check if error is a rate limit or service unavailable error
  */
 function isRateLimitError(error: any): boolean {
   const errorStr = String(error?.message || error?.toString() || '').toLowerCase()
-  return errorStr.includes('429') || errorStr.includes('rate limit') || errorStr.includes('quota exceeded')
+  const hasRateLimitIndicator =
+    errorStr.includes('429') ||
+    errorStr.includes('rate limit') ||
+    errorStr.includes('quota exceeded') ||
+    errorStr.includes('503') ||
+    errorStr.includes('service unavailable') ||
+    errorStr.includes('overloaded')
+
+  // Also check for status code 503
+  if (error?.status === 503) {
+    return true
+  }
+
+  return hasRateLimitIndicator
 }
 
 /**
