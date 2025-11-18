@@ -6,11 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
-import { User, Mail, Calendar, Github, Linkedin, Loader2, Edit2 } from "lucide-react"
+import { User, Mail, Calendar, Github, Linkedin, Loader2, Edit2, Upload, Download } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { PromptModal } from "@/components/modals/prompt-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
+import { ImportApplicationsModal } from "@/components/modals/import-applications-modal"
 
 interface Profile {
   id: string
@@ -36,6 +37,8 @@ export default function ProfilePage() {
   const [showDeletePrompt, setShowDeletePrompt] = useState(false)
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingAccount, setDeletingAccount] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [importSuccess, setImportSuccess] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -386,6 +389,35 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
+        {/* Import Applications */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Import Applications</CardTitle>
+            <CardDescription>
+              Import applications from Google Sheets or Excel
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <p className="text-sm text-muted-foreground">
+                Upload a CSV file to import application data. Your applications will be added to your account with all the details like status, priority, deadline, and notes.
+              </p>
+              <Button
+                onClick={() => setShowImportModal(true)}
+                className="glow-effect"
+              >
+                <Upload className="h-4 w-4 mr-2" />
+                Import from CSV
+              </Button>
+              {importSuccess && (
+                <div className="bg-green-500/10 border border-green-500/30 p-3 rounded-lg">
+                  <p className="text-sm text-green-600">{importSuccess}</p>
+                </div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Connected Accounts (placeholder, no fake connections) */}
         <Card>
           <CardHeader>
@@ -477,6 +509,18 @@ export default function ProfilePage() {
           message={deleteError || ""}
           type="error"
           onClose={() => setDeleteError(null)}
+        />
+
+        {/* Import Applications Modal */}
+        <ImportApplicationsModal
+          isOpen={showImportModal}
+          onClose={() => setShowImportModal(false)}
+          onSuccess={(count) => {
+            setShowImportModal(false)
+            setImportSuccess(`Successfully imported ${count} application${count !== 1 ? "s" : ""}!`)
+            // Clear the success message after 5 seconds
+            setTimeout(() => setImportSuccess(null), 5000)
+          }}
         />
       </div>
     </DashboardLayout>

@@ -76,7 +76,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
         type,
         priority: priority as any,
         deadline: deadline || undefined,
-        notes: notes || undefined,
+        job_description: notes || undefined,
       })
 
       // Create questions if any were extracted
