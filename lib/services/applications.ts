@@ -30,7 +30,7 @@ export async function createApplication(application: {
   type?: string
   priority?: ApplicationPriority
   deadline?: string
-  notes?: string
+  job_description?: string
 }) {
   const supabase = createClient()
   const { data: { user } } = await supabase.auth.getUser()

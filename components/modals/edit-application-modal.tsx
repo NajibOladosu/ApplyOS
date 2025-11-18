@@ -43,7 +43,7 @@ export function EditApplicationModal({
       setType(application.type || "job")
       setPriority(application.priority || "medium")
       setDeadline(application.deadline ? application.deadline.split("T")[0] : "")
-      setJobDescription(application.notes || "")
+      setJobDescription(application.job_description || "")
     }
   }, [application, isOpen])
 
@@ -58,7 +58,7 @@ export function EditApplicationModal({
         type: type as any,
         priority: priority as any,
         deadline: deadline ? new Date(deadline).toISOString() : null,
-        notes: jobDescription || null,
+        job_description: jobDescription || null,
       })
 
       onSuccess()

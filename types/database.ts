@@ -41,7 +41,7 @@ export interface Application {
   priority: ApplicationPriority
   type: ApplicationType
   deadline: string | null
-  notes: string | null
+  job_description: string | null
   ai_cover_letter: string | null
   manual_cover_letter: string | null
   created_at: string

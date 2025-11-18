@@ -550,7 +550,7 @@ export default function ApplicationDetailPage() {
             </div>
 
 
-            {application.notes && (
+            {application.job_description && (
               <div className="border-t pt-4">
                 <p className="text-sm font-medium mb-3">
                   {application.type === 'scholarship' ? 'Scholarship Details' : 'Job Description'}
@@ -564,10 +564,10 @@ export default function ApplicationDetailPage() {
                       jobDescriptionExpanded ? "" : "line-clamp-3"
                     }`}
                   >
-                    {application.notes}
+                    {application.job_description}
                   </div>
                 </motion.div>
-                {application.notes.split("\n").length > 3 && (
+                {application.job_description.split("\n").length > 3 && (
                   <button
                     onClick={() => setJobDescriptionExpanded(!jobDescriptionExpanded)}
                     className="mt-2 text-xs text-primary hover:underline transition-colors"
