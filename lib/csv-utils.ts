@@ -7,7 +7,7 @@ export interface ParsedApplication {
   priority?: ApplicationPriority
   type?: ApplicationType
   deadline?: string
-  notes?: string
+  job_description?: string
 }
 
 export interface ImportValidationResult {
@@ -249,11 +249,11 @@ export function validateCSV(csvText: string): ImportValidationResult | ImportVal
         }
       }
 
-      // Notes (optional)
+      // Job Description/Notes (optional)
       if (headerMap['notes'] !== undefined) {
-        const notes = row[headerMap['notes']]?.trim()
-        if (notes) {
-          application.notes = notes
+        const jobDescription = row[headerMap['notes']]?.trim()
+        if (jobDescription) {
+          application.job_description = jobDescription
         }
       }
     }
