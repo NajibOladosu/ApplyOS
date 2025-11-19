@@ -109,3 +109,14 @@ export interface Feedback {
   created_at: string
   updated_at: string
 }
+
+export interface ApplicationNote {
+  id: string
+  application_id: string
+  user_id: string
+  content: string
+  category: string | null
+  is_pinned: boolean
+  created_at: string
+  updated_at: string
+}
