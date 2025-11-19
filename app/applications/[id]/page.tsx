@@ -22,6 +22,7 @@ import {
   X,
   Copy,
   StickyNote,
+  ArrowUpDown,
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
@@ -68,6 +69,7 @@ export default function ApplicationDetailPage() {
   const [notes, setNotes] = useState<ApplicationNote[]>([])
   const [notesLoading, setNotesLoading] = useState(false)
   const [notesViewType, setNotesViewType] = useState<"card" | "timeline">("card")
+  const [notesSortOrder, setNotesSortOrder] = useState<"newest" | "oldest">("newest")
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [editingNote, setEditingNote] = useState<ApplicationNote | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
@@ -106,6 +108,15 @@ export default function ApplicationDetailPage() {
     }
 
     void load()
+  }, [id])
+
+  // Load notes view preference and sort order from localStorage
+  useEffect(() => {
+    if (!id) return
+    const savedViewType = localStorage.getItem(`notes-view-${id}`) as "card" | "timeline" | null
+    const savedSortOrder = localStorage.getItem(`notes-sort-${id}`) as "newest" | "oldest" | null
+    if (savedViewType) setNotesViewType(savedViewType)
+    if (savedSortOrder) setNotesSortOrder(savedSortOrder)
   }, [id])
 
   const handleRegenerate = async (questionId?: string) => {
@@ -1027,7 +1038,10 @@ export default function ApplicationDetailPage() {
                 <Button
                   variant={notesViewType === "card" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => setNotesViewType("card")}
+                  onClick={() => {
+                    setNotesViewType("card")
+                    localStorage.setItem(`notes-view-${id}`, "card")
+                  }}
                   className="text-xs"
                 >
                   Card View
@@ -1035,12 +1049,27 @@ export default function ApplicationDetailPage() {
                 <Button
                   variant={notesViewType === "timeline" ? "default" : "ghost"}
                   size="sm"
-                  onClick={() => setNotesViewType("timeline")}
+                  onClick={() => {
+                    setNotesViewType("timeline")
+                    localStorage.setItem(`notes-view-${id}`, "timeline")
+                  }}
                   className="text-xs"
                 >
                   Timeline
                 </Button>
               </div>
+              <Button
+                variant="outline"
+                onClick={() => {
+                  const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
+                  setNotesSortOrder(newOrder)
+                  localStorage.setItem(`notes-sort-${id}`, newOrder)
+                }}
+                title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
+              >
+                <ArrowUpDown className="h-4 w-4 mr-2" />
+                {notesSortOrder === "newest" ? "Newest" : "Oldest"}
+              </Button>
               <Button
                 onClick={handleNewNote}
                 className="glow-effect flex-1 sm:flex-none"
@@ -1055,21 +1084,35 @@ export default function ApplicationDetailPage() {
             <div className="flex items-center justify-center py-8">
               <Loader2 className="h-8 w-8 animate-spin text-primary" />
             </div>
-          ) : notesViewType === "card" ? (
-            <NotesCardView
-              notes={notes}
-              onEdit={handleEditNote}
-              onDelete={handleDeleteNote}
-              onTogglePin={handleTogglePinNote}
-            />
-          ) : (
-            <NotesTimelineView
-              notes={notes}
-              onEdit={handleEditNote}
-              onDelete={handleDeleteNote}
-              onTogglePin={handleTogglePinNote}
-            />
-          )}
+          ) : (() => {
+            // Sort notes based on notesSortOrder
+            const sortedNotes = [...notes].sort((a, b) => {
+              // Keep pinned notes first
+              if (a.is_pinned !== b.is_pinned) {
+                return a.is_pinned ? -1 : 1
+              }
+              // Then sort by date
+              const dateA = new Date(a.created_at).getTime()
+              const dateB = new Date(b.created_at).getTime()
+              return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
+            })
+
+            return notesViewType === "card" ? (
+              <NotesCardView
+                notes={sortedNotes}
+                onEdit={handleEditNote}
+                onDelete={handleDeleteNote}
+                onTogglePin={handleTogglePinNote}
+              />
+            ) : (
+              <NotesTimelineView
+                notes={sortedNotes}
+                onEdit={handleEditNote}
+                onDelete={handleDeleteNote}
+                onTogglePin={handleTogglePinNote}
+              />
+            )
+          })()}
         </div>
 
       </div>

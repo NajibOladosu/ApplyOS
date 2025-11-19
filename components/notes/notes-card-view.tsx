@@ -66,9 +66,9 @@ export function NotesCardView({
             className="w-full h-48 flex flex-col cursor-pointer hover:shadow-2xl transition-all border-2 border-opacity-40 shadow-lg shadow-black/20 hover:shadow-black/30 bg-gradient-to-br from-background to-background/95"
             onClick={() => onEdit(note)}
           >
-            <CardContent className="p-4 flex-1 flex flex-col gap-3">
+            <CardContent className="p-4 flex-1 flex flex-col gap-3 min-h-0">
               {/* Header with Pin and Category */}
-              <div className="flex items-start justify-between gap-2">
+              <div className="flex items-start justify-between gap-2 shrink-0">
                 <div className="flex-1 min-w-0">
                   {note.category && (
                     <Badge variant="secondary" className="text-xs mb-2">
@@ -82,18 +82,18 @@ export function NotesCardView({
               </div>
 
               {/* Content Preview */}
-              <div className="flex-1 min-w-0">
-                <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3 text-sm text-muted-foreground">
+              <div className="flex-1 min-w-0 overflow-hidden">
+                <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3 h-full">
                   <div
                     dangerouslySetInnerHTML={{
-                      __html: note.content.replace(/<[^>]*>/g, '').substring(0, 150) + '...',
+                      __html: note.content,
                     }}
                   />
                 </div>
               </div>
 
               {/* Footer with Date and Actions */}
-              <div className="flex items-center justify-between gap-2 pt-3 border-t">
+              <div className="flex items-center justify-between gap-2 pt-3 border-t shrink-0">
                 <span className="text-xs text-muted-foreground">
                   {new Date(note.created_at).toLocaleDateString()}
                 </span>
