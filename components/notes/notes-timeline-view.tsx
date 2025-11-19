@@ -129,7 +129,7 @@ export function NotesTimelineView({
                   </div>
 
                   {/* Content */}
-                  <div className="prose prose-sm dark:prose-invert max-w-none mb-4 line-clamp-4">
+                  <div className="prose prose-sm dark:prose-invert max-w-none mb-4 line-clamp-3">
                     <div
                       dangerouslySetInnerHTML={{
                         __html: note.content,
