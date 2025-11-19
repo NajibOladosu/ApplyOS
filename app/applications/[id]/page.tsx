@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Textarea } from "@/components/ui/textarea"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { motion } from "framer-motion"
 import {
   ArrowLeft,
@@ -20,16 +21,21 @@ import {
   Plus,
   X,
   Copy,
+  StickyNote,
 } from "lucide-react"
 import Link from "next/link"
-import type { Application, Question, Document } from "@/types/database"
+import type { Application, Question, Document, ApplicationNote } from "@/types/database"
 import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments } from "@/lib/services/applications"
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
+import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
+import { NoteModal } from "@/components/modals/note-modal"
+import { NotesCardView } from "@/components/notes/notes-card-view"
+import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -59,6 +65,11 @@ export default function ApplicationDetailPage() {
   const [successMessage, setSuccessMessage] = useState<string | null>(null)
   const [generatingCoverLetter, setGeneratingCoverLetter] = useState(false)
   const [savingCoverLetter, setSavingCoverLetter] = useState(false)
+  const [notes, setNotes] = useState<ApplicationNote[]>([])
+  const [notesLoading, setNotesLoading] = useState(false)
+  const [notesViewType, setNotesViewType] = useState<"card" | "timeline">("card")
+  const [showNoteModal, setShowNoteModal] = useState(false)
+  const [editingNote, setEditingNote] = useState<ApplicationNote | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -70,15 +81,17 @@ export default function ApplicationDetailPage() {
       setError(null)
 
       try {
-        const [app, qs, docs, relatedDocIds] = await Promise.all([
+        const [app, qs, docs, relatedDocIds, appNotes] = await Promise.all([
           getApplication(id),
           getQuestionsByApplicationId(id),
           getDocuments(),
           getApplicationDocuments(id),
+          getNotesByApplicationId(id),
         ])
         setApplication(app)
         setQuestions(qs)
         setDocuments(docs)
+        setNotes(appNotes)
         setPendingStatus(app.status)
         setInitialStatus(app.status)
         setPendingDocumentIds([])
@@ -366,6 +379,56 @@ export default function ApplicationDetailPage() {
     }
   }
 
+  const handleSaveNote = async (noteData: {
+    content: string
+    category?: string
+    is_pinned: boolean
+  }) => {
+    if (!application) return
+
+    try {
+      if (editingNote) {
+        const updated = await updateNote(editingNote.id, noteData)
+        setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)))
+      } else {
+        const newNote = await createNote(application.id, noteData)
+        setNotes((prev) => [newNote, ...prev])
+      }
+      setEditingNote(null)
+      setShowNoteModal(false)
+    } catch (err) {
+      console.error("Error saving note:", err)
+    }
+  }
+
+  const handleDeleteNote = async (noteId: string) => {
+    try {
+      await deleteNote(noteId)
+      setNotes((prev) => prev.filter((n) => n.id !== noteId))
+    } catch (err) {
+      console.error("Error deleting note:", err)
+    }
+  }
+
+  const handleTogglePinNote = async (noteId: string, isPinned: boolean) => {
+    try {
+      const updated = await togglePinNote(noteId, isPinned)
+      setNotes((prev) => prev.map((n) => (n.id === updated.id ? updated : n)))
+    } catch (err) {
+      console.error("Error toggling pin:", err)
+    }
+  }
+
+  const handleEditNote = (note: ApplicationNote) => {
+    setEditingNote(note)
+    setShowNoteModal(true)
+  }
+
+  const handleNewNote = () => {
+    setEditingNote(null)
+    setShowNoteModal(true)
+  }
+
   if (!id) {
     return (
       <DashboardLayout>
@@ -432,11 +495,11 @@ export default function ApplicationDetailPage() {
         {/* Header */}
         <div className="flex flex-col gap-3 sm:gap-4">
           <div className="flex items-start gap-2 sm:gap-4">
-            <Button variant="ghost" size="icon" asChild className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 mt-1">
-              <Link href="/applications">
+            <Link href="/applications">
+              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 mt-1">
                 <ArrowLeft className="h-4 w-4" />
-              </Link>
-            </Button>
+              </Button>
+            </Link>
             <div className="flex-1 min-w-0">
               <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">{application.title}</h1>
               {application.url ? (
@@ -952,7 +1015,83 @@ export default function ApplicationDetailPage() {
           )}
         </div>
 
+        {/* Notes Section */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+              <StickyNote className="h-6 w-6" />
+              Notes
+            </h2>
+            <div className="flex flex-wrap gap-2">
+              <div className="flex items-center gap-1 border border-input rounded-lg p-1">
+                <Button
+                  variant={notesViewType === "card" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setNotesViewType("card")}
+                  className="text-xs"
+                >
+                  Card View
+                </Button>
+                <Button
+                  variant={notesViewType === "timeline" ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setNotesViewType("timeline")}
+                  className="text-xs"
+                >
+                  Timeline
+                </Button>
+              </div>
+              <Button
+                onClick={handleNewNote}
+                className="glow-effect flex-1 sm:flex-none"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Note
+              </Button>
+            </div>
+          </div>
+
+          {notesLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            </div>
+          ) : notesViewType === "card" ? (
+            <NotesCardView
+              notes={notes}
+              onEdit={handleEditNote}
+              onDelete={handleDeleteNote}
+              onTogglePin={handleTogglePinNote}
+            />
+          ) : (
+            <NotesTimelineView
+              notes={notes}
+              onEdit={handleEditNote}
+              onDelete={handleDeleteNote}
+              onTogglePin={handleTogglePinNote}
+            />
+          )}
+        </div>
+
       </div>
+
+      {/* Note Modal */}
+      <NoteModal
+        isOpen={showNoteModal}
+        onClose={() => {
+          setShowNoteModal(false)
+          setEditingNote(null)
+        }}
+        onSave={handleSaveNote}
+        initialNote={
+          editingNote
+            ? {
+                content: editingNote.content,
+                category: editingNote.category,
+                is_pinned: editingNote.is_pinned,
+              }
+            : undefined
+        }
+      />
 
       {/* Edit Application Modal */}
       <EditApplicationModal
