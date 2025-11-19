@@ -35,10 +35,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Verify the application belongs to the user
+    // Verify the application belongs to the user and get company
     const { data: app, error: appError } = await supabase
       .from('applications')
-      .select('id, user_id')
+      .select('id, user_id, company')
       .eq('id', applicationId)
       .single();
 
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
       user.id,
       user.email || '',
       applicationTitle,
+      app.company || null,
       previousStatus,
       newStatus
     );

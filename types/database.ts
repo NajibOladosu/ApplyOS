@@ -36,6 +36,7 @@ export interface Application {
   id: string
   user_id: string
   title: string
+  company: string | null
   url: string | null
   status: ApplicationStatus
   priority: ApplicationPriority

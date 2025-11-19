@@ -157,6 +157,7 @@ Answer (write as if you are the candidate):`
  */
 export async function generateCoverLetter(
   applicationTitle: string,
+  company: string | null,
   context: {
     resume?: string
     experience?: string
@@ -170,7 +171,7 @@ export async function generateCoverLetter(
 
   const prompt = `You are helping a candidate write a professional cover letter for a job or scholarship application. Write the cover letter AS IF you are the candidate.
 
-Application: ${applicationTitle}
+Application: ${applicationTitle}${company ? ` at ${company}` : ''}
 
 ${context.jobDescription ? `Position/Opportunity Description:\n${context.jobDescription}\n\n` : ''}Candidate's Background:
 ${context.resume ? `Resume/Profile:\n${context.resume}` : '(No resume provided)'}
