@@ -30,7 +30,7 @@ export interface ImportValidationError {
 // Map common column name variations to standard field names
 const COLUMN_MAPPING: Record<string, string[]> = {
   title: ['title', 'position', 'job title', 'position title', 'job name', 'role', 'position name'],
-  company: ['company', 'company name', 'employer', 'organization', 'org', 'company/organization'],
+  company: ['company', 'company name', 'employer', 'organization', 'org', 'company/organization', 'university', 'company/university', 'school', 'institution'],
   url: ['url', 'link', 'application url', 'application link', 'company website', 'job url', 'job link'],
   status: ['status', 'application status', 'state'],
   priority: ['priority', 'importance', 'urgency'],
@@ -285,7 +285,7 @@ export function validateCSV(csvText: string): ImportValidationResult | ImportVal
 }
 
 export function generateCSVTemplate(): string {
-  const headers = ['Title', 'Company', 'URL', 'Status', 'Priority', 'Type', 'Deadline', 'Notes']
+  const headers = ['Title', 'Company/University', 'URL', 'Status', 'Priority', 'Type', 'Deadline', 'Notes']
   const sampleRows = [
     [
       'Software Engineer',
@@ -308,14 +308,14 @@ export function generateCSVTemplate(): string {
       'Fintech payments team',
     ],
     [
-      'ML Fellowship',
-      'OpenAI',
+      'Graduate Fellowship',
+      'MIT',
       '',
       'draft',
       'medium',
-      'internship',
+      'scholarship',
       '2025-02-28',
-      'Research focus on LLMs',
+      'Research fellowship in Computer Science',
     ],
   ]
 

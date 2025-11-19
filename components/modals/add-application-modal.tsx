@@ -154,9 +154,9 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Company Name</label>
+                    <label className="text-sm font-medium">Company/University</label>
                     <Input
-                      placeholder="e.g., Google"
+                      placeholder="e.g., Google or MIT"
                       value={company}
                       onChange={(e) => setCompany(e.target.value)}
                     />
@@ -266,7 +266,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
                     </div>
                     {company && (
                       <div>
-                        <p className="text-sm text-muted-foreground">Company</p>
+                        <p className="text-sm text-muted-foreground">Company/University</p>
                         <p className="font-medium">{company}</p>
                       </div>
                     )}

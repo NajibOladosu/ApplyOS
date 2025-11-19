@@ -565,7 +565,7 @@ export default function ApplicationDetailPage() {
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
               {application.company && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Company</p>
+                  <p className="text-sm text-muted-foreground mb-1">Company/University</p>
                   <span className="text-sm font-medium">
                     {application.company}
                   </span>
