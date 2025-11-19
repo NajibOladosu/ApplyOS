@@ -288,7 +288,7 @@ export function ImportApplicationsModal({ isOpen, onClose, onSuccess }: ImportAp
                         <thead className="bg-muted/50 border-b">
                           <tr>
                             <th className="text-left p-2">Title</th>
-                            <th className="text-left p-2">Company</th>
+                            <th className="text-left p-2">Company/University</th>
                             <th className="text-left p-2">Type</th>
                             <th className="text-center p-2">Status</th>
                           </tr>
