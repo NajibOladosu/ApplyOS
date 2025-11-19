@@ -53,16 +53,17 @@ export function NotesCardView({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 auto-rows-max">
       {notes.map((note, index) => (
         <motion.div
           key={note.id}
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: index * 0.05 }}
+          className="w-full"
         >
           <Card
-            className="aspect-square flex flex-col cursor-pointer hover:shadow-xl transition-all border-2 border-opacity-30 shadow-lg shadow-black/15 hover:shadow-2xl hover:shadow-black/20"
+            className="w-full h-48 flex flex-col cursor-pointer hover:shadow-2xl transition-all border-2 border-opacity-40 shadow-lg shadow-black/20 hover:shadow-black/30 bg-gradient-to-br from-background to-background/95"
             onClick={() => onEdit(note)}
           >
             <CardContent className="p-4 flex-1 flex flex-col gap-3">
