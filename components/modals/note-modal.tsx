@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { RichTextEditor } from "@/components/ui/rich-text-editor"
+import { ToggleSwitch } from "@/components/ui/toggle-switch"
 import { X, Loader2, Pin } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 
@@ -106,7 +107,7 @@ export function NoteModal({
               </div>
             </CardHeader>
 
-            <CardContent className="space-y-4 p-4 sm:p-6 pt-0 max-h-[calc(100vh-200px)] overflow-y-auto">
+            <CardContent className="flex flex-col gap-4 p-4 sm:p-6 pt-0 max-h-[calc(100vh-220px)]">
               {/* Category Field */}
               <div className="space-y-2">
                 <label className="text-sm font-medium">Category (Optional)</label>
@@ -129,19 +130,17 @@ export function NoteModal({
                 />
               </div>
 
-              {/* Pin Checkbox */}
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="pin-note"
+              {/* Pin Toggle Switch */}
+              <div className="flex items-center justify-between p-3 rounded-lg bg-muted/30 border border-input/50">
+                <div className="flex items-center gap-2">
+                  <Pin className="h-4 w-4 text-primary" />
+                  <span className="text-sm font-medium">Pin this note to the top</span>
+                </div>
+                <ToggleSwitch
                   checked={isPinned}
-                  onChange={(e) => setIsPinned(e.target.checked)}
-                  className="rounded border-input"
+                  onChange={setIsPinned}
+                  className="m-0"
                 />
-                <label htmlFor="pin-note" className="text-sm font-medium flex items-center gap-2 cursor-pointer">
-                  <Pin className="h-4 w-4" />
-                  Pin this note to the top
-                </label>
               </div>
 
               {/* Action Buttons */}
