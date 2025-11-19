@@ -26,6 +26,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
 
   // Form data
   const [title, setTitle] = useState("")
+  const [company, setCompany] = useState("")
   const [url, setUrl] = useState("")
   const [type, setType] = useState("job")
   const [priority, setPriority] = useState("medium")
@@ -72,6 +73,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
       // Create application
       const application = await createApplication({
         title,
+        company: company || undefined,
         url,
         type,
         priority: priority as any,
@@ -103,6 +105,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
 
   const handleClose = () => {
     setTitle("")
+    setCompany("")
     setUrl("")
     setType("job")
     setPriority("medium")
@@ -144,9 +147,18 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
                   <div className="space-y-2">
                     <label className="text-sm font-medium">Application Title *</label>
                     <Input
-                      placeholder="e.g., Software Engineer - Google"
+                      placeholder="e.g., Software Engineer"
                       value={title}
                       onChange={(e) => setTitle(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium">Company Name</label>
+                    <Input
+                      placeholder="e.g., Google"
+                      value={company}
+                      onChange={(e) => setCompany(e.target.value)}
                     />
                   </div>
 
@@ -252,6 +264,12 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
                       <p className="text-sm text-muted-foreground">Title</p>
                       <p className="font-medium">{title}</p>
                     </div>
+                    {company && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">Company</p>
+                        <p className="font-medium">{company}</p>
+                      </div>
+                    )}
                     {url && (
                       <div>
                         <p className="text-sm text-muted-foreground">URL</p>

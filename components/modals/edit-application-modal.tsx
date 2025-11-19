@@ -29,6 +29,7 @@ export function EditApplicationModal({
 
   // Form data
   const [title, setTitle] = useState("")
+  const [company, setCompany] = useState("")
   const [url, setUrl] = useState("")
   const [type, setType] = useState("job")
   const [priority, setPriority] = useState("medium")
@@ -39,6 +40,7 @@ export function EditApplicationModal({
   useEffect(() => {
     if (application && isOpen) {
       setTitle(application.title || "")
+      setCompany(application.company || "")
       setUrl(application.url || "")
       setType(application.type || "job")
       setPriority(application.priority || "medium")
@@ -54,6 +56,7 @@ export function EditApplicationModal({
     try {
       await updateApplication(application.id, {
         title,
+        company: company || null,
         url: url || null,
         type: type as any,
         priority: priority as any,
@@ -73,6 +76,7 @@ export function EditApplicationModal({
 
   const handleClose = () => {
     setTitle("")
+    setCompany("")
     setUrl("")
     setType("job")
     setPriority("medium")
@@ -110,9 +114,18 @@ export function EditApplicationModal({
               <div className="space-y-2">
                 <label className="text-sm font-medium">Application Title *</label>
                 <Input
-                  placeholder="e.g., Software Engineer - Google"
+                  placeholder="e.g., Software Engineer"
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium">Company Name</label>
+                <Input
+                  placeholder="e.g., Google"
+                  value={company}
+                  onChange={(e) => setCompany(e.target.value)}
                 />
               </div>
 
@@ -182,7 +195,7 @@ export function EditApplicationModal({
                 </Button>
                 <Button
                   onClick={handleSubmit}
-                  disabled={loading || !title || ((type === 'job' || type === 'scholarship' || type === 'internship') && !jobDescription)}
+                  disabled={loading || !title}
                   className="glow-effect w-full sm:w-auto"
                 >
                   {loading ? (

@@ -48,6 +48,7 @@ export const statusUpdateEmailTemplate = (
 
     <div class="card">
       <div class="card-title">${data.applicationTitle}</div>
+      ${data.company ? `<div class="card-meta">${data.company}</div>` : ''}
       <div class="card-meta" style="margin-bottom: 16px;">Updated on ${data.timestamp.toLocaleDateString()}</div>
 
       <p style="margin-bottom: 12px;">

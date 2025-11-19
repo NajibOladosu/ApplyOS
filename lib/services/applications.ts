@@ -26,6 +26,7 @@ export async function getApplication(id: string) {
 
 export async function createApplication(application: {
   title: string
+  company?: string
   url?: string
   type?: string
   priority?: ApplicationPriority

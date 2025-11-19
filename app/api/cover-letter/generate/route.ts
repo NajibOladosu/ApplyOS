@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
     // Verify the application belongs to the user and get its details
     const { data: app, error: appError } = await supabase
       .from("applications")
-      .select("id, title, notes")
+      .select("id, title, company, notes")
       .eq("id", applicationId)
       .eq("user_id", user.id)
       .single()
@@ -137,7 +137,7 @@ export async function POST(req: NextRequest) {
 
     try {
       console.log("Generating cover letter for application:", app.title)
-      const coverLetter = await generateCoverLetter(app.title, context)
+      const coverLetter = await generateCoverLetter(app.title, app.company || null, context)
       console.log("Generated cover letter, length:", coverLetter.length)
 
       // Save the cover letter to the database

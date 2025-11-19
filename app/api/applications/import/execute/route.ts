@@ -4,6 +4,7 @@ import { createApplication } from '@/lib/services/applications'
 
 interface ApplicationToImport {
   title: string
+  company?: string
   url?: string
   status?: string
   priority?: string
@@ -44,6 +45,7 @@ export async function POST(request: NextRequest) {
       try {
         const createdApp = await createApplication({
           title: app.title,
+          company: app.company,
           url: app.url,
           priority: app.priority as any,
           type: app.type as any,
