@@ -121,9 +121,9 @@ export function EditApplicationModal({
               </div>
 
               <div className="space-y-2">
-                <label className="text-sm font-medium">Company Name</label>
+                <label className="text-sm font-medium">Company/University</label>
                 <Input
-                  placeholder="e.g., Google"
+                  placeholder="e.g., Google or MIT"
                   value={company}
                   onChange={(e) => setCompany(e.target.value)}
                 />
