@@ -241,6 +241,9 @@ export default function DashboardPage() {
                           </div>
                           <div className="flex-1 min-w-0">
                             <h4 className="text-sm sm:text-base font-medium truncate">{app.title}</h4>
+                            {app.company && (
+                              <p className="text-xs text-muted-foreground mt-0.5">{app.company}</p>
+                            )}
                             <div className="flex items-center gap-1.5 sm:gap-2 mt-1">
                               <Calendar className="h-3 w-3 text-muted-foreground shrink-0" />
                               <span className="text-xs text-muted-foreground truncate">

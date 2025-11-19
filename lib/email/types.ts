@@ -48,6 +48,7 @@ export interface VerificationEmailData {
 export interface StatusUpdateEmailData {
   userName: string;
   applicationTitle: string;
+  company?: string;
   previousStatus: string;
   newStatus: string;
   applicationUrl: string;

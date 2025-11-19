@@ -131,6 +131,7 @@ export async function createStatusUpdateNotification(
   userId: string,
   userEmail: string,
   applicationTitle: string,
+  company: string | null,
   previousStatus: string,
   newStatus: string
 ) {
@@ -163,6 +164,11 @@ export async function createStatusUpdateNotification(
             color: #00FF88;
             margin-bottom: 16px;
           }
+          .company {
+            color: #6b7280;
+            font-size: 14px;
+            margin-bottom: 8px;
+          }
           .status-badge {
             display: inline-block;
             padding: 6px 12px;
@@ -194,7 +200,7 @@ export async function createStatusUpdateNotification(
           <div class="card">
             <h2>Application Status Updated 📊</h2>
             <p>Hi,</p>
-            <p>Your application for <strong>${applicationTitle}</strong> has been updated:</p>
+            <p>Your application for <strong>${applicationTitle}</strong>${company ? ` at <strong>${company}</strong>` : ''} has been updated:</p>
             <p>
               <span class="status-badge status-${previousStatus.toLowerCase().replace(/ /g, '_')}">
                 ${previousStatus.toUpperCase()}

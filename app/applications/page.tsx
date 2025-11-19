@@ -93,7 +93,9 @@ export default function ApplicationsPage() {
   }
 
   const filteredApplications = applications.filter((app) => {
-    const matchesSearch = app.title.toLowerCase().includes(searchQuery.toLowerCase())
+    const matchesSearch =
+      app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (app.company && app.company.toLowerCase().includes(searchQuery.toLowerCase()))
     const matchesStatus = selectedStatus === "all" || app.status === selectedStatus
     return matchesSearch && matchesStatus
   })
@@ -222,6 +224,9 @@ export default function ApplicationsPage() {
                           <div className="flex items-center gap-2 sm:gap-3 mb-2">
                             <Link href={`/applications/${app.id}`} className="flex-1 min-w-0">
                               <h3 className="text-base sm:text-lg font-semibold truncate hover:text-primary transition-colors cursor-pointer">{app.title}</h3>
+                              {app.company && (
+                                <p className="text-sm text-muted-foreground mt-0.5">{app.company}</p>
+                              )}
                             </Link>
                             <div className={`h-2 w-2 rounded-full shrink-0 ${priorityConfig[app.priority].color}`} />
                           </div>

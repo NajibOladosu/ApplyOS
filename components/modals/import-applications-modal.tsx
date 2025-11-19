@@ -288,6 +288,7 @@ export function ImportApplicationsModal({ isOpen, onClose, onSuccess }: ImportAp
                         <thead className="bg-muted/50 border-b">
                           <tr>
                             <th className="text-left p-2">Title</th>
+                            <th className="text-left p-2">Company</th>
                             <th className="text-left p-2">Type</th>
                             <th className="text-center p-2">Status</th>
                           </tr>
@@ -301,6 +302,7 @@ export function ImportApplicationsModal({ isOpen, onClose, onSuccess }: ImportAp
                                   {app.isDuplicate && <Badge variant="outline" className="text-xs">Duplicate</Badge>}
                                 </div>
                               </td>
+                              <td className="p-2 text-muted-foreground text-xs">{app.company || "-"}</td>
                               <td className="p-2 text-muted-foreground capitalize text-xs">{app.type || "job"}</td>
                               <td className="p-2 text-center">
                                 {!app.isDuplicate ? (

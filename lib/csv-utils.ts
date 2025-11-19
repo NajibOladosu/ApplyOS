@@ -2,6 +2,7 @@ import type { ApplicationStatus, ApplicationPriority, ApplicationType } from '@/
 
 export interface ParsedApplication {
   title: string
+  company?: string
   url?: string
   status?: ApplicationStatus
   priority?: ApplicationPriority
@@ -29,6 +30,7 @@ export interface ImportValidationError {
 // Map common column name variations to standard field names
 const COLUMN_MAPPING: Record<string, string[]> = {
   title: ['title', 'position', 'job title', 'position title', 'job name', 'role', 'position name'],
+  company: ['company', 'company name', 'employer', 'organization', 'org', 'company/organization'],
   url: ['url', 'link', 'application url', 'application link', 'company website', 'job url', 'job link'],
   status: ['status', 'application status', 'state'],
   priority: ['priority', 'importance', 'urgency'],
@@ -184,6 +186,14 @@ export function validateCSV(csvText: string): ImportValidationResult | ImportVal
         title,
       }
 
+      // Company (optional)
+      if (headerMap['company'] !== undefined) {
+        const company = row[headerMap['company']]?.trim()
+        if (company) {
+          application.company = company
+        }
+      }
+
       // URL (optional)
       if (headerMap['url'] !== undefined) {
         const url = row[headerMap['url']]?.trim()
@@ -275,10 +285,11 @@ export function validateCSV(csvText: string): ImportValidationResult | ImportVal
 }
 
 export function generateCSVTemplate(): string {
-  const headers = ['Title', 'URL', 'Status', 'Priority', 'Type', 'Deadline', 'Notes']
+  const headers = ['Title', 'Company', 'URL', 'Status', 'Priority', 'Type', 'Deadline', 'Notes']
   const sampleRows = [
     [
-      'Software Engineer - Google',
+      'Software Engineer',
+      'Google',
       'https://careers.google.com/jobs/123',
       'submitted',
       'high',
@@ -287,7 +298,8 @@ export function generateCSVTemplate(): string {
       'Full-stack role in Mountain View',
     ],
     [
-      'Product Manager - Stripe',
+      'Product Manager',
+      'Stripe',
       'https://stripe.com/jobs/456',
       'interview',
       'high',
@@ -296,7 +308,8 @@ export function generateCSVTemplate(): string {
       'Fintech payments team',
     ],
     [
-      'ML Fellowship - OpenAI',
+      'ML Fellowship',
+      'OpenAI',
       '',
       'draft',
       'medium',
