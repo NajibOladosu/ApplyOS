@@ -11,6 +11,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MetricsCard } from "@/components/analytics/MetricsCard"
 import { TimelineChart } from "@/components/analytics/TimelineChart"
 import { ConversionFunnel } from "@/components/analytics/ConversionFunnel"
+import { SankeyChart } from "@/components/analytics/SankeyChart"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -56,6 +57,10 @@ interface AnalyticsData {
   funnel: Array<{ stage: string; count: number; percentage: number }>
   byType: Array<{ type: string; count: number; percentage: number }>
   byPriority: Array<{ priority: string; count: number; percentage: number }>
+  statusFlow: {
+    nodes: Array<{ name: string; value?: number }>
+    links: Array<{ source: number; target: number; value: number }>
+  }
 }
 
 
@@ -446,17 +451,11 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  {/* Sankey Diagram - Coming Soon */}
-                  <Card>
-                    <CardHeader>
-                      <CardTitle>Application Status Flow</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-                        Coming soon: Visual flow of your application journey
-                      </div>
-                    </CardContent>
-                  </Card>
+                  {/* Sankey Diagram */}
+                  <SankeyChart
+                    data={analyticsData.statusFlow}
+                    title="Application Status Flow"
+                  />
 
                   {/* Timeline and Funnel */}
                   <div className="grid gap-4 lg:grid-cols-2 min-h-[400px]">
