@@ -1,14 +1,9 @@
 import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { subDays, startOfDay, format } from 'date-fns'
-import type { Application, ApplicationStatus } from '@/types/database'
+import type { ApplicationStatus } from '@/types/database'
 
 export type TimeRange = '7d' | '30d' | '90d' | 'all'
-
-interface StatusTransition {
-  old_status: ApplicationStatus | null
-  new_status: ApplicationStatus
-  timestamp: string
-}
 
 interface ApplicationMetrics {
   total: number
@@ -63,8 +58,11 @@ function getDateFilter(timeRange: TimeRange): Date | null {
 /**
  * Get application metrics for the specified time range
  */
-export async function getApplicationMetrics(timeRange: TimeRange = 'all'): Promise<ApplicationMetrics> {
-  const supabase = createClient()
+export async function getApplicationMetrics(
+  timeRange: TimeRange = 'all',
+  supabaseClient?: SupabaseClient
+): Promise<ApplicationMetrics> {
+  const supabase = supabaseClient || createClient()
   const dateFilter = getDateFilter(timeRange)
 
   let query = supabase
@@ -130,23 +128,40 @@ export async function getApplicationMetrics(timeRange: TimeRange = 'all'): Promi
 /**
  * Get status flow data for Sankey diagram
  */
-export async function getStatusFlowData(timeRange: TimeRange = 'all'): Promise<StatusFlowData> {
-  const supabase = createClient()
+export async function getStatusFlowData(
+  timeRange: TimeRange = 'all',
+  supabaseClient?: SupabaseClient
+): Promise<StatusFlowData> {
+  const supabase = supabaseClient || createClient()
   const dateFilter = getDateFilter(timeRange)
 
-  // Get all status transitions from status_history
-  let query = supabase
-    .from('status_history')
-    .select('old_status, new_status, timestamp')
-    .order('timestamp', { ascending: true })
+  // Get all applications with their current status
+  let appsQuery = supabase
+    .from('applications')
+    .select('id, status, created_at')
+    .order('created_at', { ascending: true })
 
   if (dateFilter) {
-    query = query.gte('timestamp', dateFilter.toISOString())
+    appsQuery = appsQuery.gte('created_at', dateFilter.toISOString())
   }
 
-  const { data: transitions, error } = await query
+  const { data: applications, error: appsError } = await appsQuery
 
-  if (error) throw error
+  if (appsError) throw appsError
+
+  if (!applications || applications.length === 0) {
+    return { nodes: [], links: [] }
+  }
+
+  // Get status history for all applications
+  const appIds = applications.map(app => app.id)
+  const { data: allHistory, error: historyError } = await supabase
+    .from('status_history')
+    .select('application_id, old_status, new_status, timestamp')
+    .in('application_id', appIds)
+    .order('timestamp', { ascending: true })
+
+  if (historyError) throw historyError
 
   // Define the flow stages in order
   const stages: ApplicationStatus[] = ['draft', 'submitted', 'in_review', 'interview', 'offer', 'rejected']
@@ -156,32 +171,76 @@ export async function getStatusFlowData(timeRange: TimeRange = 'all'): Promise<S
     name: stage.charAt(0).toUpperCase() + stage.slice(1).replace('_', ' ')
   }))
 
-  // Count transitions between stages
-  const transitionCounts = new Map<string, number>()
+  // Build each application's complete journey
+  const appJourneys = new Map<string, ApplicationStatus[]>()
 
-  transitions?.forEach((transition: StatusTransition) => {
-    const from = transition.old_status || 'draft'
-    const to = transition.new_status
-    const key = `${from}->${to}`
-    transitionCounts.set(key, (transitionCounts.get(key) || 0) + 1)
+  applications.forEach(app => {
+    const history = allHistory?.filter(h => h.application_id === app.id) || []
+    const journey: ApplicationStatus[] = []
+
+    if (history.length === 0) {
+      // No history means the app is still in its initial status
+      journey.push(app.status as ApplicationStatus)
+    } else {
+      // Start from the first old_status (or draft if null)
+      const firstOldStatus = history[0].old_status || 'draft'
+      journey.push(firstOldStatus as ApplicationStatus)
+
+      // Add all transitions (only forward ones)
+      history.forEach(transition => {
+        const newStatus = transition.new_status as ApplicationStatus
+        const lastStatus = journey[journey.length - 1]
+        const lastIndex = stages.indexOf(lastStatus)
+        const newIndex = stages.indexOf(newStatus)
+
+        // Only add forward transitions
+        if (newIndex > lastIndex) {
+          journey.push(newStatus)
+        }
+      })
+
+      // Make sure the journey ends at the current status
+      const currentStatus = app.status as ApplicationStatus
+      const lastStatus = journey[journey.length - 1]
+      if (lastStatus !== currentStatus) {
+        const lastIndex = stages.indexOf(lastStatus)
+        const currentIndex = stages.indexOf(currentStatus)
+        if (currentIndex > lastIndex) {
+          journey.push(currentStatus)
+        }
+      }
+    }
+
+    appJourneys.set(app.id, journey)
+  })
+
+  // Count flows between consecutive statuses
+  const flowCounts = new Map<string, number>()
+
+  appJourneys.forEach(journey => {
+    for (let i = 0; i < journey.length - 1; i++) {
+      const from = journey[i]
+      const to = journey[i + 1]
+      const key = `${from}->${to}`
+      flowCounts.set(key, (flowCounts.get(key) || 0) + 1)
+    }
   })
 
   // Create links
   const links: Array<{ source: number; target: number; value: number }> = []
 
-  stages.forEach((fromStage, fromIndex) => {
-    stages.forEach((toStage, toIndex) => {
-      const key = `${fromStage}->${toStage}`
-      const count = transitionCounts.get(key) || 0
+  flowCounts.forEach((count, key) => {
+    const [from, to] = key.split('->')
+    const fromIndex = stages.indexOf(from as ApplicationStatus)
+    const toIndex = stages.indexOf(to as ApplicationStatus)
 
-      if (count > 0 && fromIndex !== toIndex) {
-        links.push({
-          source: fromIndex,
-          target: toIndex,
-          value: count,
-        })
-      }
-    })
+    if (fromIndex !== -1 && toIndex !== -1 && count > 0) {
+      links.push({
+        source: fromIndex,
+        target: toIndex,
+        value: count,
+      })
+    }
   })
 
   return { nodes, links }
@@ -192,9 +251,10 @@ export async function getStatusFlowData(timeRange: TimeRange = 'all'): Promise<S
  */
 export async function getTimelineTrends(
   timeRange: TimeRange = '30d',
-  granularity: 'day' | 'week' | 'month' = 'day'
+  granularity: 'day' | 'week' | 'month' = 'day',
+  supabaseClient?: SupabaseClient
 ): Promise<TimelineDataPoint[]> {
-  const supabase = createClient()
+  const supabase = supabaseClient || createClient()
   const dateFilter = getDateFilter(timeRange)
 
   let query = supabase
@@ -244,8 +304,11 @@ export async function getTimelineTrends(
 /**
  * Get conversion funnel data
  */
-export async function getConversionFunnel(timeRange: TimeRange = 'all'): Promise<ConversionFunnelStage[]> {
-  const supabase = createClient()
+export async function getConversionFunnel(
+  timeRange: TimeRange = 'all',
+  supabaseClient?: SupabaseClient
+): Promise<ConversionFunnelStage[]> {
+  const supabase = supabaseClient || createClient()
   const dateFilter = getDateFilter(timeRange)
 
   let query = supabase
@@ -266,7 +329,6 @@ export async function getConversionFunnel(timeRange: TimeRange = 'all'): Promise
   }
 
   // Count applications at each stage
-  const draft = applications?.filter(app => app.status === 'draft').length || 0
   const submitted = applications?.filter(app =>
     ['submitted', 'in_review', 'interview', 'offer', 'rejected'].includes(app.status)
   ).length || 0
@@ -290,8 +352,11 @@ export async function getConversionFunnel(timeRange: TimeRange = 'all'): Promise
 /**
  * Get applications breakdown by type
  */
-export async function getApplicationsByType(timeRange: TimeRange = 'all'): Promise<TypeBreakdown[]> {
-  const supabase = createClient()
+export async function getApplicationsByType(
+  timeRange: TimeRange = 'all',
+  supabaseClient?: SupabaseClient
+): Promise<TypeBreakdown[]> {
+  const supabase = supabaseClient || createClient()
   const dateFilter = getDateFilter(timeRange)
 
   let query = supabase
@@ -330,8 +395,11 @@ export async function getApplicationsByType(timeRange: TimeRange = 'all'): Promi
 /**
  * Get applications breakdown by priority
  */
-export async function getApplicationsByPriority(timeRange: TimeRange = 'all'): Promise<PriorityBreakdown[]> {
-  const supabase = createClient()
+export async function getApplicationsByPriority(
+  timeRange: TimeRange = 'all',
+  supabaseClient?: SupabaseClient
+): Promise<PriorityBreakdown[]> {
+  const supabase = supabaseClient || createClient()
   const dateFilter = getDateFilter(timeRange)
 
   let query = supabase
