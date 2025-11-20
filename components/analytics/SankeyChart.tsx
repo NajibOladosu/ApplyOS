@@ -5,7 +5,7 @@ import { sankey, sankeyLinkHorizontal, SankeyGraph, SankeyNode, SankeyLink } fro
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 
 interface SankeyData {
-  nodes: Array<{ name: string }>
+  nodes: Array<{ name: string; value?: number }>
   links: Array<{ source: number; target: number; value: number }>
 }
 
@@ -105,9 +105,14 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
         rect.setAttribute('opacity', '1')
       })
 
+      // Get the custom value from original data if available
+      const nodeIndex = graph.nodes.indexOf(node)
+      const customValue = data.nodes[nodeIndex]?.value
+      const displayValue = customValue !== undefined ? customValue : (node.value || 0)
+
       // Tooltip
       const title = document.createElementNS('http://www.w3.org/2000/svg', 'title')
-      title.textContent = `${(node as any).name}: ${node.value || 0}`
+      title.textContent = `${(node as any).name}: ${displayValue}`
       rect.appendChild(title)
 
       g.appendChild(rect)
@@ -124,7 +129,7 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
       text.setAttribute('font-size', '12')
       text.setAttribute('fill', 'currentColor')
       text.setAttribute('class', 'fill-foreground')
-      text.textContent = `${(node as any).name} (${node.value || 0})`
+      text.textContent = `${(node as any).name} (${displayValue})`
 
       g.appendChild(text)
     })

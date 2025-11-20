@@ -16,12 +16,12 @@ interface ConversionFunnelProps {
 export function ConversionFunnel({ data, title = 'Application Conversion Funnel' }: ConversionFunnelProps) {
   if (!data || data.length === 0) {
     return (
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-muted-foreground">
             No funnel data available
           </div>
         </CardContent>
@@ -42,11 +42,11 @@ export function ConversionFunnel({ data, title = 'Application Conversion Funnel'
   ]
 
   return (
-    <Card>
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="flex-1 space-y-4">
         {data.map((stage, index) => {
           const widthPercentage = (stage.count / maxCount) * 100
           const color = colors[index % colors.length]
