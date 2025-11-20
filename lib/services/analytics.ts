@@ -152,6 +152,7 @@ export async function getApplicationMetrics(
 /**
  * Get status flow data for Sankey diagram
  * Shows direct path from draft to current status for each application
+ * Always returns all 6 status nodes, even when empty
  */
 export async function getStatusFlowData(
   timeRange: TimeRange = 'all',
@@ -162,6 +163,46 @@ export async function getStatusFlowData(
 
   // Define the flow stages in order
   const stages: ApplicationStatus[] = ['draft', 'submitted', 'in_review', 'interview', 'offer', 'rejected']
+  const notSubmittedStage = 'not_submitted'
+  const pendingStage = 'pending'
+  const allStages = [...stages, notSubmittedStage, pendingStage]
+
+  // Helper function to create all nodes - values will be calculated from link flows
+  const createNodesFromLinks = (links: Array<{ source: number; target: number; value: number }>) => {
+    // Calculate node values as sum of outgoing links
+    const nodeValues = new Map<number, number>()
+
+    links.forEach(link => {
+      // Add to source node's outgoing value
+      nodeValues.set(link.source, (nodeValues.get(link.source) || 0) + link.value)
+    })
+
+    // Also calculate incoming values for terminal nodes (offer, rejected, not_submitted, pending)
+    const terminalIndices = [4, 5, 6, 7] // offer, rejected, not_submitted, pending
+    links.forEach(link => {
+      if (terminalIndices.includes(link.target)) {
+        nodeValues.set(link.target, (nodeValues.get(link.target) || 0) + link.value)
+      }
+    })
+
+    // Create nodes with calculated values
+    const nodes = stages.map((stage, index) => ({
+      name: stage.charAt(0).toUpperCase() + stage.slice(1).replace('_', ' '),
+      value: nodeValues.get(index) || 0
+    }))
+
+    // Add "Not Submitted" and "Pending" nodes
+    nodes.push({
+      name: 'Not Submitted',
+      value: nodeValues.get(6) || 0
+    })
+    nodes.push({
+      name: 'Pending',
+      value: nodeValues.get(7) || 0
+    })
+
+    return nodes
+  }
 
   // Get ALL applications
   const { data: allApplications, error: appsError } = await supabase
@@ -177,7 +218,8 @@ export async function getStatusFlowData(
   console.log(`Total Applications in DB: ${allApplications?.length || 0}`)
 
   if (!allApplications || allApplications.length === 0) {
-    console.log('No applications found in database')
+    console.log('No applications found in database - returning empty data')
+    console.log('=== END SANKEY DEBUG ===\n')
     return { nodes: [], links: [] }
   }
 
@@ -238,14 +280,29 @@ export async function getStatusFlowData(
   })
 
   if (includedApplications.length === 0) {
-    console.log('No applications to display in Sankey')
+    console.log('No applications match the time filter - returning empty data')
     console.log('=== END SANKEY DEBUG ===\n')
     return { nodes: [], links: [] }
   }
 
+  // Find the farthest stage reached by any application
+  let farthestStageIndex = 0
+  includedApplications.forEach(app => {
+    const currentStatus = app.status as ApplicationStatus
+    const currentIndex = stages.indexOf(currentStatus)
+    if (currentIndex > farthestStageIndex) {
+      farthestStageIndex = currentIndex
+    }
+  })
+
+  const farthestStage = stages[farthestStageIndex]
+  console.log(`\n🎯 Farthest stage reached: ${farthestStage} (index ${farthestStageIndex})`)
+  console.log('   Stages before this will link to "Pending" if stuck')
+  console.log('   This stage becomes a terminal node (no Pending link)')
+
   // Build direct path from draft to current status for each application
+  // Only stages BEFORE the farthest stage link to "Pending"
   const flowCounts = new Map<string, number>()
-  let draftCount = 0
 
   console.log('\nBuilding Flow Paths:')
   includedApplications.forEach(app => {
@@ -259,14 +316,21 @@ export async function getStatusFlowData(
       return
     }
 
+    // Determine if this is a terminal status
+    // Terminal = (offer OR rejected) OR (farthest stage reached)
+    const isNaturallyTerminal = currentStatus === 'offer' || currentStatus === 'rejected'
+    const isFarthestStage = currentIndex === farthestStageIndex
+    const isTerminal = isNaturallyTerminal || isFarthestStage
+
     if (currentIndex === 0) {
-      draftCount++
-      console.log(`  ℹ️  Status is "draft" - counting as draft (total: ${draftCount})`)
+      // Draft applications flow to "Not Submitted"
+      const key = 'draft->not_submitted'
+      flowCounts.set(key, (flowCounts.get(key) || 0) + 1)
+      console.log(`  ℹ️  Status is "draft" - linking to "not_submitted"`)
       return
     }
 
     // Build direct path: draft → current status
-    // For example: if current is "in_review" (index 2), path is draft(0) → submitted(1) → in_review(2)
     console.log(`  Building path from draft (0) to ${currentStatus} (${currentIndex}):`)
     for (let i = 0; i < currentIndex; i++) {
       const from = stages[i]
@@ -276,49 +340,54 @@ export async function getStatusFlowData(
       flowCounts.set(key, newCount)
       console.log(`    ${from} → ${to} (count: ${newCount})`)
     }
+
+    // Only link to "Pending" if:
+    // 1. Not naturally terminal (not offer/rejected)
+    // 2. Not the farthest stage reached
+    if (!isTerminal) {
+      const key = `${currentStatus}->pending`
+      flowCounts.set(key, (flowCounts.get(key) || 0) + 1)
+      console.log(`  ℹ️  Status "${currentStatus}" is before farthest stage - linking to "pending"`)
+    } else if (isFarthestStage && !isNaturallyTerminal) {
+      console.log(`  🎯 Status "${currentStatus}" is the farthest stage - NO pending link (terminal)`)
+    }
   })
 
-  console.log(`\nTotal applications in draft: ${draftCount}`)
-  console.log('Note: Draft applications have no outgoing links in the Sankey')
+  console.log(`\n✨ Dynamic terminal logic: Stages before "${farthestStage}" link to Pending`)
+  console.log(`   "${farthestStage}" and beyond are terminal nodes`)
 
   console.log('\nFinal Flow Counts:')
   flowCounts.forEach((count, key) => {
     console.log(`  ${key}: ${count}`)
   })
 
-  // Calculate node values based on current status counts
-  const statusCounts = new Map<ApplicationStatus, number>()
-  includedApplications.forEach(app => {
-    const status = app.status as ApplicationStatus
-    statusCounts.set(status, (statusCounts.get(status) || 0) + 1)
-  })
-
-  console.log('\nStatus Counts:')
-  statusCounts.forEach((count, status) => {
-    console.log(`  ${status}: ${count}`)
-  })
-
-  // Create nodes with values
-  const nodes = stages.map(stage => {
-    const count = statusCounts.get(stage) || 0
-    return {
-      name: stage.charAt(0).toUpperCase() + stage.slice(1).replace('_', ' '),
-      value: count
-    }
-  })
-
-  console.log('\nNodes with values:')
-  nodes.forEach(node => {
-    console.log(`  ${node.name}: ${node.value}`)
-  })
-
   // Create links from flow counts
   const links: Array<{ source: number; target: number; value: number }> = []
+  const notSubmittedIndex = 6 // stages.length = 6, so not_submitted is at index 6
+  const pendingIndex = 7 // pending is at index 7
 
   flowCounts.forEach((count, key) => {
     const [from, to] = key.split('->')
-    const fromIndex = stages.indexOf(from as ApplicationStatus)
-    const toIndex = stages.indexOf(to as ApplicationStatus)
+
+    let fromIndex: number
+    let toIndex: number
+
+    // Determine indices for special nodes
+    if (from === notSubmittedStage) {
+      fromIndex = notSubmittedIndex
+    } else if (from === pendingStage) {
+      fromIndex = pendingIndex
+    } else {
+      fromIndex = stages.indexOf(from as ApplicationStatus)
+    }
+
+    if (to === notSubmittedStage) {
+      toIndex = notSubmittedIndex
+    } else if (to === pendingStage) {
+      toIndex = pendingIndex
+    } else {
+      toIndex = stages.indexOf(to as ApplicationStatus)
+    }
 
     if (fromIndex !== -1 && toIndex !== -1 && count > 0) {
       links.push({
@@ -328,6 +397,14 @@ export async function getStatusFlowData(
       })
       console.log(`  Creating link: ${from}[${fromIndex}] → ${to}[${toIndex}] (value: ${count})`)
     }
+  })
+
+  // Create nodes with values calculated from link flows
+  const nodes = createNodesFromLinks(links)
+
+  console.log('\nNodes with calculated values (all statuses + Not Submitted + Pending):')
+  nodes.forEach((node, index) => {
+    console.log(`  [${index}] ${node.name}: ${node.value}`)
   })
 
   console.log(`\nTotal Links Created: ${links.length}`)

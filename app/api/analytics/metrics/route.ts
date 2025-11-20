@@ -11,6 +11,7 @@ import {
   getConversionFunnel,
   getApplicationsByType,
   getApplicationsByPriority,
+  getStatusFlowData,
   type TimeRange,
 } from '@/lib/services/analytics'
 
@@ -64,8 +65,8 @@ export async function GET(request: NextRequest) {
       }),
     ])
 
-    // Batch 2: Funnel and breakdowns
-    const [funnel, byType, byPriority] = await Promise.all([
+    // Batch 2: Funnel, breakdowns, and status flow
+    const [funnel, byType, byPriority, statusFlow] = await Promise.all([
       getConversionFunnel(timeRange, supabase).catch(err => {
         console.error('Error in getConversionFunnel:', err)
         throw err
@@ -76,6 +77,10 @@ export async function GET(request: NextRequest) {
       }),
       getApplicationsByPriority(timeRange, supabase).catch(err => {
         console.error('Error in getApplicationsByPriority:', err)
+        throw err
+      }),
+      getStatusFlowData(timeRange, supabase).catch(err => {
+        console.error('Error in getStatusFlowData:', err)
         throw err
       }),
     ])
@@ -92,6 +97,7 @@ export async function GET(request: NextRequest) {
         funnel,
         byType,
         byPriority,
+        statusFlow,
       },
     })
   } catch (error) {
