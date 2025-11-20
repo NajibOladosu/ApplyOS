@@ -31,12 +31,12 @@ export function TimelineChart({ data, title = 'Applications Over Time' }: Timeli
 
   if (!data || data.length === 0) {
     return (
-      <Card>
+      <Card className="flex flex-col h-full">
         <CardHeader>
           <CardTitle>{title}</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[300px] text-muted-foreground">
+        <CardContent className="flex-1 flex items-center justify-center">
+          <div className="text-muted-foreground">
             No timeline data available
           </div>
         </CardContent>
@@ -45,12 +45,12 @@ export function TimelineChart({ data, title = 'Applications Over Time' }: Timeli
   }
 
   return (
-    <Card>
+    <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent>
-        <ResponsiveContainer width="100%" height={300}>
+      <CardContent className="flex-1 min-h-0">
+        <ResponsiveContainer width="100%" height="100%">
           <AreaChart data={formattedData}>
             <defs>
               <linearGradient id="colorCount" x1="0" y1="0" x2="0" y2="1">

@@ -9,7 +9,6 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { MetricsCard } from "@/components/analytics/MetricsCard"
-import { SankeyChart } from "@/components/analytics/SankeyChart"
 import { TimelineChart } from "@/components/analytics/TimelineChart"
 import { ConversionFunnel } from "@/components/analytics/ConversionFunnel"
 import { motion } from "framer-motion"
@@ -59,10 +58,6 @@ interface AnalyticsData {
   byPriority: Array<{ priority: string; count: number; percentage: number }>
 }
 
-interface StatusFlowData {
-  nodes: Array<{ name: string }>
-  links: Array<{ source: number; target: number; value: number }>
-}
 
 export default function DashboardPage() {
   const router = useRouter()
@@ -77,7 +72,6 @@ export default function DashboardPage() {
   // Analytics state
   const [timeRange, setTimeRange] = useState<TimeRange>('all')
   const [analyticsData, setAnalyticsData] = useState<AnalyticsData | null>(null)
-  const [statusFlowData, setStatusFlowData] = useState<StatusFlowData | null>(null)
   const [analyticsLoading, setAnalyticsLoading] = useState(false)
   const [analyticsError, setAnalyticsError] = useState<string | null>(null)
 
@@ -145,20 +139,15 @@ export default function DashboardPage() {
       setAnalyticsLoading(true)
       setAnalyticsError(null)
 
-      const [metricsRes, statusFlowRes] = await Promise.all([
-        fetch(`/api/analytics/metrics?timeRange=${timeRange}`),
-        fetch(`/api/analytics/status-flow?timeRange=${timeRange}`),
-      ])
+      const metricsRes = await fetch(`/api/analytics/metrics?timeRange=${timeRange}`)
 
-      if (!metricsRes.ok || !statusFlowRes.ok) {
+      if (!metricsRes.ok) {
         throw new Error('Failed to fetch analytics data')
       }
 
       const metricsData = await metricsRes.json()
-      const statusFlowDataRes = await statusFlowRes.json()
 
       setAnalyticsData(metricsData.data)
-      setStatusFlowData(statusFlowDataRes.data)
     } catch (err) {
       console.error('Error fetching analytics:', err)
       setAnalyticsError('Failed to load analytics data. Please try again.')
@@ -457,13 +446,20 @@ export default function DashboardPage() {
                     />
                   </div>
 
-                  {/* Sankey Diagram */}
-                  {statusFlowData && (
-                    <SankeyChart data={statusFlowData} title="Application Status Flow" />
-                  )}
+                  {/* Sankey Diagram - Coming Soon */}
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Application Status Flow</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-center h-[400px] text-muted-foreground">
+                        Coming soon: Visual flow of your application journey
+                      </div>
+                    </CardContent>
+                  </Card>
 
                   {/* Timeline and Funnel */}
-                  <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="grid gap-4 lg:grid-cols-2 min-h-[400px]">
                     <TimelineChart
                       data={analyticsData.timeline}
                       title="Applications Over Time"
