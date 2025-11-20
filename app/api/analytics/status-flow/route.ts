@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch status flow data
-    const statusFlow = await getStatusFlowData(timeRange)
+    // Fetch status flow data, passing the server Supabase client
+    const statusFlow = await getStatusFlowData(timeRange, supabase)
 
     return NextResponse.json({
       success: true,
