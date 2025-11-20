@@ -41,13 +41,13 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // Fetch all metrics in parallel
+    // Fetch all metrics in parallel, passing the server Supabase client
     const [metrics, timeline, funnel, byType, byPriority] = await Promise.all([
-      getApplicationMetrics(timeRange),
-      getTimelineTrends(timeRange, 'day'),
-      getConversionFunnel(timeRange),
-      getApplicationsByType(timeRange),
-      getApplicationsByPriority(timeRange),
+      getApplicationMetrics(timeRange, supabase),
+      getTimelineTrends(timeRange, 'day', supabase),
+      getConversionFunnel(timeRange, supabase),
+      getApplicationsByType(timeRange, supabase),
+      getApplicationsByPriority(timeRange, supabase),
     ])
 
     return NextResponse.json({
