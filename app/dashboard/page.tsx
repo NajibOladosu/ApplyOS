@@ -81,24 +81,9 @@ export default function DashboardPage() {
   const [analyticsError, setAnalyticsError] = useState<string | null>(null)
 
   useEffect(() => {
-    const verifyAuth = async () => {
-      const {
-        data: { user },
-        error,
-      } = await supabase.auth.getUser()
-
-      if (error || !user) {
-        console.log('Dashboard: User not authenticated, redirecting to login')
-        router.push('/auth/login')
-        return
-      }
-
-      // User is authenticated, fetch dashboard data
-      fetchData()
-    }
-
-    verifyAuth()
-  }, [router, supabase])
+    // Middleware already protects this route - just fetch data
+    fetchData()
+  }, [])
 
   useEffect(() => {
     // Fetch analytics data when switching to analytics tab

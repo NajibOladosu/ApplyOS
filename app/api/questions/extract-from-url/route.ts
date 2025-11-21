@@ -1,10 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
   : null
+
+export const dynamic = 'force-dynamic'
 
 /**
  * Extract text content from HTML
@@ -76,6 +79,14 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Apply rate limiting for AI endpoints
+    const rateLimitResponse = await rateLimitMiddleware(
+      request,
+      RATE_LIMITS.ai,
+      async () => user.id
+    )
+    if (rateLimitResponse) return rateLimitResponse
 
     // Check if Gemini AI is configured
     if (!genAI) {

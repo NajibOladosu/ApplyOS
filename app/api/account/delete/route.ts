@@ -15,6 +15,9 @@ import { createClient } from "@/lib/supabase/server";
  * - Uses service role key to delete auth.users (required for auth deletion)
  * - Cascading deletes handle cleanup of related data
  */
+
+export const dynamic = 'force-dynamic'
+
 export async function POST() {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`🗑️  ACCOUNT DELETION STARTED`);

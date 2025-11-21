@@ -44,7 +44,7 @@ function LoginContent() {
     setUnverifiedEmail("")
     setShowResendModal(false)
 
-    const { error: authError } = await supabase.auth.signInWithPassword({
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password,
     })
@@ -55,35 +55,27 @@ function LoginContent() {
       return
     }
 
-    // Check if user's email is verified
-    try {
-      const { data: userData, error: fetchError } = await supabase
-        .from('users')
-        .select('email_verified, email')
-        .eq('email', email)
-        .single()
-
-      if (fetchError || !userData) {
-        setError('Failed to verify email status')
-        setLoading(false)
-        return
-      }
-
-      if (!userData.email_verified) {
-        // Email not verified - sign out and show modal
-        await supabase.auth.signOut()
-        setUnverifiedEmail(userData.email)
-        setShowResendModal(true)
-        setLoading(false)
-        return
-      }
-
-      // Email verified - proceed to dashboard
-      router.push("/dashboard")
-    } catch (err) {
-      setError('An error occurred')
+    // Get user from the sign-in response
+    const user = authData.user
+    if (!user) {
+      setError('Failed to get user information')
       setLoading(false)
+      return
     }
+
+    // Check if user's email is verified using Supabase Auth's built-in verification
+    // user.email_confirmed_at will be null if email is not verified
+    if (!user.email_confirmed_at) {
+      // Email not verified - sign out and show modal
+      await supabase.auth.signOut()
+      setUnverifiedEmail(user.email || email)
+      setShowResendModal(true)
+      setLoading(false)
+      return
+    }
+
+    // Email verified - proceed to dashboard
+    router.push("/dashboard")
   }
 
   const handleResendVerification = async () => {
@@ -135,6 +127,9 @@ function LoginContent() {
       provider: "google",
       options: {
         redirectTo,
+        queryParams: {
+          prompt: 'select_account', // Force Google to show account picker
+        },
       },
     })
 
