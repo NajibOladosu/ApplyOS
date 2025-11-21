@@ -11,9 +11,20 @@ import VerifyEmailTemplate from '@/emails/verify-email';
 import { sendEmailViaSMTP } from '@/lib/email/transport';
 import { emailConfig } from '@/lib/email/config';
 import crypto from 'crypto';
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
+    // Apply rate limiting for auth endpoints (before authentication)
+    const rateLimitResponse = await rateLimitMiddleware(
+      request,
+      RATE_LIMITS.auth,
+      async () => undefined
+    )
+    if (rateLimitResponse) return rateLimitResponse
+
     const { email } = await request.json();
 
     if (!email) {

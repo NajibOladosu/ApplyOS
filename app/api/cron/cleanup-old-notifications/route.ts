@@ -8,6 +8,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@supabase/supabase-js';
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // Verify request is from Vercel Cron or authorized source

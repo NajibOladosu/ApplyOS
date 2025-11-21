@@ -1,8 +1,9 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { generateDocumentReport } from "@/lib/ai"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
 import type { DocumentReport } from "@/types/database"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -14,7 +15,7 @@ type RouteContext = {
 }
 
 export async function POST(
-  request: Request,
+  request: NextRequest,
   context: RouteContext
 ) {
   const { id } = await context.params
@@ -46,6 +47,14 @@ export async function POST(
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    // Apply rate limiting for AI endpoints
+    const rateLimitResponse = await rateLimitMiddleware(
+      request,
+      RATE_LIMITS.ai,
+      async () => user.id
+    )
+    if (rateLimitResponse) return rateLimitResponse
 
     // Fetch document scoped by RLS (ensures ownership)
     const { data: doc, error: docError } = await supabase

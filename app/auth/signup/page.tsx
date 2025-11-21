@@ -8,7 +8,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { createClient } from "@/lib/supabase/client"
-import { Chrome } from "lucide-react"
+import { Chrome, Shield, AlertTriangle } from "lucide-react"
+import { validatePassword, getPasswordStrength } from "@/lib/password-security"
 
 function SignupContent() {
   const searchParams = useSearchParams()
@@ -18,6 +19,11 @@ function SignupContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
+  const [passwordStrength, setPasswordStrength] = useState<{
+    score: 0 | 1 | 2 | 3 | 4
+    label: string
+  } | null>(null)
+  const [checkingPassword, setCheckingPassword] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
@@ -27,12 +33,35 @@ function SignupContent() {
     }
   }, [searchParams])
 
+  // Update password strength indicator as user types
+  useEffect(() => {
+    if (password.length > 0) {
+      const strength = getPasswordStrength(password)
+      setPasswordStrength(strength)
+    } else {
+      setPasswordStrength(null)
+    }
+  }, [password])
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
+    setCheckingPassword(true)
     setError("")
 
     try {
+      // Validate password strength and check for breaches
+      const passwordValidation = await validatePassword(password)
+
+      if (!passwordValidation.valid) {
+        setError(passwordValidation.message || 'Invalid password')
+        setLoading(false)
+        setCheckingPassword(false)
+        return
+      }
+
+      setCheckingPassword(false)
+
       // Call custom signup API that sends welcome email
       const response = await fetch('/api/auth/signup', {
         method: 'POST',
@@ -56,6 +85,7 @@ function SignupContent() {
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred')
       setLoading(false)
+      setCheckingPassword(false)
     }
   }
 
@@ -73,6 +103,9 @@ function SignupContent() {
       provider: "google",
       options: {
         redirectTo,
+        queryParams: {
+          prompt: 'select_account', // Force Google to show account picker
+        },
       },
     })
 
@@ -194,12 +227,60 @@ function SignupContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={12}
                 />
+
+                {/* Password strength indicator */}
+                {passwordStrength && (
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between text-xs">
+                      <span className="text-muted-foreground">Password strength:</span>
+                      <span className={`font-medium ${
+                        passwordStrength.score >= 3 ? 'text-green-500' :
+                        passwordStrength.score >= 2 ? 'text-yellow-500' :
+                        'text-red-500'
+                      }`}>
+                        {passwordStrength.label}
+                      </span>
+                    </div>
+                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className={`h-full transition-all duration-300 ${
+                          passwordStrength.score >= 4 ? 'bg-green-500 w-full' :
+                          passwordStrength.score >= 3 ? 'bg-green-500 w-3/4' :
+                          passwordStrength.score >= 2 ? 'bg-yellow-500 w-1/2' :
+                          passwordStrength.score >= 1 ? 'bg-red-500 w-1/4' :
+                          'bg-red-500 w-1/4'
+                        }`}
+                      />
+                    </div>
+                  </div>
+                )}
+
+                {/* Password requirements */}
+                <div className="p-3 bg-muted/50 rounded-lg border border-border text-xs space-y-1">
+                  <div className="flex items-start gap-2">
+                    <Shield className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                    <div className="space-y-0.5">
+                      <p className="font-medium text-muted-foreground">Password must contain:</p>
+                      <ul className="text-muted-foreground space-y-0.5">
+                        <li>• At least 12 characters</li>
+                        <li>• Uppercase and lowercase letters</li>
+                        <li>• Numbers and special characters</li>
+                      </ul>
+                      {checkingPassword && (
+                        <p className="text-primary flex items-center gap-1 mt-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          Checking password security...
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
-                {loading ? "Creating account..." : "Create Account"}
+              <Button type="submit" className="w-full" disabled={loading || checkingPassword}>
+                {checkingPassword ? "Checking password..." : loading ? "Creating account..." : "Create Account"}
               </Button>
 
               <div className="relative">

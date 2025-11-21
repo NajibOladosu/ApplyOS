@@ -1,9 +1,10 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
 import { parseDocument } from "@/lib/ai"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
 import { extractTextFromDOCX } from "@/lib/docx-utils"
 import type { Document } from "@/types/database"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -21,7 +22,7 @@ export const dynamic = "force-dynamic"
  * - Calls parseDocument() (Gemini)
  * - Persists structured parsed_data + analysis_status + parsed_at + analysis_error
  */
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json().catch(() => ({} as { id?: string; force?: boolean }))
     const id = body.id
@@ -48,6 +49,14 @@ export async function POST(request: Request) {
         { status: 401 }
       )
     }
+
+    // Apply rate limiting for AI endpoints
+    const rateLimitResponse = await rateLimitMiddleware(
+      request,
+      RATE_LIMITS.ai,
+      async () => user.id
+    )
+    if (rateLimitResponse) return rateLimitResponse
 
     // 2) Load document from DB (RLS ensures user owns it)
     const { data: doc, error: docError } = await supabase

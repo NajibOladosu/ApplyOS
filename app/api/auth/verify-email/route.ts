@@ -6,9 +6,20 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
+
+export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
   try {
+    // Apply rate limiting for auth endpoints (before authentication)
+    const rateLimitResponse = await rateLimitMiddleware(
+      request,
+      RATE_LIMITS.auth,
+      async () => undefined
+    )
+    if (rateLimitResponse) return rateLimitResponse
+
     const token = request.nextUrl.searchParams.get('token');
 
     if (!token) {

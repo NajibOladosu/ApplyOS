@@ -5,6 +5,7 @@ import { AIRateLimitError } from "@/lib/ai/model-manager"
 import RetryQueueService from "@/lib/ai/retry-queue"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
 import { extractTextFromDOCX } from "@/lib/docx-utils"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 /**
  * Handles document upload + analysis.
@@ -25,6 +26,7 @@ import { extractTextFromDOCX } from "@/lib/docx-utils"
  */
 
 export const runtime = "nodejs" // ensure Node runtime for FormData/file handling
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
@@ -41,6 +43,14 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       )
     }
+
+    // Apply rate limiting for upload endpoints
+    const rateLimitResponse = await rateLimitMiddleware(
+      req,
+      RATE_LIMITS.upload,
+      async () => user.id
+    )
+    if (rateLimitResponse) return rateLimitResponse
 
     const formData = await req.formData()
     const files = formData.getAll("files")

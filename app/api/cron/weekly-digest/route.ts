@@ -11,6 +11,8 @@ import { sendEmailDirectly } from '@/lib/email';
 import { weeklyDigestEmailTemplate } from '@/lib/email/templates/weekly-digest';
 import { emailConfig } from '@/lib/email/config';
 
+export const dynamic = 'force-dynamic'
+
 export async function POST(request: NextRequest) {
   try {
     // Verify request is from Vercel Cron or authorized source

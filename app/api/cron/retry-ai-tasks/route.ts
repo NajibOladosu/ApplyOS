@@ -17,6 +17,7 @@ import { AIRateLimitError } from '@/lib/ai/model-manager'
  */
 
 export const runtime = 'nodejs'
+export const dynamic = 'force-dynamic'
 
 async function retryParseDocument(
   supabaseClient: Awaited<ReturnType<typeof createClient>>,

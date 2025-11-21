@@ -14,7 +14,15 @@ export async function createClient() {
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options })
+            // Merge secure cookie settings with Supabase's options
+            // Don't override httpOnly or maxAge - let Supabase control these based on client type
+            const secureOptions: CookieOptions = {
+              ...options,
+              secure: process.env.NODE_ENV === 'production', // Only send over HTTPS in production
+              sameSite: (options.sameSite as 'lax' | 'strict' | 'none') || 'lax', // CSRF protection: allow same-site and top-level navigation
+              path: options.path || '/', // Cookie available across entire site
+            }
+            cookieStore.set({ name, value, ...secureOptions })
           } catch (error) {
             // The `set` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
@@ -23,7 +31,15 @@ export async function createClient() {
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options })
+            // Merge secure cookie settings when removing
+            // Don't override httpOnly - let Supabase control this based on client type
+            const secureOptions: CookieOptions = {
+              ...options,
+              secure: process.env.NODE_ENV === 'production',
+              sameSite: (options.sameSite as 'lax' | 'strict' | 'none') || 'lax',
+              path: options.path || '/',
+            }
+            cookieStore.set({ name, value: '', ...secureOptions })
           } catch (error) {
             // The `delete` method was called from a Server Component.
             // This can be ignored if you have middleware refreshing
