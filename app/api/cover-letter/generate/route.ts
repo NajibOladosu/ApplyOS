@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/lib/supabase/server"
 import { generateCoverLetter } from "@/lib/ai"
 import { buildContextFromDocument } from "@/lib/services/documents"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
@@ -18,6 +21,14 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       )
     }
+
+    // Apply rate limiting for AI endpoints
+    const rateLimitResponse = await rateLimitMiddleware(
+      req,
+      RATE_LIMITS.ai,
+      async () => user.id
+    )
+    if (rateLimitResponse) return rateLimitResponse
 
     const body = await req.json()
     const { applicationId } = body

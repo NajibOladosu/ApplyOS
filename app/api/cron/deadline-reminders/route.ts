@@ -10,6 +10,8 @@ import { createClient as createServerClient } from '@supabase/supabase-js';
 import { sendEmailDirectly } from '@/lib/email';
 import { emailConfig } from '@/lib/email/config';
 
+export const dynamic = 'force-dynamic'
+
 /**
  * Check deadline reminders
  * - 7 days before deadline

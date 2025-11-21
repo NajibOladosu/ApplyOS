@@ -9,6 +9,9 @@ import { createClient } from '@/lib/supabase/server';
 import { sendEmailDirectly } from '@/lib/email';
 import { welcomeEmailTemplate, welcomeEmailSubject } from '@/lib/email/templates/welcome';
 import { emailConfig } from '@/lib/email/config';
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
+
+export const dynamic = 'force-dynamic'
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +25,14 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+
+    // Apply rate limiting for email endpoints
+    const rateLimitResponse = await rateLimitMiddleware(
+      request,
+      RATE_LIMITS.email,
+      async () => user.id
+    )
+    if (rateLimitResponse) return rateLimitResponse
 
     // Get email from request body or use user's email
     const { email } = await request.json().catch(() => ({}));
