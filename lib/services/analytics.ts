@@ -169,20 +169,28 @@ export async function getStatusFlowData(
 
   // Helper function to create all nodes - values will be calculated from link flows
   const createNodesFromLinks = (links: Array<{ source: number; target: number; value: number }>) => {
-    // Calculate node values as sum of outgoing links
-    const nodeValues = new Map<number, number>()
+    // Calculate node values properly:
+    // - For each node, we need both incoming and outgoing flow
+    // - Node value = max(sum of incoming, sum of outgoing)
+    const incomingValues = new Map<number, number>()
+    const outgoingValues = new Map<number, number>()
 
     links.forEach(link => {
-      // Add to source node's outgoing value
-      nodeValues.set(link.source, (nodeValues.get(link.source) || 0) + link.value)
+      // Track outgoing flow from source node
+      outgoingValues.set(link.source, (outgoingValues.get(link.source) || 0) + link.value)
+      // Track incoming flow to target node
+      incomingValues.set(link.target, (incomingValues.get(link.target) || 0) + link.value)
     })
 
-    // Also calculate incoming values for terminal nodes (offer, rejected, not_submitted, pending)
-    const terminalIndices = [4, 5, 6, 7] // offer, rejected, not_submitted, pending
-    links.forEach(link => {
-      if (terminalIndices.includes(link.target)) {
-        nodeValues.set(link.target, (nodeValues.get(link.target) || 0) + link.value)
-      }
+    // Calculate final node values: max of incoming or outgoing (represents total flow through node)
+    const nodeValues = new Map<number, number>()
+    const allNodeIndices = new Set([...incomingValues.keys(), ...outgoingValues.keys()])
+
+    allNodeIndices.forEach(nodeIndex => {
+      const incoming = incomingValues.get(nodeIndex) || 0
+      const outgoing = outgoingValues.get(nodeIndex) || 0
+      // Use the maximum to represent the node's total throughput
+      nodeValues.set(nodeIndex, Math.max(incoming, outgoing))
     })
 
     // Create nodes with calculated values
@@ -400,18 +408,49 @@ export async function getStatusFlowData(
   })
 
   // Create nodes with values calculated from link flows
-  const nodes = createNodesFromLinks(links)
+  const allNodes = createNodesFromLinks(links)
 
-  console.log('\nNodes with calculated values (all statuses + Not Submitted + Pending):')
+  console.log('\nAll nodes with calculated values (before filtering):')
+  allNodes.forEach((node, index) => {
+    console.log(`  [${index}] ${node.name}: ${node.value}`)
+  })
+
+  // Filter out nodes with 0 values
+  const indexMapping = new Map<number, number>() // old index -> new index
+  let newIndex = 0
+
+  const nodes = allNodes.filter((node, oldIndex) => {
+    if (node.value && node.value > 0) {
+      indexMapping.set(oldIndex, newIndex)
+      newIndex++
+      return true
+    }
+    return false
+  })
+
+  console.log('\nFiltered nodes (only non-zero values):')
   nodes.forEach((node, index) => {
     console.log(`  [${index}] ${node.name}: ${node.value}`)
   })
 
-  console.log(`\nTotal Links Created: ${links.length}`)
-  console.log('Links:', JSON.stringify(links, null, 2))
+  // Update link indices to match filtered nodes and remove invalid links
+  const filteredLinks = links
+    .filter(link => {
+      const hasValidSource = indexMapping.has(link.source)
+      const hasValidTarget = indexMapping.has(link.target)
+      return hasValidSource && hasValidTarget
+    })
+    .map(link => ({
+      source: indexMapping.get(link.source)!,
+      target: indexMapping.get(link.target)!,
+      value: link.value,
+    }))
+
+  console.log(`\nTotal Links After Filtering: ${filteredLinks.length}`)
+  console.log('Filtered Links:', JSON.stringify(filteredLinks, null, 2))
   console.log('=== END SANKEY DEBUG ===\n')
 
-  return { nodes, links }
+  return { nodes, links: filteredLinks }
 }
 
 /**
