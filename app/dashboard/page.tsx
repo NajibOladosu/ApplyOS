@@ -443,15 +443,19 @@ export default function DashboardPage() {
                   />
 
                   {/* Timeline and Funnel */}
-                  <div className="grid gap-4 lg:grid-cols-2 min-h-[400px]">
-                    <TimelineChart
-                      data={analyticsData.timeline}
-                      title="Applications Over Time"
-                    />
-                    <ConversionFunnel
-                      data={analyticsData.funnel}
-                      title="Application Conversion Funnel"
-                    />
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    <div className="min-h-[400px]">
+                      <TimelineChart
+                        data={analyticsData.timeline}
+                        title="Applications Over Time"
+                      />
+                    </div>
+                    <div className="min-h-[400px]">
+                      <ConversionFunnel
+                        data={analyticsData.funnel}
+                        title="Application Conversion Funnel"
+                      />
+                    </div>
                   </div>
 
                   {/* Type and Priority Breakdown */}
