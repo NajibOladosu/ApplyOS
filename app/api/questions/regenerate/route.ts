@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
     // Verify the application belongs to the user and get its details
     const { data: app, error: appError } = await supabase
       .from("applications")
-      .select("id, notes")
+      .select("id, job_description")
       .eq("id", applicationId)
       .eq("user_id", user.id)
       .single()
@@ -87,7 +87,7 @@ export async function POST(req: NextRequest) {
       resume: undefined,
       experience: undefined,
       education: undefined,
-      jobDescription: app.notes || undefined,
+      jobDescription: app.job_description || undefined,
     }
 
     // Get the documents associated with this application (using server client)
