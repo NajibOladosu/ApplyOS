@@ -72,6 +72,7 @@ export default function ApplicationDetailPage() {
   const [notesSortOrder, setNotesSortOrder] = useState<"newest" | "oldest">("newest")
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [editingNote, setEditingNote] = useState<ApplicationNote | null>(null)
+  const [activeTab, setActiveTab] = useState("questions")
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -556,7 +557,7 @@ export default function ApplicationDetailPage() {
           </div>
         </div>
 
-        {/* Application Info */}
+        {/* Application Info (Static) */}
         <Card>
           <CardHeader>
             <CardTitle>Application Information</CardTitle>
@@ -781,11 +782,36 @@ export default function ApplicationDetailPage() {
           </CardContent>
         </Card>
 
+        {/* Tabs */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <div className="flex justify-center mb-6">
+            <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+              <TabsTrigger
+                value="questions"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+              >
+                Questions
+              </TabsTrigger>
+              <TabsTrigger
+                value="cover-letter"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+              >
+                Cover Letter
+              </TabsTrigger>
+              <TabsTrigger
+                value="notes"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+              >
+                Notes
+              </TabsTrigger>
+            </TabsList>
+          </div>
 
-        {/* Questions and Answers */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold">Application Questions</h2>
+          {/* Questions Tab */}
+          <TabsContent value="questions" className="space-y-6 mt-0">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold">Application Questions</h2>
             <div className="flex flex-wrap gap-2">
               <Button
                 variant="outline"
@@ -939,12 +965,14 @@ export default function ApplicationDetailPage() {
               </motion.div>
             ))
           )}
-        </div>
+            </div>
+          </TabsContent>
 
-        {/* Cover Letter Section */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
+          {/* Cover Letter Tab */}
+          <TabsContent value="cover-letter" className="space-y-6 mt-0">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
             <Button
               variant="outline"
               size="sm"
@@ -1032,15 +1060,17 @@ export default function ApplicationDetailPage() {
               </Card>
             </motion.div>
           )}
-        </div>
+            </div>
+          </TabsContent>
 
-        {/* Notes Section */}
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-              <StickyNote className="h-6 w-6" />
-              Notes
-            </h2>
+          {/* Notes Tab */}
+          <TabsContent value="notes" className="space-y-6 mt-0">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <StickyNote className="h-6 w-6" />
+                  Notes
+                </h2>
             <div className="flex flex-wrap gap-2">
               <div className="flex items-center gap-1 border border-input rounded-lg p-1">
                 <Button
@@ -1121,7 +1151,9 @@ export default function ApplicationDetailPage() {
               />
             )
           })()}
-        </div>
+            </div>
+          </TabsContent>
+        </Tabs>
 
       </div>
 
