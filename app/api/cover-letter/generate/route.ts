@@ -45,7 +45,7 @@ export async function POST(req: NextRequest) {
     // Verify the application belongs to the user and get its details
     const { data: app, error: appError } = await supabase
       .from("applications")
-      .select("id, title, company, notes")
+      .select("id, title, company, job_description")
       .eq("id", applicationId)
       .eq("user_id", user.id)
       .single()
@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
       resume: undefined,
       experience: undefined,
       education: undefined,
-      jobDescription: app.notes || undefined,
+      jobDescription: app.job_description || undefined,
     }
 
     // Get the documents associated with this application
@@ -134,7 +134,7 @@ export async function POST(req: NextRequest) {
         console.log("Using fallback document:", analyzedDocs[0].id)
         context = {
           ...buildContextFromDocument(analyzedDocs[0]),
-          jobDescription: app.notes || undefined,
+          jobDescription: app.job_description || undefined,
         }
       }
     }
