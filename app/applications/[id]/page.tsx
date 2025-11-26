@@ -93,17 +93,19 @@ export default function ApplicationDetailPage() {
       setError(null)
 
       try {
-        const [app, qs, docs, relatedDocIds, appNotes] = await Promise.all([
+        const [app, qs, docs, relatedDocIds, appNotes, sessions] = await Promise.all([
           getApplication(id),
           getQuestionsByApplicationId(id),
           getDocuments(),
           getApplicationDocuments(id),
           getNotesByApplicationId(id),
+          getInterviewSessions(id),
         ])
         setApplication(app)
         setQuestions(qs)
         setDocuments(docs)
         setNotes(appNotes)
+        setInterviewSessions(sessions)
         setPendingStatus(app.status)
         setInitialStatus(app.status)
         setPendingDocumentIds([])
