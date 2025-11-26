@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useParams, useRouter } from "next/navigation"
+import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,7 @@ import type { InterviewSession } from "@/types/database"
 export default function ApplicationDetailPage() {
   const params = useParams()
   const router = useRouter()
+  const searchParams = useSearchParams()
   const id = params?.id as string | undefined
 
   const [application, setApplication] = useState<Application | null>(null)
@@ -130,6 +131,20 @@ export default function ApplicationDetailPage() {
     if (savedViewType) setNotesViewType(savedViewType)
     if (savedSortOrder) setNotesSortOrder(savedSortOrder)
   }, [id])
+
+  // Handle URL parameters for tab and session selection
+  useEffect(() => {
+    const tab = searchParams?.get('tab')
+    const session = searchParams?.get('session')
+
+    if (tab) {
+      setActiveTab(tab)
+    }
+
+    if (session) {
+      setSelectedSessionId(session)
+    }
+  }, [searchParams])
 
   const handleRegenerate = async (questionId?: string) => {
     if (!application) return
@@ -989,42 +1004,168 @@ export default function ApplicationDetailPage() {
           {/* Interview Tab */}
           <TabsContent value="interview" className="space-y-6 mt-0">
             <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  <Mic className="h-6 w-6" />
-                  Mock Interview
-                </h2>
-                <Button
-                  className="glow-effect flex-1 sm:flex-none"
-                  onClick={() => setShowNewInterviewModal(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  New Interview
-                </Button>
-              </div>
-
-              <Card className="border-2">
-                <CardContent className="pt-6">
-                  <div className="text-center py-12">
-                    <Mic className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                    <h3 className="text-lg font-semibold mb-2">AI-Powered Interview Practice</h3>
-                    <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                      Practice your interview skills with AI-generated questions tailored to your application.
-                      Get real-time feedback and improve your responses.
-                    </p>
+              {selectedSessionId ? (
+                // Show session detail when a session is selected
+                <InterviewSessionDetail
+                  sessionId={selectedSessionId}
+                  onComplete={async () => {
+                    // Reload sessions to update completion status
+                    try {
+                      const sessions = await getInterviewSessions(id!)
+                      setInterviewSessions(sessions)
+                    } catch (err) {
+                      console.error('Error reloading sessions:', err)
+                    }
+                  }}
+                  onBack={() => setSelectedSessionId(null)}
+                />
+              ) : (
+                <>
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                      <Mic className="h-6 w-6" />
+                      Mock Interview
+                    </h2>
                     <Button
-                      size="lg"
-                      className="glow-effect"
+                      className="glow-effect flex-1 sm:flex-none"
                       onClick={() => setShowNewInterviewModal(true)}
                     >
-                      <Plus className="h-5 w-5 mr-2" />
-                      Start Your First Interview
+                      <Plus className="h-4 w-4 mr-2" />
+                      New Interview
                     </Button>
                   </div>
-                </CardContent>
-              </Card>
 
-              {/* Interview sessions will be displayed here once implemented */}
+                  {interviewSessions.length === 0 ? (
+                    // Empty state when no sessions
+                    <Card className="border-2">
+                      <CardContent className="pt-6">
+                        <div className="text-center py-12">
+                          <Mic className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                          <h3 className="text-lg font-semibold mb-2">AI-Powered Interview Practice</h3>
+                          <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                            Practice your interview skills with AI-generated questions tailored to your application.
+                            Get real-time feedback and improve your responses.
+                          </p>
+                          <Button
+                            size="lg"
+                            className="glow-effect"
+                            onClick={() => setShowNewInterviewModal(true)}
+                          >
+                            <Plus className="h-5 w-5 mr-2" />
+                            Start Your First Interview
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ) : (
+                    // Session list when sessions exist
+                    <div className="grid grid-cols-1 gap-4">
+                      {interviewSessions.map((session) => {
+                        const sessionTypeLabels: Record<string, string> = {
+                          behavioral: "Behavioral",
+                          technical: "Technical",
+                          mixed: "Mixed",
+                          resume_grill: "Resume Grill",
+                          company_specific: "Company-Specific"
+                        }
+
+                        const difficultyColors = {
+                          easy: "bg-green-500/10 text-green-700 dark:text-green-400",
+                          medium: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
+                          hard: "bg-red-500/10 text-red-700 dark:text-red-400"
+                        }
+
+                        const progress = session.total_questions > 0
+                          ? (session.answered_questions / session.total_questions) * 100
+                          : 0
+
+                        const avgScore = session.average_score || 0
+
+                        return (
+                          <motion.div
+                            key={session.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.3 }}
+                          >
+                            <Card
+                              className="cursor-pointer hover:border-primary transition-all"
+                              onClick={() => setSelectedSessionId(session.id)}
+                            >
+                              <CardHeader>
+                                <div className="flex items-start justify-between">
+                                  <div className="flex-1">
+                                    <CardTitle className="text-lg flex items-center gap-2">
+                                      {sessionTypeLabels[session.session_type] || session.session_type}
+                                      {session.company_name && (
+                                        <Badge variant="outline" className="text-xs">
+                                          {session.company_name}
+                                        </Badge>
+                                      )}
+                                    </CardTitle>
+                                    <CardDescription className="mt-1">
+                                      {new Date(session.created_at).toLocaleDateString()} at{' '}
+                                      {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                    </CardDescription>
+                                  </div>
+                                  <Badge
+                                    variant="outline"
+                                    className={`capitalize ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
+                                  >
+                                    {session.difficulty || 'medium'}
+                                  </Badge>
+                                </div>
+                              </CardHeader>
+                              <CardContent className="space-y-4">
+                                {/* Progress Bar */}
+                                <div className="space-y-2">
+                                  <div className="flex justify-between text-sm">
+                                    <span className="text-muted-foreground">Progress</span>
+                                    <span className="font-medium">
+                                      {session.answered_questions} / {session.total_questions} questions
+                                    </span>
+                                  </div>
+                                  <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
+                                    <div
+                                      className="h-full bg-primary transition-all"
+                                      style={{ width: `${progress}%` }}
+                                    />
+                                  </div>
+                                </div>
+
+                                {/* Stats */}
+                                <div className="flex justify-between items-center pt-2">
+                                  {session.answered_questions > 0 ? (
+                                    <>
+                                      <div className="text-sm">
+                                        <span className="text-muted-foreground">Avg Score: </span>
+                                        <span className={`font-semibold ${
+                                          avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
+                                          avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                          'text-red-600 dark:text-red-400'
+                                        }`}>
+                                          {avgScore.toFixed(1)}/10
+                                        </span>
+                                      </div>
+                                      {session.status === 'completed' && (
+                                        <Badge variant="success" className="bg-green-600 text-white">
+                                          Completed
+                                        </Badge>
+                                      )}
+                                    </>
+                                  ) : (
+                                    <span className="text-sm text-muted-foreground">No answers yet</span>
+                                  )}
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </motion.div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           </TabsContent>
 

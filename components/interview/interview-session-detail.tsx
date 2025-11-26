@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Textarea } from "@/components/ui/textarea"
 import { Badge } from "@/components/ui/badge"
 import { Progress } from "@/components/ui/progress"
+import { useToast } from "@/components/ui/use-toast"
 import {
   Mic,
   Loader2,
@@ -17,6 +18,7 @@ import {
   TrendingUp,
   TrendingDown,
   Lightbulb,
+  AlertCircle,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, InterviewFeedback } from "@/types/database"
@@ -33,6 +35,7 @@ interface QuestionWithAnswer extends InterviewQuestion {
 }
 
 export function InterviewSessionDetail({ sessionId, onComplete, onBack }: InterviewSessionDetailProps) {
+  const { toast } = useToast()
   const [session, setSession] = useState<InterviewSession | null>(null)
   const [questions, setQuestions] = useState<QuestionWithAnswer[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
@@ -42,6 +45,10 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   const [currentFeedback, setCurrentFeedback] = useState<InterviewAnswer | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+
+  const MAX_ANSWER_LENGTH = 2000
+  const characterCount = answerText.length
+  const isOverLimit = characterCount > MAX_ANSWER_LENGTH
 
   // Load session data
   useEffect(() => {
@@ -132,12 +139,34 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
       setShowFeedback(true)
       setAnswerText("")
 
+      // Show success toast
+      const avgScore = (
+        (data.answer.clarity_score || 0) +
+        (data.answer.structure_score || 0) +
+        (data.answer.relevance_score || 0) +
+        (data.answer.depth_score || 0) +
+        (data.answer.confidence_score || 0)
+      ) / 5
+
+      toast({
+        title: "Answer Submitted!",
+        description: `Your answer scored ${avgScore.toFixed(1)}/10. Check the feedback below.`,
+        duration: 4000,
+      })
+
       // Reload session to update statistics
       const updatedSession = await getInterviewSession(sessionId)
       setSession(updatedSession)
     } catch (err: any) {
       console.error("Error submitting answer:", err)
       setError(err.message || "Failed to submit answer")
+
+      toast({
+        title: "Submission Failed",
+        description: err.message || "Failed to submit answer. Please try again.",
+        variant: "destructive",
+        duration: 5000,
+      })
     } finally {
       setSubmitting(false)
     }
@@ -361,12 +390,28 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                         value={answerText}
                         onChange={(e) => setAnswerText(e.target.value)}
                         placeholder="Type your answer here... Use the STAR method for behavioral questions."
-                        className="min-h-[200px] resize-none"
+                        className={`min-h-[200px] resize-none ${isOverLimit ? 'border-destructive focus-visible:ring-destructive' : ''}`}
                         disabled={submitting}
+                        maxLength={MAX_ANSWER_LENGTH + 100}
                       />
-                      <p className="text-xs text-muted-foreground">
-                        {answerText.length} characters
-                      </p>
+                      <div className="flex justify-between items-center">
+                        <p className="text-xs text-muted-foreground">
+                          Aim for clear, structured responses
+                        </p>
+                        <p className={`text-xs font-medium ${
+                          isOverLimit ? 'text-destructive' :
+                          characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
+                          'text-muted-foreground'
+                        }`}>
+                          {characterCount} / {MAX_ANSWER_LENGTH}
+                        </p>
+                      </div>
+                      {isOverLimit && (
+                        <p className="text-xs text-destructive flex items-center gap-1">
+                          <AlertCircle className="h-3 w-3" />
+                          Answer exceeds recommended length. Consider being more concise.
+                        </p>
+                      )}
                     </div>
 
                     {error && (
@@ -377,13 +422,19 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
 
                     <Button
                       onClick={handleSubmitAnswer}
-                      disabled={!answerText.trim() || submitting}
+                      disabled={!answerText.trim() || submitting || isOverLimit}
                       className="w-full glow-effect"
+                      title={isOverLimit ? "Answer exceeds recommended length" : undefined}
                     >
                       {submitting ? (
                         <>
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                           Evaluating...
+                        </>
+                      ) : isOverLimit ? (
+                        <>
+                          <AlertCircle className="mr-2 h-4 w-4" />
+                          Answer Too Long
                         </>
                       ) : (
                         <>
