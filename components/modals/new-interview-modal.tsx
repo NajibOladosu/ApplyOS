@@ -136,6 +136,7 @@ export function NewInterviewModal({
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
         body: JSON.stringify(body),
       })
 
