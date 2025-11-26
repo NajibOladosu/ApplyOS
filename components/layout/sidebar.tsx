@@ -15,12 +15,14 @@ import {
   LogOut,
   X,
   MessageSquare,
+  Mic,
 } from "lucide-react"
 import { motion } from "framer-motion"
 
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/applications", label: "Applications", icon: FileText },
+  { href: "/interview", label: "Interview", icon: Mic },
   { href: "/documents", label: "Documents", icon: FolderOpen },
   { href: "/upload", label: "Upload", icon: Upload },
   { href: "/notifications", label: "Notifications", icon: Bell },
