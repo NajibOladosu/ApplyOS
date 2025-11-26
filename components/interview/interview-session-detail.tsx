@@ -111,6 +111,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
         headers: {
           "Content-Type": "application/json",
         },
+        credentials: "include",
         body: JSON.stringify({
           questionId: currentQuestion.id,
           sessionId: sessionId,
