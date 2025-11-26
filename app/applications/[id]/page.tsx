@@ -23,6 +23,7 @@ import {
   Copy,
   StickyNote,
   ArrowUpDown,
+  Mic,
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
@@ -35,8 +36,12 @@ import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { NoteModal } from "@/components/modals/note-modal"
+import { NewInterviewModal } from "@/components/modals/new-interview-modal"
 import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
+import { InterviewSessionDetail } from "@/components/interview/interview-session-detail"
+import { getInterviewSessions } from "@/lib/services/interviews"
+import type { InterviewSession } from "@/types/database"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -72,6 +77,10 @@ export default function ApplicationDetailPage() {
   const [notesSortOrder, setNotesSortOrder] = useState<"newest" | "oldest">("newest")
   const [showNoteModal, setShowNoteModal] = useState(false)
   const [editingNote, setEditingNote] = useState<ApplicationNote | null>(null)
+  const [showNewInterviewModal, setShowNewInterviewModal] = useState(false)
+  const [interviewSessions, setInterviewSessions] = useState<InterviewSession[]>([])
+  const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
+  const [interviewLoading, setInterviewLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("questions")
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
@@ -785,12 +794,19 @@ export default function ApplicationDetailPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-3 w-full sm:w-auto">
+            <TabsList className="grid grid-cols-4 w-full sm:w-auto">
               <TabsTrigger
                 value="questions"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
               >
                 Questions
+              </TabsTrigger>
+              <TabsTrigger
+                value="interview"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+              >
+                <Mic className="h-4 w-4 mr-2" />
+                Interview
               </TabsTrigger>
               <TabsTrigger
                 value="cover-letter"
@@ -965,6 +981,48 @@ export default function ApplicationDetailPage() {
               </motion.div>
             ))
           )}
+            </div>
+          </TabsContent>
+
+          {/* Interview Tab */}
+          <TabsContent value="interview" className="space-y-6 mt-0">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <Mic className="h-6 w-6" />
+                  Mock Interview
+                </h2>
+                <Button
+                  className="glow-effect flex-1 sm:flex-none"
+                  onClick={() => setShowNewInterviewModal(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  New Interview
+                </Button>
+              </div>
+
+              <Card className="border-2">
+                <CardContent className="pt-6">
+                  <div className="text-center py-12">
+                    <Mic className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                    <h3 className="text-lg font-semibold mb-2">AI-Powered Interview Practice</h3>
+                    <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                      Practice your interview skills with AI-generated questions tailored to your application.
+                      Get real-time feedback and improve your responses.
+                    </p>
+                    <Button
+                      size="lg"
+                      className="glow-effect"
+                      onClick={() => setShowNewInterviewModal(true)}
+                    >
+                      <Plus className="h-5 w-5 mr-2" />
+                      Start Your First Interview
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Interview sessions will be displayed here once implemented */}
             </div>
           </TabsContent>
 
@@ -1174,6 +1232,22 @@ export default function ApplicationDetailPage() {
               }
             : undefined
         }
+      />
+
+      {/* New Interview Modal */}
+      <NewInterviewModal
+        isOpen={showNewInterviewModal}
+        onClose={() => setShowNewInterviewModal(false)}
+        onSuccess={(_sessionId) => {
+          setShowNewInterviewModal(false)
+          setSuccessMessage('Interview session created! Start practicing now.')
+          // Switch to interview tab to show the new session
+          setActiveTab('interview')
+          // TODO: Reload interview sessions list using _sessionId
+        }}
+        applicationId={id!}
+        documents={documents}
+        companyName={application?.company || undefined}
       />
 
       {/* Edit Application Modal */}
