@@ -1240,12 +1240,19 @@ export default function ApplicationDetailPage() {
       <NewInterviewModal
         isOpen={showNewInterviewModal}
         onClose={() => setShowNewInterviewModal(false)}
-        onSuccess={(_sessionId) => {
+        onSuccess={async (sessionId) => {
           setShowNewInterviewModal(false)
           setSuccessMessage('Interview session created! Start practicing now.')
-          // Switch to interview tab to show the new session
+          // Switch to interview tab
           setActiveTab('interview')
-          // TODO: Reload interview sessions list using _sessionId
+          // Reload sessions and select the new one
+          try {
+            const sessions = await getInterviewSessions(id!)
+            setInterviewSessions(sessions)
+            setSelectedSessionId(sessionId)
+          } catch (err) {
+            console.error('Error reloading sessions:', err)
+          }
         }}
         applicationId={id!}
         documents={documents}
