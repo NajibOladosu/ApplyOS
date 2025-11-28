@@ -713,6 +713,12 @@ export async function generateInterviewQuestions(params: {
     hard: 'senior-level positions (complex, strategic, high-impact)',
   }
 
+  const validCategories = sessionType === 'behavioral'
+    ? ['behavioral_leadership', 'behavioral_teamwork', 'behavioral_conflict', 'behavioral_failure']
+    : sessionType === 'technical'
+    ? ['technical_coding', 'technical_system_design', 'technical_algorithms']
+    : ['behavioral_leadership', 'behavioral_teamwork', 'technical_coding', 'technical_system_design']
+
   const prompt = `You are an expert technical recruiter creating interview questions for ${companyName || 'a company'}.
 
 Generate ${questionCount} ${sessionTypeMapping[sessionType]} at ${difficultyMapping[difficulty]} difficulty level.
@@ -723,13 +729,16 @@ ${jobDescription ? `Job Description:\n${jobDescription}\n\n` : ''}Generate quest
 - Include clear evaluation criteria
 - Provide helpful guidance for answering
 
+IMPORTANT: For "question_category", you MUST choose EXACTLY ONE from this list:
+${validCategories.map(c => `- ${c}`).join('\n')}
+
 Return ONLY valid JSON (no markdown, no code fences, no explanations):
 
 {
   "questions": [
     {
       "question_text": "The actual interview question",
-      "question_category": "${sessionType === 'behavioral' ? 'behavioral_leadership | behavioral_teamwork | behavioral_conflict | behavioral_failure' : sessionType === 'technical' ? 'technical_coding | technical_system_design | technical_algorithms' : 'behavioral_leadership | technical_coding | technical_system_design'}",
+      "question_category": "Choose ONE from the list above (e.g., ${validCategories[0]})",
       "difficulty": "${difficulty}",
       "ideal_answer_outline": {
         "structure": "${sessionType === 'behavioral' ? 'STAR (Situation, Task, Action, Result)' : 'Clarify → Approach → Code/Design → Test → Optimize'}",
@@ -787,6 +796,30 @@ Generate exactly ${questionCount} unique, high-quality questions.`
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
       throw new Error('Invalid response format')
     }
+
+    // Validate and sanitize question categories
+    const allValidCategories = [
+      'behavioral_leadership',
+      'behavioral_teamwork',
+      'behavioral_conflict',
+      'behavioral_failure',
+      'technical_coding',
+      'technical_system_design',
+      'technical_algorithms',
+      'company_culture',
+      'company_values',
+      'resume_specific',
+      'other'
+    ]
+
+    parsed.questions = parsed.questions.map((q: any) => {
+      // Validate category
+      if (!allValidCategories.includes(q.question_category)) {
+        console.warn(`Invalid question category "${q.question_category}", defaulting to "other"`)
+        q.question_category = 'other'
+      }
+      return q
+    })
 
     return parsed.questions
   } catch (error) {
@@ -928,6 +961,30 @@ Generate exactly ${questionCount} questions that reference ACTUAL content from t
       throw new Error('Invalid response format')
     }
 
+    // Validate and sanitize question categories
+    const allValidCategories = [
+      'behavioral_leadership',
+      'behavioral_teamwork',
+      'behavioral_conflict',
+      'behavioral_failure',
+      'technical_coding',
+      'technical_system_design',
+      'technical_algorithms',
+      'company_culture',
+      'company_values',
+      'resume_specific',
+      'other'
+    ]
+
+    parsed.questions = parsed.questions.map((q: any) => {
+      // Validate category
+      if (!allValidCategories.includes(q.question_category)) {
+        console.warn(`Invalid question category "${q.question_category}", defaulting to "resume_specific"`)
+        q.question_category = 'resume_specific'
+      }
+      return q
+    })
+
     return parsed.questions
   } catch (error) {
     if (error instanceof AIRateLimitError) {
@@ -1020,6 +1077,30 @@ Return exactly ${questionCount} questions.`
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
       return templateQuestions.slice(0, questionCount)
     }
+
+    // Validate and sanitize question categories
+    const allValidCategories = [
+      'behavioral_leadership',
+      'behavioral_teamwork',
+      'behavioral_conflict',
+      'behavioral_failure',
+      'technical_coding',
+      'technical_system_design',
+      'technical_algorithms',
+      'company_culture',
+      'company_values',
+      'resume_specific',
+      'other'
+    ]
+
+    parsed.questions = parsed.questions.map((q: any) => {
+      // Validate category
+      if (!allValidCategories.includes(q.question_category)) {
+        console.warn(`Invalid question category "${q.question_category}", defaulting to "company_culture"`)
+        q.question_category = 'company_culture'
+      }
+      return q
+    })
 
     return parsed.questions
   } catch (error) {

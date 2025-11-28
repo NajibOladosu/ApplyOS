@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type {
   InterviewSession,
   InterviewQuestion,
@@ -42,13 +43,16 @@ export async function getInterviewSession(sessionId: string): Promise<InterviewS
   return data as InterviewSession
 }
 
-export async function createInterviewSession(session: {
-  application_id: string
-  session_type: SessionType
-  company_name?: string
-  difficulty?: InterviewDifficulty
-}): Promise<InterviewSession> {
-  const supabase = createClient()
+export async function createInterviewSession(
+  session: {
+    application_id: string
+    session_type: SessionType
+    company_name?: string
+    difficulty?: InterviewDifficulty
+  },
+  supabaseClient?: SupabaseClient
+): Promise<InterviewSession> {
+  const supabase = supabaseClient || createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) throw new Error('Not authenticated')
@@ -70,9 +74,10 @@ export async function createInterviewSession(session: {
 
 export async function updateInterviewSession(
   sessionId: string,
-  updates: Partial<InterviewSession>
+  updates: Partial<InterviewSession>,
+  supabaseClient?: SupabaseClient
 ): Promise<InterviewSession> {
-  const supabase = createClient()
+  const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_sessions')
     .update(updates)
@@ -150,17 +155,20 @@ export async function getInterviewQuestion(questionId: string): Promise<Intervie
   return data as InterviewQuestion
 }
 
-export async function createQuestion(question: {
-  session_id: string
-  question_text: string
-  question_category: QuestionCategory
-  difficulty?: InterviewDifficulty
-  ideal_answer_outline?: IdealAnswerOutline
-  evaluation_criteria?: EvaluationCriteria
-  question_order: number
-  estimated_duration_seconds?: number
-}): Promise<InterviewQuestion> {
-  const supabase = createClient()
+export async function createQuestion(
+  question: {
+    session_id: string
+    question_text: string
+    question_category: QuestionCategory
+    difficulty?: InterviewDifficulty
+    ideal_answer_outline?: IdealAnswerOutline
+    evaluation_criteria?: EvaluationCriteria
+    question_order: number
+    estimated_duration_seconds?: number
+  },
+  supabaseClient?: SupabaseClient
+): Promise<InterviewQuestion> {
+  const supabase = supabaseClient || createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) throw new Error('Not authenticated')
@@ -190,9 +198,10 @@ export async function createQuestionsForSession(
     evaluation_criteria?: EvaluationCriteria
     question_order: number
     estimated_duration_seconds?: number
-  }>
+  }>,
+  supabaseClient?: SupabaseClient
 ): Promise<InterviewQuestion[]> {
-  const supabase = createClient()
+  const supabase = supabaseClient || createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) throw new Error('Not authenticated')
@@ -213,7 +222,7 @@ export async function createQuestionsForSession(
   // Update session with total_questions count
   await updateInterviewSession(sessionId, {
     total_questions: questions.length,
-  })
+  }, supabase)
 
   return data as InterviewQuestion[]
 }
@@ -272,24 +281,27 @@ export async function getAnswerForQuestion(questionId: string): Promise<Intervie
   return data as InterviewAnswer | null
 }
 
-export async function createAnswer(answer: {
-  question_id: string
-  session_id: string
-  answer_text: string
-  answer_type: AnswerType
-  audio_url?: string
-  audio_duration_seconds?: number
-  transcription_confidence?: number
-  score: number
-  feedback: InterviewFeedback
-  clarity_score?: number
-  structure_score?: number
-  relevance_score?: number
-  depth_score?: number
-  confidence_score?: number
-  time_taken_seconds?: number
-}): Promise<InterviewAnswer> {
-  const supabase = createClient()
+export async function createAnswer(
+  answer: {
+    question_id: string
+    session_id: string
+    answer_text: string
+    answer_type: AnswerType
+    audio_url?: string
+    audio_duration_seconds?: number
+    transcription_confidence?: number
+    score: number
+    feedback: InterviewFeedback
+    clarity_score?: number
+    structure_score?: number
+    relevance_score?: number
+    depth_score?: number
+    confidence_score?: number
+    time_taken_seconds?: number
+  },
+  supabaseClient?: SupabaseClient
+): Promise<InterviewAnswer> {
+  const supabase = supabaseClient || createClient()
   const { data: { user } } = await supabase.auth.getUser()
 
   if (!user) throw new Error('Not authenticated')
@@ -318,7 +330,7 @@ export async function createAnswer(answer: {
   await updateInterviewSession(answer.session_id, {
     answered_questions: answeredCount,
     average_score: newAverage,
-  })
+  }, supabase)
 
   return data as InterviewAnswer
 }

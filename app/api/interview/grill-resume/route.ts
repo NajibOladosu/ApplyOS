@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
       session_type: 'resume_grill',
       difficulty,
       company_name: application.company || null,
-    })
+    }, supabase)
 
     // Generate resume-specific questions using AI
     const aiQuestions = await generateResumeGrillQuestions({
@@ -121,7 +121,8 @@ export async function POST(request: NextRequest) {
         evaluation_criteria: q.evaluation_criteria,
         question_order: index + 1,
         estimated_duration_seconds: q.estimated_duration_seconds,
-      }))
+      })),
+      supabase
     )
 
     return NextResponse.json(

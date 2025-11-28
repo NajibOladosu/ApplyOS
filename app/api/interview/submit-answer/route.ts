@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       audio_url: undefined,
       audio_duration_seconds: undefined,
       transcription_confidence: undefined,
-    })
+    }, supabase)
 
     return NextResponse.json(
       {

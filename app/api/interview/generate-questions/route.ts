@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
       session_type: sessionType,
       difficulty,
       company_name: companyName || application.company || null,
-    })
+    }, supabase)
 
     // Generate questions using AI
     const aiQuestions = await generateInterviewQuestions({
@@ -110,7 +110,8 @@ export async function POST(request: NextRequest) {
         evaluation_criteria: q.evaluation_criteria,
         question_order: index + 1,
         estimated_duration_seconds: q.estimated_duration_seconds,
-      }))
+      })),
+      supabase
     )
 
     return NextResponse.json(
