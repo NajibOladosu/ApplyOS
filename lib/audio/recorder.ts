@@ -57,7 +57,7 @@ export class AudioStreamRecorder {
     // Default configuration optimized for speech and Gemini API
     const {
       mimeType = this.getSupportedMimeType(),
-      audioBitsPerSecond = 32000, // 32kbps is sufficient for speech
+      audioBitsPerSecond = 128000, // 128kbps for better quality
       timeslice = 500 // 500ms chunks for low latency
     } = config
 
