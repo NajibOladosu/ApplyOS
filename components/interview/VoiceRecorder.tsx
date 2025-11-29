@@ -21,7 +21,7 @@ export function VoiceRecorder({
 }: VoiceRecorderProps) {
   const [transcription, setTranscription] = useState('')
   const [isTranscribing, setIsTranscribing] = useState(false)
-  const [chunks, setChunks] = useState<string[]>([])
+  const [audioBlobs, setAudioBlobs] = useState<Blob[]>([])
 
   const {
     isRecording,
@@ -36,9 +36,9 @@ export function VoiceRecorder({
     pauseRecording,
     resumeRecording
   } = useVoiceRecorder({
-    onAudioChunk: async (chunk: AudioChunk, base64: string) => {
-      // Collect chunks for batch transcription
-      setChunks(prev => [...prev, base64])
+    onAudioChunk: async (chunk: AudioChunk) => {
+      // Collect blobs for batch transcription
+      setAudioBlobs(prev => [...prev, chunk.blob])
     },
     onError: (err) => {
       console.error('Recording error:', err)
@@ -52,7 +52,7 @@ export function VoiceRecorder({
   // Handle start recording
   const handleStart = async () => {
     setTranscription('')
-    setChunks([])
+    setAudioBlobs([])
     await startRecording()
   }
 
@@ -60,7 +60,7 @@ export function VoiceRecorder({
   const handleStopAndTranscribe = async () => {
     stopRecording()
 
-    if (chunks.length === 0) {
+    if (audioBlobs.length === 0) {
       onError?.(new Error('No audio recorded'))
       return
     }
@@ -68,12 +68,29 @@ export function VoiceRecorder({
     setIsTranscribing(true)
 
     try {
-      // Send audio chunks to transcription API
+      // Combine all audio blobs into one
+      const combinedBlob = new Blob(audioBlobs, { type: 'audio/webm;codecs=opus' })
+
+      // Convert to base64
+      const reader = new FileReader()
+      const base64Promise = new Promise<string>((resolve, reject) => {
+        reader.onloadend = () => {
+          const base64 = reader.result as string
+          const base64Data = base64.split(',')[1] // Remove data URL prefix
+          resolve(base64Data)
+        }
+        reader.onerror = reject
+        reader.readAsDataURL(combinedBlob)
+      })
+
+      const audioBase64 = await base64Promise
+
+      // Send audio to transcription API
       const response = await fetch('/api/interview/voice/transcribe', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          audioChunks: chunks,
+          audioChunks: [audioBase64], // Send as single-element array
           mimeType: 'audio/webm;codecs=opus'
         })
       })
@@ -94,7 +111,7 @@ export function VoiceRecorder({
       onError?.(error)
     } finally {
       setIsTranscribing(false)
-      setChunks([])
+      setAudioBlobs([])
     }
   }
 
