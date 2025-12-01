@@ -366,31 +366,31 @@ Rules:
     const normalized: ParsedDocument = {
       education: Array.isArray(obj.education)
         ? obj.education.map((e: any) => ({
-            institution: String(e?.institution || ''),
-            degree: String(e?.degree || ''),
-            field: String(e?.field || ''),
-            start_date: String(e?.start_date || ''),
-            end_date: String(e?.end_date || ''),
-            description: String(e?.description || ''),
-          }))
+          institution: String(e?.institution || ''),
+          degree: String(e?.degree || ''),
+          field: String(e?.field || ''),
+          start_date: String(e?.start_date || ''),
+          end_date: String(e?.end_date || ''),
+          description: String(e?.description || ''),
+        }))
         : [],
       experience: Array.isArray(obj.experience)
         ? obj.experience.map((e: any) => ({
-            company: String(e?.company || ''),
-            role: String(e?.role || ''),
-            start_date: String(e?.start_date || ''),
-            end_date: String(e?.end_date || ''),
-            description: String(e?.description || ''),
-          }))
+          company: String(e?.company || ''),
+          role: String(e?.role || ''),
+          start_date: String(e?.start_date || ''),
+          end_date: String(e?.end_date || ''),
+          description: String(e?.description || ''),
+        }))
         : [],
       projects: Array.isArray(obj.projects)
         ? obj.projects.map((p: any) => ({
-            name: String(p?.name || ''),
-            description: String(p?.description || ''),
-            technologies: normalizeArray(p?.technologies),
-            start_date: p?.start_date ? String(p.start_date) : undefined,
-            end_date: p?.end_date ? String(p.end_date) : undefined,
-          }))
+          name: String(p?.name || ''),
+          description: String(p?.description || ''),
+          technologies: normalizeArray(p?.technologies),
+          start_date: p?.start_date ? String(p.start_date) : undefined,
+          end_date: p?.end_date ? String(p.end_date) : undefined,
+        }))
         : [],
       skills: {
         technical: normalizeArray(obj.skills?.technical),
@@ -400,10 +400,10 @@ Rules:
       achievements: normalizeArray(obj.achievements),
       certifications: Array.isArray(obj.certifications)
         ? obj.certifications.map((c: any) => ({
-            name: String(c?.name || ''),
-            issuer: String(c?.issuer || ''),
-            date: String(c?.date || ''),
-          }))
+          name: String(c?.name || ''),
+          issuer: String(c?.issuer || ''),
+          date: String(c?.date || ''),
+        }))
         : [],
       keywords: normalizeArray(obj.keywords),
       raw_highlights: normalizeArray(obj.raw_highlights),
@@ -642,13 +642,13 @@ MANDATORY RULES - DO NOT BREAK THESE:
       overallAssessment: String(obj.overallAssessment || 'Report generated'),
       categories: Array.isArray(obj.categories)
         ? obj.categories
-            .map((cat: any) => ({
-              name: String(cat?.name || ''),
-              score: typeof cat?.score === 'number' ? Math.min(10, Math.max(1, cat.score)) : 0,
-              strengths: Array.isArray(cat?.strengths) ? cat.strengths.map((s: any) => String(s)) : [],
-              improvements: Array.isArray(cat?.improvements) ? cat.improvements.map((i: any) => String(i)) : [],
-            }))
-            .filter((cat: any) => cat.name.length > 0)
+          .map((cat: any) => ({
+            name: String(cat?.name || ''),
+            score: typeof cat?.score === 'number' ? Math.min(10, Math.max(1, cat.score)) : 0,
+            strengths: Array.isArray(cat?.strengths) ? cat.strengths.map((s: any) => String(s)) : [],
+            improvements: Array.isArray(cat?.improvements) ? cat.improvements.map((i: any) => String(i)) : [],
+          }))
+          .filter((cat: any) => cat.name.length > 0)
         : [],
     }
 
@@ -703,8 +703,8 @@ export async function generateInterviewQuestions(params: {
 
   const sessionTypeMapping = {
     behavioral: 'behavioral questions (leadership, teamwork, conflict resolution, failures, challenges)',
-    technical: 'technical questions (coding, system design, algorithms, architecture)',
-    mixed: 'a mix of behavioral AND technical questions',
+    technical: 'technical discussion questions (system design, architecture, problem-solving approach, technical concepts)',
+    mixed: 'a mix of behavioral AND technical discussion questions',
   }
 
   const difficultyMapping = {
@@ -716,18 +716,27 @@ export async function generateInterviewQuestions(params: {
   const validCategories = sessionType === 'behavioral'
     ? ['behavioral_leadership', 'behavioral_teamwork', 'behavioral_conflict', 'behavioral_failure']
     : sessionType === 'technical'
-    ? ['technical_coding', 'technical_system_design', 'technical_algorithms']
-    : ['behavioral_leadership', 'behavioral_teamwork', 'technical_coding', 'technical_system_design']
+      ? ['technical_system_design', 'technical_concepts']
+      : ['behavioral_leadership', 'behavioral_teamwork', 'technical_system_design', 'technical_concepts']
 
   const prompt = `You are an expert technical recruiter creating interview questions for ${companyName || 'a company'}.
 
 Generate ${questionCount} ${sessionTypeMapping[sessionType]} at ${difficultyMapping[difficulty]} difficulty level.
 
-${jobDescription ? `Job Description:\n${jobDescription}\n\n` : ''}Generate questions that:
-- Are specific and realistic for actual interviews
-- Test both knowledge and problem-solving ability
+${jobDescription ? `Job Description:\n${jobDescription}\n\n` : ''}CRITICAL REQUIREMENTS:
+- ALL questions MUST be answerable through VERBAL responses only
+- DO NOT include coding challenges, whiteboard coding, or algorithm implementation questions
+- DO NOT ask candidates to write code, demonstrate skills, or perform tasks
+- Focus on discussion-based questions about concepts, experiences, and approaches
+- Technical questions should focus on system design discussions, architecture decisions, and conceptual understanding
+- Questions should test knowledge and problem-solving through conversation, not code
+
+Generate questions that:
+- Are specific and realistic for actual verbal interviews
+- Test knowledge and problem-solving ability through discussion
 - Include clear evaluation criteria
 - Provide helpful guidance for answering
+- Can be fully answered by speaking (no coding, writing, or demonstrations required)
 
 IMPORTANT: For "question_category", you MUST choose EXACTLY ONE from this list:
 ${validCategories.map(c => `- ${c}`).join('\n')}
@@ -737,11 +746,11 @@ Return ONLY valid JSON (no markdown, no code fences, no explanations):
 {
   "questions": [
     {
-      "question_text": "The actual interview question",
+      "question_text": "The actual interview question (verbal response only)",
       "question_category": "Choose ONE from the list above (e.g., ${validCategories[0]})",
       "difficulty": "${difficulty}",
       "ideal_answer_outline": {
-        "structure": "${sessionType === 'behavioral' ? 'STAR (Situation, Task, Action, Result)' : 'Clarify → Approach → Code/Design → Test → Optimize'}",
+        "structure": "${sessionType === 'behavioral' ? 'STAR (Situation, Task, Action, Result)' : 'Clarify → Explain Approach → Discuss Trade-offs → Describe Solution'}",
         "keyPoints": [
           "Key point 1 to cover in the answer",
           "Key point 2 to cover",
@@ -769,12 +778,12 @@ Return ONLY valid JSON (no markdown, no code fences, no explanations):
           "Red flag 2"
         ]
       },
-      "estimated_duration_seconds": ${sessionType === 'technical' ? '600' : '180'}
+      "estimated_duration_seconds": ${sessionType === 'technical' ? '300' : '180'}
     }
   ]
 }
 
-Generate exactly ${questionCount} unique, high-quality questions.`
+Generate exactly ${questionCount} unique, high-quality VERBAL interview questions.`
 
   try {
     const text = await callGeminiWithFallback(prompt, 'COMPLEX')
@@ -803,9 +812,8 @@ Generate exactly ${questionCount} unique, high-quality questions.`
       'behavioral_teamwork',
       'behavioral_conflict',
       'behavioral_failure',
-      'technical_coding',
       'technical_system_design',
-      'technical_algorithms',
+      'technical_concepts',
       'company_culture',
       'company_values',
       'resume_specific',
@@ -871,7 +879,7 @@ export async function generateResumeGrillQuestions(params: {
 
   const structuredData = parsedData ? JSON.stringify(parsedData, null, 2) : 'Not available'
 
-  const prompt = `You are an expert technical interviewer conducting a "Resume Grill" - asking deep, probing questions about specific claims and experiences on the candidate's resume.
+  const prompt = `You are an expert interviewer conducting a "Resume Grill" - asking deep, probing questions about specific claims and experiences on the candidate's resume.
 
 Resume Content:
 ${resumeText}
@@ -879,12 +887,21 @@ ${resumeText}
 Structured Resume Data:
 ${structuredData}
 
+CRITICAL REQUIREMENTS:
+- ALL questions MUST be answerable through VERBAL responses only
+- DO NOT ask candidates to write code, implement algorithms, or demonstrate technical skills
+- DO NOT include coding challenges or whiteboard exercises
+- Focus on discussing experiences, decisions, challenges, and learnings
+- Ask about the "what", "why", and "how" of their experiences through conversation
+- Questions should probe understanding and involvement through discussion, not code
+
 Generate ${questionCount} specific, challenging questions that:
 - Reference SPECIFIC projects, technologies, or experiences from the resume
-- Probe for depth of knowledge and actual involvement
-- Test whether claims are genuine or exaggerated
-- Ask about technical decisions, trade-offs, and challenges
-- Verify understanding of technologies mentioned
+- Probe for depth of knowledge and actual involvement through discussion
+- Test whether claims are genuine or exaggerated via verbal explanation
+- Ask about decisions, trade-offs, and challenges faced
+- Verify understanding of technologies and concepts mentioned through conversation
+- Can be fully answered by speaking about experiences and knowledge
 
 Difficulty level: ${difficulty}
 
@@ -893,15 +910,15 @@ Return ONLY valid JSON (no markdown, no code fences):
 {
   "questions": [
     {
-      "question_text": "I see you worked on [specific project]. Can you walk me through [specific technical challenge]?",
+      "question_text": "I see you worked on [specific project]. Can you walk me through [specific aspect/challenge]?",
       "question_category": "resume_specific",
       "difficulty": "${difficulty}",
       "ideal_answer_outline": {
-        "structure": "Specific project/experience → Technical details → Challenges → Solutions → Impact",
+        "structure": "Specific project/experience → Context → Challenges → Approach → Solutions → Impact",
         "keyPoints": [
-          "Demonstrates actual hands-on experience",
-          "Shows understanding of technical concepts",
-          "Can articulate trade-offs and decisions",
+          "Demonstrates actual hands-on experience through detailed explanation",
+          "Shows understanding of technical concepts and decisions",
+          "Can articulate trade-offs and reasoning",
           "Provides specific metrics or outcomes"
         ],
         "exampleMetrics": [
@@ -911,14 +928,14 @@ Return ONLY valid JSON (no markdown, no code fences):
         ],
         "commonPitfalls": [
           "Vague or generic answers",
-          "Can't explain technical details",
+          "Can't explain technical details or decisions",
           "Over-reliance on 'we' instead of 'I'",
           "Can't discuss challenges or failures"
         ]
       },
       "evaluation_criteria": {
         "mustInclude": [
-          "Specific technical details about the project",
+          "Specific details about the project or experience",
           "Personal contribution (use of 'I' not just 'we')",
           "Challenges faced and how they were overcome"
         ],
@@ -928,10 +945,10 @@ Return ONLY valid JSON (no markdown, no code fences):
           "Shows learning or growth from the experience"
         ],
         "redFlags": [
-          "Cannot provide technical details",
+          "Cannot provide specific details",
           "Vague or rehearsed answers",
           "Blames others for failures",
-          "Inflated claims not backed by details"
+          "Inflated claims not backed by explanation"
         ]
       },
       "estimated_duration_seconds": 240
@@ -939,7 +956,7 @@ Return ONLY valid JSON (no markdown, no code fences):
   ]
 }
 
-Generate exactly ${questionCount} questions that reference ACTUAL content from the resume.`
+Generate exactly ${questionCount} questions that reference ACTUAL content from the resume and can be answered verbally.`
 
   try {
     const text = await callGeminiWithFallback(prompt, 'COMPLEX')
@@ -967,9 +984,8 @@ Generate exactly ${questionCount} questions that reference ACTUAL content from t
       'behavioral_teamwork',
       'behavioral_conflict',
       'behavioral_failure',
-      'technical_coding',
       'technical_system_design',
-      'technical_algorithms',
+      'technical_concepts',
       'company_culture',
       'company_values',
       'resume_specific',
@@ -1084,9 +1100,8 @@ Return exactly ${questionCount} questions.`
       'behavioral_teamwork',
       'behavioral_conflict',
       'behavioral_failure',
-      'technical_coding',
       'technical_system_design',
-      'technical_algorithms',
+      'technical_concepts',
       'company_culture',
       'company_values',
       'resume_specific',

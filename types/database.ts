@@ -133,13 +133,13 @@ export type QuestionCategory =
   | 'behavioral_teamwork'
   | 'behavioral_conflict'
   | 'behavioral_failure'
-  | 'technical_coding'
   | 'technical_system_design'
-  | 'technical_algorithms'
+  | 'technical_concepts'
   | 'company_culture'
   | 'company_values'
   | 'resume_specific'
   | 'other'
+
 
 export interface IdealAnswerOutline {
   structure: string
