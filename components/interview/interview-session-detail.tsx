@@ -23,6 +23,8 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, InterviewFeedback } from "@/types/database"
 import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
+import { VoiceRecorder } from "@/components/interview/VoiceRecorder"
+import { Keyboard } from "lucide-react"
 
 interface InterviewSessionDetailProps {
   sessionId: string
@@ -45,6 +47,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   const [currentFeedback, setCurrentFeedback] = useState<InterviewAnswer | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
 
   const MAX_ANSWER_LENGTH = 2000
   const characterCount = answerText.length
@@ -171,6 +174,24 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
     } finally {
       setSubmitting(false)
     }
+  }
+
+  const handleVoiceTranscription = (transcription: string) => {
+    setAnswerText(transcription)
+    toast({
+      title: "Transcription Complete",
+      description: "Your voice answer has been transcribed. Review and submit when ready.",
+      duration: 3000,
+    })
+  }
+
+  const handleVoiceError = (error: Error) => {
+    toast({
+      title: "Voice Recording Error",
+      description: error.message || "Failed to record or transcribe audio. Please try again.",
+      variant: "destructive",
+      duration: 5000,
+    })
   }
 
   const handleNextQuestion = () => {
@@ -386,32 +407,67 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                 {!currentQuestion?.answer ? (
                   <>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium">Your Answer</label>
-                      <Textarea
-                        value={answerText}
-                        onChange={(e) => setAnswerText(e.target.value)}
-                        placeholder="Type your answer here... Use the STAR method for behavioral questions."
-                        className={`min-h-[200px] resize-none ${isOverLimit ? 'border-destructive focus-visible:ring-destructive' : ''}`}
-                        disabled={submitting}
-                        maxLength={MAX_ANSWER_LENGTH + 100}
-                      />
-                      <div className="flex justify-between items-center">
-                        <p className="text-xs text-muted-foreground">
-                          Aim for clear, structured responses
-                        </p>
-                        <p className={`text-xs font-medium ${
-                          isOverLimit ? 'text-destructive' :
-                          characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
-                          'text-muted-foreground'
-                        }`}>
-                          {characterCount} / {MAX_ANSWER_LENGTH}
-                        </p>
+                      <div className="flex items-center justify-between">
+                        <label className="text-sm font-medium">Your Answer</label>
+                        <div className="flex gap-2">
+                          <Button
+                            type="button"
+                            variant={inputMode === 'text' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setInputMode('text')}
+                            className="gap-2"
+                          >
+                            <Keyboard className="h-4 w-4" />
+                            Text
+                          </Button>
+                          <Button
+                            type="button"
+                            variant={inputMode === 'voice' ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => setInputMode('voice')}
+                            className="gap-2"
+                          >
+                            <Mic className="h-4 w-4" />
+                            Voice
+                          </Button>
+                        </div>
                       </div>
-                      {isOverLimit && (
-                        <p className="text-xs text-destructive flex items-center gap-1">
-                          <AlertCircle className="h-3 w-3" />
-                          Answer exceeds recommended length. Consider being more concise.
-                        </p>
+
+                      {inputMode === 'text' ? (
+                        <>
+                          <Textarea
+                            value={answerText}
+                            onChange={(e) => setAnswerText(e.target.value)}
+                            placeholder="Type your answer here... Use the STAR method for behavioral questions."
+                            className={`min-h-[200px] resize-none ${isOverLimit ? 'border-destructive focus-visible:ring-destructive' : ''}`}
+                            disabled={submitting}
+                            maxLength={MAX_ANSWER_LENGTH + 100}
+                          />
+                          <div className="flex justify-between items-center">
+                            <p className="text-xs text-muted-foreground">
+                              Aim for clear, structured responses
+                            </p>
+                            <p className={`text-xs font-medium ${
+                              isOverLimit ? 'text-destructive' :
+                              characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
+                              'text-muted-foreground'
+                            }`}>
+                              {characterCount} / {MAX_ANSWER_LENGTH}
+                            </p>
+                          </div>
+                          {isOverLimit && (
+                            <p className="text-xs text-destructive flex items-center gap-1">
+                              <AlertCircle className="h-3 w-3" />
+                              Answer exceeds recommended length. Consider being more concise.
+                            </p>
+                          )}
+                        </>
+                      ) : (
+                        <VoiceRecorder
+                          onTranscriptionReceived={handleVoiceTranscription}
+                          onError={handleVoiceError}
+                          disabled={submitting}
+                        />
                       )}
                     </div>
 
