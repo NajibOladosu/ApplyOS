@@ -318,7 +318,7 @@ export default function ApplicationDetailPage() {
 
       // Save document relationships if they changed
       if (selectedDocumentIds.length !== initialSelectedDocumentIds.length ||
-          !selectedDocumentIds.every(id => initialSelectedDocumentIds.includes(id))) {
+        !selectedDocumentIds.every(id => initialSelectedDocumentIds.includes(id))) {
         await updateApplicationDocuments(application.id, selectedDocumentIds)
       }
 
@@ -619,9 +619,8 @@ export default function ApplicationDetailPage() {
                             handleStatusChange(status)
                             setStatusDropdownOpen(false)
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-muted ${
-                            pendingStatus === status ? "bg-muted font-medium" : ""
-                          }`}
+                          className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-muted ${pendingStatus === status ? "bg-muted font-medium" : ""
+                            }`}
                         >
                           {statusLabel[status]}
                         </button>
@@ -669,9 +668,8 @@ export default function ApplicationDetailPage() {
                   transition={{ duration: 0.3 }}
                 >
                   <div
-                    className={`text-sm whitespace-pre-wrap text-muted-foreground bg-muted/30 p-3 rounded border border-input transition-all ${
-                      jobDescriptionExpanded ? "" : "line-clamp-3"
-                    }`}
+                    className={`text-sm whitespace-pre-wrap text-muted-foreground bg-muted/30 p-3 rounded border border-input transition-all ${jobDescriptionExpanded ? "" : "line-clamp-3"
+                      }`}
                   >
                     {application.job_description}
                   </div>
@@ -729,8 +727,8 @@ export default function ApplicationDetailPage() {
                             {doc.analysis_status === "success"
                               ? "✓ Analyzed"
                               : doc.analysis_status === "pending"
-                              ? "⏳ Analyzing..."
-                              : "✗ Not analyzed"}
+                                ? "⏳ Analyzing..."
+                                : "✗ Not analyzed"}
                           </p>
                         </div>
                         <button
@@ -765,19 +763,18 @@ export default function ApplicationDetailPage() {
                               <button
                                 key={doc.id}
                                 onClick={() => toggleDocumentSelection(doc.id)}
-                                className={`w-full text-left p-3 rounded border transition-all ${
-                                  pendingDocumentIds.includes(doc.id)
+                                className={`w-full text-left p-3 rounded border transition-all ${pendingDocumentIds.includes(doc.id)
                                     ? "border-primary bg-primary/10"
                                     : "border-input hover:border-primary/50 hover:bg-muted/50"
-                                }`}
+                                  }`}
                               >
                                 <p className="text-sm font-medium truncate">{doc.file_name}</p>
                                 <p className="text-xs text-muted-foreground">
                                   {doc.analysis_status === "success"
                                     ? "✓ Analyzed"
                                     : doc.analysis_status === "pending"
-                                    ? "⏳ Analyzing..."
-                                    : "✗ Not analyzed"}
+                                      ? "⏳ Analyzing..."
+                                      : "✗ Not analyzed"}
                                 </p>
                               </button>
                             ))}
@@ -845,159 +842,159 @@ export default function ApplicationDetailPage() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h2 className="text-xl sm:text-2xl font-bold">Application Questions</h2>
-            <div className="flex flex-wrap gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleExtractQuestions}
-                disabled={extracting || regenerating !== null || !application.url}
-                title={!application.url ? "Add a URL to the application first" : "Extract questions from the application URL"}
-              >
-                {extracting ? (
-                  <>
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    Extracting...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Extract Questions
-                  </>
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowEditQuestionsModal(true)}
-                disabled={regenerating !== null || extracting}
-                title="Edit, delete, or add new questions"
-              >
-                <Edit className="mr-2 h-4 w-4" />
-                Edit Questions
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleRegenerate()}
-                disabled={regenerating !== null || questions.length === 0}
-              >
-                {regenerating === "all" ? (
-                  <>
-                    <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                    Generating...
-                  </>
-                ) : (
-                  <>
-                    <Sparkles className="mr-2 h-4 w-4" />
-                    Generate All
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {questions.length === 0 ? (
-            <p className="text-sm text-muted-foreground">
-              No questions found for this application yet. {application.url ? "Click 'Extract Questions' above to automatically extract questions from the application URL, or" : "You can"} add questions when creating or editing the application.
-            </p>
-          ) : (
-            questions.map((question, index) => (
-              <motion.div
-                key={question.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <Card>
-                  <CardHeader className="p-4 sm:p-6">
-                    <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                      <div className="flex-1 min-w-0">
-                        <CardTitle className="text-base sm:text-lg">
-                          Question {index + 1}
-                        </CardTitle>
-                        <CardDescription className="text-sm sm:text-base font-medium text-foreground break-words">
-                          {question.question_text}
-                        </CardDescription>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRegenerate(question.id)}
-                        disabled={regenerating === question.id || regenerating === "all"}
-                        className="shrink-0 text-xs sm:text-sm self-end sm:self-start"
-                      >
-                        {regenerating === question.id ? (
-                          <>
-                            <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                            {question.ai_answer ? "Regenerating" : "Generating"}
-                          </>
-                        ) : (
-                          <>
-                            <RotateCw className="mr-1.5 h-3 w-3" />
-                            {question.ai_answer ? "Regenerate" : "Generate"}
-                          </>
-                        )}
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="space-y-4">
-                    <div>
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <p className="text-sm font-medium">AI-Generated Answer</p>
-                      </div>
-                      <Textarea
-                        value={question.ai_answer || ""}
-                        rows={5}
-                        className="resize-none"
-                        readOnly
-                        placeholder="No AI-generated answer yet."
-                      />
-                    </div>
-
-                    {question.ai_answer && (
-                      <div className="flex justify-center">
-                        <Button
-                          variant="outline"
-                          size="icon"
-                          onClick={() => handleCopyAIAnswer(question.id, question.ai_answer || "")}
-                          disabled={saving === question.id}
-                          className="glow-effect hover:bg-primary group"
-                          title="Copy AI answer to your edited answer"
-                        >
-                          <Copy className="h-4 w-4 text-primary group-hover:text-background" />
-                        </Button>
-                      </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExtractQuestions}
+                    disabled={extracting || regenerating !== null || !application.url}
+                    title={!application.url ? "Add a URL to the application first" : "Extract questions from the application URL"}
+                  >
+                    {extracting ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Extracting...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Extract Questions
+                      </>
                     )}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowEditQuestionsModal(true)}
+                    disabled={regenerating !== null || extracting}
+                    title="Edit, delete, or add new questions"
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Questions
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleRegenerate()}
+                    disabled={regenerating !== null || questions.length === 0}
+                  >
+                    {regenerating === "all" ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate All
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </div>
 
-                    <div>
-                      <p className="text-xs text-muted-foreground mb-1">
-                        Your edited answer (saved privately for this application)
-                      </p>
-                      <Textarea
-                        ref={(el) => {
-                          if (el) textareaRefs.set(question.id, el)
-                        }}
-                        defaultValue={question.manual_answer || ""}
-                        rows={4}
-                        onBlur={(e) =>
-                          e.target.value !== (question.manual_answer || "")
-                            ? handleSaveManual(question.id, e.target.value)
-                            : undefined
-                        }
-                        disabled={saving === question.id}
-                      />
-                      {saving === question.id && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Saving...
-                        </p>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          )}
+              {questions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  No questions found for this application yet. {application.url ? "Click 'Extract Questions' above to automatically extract questions from the application URL, or" : "You can"} add questions when creating or editing the application.
+                </p>
+              ) : (
+                questions.map((question, index) => (
+                  <motion.div
+                    key={question.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                  >
+                    <Card>
+                      <CardHeader className="p-4 sm:p-6">
+                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                          <div className="flex-1 min-w-0">
+                            <CardTitle className="text-base sm:text-lg">
+                              Question {index + 1}
+                            </CardTitle>
+                            <CardDescription className="text-sm sm:text-base font-medium text-foreground break-words">
+                              {question.question_text}
+                            </CardDescription>
+                          </div>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRegenerate(question.id)}
+                            disabled={regenerating === question.id || regenerating === "all"}
+                            className="shrink-0 text-xs sm:text-sm self-end sm:self-start"
+                          >
+                            {regenerating === question.id ? (
+                              <>
+                                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                                {question.ai_answer ? "Regenerating" : "Generating"}
+                              </>
+                            ) : (
+                              <>
+                                <RotateCw className="mr-1.5 h-3 w-3" />
+                                {question.ai_answer ? "Regenerate" : "Generate"}
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardHeader>
+                      <CardContent className="space-y-4">
+                        <div>
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <p className="text-sm font-medium">AI-Generated Answer</p>
+                          </div>
+                          <Textarea
+                            value={question.ai_answer || ""}
+                            rows={5}
+                            className="resize-none"
+                            readOnly
+                            placeholder="No AI-generated answer yet."
+                          />
+                        </div>
+
+                        {question.ai_answer && (
+                          <div className="flex justify-center">
+                            <Button
+                              variant="outline"
+                              size="icon"
+                              onClick={() => handleCopyAIAnswer(question.id, question.ai_answer || "")}
+                              disabled={saving === question.id}
+                              className="glow-effect hover:bg-primary group"
+                              title="Copy AI answer to your edited answer"
+                            >
+                              <Copy className="h-4 w-4 text-primary group-hover:text-background" />
+                            </Button>
+                          </div>
+                        )}
+
+                        <div>
+                          <p className="text-xs text-muted-foreground mb-1">
+                            Your edited answer (saved privately for this application)
+                          </p>
+                          <Textarea
+                            ref={(el) => {
+                              if (el) textareaRefs.set(question.id, el)
+                            }}
+                            defaultValue={question.manual_answer || ""}
+                            rows={4}
+                            onBlur={(e) =>
+                              e.target.value !== (question.manual_answer || "")
+                                ? handleSaveManual(question.id, e.target.value)
+                                : undefined
+                            }
+                            disabled={saving === question.id}
+                          />
+                          {saving === question.id && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Saving...
+                            </p>
+                          )}
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                ))
+              )}
             </div>
           </TabsContent>
 
@@ -1013,6 +1010,7 @@ export default function ApplicationDetailPage() {
                     try {
                       const sessions = await getInterviewSessions(id!)
                       setInterviewSessions(sessions)
+                      setSelectedSessionId(null) // Go back to list
                     } catch (err) {
                       console.error('Error reloading sessions:', err)
                     }
@@ -1139,11 +1137,10 @@ export default function ApplicationDetailPage() {
                                     <>
                                       <div className="text-sm">
                                         <span className="text-muted-foreground">Avg Score: </span>
-                                        <span className={`font-semibold ${
-                                          avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                          avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                          'text-red-600 dark:text-red-400'
-                                        }`}>
+                                        <span className={`font-semibold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
+                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                              'text-red-600 dark:text-red-400'
+                                          }`}>
                                           {avgScore.toFixed(1)}/10
                                         </span>
                                       </div>
@@ -1174,93 +1171,93 @@ export default function ApplicationDetailPage() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleGenerateCoverLetter}
-              disabled={generatingCoverLetter}
-            >
-              {generatingCoverLetter ? (
-                <>
-                  <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                  Generating...
-                </>
-              ) : (
-                <>
-                  <Sparkles className="mr-2 h-4 w-4" />
-                  Generate Cover Letter
-                </>
-              )}
-            </Button>
-          </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateCoverLetter}
+                  disabled={generatingCoverLetter}
+                >
+                  {generatingCoverLetter ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate Cover Letter
+                    </>
+                  )}
+                </Button>
+              </div>
 
-          {application?.ai_cover_letter && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-            >
-              <Card>
-                <CardHeader className="p-4 sm:p-6">
-                  <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
-                </CardHeader>
-                <CardContent className="p-4 sm:p-6">
-                  <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-                    {/* AI-Generated Cover Letter */}
-                    <div className="flex-1 flex flex-col">
-                      <div className="flex items-center space-x-2 mb-2">
-                        <Sparkles className="h-4 w-4 text-primary" />
-                        <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+              {application?.ai_cover_letter && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                        {/* AI-Generated Cover Letter */}
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+                          </div>
+                          <Textarea
+                            value={application.ai_cover_letter || ""}
+                            className="resize-none flex-1 min-h-[400px]"
+                            readOnly
+                            placeholder="No AI-generated cover letter yet."
+                          />
+                        </div>
+
+                        {/* Copy Button */}
+                        <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
+                            disabled={savingCoverLetter}
+                            className="glow-effect hover:bg-primary group"
+                            title="Copy AI cover letter to your edited cover letter"
+                          >
+                            <Copy className="h-4 w-4 text-primary group-hover:text-background" />
+                          </Button>
+                        </div>
+
+                        {/* Your Edited Cover Letter */}
+                        <div className="flex-1 flex flex-col">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Your edited cover letter (saved privately for this application)
+                          </p>
+                          <Textarea
+                            ref={coverLetterTextareaRef}
+                            defaultValue={application.manual_cover_letter || ""}
+                            className="resize-none flex-1 min-h-[400px]"
+                            onBlur={(e) =>
+                              e.target.value !== (application.manual_cover_letter || "")
+                                ? handleSaveManualCoverLetter(e.target.value)
+                                : undefined
+                            }
+                            disabled={savingCoverLetter}
+                          />
+                          {savingCoverLetter && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Saving...
+                            </p>
+                          )}
+                        </div>
                       </div>
-                      <Textarea
-                        value={application.ai_cover_letter || ""}
-                        className="resize-none flex-1 min-h-[400px]"
-                        readOnly
-                        placeholder="No AI-generated cover letter yet."
-                      />
-                    </div>
-
-                    {/* Copy Button */}
-                    <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
-                      <Button
-                        variant="outline"
-                        size="icon"
-                        onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
-                        disabled={savingCoverLetter}
-                        className="glow-effect hover:bg-primary group"
-                        title="Copy AI cover letter to your edited cover letter"
-                      >
-                        <Copy className="h-4 w-4 text-primary group-hover:text-background" />
-                      </Button>
-                    </div>
-
-                    {/* Your Edited Cover Letter */}
-                    <div className="flex-1 flex flex-col">
-                      <p className="text-xs text-muted-foreground mb-2">
-                        Your edited cover letter (saved privately for this application)
-                      </p>
-                      <Textarea
-                        ref={coverLetterTextareaRef}
-                        defaultValue={application.manual_cover_letter || ""}
-                        className="resize-none flex-1 min-h-[400px]"
-                        onBlur={(e) =>
-                          e.target.value !== (application.manual_cover_letter || "")
-                            ? handleSaveManualCoverLetter(e.target.value)
-                            : undefined
-                        }
-                        disabled={savingCoverLetter}
-                      />
-                      {savingCoverLetter && (
-                        <p className="text-xs text-muted-foreground mt-1">
-                          Saving...
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </motion.div>
-          )}
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
             </div>
           </TabsContent>
 
@@ -1272,86 +1269,86 @@ export default function ApplicationDetailPage() {
                   <StickyNote className="h-6 w-6" />
                   Notes
                 </h2>
-            <div className="flex flex-wrap gap-2">
-              <div className="flex items-center gap-1 border border-input rounded-lg p-1">
-                <Button
-                  variant={notesViewType === "card" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => {
-                    setNotesViewType("card")
-                    localStorage.setItem(`notes-view-${id}`, "card")
-                  }}
-                  className="text-xs"
-                >
-                  Card View
-                </Button>
-                <Button
-                  variant={notesViewType === "timeline" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => {
-                    setNotesViewType("timeline")
-                    localStorage.setItem(`notes-view-${id}`, "timeline")
-                  }}
-                  className="text-xs"
-                >
-                  Timeline
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-1 border border-input rounded-lg p-1">
+                    <Button
+                      variant={notesViewType === "card" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => {
+                        setNotesViewType("card")
+                        localStorage.setItem(`notes-view-${id}`, "card")
+                      }}
+                      className="text-xs"
+                    >
+                      Card View
+                    </Button>
+                    <Button
+                      variant={notesViewType === "timeline" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => {
+                        setNotesViewType("timeline")
+                        localStorage.setItem(`notes-view-${id}`, "timeline")
+                      }}
+                      className="text-xs"
+                    >
+                      Timeline
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
+                      setNotesSortOrder(newOrder)
+                      localStorage.setItem(`notes-sort-${id}`, newOrder)
+                    }}
+                    title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
+                  >
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    {notesSortOrder === "newest" ? "Newest" : "Oldest"}
+                  </Button>
+                  <Button
+                    onClick={handleNewNote}
+                    className="glow-effect flex-1 sm:flex-none"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                onClick={() => {
-                  const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
-                  setNotesSortOrder(newOrder)
-                  localStorage.setItem(`notes-sort-${id}`, newOrder)
-                }}
-                title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
-              >
-                <ArrowUpDown className="h-4 w-4 mr-2" />
-                {notesSortOrder === "newest" ? "Newest" : "Oldest"}
-              </Button>
-              <Button
-                onClick={handleNewNote}
-                className="glow-effect flex-1 sm:flex-none"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Note
-              </Button>
-            </div>
-          </div>
 
-          {notesLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-primary" />
-            </div>
-          ) : (() => {
-            // Sort notes based on notesSortOrder
-            const sortedNotes = [...notes].sort((a, b) => {
-              // Keep pinned notes first
-              if (a.is_pinned !== b.is_pinned) {
-                return a.is_pinned ? -1 : 1
-              }
-              // Then sort by date
-              const dateA = new Date(a.created_at).getTime()
-              const dateB = new Date(b.created_at).getTime()
-              return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
-            })
+              {notesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (() => {
+                // Sort notes based on notesSortOrder
+                const sortedNotes = [...notes].sort((a, b) => {
+                  // Keep pinned notes first
+                  if (a.is_pinned !== b.is_pinned) {
+                    return a.is_pinned ? -1 : 1
+                  }
+                  // Then sort by date
+                  const dateA = new Date(a.created_at).getTime()
+                  const dateB = new Date(b.created_at).getTime()
+                  return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
+                })
 
-            return notesViewType === "card" ? (
-              <NotesCardView
-                notes={sortedNotes}
-                onEdit={handleEditNote}
-                onDelete={handleDeleteNote}
-                onTogglePin={handleTogglePinNote}
-              />
-            ) : (
-              <NotesTimelineView
-                notes={sortedNotes}
-                onEdit={handleEditNote}
-                onDelete={handleDeleteNote}
-                onTogglePin={handleTogglePinNote}
-              />
-            )
-          })()}
+                return notesViewType === "card" ? (
+                  <NotesCardView
+                    notes={sortedNotes}
+                    onEdit={handleEditNote}
+                    onDelete={handleDeleteNote}
+                    onTogglePin={handleTogglePinNote}
+                  />
+                ) : (
+                  <NotesTimelineView
+                    notes={sortedNotes}
+                    onEdit={handleEditNote}
+                    onDelete={handleDeleteNote}
+                    onTogglePin={handleTogglePinNote}
+                  />
+                )
+              })()}
             </div>
           </TabsContent>
         </Tabs>
@@ -1369,10 +1366,10 @@ export default function ApplicationDetailPage() {
         initialNote={
           editingNote
             ? {
-                content: editingNote.content,
-                category: editingNote.category,
-                is_pinned: editingNote.is_pinned,
-              }
+              content: editingNote.content,
+              category: editingNote.category,
+              is_pinned: editingNote.is_pinned,
+            }
             : undefined
         }
       />

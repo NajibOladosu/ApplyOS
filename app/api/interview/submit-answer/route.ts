@@ -70,7 +70,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch question with verification
-    const question = await getInterviewQuestion(questionId)
+    const question = await getInterviewQuestion(questionId, supabase)
 
     if (!question) {
       return NextResponse.json({ error: 'Question not found' }, { status: 404 })
@@ -79,6 +79,7 @@ export async function POST(request: NextRequest) {
     if (question.user_id !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
+
 
     if (question.session_id !== sessionId) {
       return NextResponse.json({ error: 'Question does not belong to this session' }, { status: 400 })

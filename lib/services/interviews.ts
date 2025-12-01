@@ -31,15 +31,19 @@ export async function getInterviewSessions(applicationId: string): Promise<Inter
   return data as InterviewSession[]
 }
 
-export async function getInterviewSession(sessionId: string): Promise<InterviewSession> {
-  const supabase = createClient()
+export async function getInterviewSession(
+  sessionId: string,
+  supabaseClient?: SupabaseClient
+): Promise<InterviewSession> {
+  const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_sessions')
     .select('*')
     .eq('id', sessionId)
-    .single()
+    .maybeSingle()
 
   if (error) throw error
+  if (!data) throw new Error(`Interview session not found or access denied: ${sessionId}`)
   return data as InterviewSession
 }
 
@@ -143,15 +147,19 @@ export async function getQuestionsForSession(sessionId: string): Promise<Intervi
   return data as InterviewQuestion[]
 }
 
-export async function getInterviewQuestion(questionId: string): Promise<InterviewQuestion> {
-  const supabase = createClient()
+export async function getInterviewQuestion(
+  questionId: string,
+  supabaseClient?: SupabaseClient
+): Promise<InterviewQuestion> {
+  const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_questions')
     .select('*')
     .eq('id', questionId)
-    .single()
+    .maybeSingle()
 
   if (error) throw error
+  if (!data) throw new Error(`Interview question not found or access denied: ${questionId}`)
   return data as InterviewQuestion
 }
 
@@ -257,8 +265,11 @@ export async function deleteQuestion(questionId: string): Promise<void> {
 // INTERVIEW ANSWERS
 // ============================================================================
 
-export async function getAnswersForSession(sessionId: string): Promise<InterviewAnswer[]> {
-  const supabase = createClient()
+export async function getAnswersForSession(
+  sessionId: string,
+  supabaseClient?: SupabaseClient
+): Promise<InterviewAnswer[]> {
+  const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_answers')
     .select('*')
@@ -315,24 +326,39 @@ export async function createAnswer(
       },
     ])
     .select()
-    .single()
 
-  if (error) throw error
+  if (error) {
+    console.error('Error inserting answer:', error)
+    throw error
+  }
+
+  if (!data || data.length === 0) {
+    throw new Error('Failed to create answer: No data returned')
+  }
+
+  const insertedAnswer = Array.isArray(data) ? data[0] : data
 
   // Update session statistics
-  const session = await getInterviewSession(answer.session_id)
-  const answeredCount = session.answered_questions + 1
+  try {
+    const session = await getInterviewSession(answer.session_id, supabase)
 
-  // Recalculate average score
-  const allAnswers = await getAnswersForSession(answer.session_id)
-  const newAverage = allAnswers.reduce((sum, a) => sum + a.score, 0) / allAnswers.length
+    const answeredCount = session.answered_questions + 1
 
-  await updateInterviewSession(answer.session_id, {
-    answered_questions: answeredCount,
-    average_score: newAverage,
-  }, supabase)
+    // Recalculate average score
+    const allAnswers = await getAnswersForSession(answer.session_id, supabase)
+    const newAverage = allAnswers.reduce((sum, a) => sum + a.score, 0) / allAnswers.length
 
-  return data as InterviewAnswer
+    await updateInterviewSession(answer.session_id, {
+      answered_questions: answeredCount,
+      average_score: newAverage,
+    }, supabase)
+  } catch (err) {
+    // Don't fail the request if stats update fails, but log it
+    // actually, if we want to debug, let's rethrow or let it bubble up
+    throw err
+  }
+
+  return insertedAnswer as InterviewAnswer
 }
 
 export async function updateAnswer(
