@@ -41,7 +41,6 @@ export function VoiceRecorder({
       setAudioBlobs(prev => [...prev, chunk.blob])
     },
     onError: (err) => {
-      console.error('Recording error:', err)
       onError?.(err)
     },
     onPermissionDenied: () => {
@@ -107,7 +106,6 @@ export function VoiceRecorder({
 
     } catch (err) {
       const error = err instanceof Error ? err : new Error('Transcription failed')
-      console.error('Transcription error:', error)
       onError?.(error)
     } finally {
       setIsTranscribing(false)
