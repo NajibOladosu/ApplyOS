@@ -49,7 +49,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   const [error, setError] = useState<string | null>(null)
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
 
-  const MAX_ANSWER_LENGTH = 2000
+  const MAX_ANSWER_LENGTH = 5000
   const characterCount = answerText.length
   const isOverLimit = characterCount > MAX_ANSWER_LENGTH
 
@@ -447,11 +447,10 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                             <p className="text-xs text-muted-foreground">
                               Aim for clear, structured responses
                             </p>
-                            <p className={`text-xs font-medium ${
-                              isOverLimit ? 'text-destructive' :
-                              characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
-                              'text-muted-foreground'
-                            }`}>
+                            <p className={`text-xs font-medium ${isOverLimit ? 'text-destructive' :
+                                characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
+                                  'text-muted-foreground'
+                              }`}>
                               {characterCount} / {MAX_ANSWER_LENGTH}
                             </p>
                           </div>
