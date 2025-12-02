@@ -195,8 +195,8 @@ export default function InterviewPage() {
                   </CardHeader>
                   <CardContent>
                     <div className={`text-2xl font-bold ${averageScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                        averageScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                          'text-red-600 dark:text-red-400'
+                      averageScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                        'text-red-600 dark:text-red-400'
                       }`}>
                       {averageScore.toFixed(1)}/10
                     </div>
@@ -318,12 +318,12 @@ export default function InterviewPage() {
                                   {session.answered_questions > 0 && (
                                     <div className="flex items-center gap-1.5">
                                       <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-green-500/10 border border-green-500/30' :
-                                          avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                                            'bg-red-500/10 border border-red-500/30'
+                                        avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                                          'bg-red-500/10 border border-red-500/30'
                                         }`}>
                                         <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                              'text-red-600 dark:text-red-400'
+                                          avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                            'text-red-600 dark:text-red-400'
                                           }`}>
                                           {avgScore.toFixed(1)}
                                         </span>
@@ -384,29 +384,46 @@ export default function InterviewPage() {
 
                         return (
                           <Link key={session.id} href={`/applications/${session.application_id}?tab=interview&session=${session.id}`}>
-                            <Card className="cursor-pointer hover:border-primary transition-all">
-                              <CardContent className="pt-4">
-                                <div className="flex items-center justify-between gap-4 mb-3">
+                            <Card className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm">
+                              {/* Gradient overlay on hover */}
+                              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                              <CardContent className="pt-4 pb-4">
+                                <div className="flex items-center justify-between gap-3 mb-3">
                                   <div className="flex-1 min-w-0">
-                                    <p className="font-medium truncate">{session.application?.title || 'Unknown Application'}</p>
+                                    <p className="font-semibold truncate">{session.application?.title || 'Unknown Application'}</p>
                                     <p className="text-xs text-muted-foreground">
                                       {new Date(session.created_at).toLocaleDateString()}
                                     </p>
                                   </div>
-                                  {session.answered_questions > 0 && (
-                                    <div className={`text-lg font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                        avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                          'text-red-600 dark:text-red-400'
-                                      }`}>
-                                      {avgScore.toFixed(1)}/10
-                                    </div>
-                                  )}
+                                  <div className="flex items-center gap-2 shrink-0">
+                                    {(session.status === 'completed' || progress === 100) && (
+                                      <Badge className="bg-green-600 text-white border-0 shadow-sm text-xs">
+                                        ✓
+                                      </Badge>
+                                    )}
+                                    {session.answered_questions > 0 && (
+                                      <div className={`flex items-center justify-center h-8 w-8 rounded-full ${avgScore >= 8 ? 'bg-green-500/10 border border-green-500/30' :
+                                          avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                                            'bg-red-500/10 border border-red-500/30'
+                                        }`}>
+                                        <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
+                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                              'text-red-600 dark:text-red-400'
+                                          }`}>
+                                          {avgScore.toFixed(1)}
+                                        </span>
+                                      </div>
+                                    )}
+                                  </div>
                                 </div>
-                                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                                <div className="relative h-2 w-full bg-secondary/50 rounded-full overflow-hidden border border-border/50">
                                   <div
-                                    className="h-full bg-primary transition-all"
+                                    className="h-full bg-gradient-to-r from-primary via-primary to-primary/80 transition-all duration-500 ease-out relative"
                                     style={{ width: `${progress}%` }}
-                                  />
+                                  >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                                  </div>
                                 </div>
                               </CardContent>
                             </Card>
