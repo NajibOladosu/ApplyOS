@@ -297,6 +297,12 @@ export default function TestLivePage() {
       mediaRecorderRef.current = null
       setIsRecording(false)
       addMessage('⏹️ Recording stopped')
+
+      // Signal turn completion to Gemini
+      if (client) {
+        client.sendText('') // Empty text with turnComplete triggers AI response
+        addMessage('✅ Turn complete signal sent')
+      }
     }
   }
 
