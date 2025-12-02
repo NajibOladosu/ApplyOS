@@ -24,6 +24,8 @@ import {
   StickyNote,
   ArrowUpDown,
   Mic,
+  FileText,
+  Trash2,
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
@@ -31,6 +33,7 @@ import { getApplication, updateApplication, getApplicationDocuments, updateAppli
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
+import { deleteInterviewSession } from "@/lib/services/interviews"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
@@ -83,6 +86,8 @@ export default function ApplicationDetailPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [interviewLoading, setInterviewLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("questions")
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+  const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -467,6 +472,27 @@ export default function ApplicationDetailPage() {
     setShowNoteModal(true)
   }
 
+  const handleViewReport = (sessionId: string) => {
+    setSelectedSessionId(sessionId)
+  }
+
+  const handleDeleteInterview = async () => {
+    if (!sessionToDelete) return
+
+    setDeletingSessionId(sessionToDelete)
+    try {
+      await deleteInterviewSession(sessionToDelete)
+      setInterviewSessions((prev) => prev.filter((s) => s.id !== sessionToDelete))
+      setSessionToDelete(null)
+    } catch (err) {
+      console.error("Error deleting interview:", err)
+      setError("Failed to delete interview. Please try again.")
+    } finally {
+      setDeletingSessionId(null)
+    }
+  }
+
+
   if (!id) {
     return (
       <DashboardLayout>
@@ -764,8 +790,8 @@ export default function ApplicationDetailPage() {
                                 key={doc.id}
                                 onClick={() => toggleDocumentSelection(doc.id)}
                                 className={`w-full text-left p-3 rounded border transition-all ${pendingDocumentIds.includes(doc.id)
-                                    ? "border-primary bg-primary/10"
-                                    : "border-input hover:border-primary/50 hover:bg-muted/50"
+                                  ? "border-primary bg-primary/10"
+                                  : "border-input hover:border-primary/50 hover:bg-muted/50"
                                   }`}
                               >
                                 <p className="text-sm font-medium truncate">{doc.file_name}</p>
@@ -819,7 +845,6 @@ export default function ApplicationDetailPage() {
                 value="interview"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
               >
-                <Mic className="h-4 w-4 mr-2" />
                 Interview
               </TabsTrigger>
               <TabsTrigger
@@ -1106,12 +1131,51 @@ export default function ApplicationDetailPage() {
                                       {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
                                     </CardDescription>
                                   </div>
-                                  <Badge
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className={`capitalize ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
+                                    >
+                                      {session.difficulty || 'medium'}
+                                    </Badge>
+                                  </div>
+                                </div>
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 mt-3">
+                                  <Button
                                     variant="outline"
-                                    className={`capitalize ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
+                                    size="sm"
+                                    className="flex-1 text-primary border-primary hover:bg-primary hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleViewReport(session.id)
+                                    }}
                                   >
-                                    {session.difficulty || 'medium'}
-                                  </Badge>
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Report
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSessionToDelete(session.id)
+                                    }}
+                                    disabled={deletingSessionId === session.id}
+                                  >
+                                    {deletingSessionId === session.id ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Deleting...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </>
+                                    )}
+                                  </Button>
                                 </div>
                               </CardHeader>
                               <CardContent className="space-y-4">
@@ -1138,8 +1202,8 @@ export default function ApplicationDetailPage() {
                                       <div className="text-sm">
                                         <span className="text-muted-foreground">Avg Score: </span>
                                         <span className={`font-semibold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                              'text-red-600 dark:text-red-400'
+                                          avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                            'text-red-600 dark:text-red-400'
                                           }`}>
                                           {avgScore.toFixed(1)}/10
                                         </span>
@@ -1456,6 +1520,19 @@ export default function ApplicationDetailPage() {
         message={successMessage || ""}
         type="success"
         onClose={() => setSuccessMessage(null)}
+      />
+
+      {/* Delete Interview Confirmation Modal */}
+      <ConfirmModal
+        isOpen={!!sessionToDelete}
+        title="Delete Interview Session?"
+        description="This will permanently delete this interview session and all associated questions and answers. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteInterview}
+        onCancel={() => setSessionToDelete(null)}
+        isLoading={!!deletingSessionId}
+        variant="destructive"
       />
     </DashboardLayout>
   )
