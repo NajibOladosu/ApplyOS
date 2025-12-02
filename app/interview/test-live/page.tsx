@@ -26,6 +26,11 @@ export default function TestLivePage() {
   const streamRef = useRef<MediaStream | null>(null)
   const userAudioBufferRef = useRef<string>('') // Buffer user speech
 
+  // Audio playback queue
+  const playbackContextRef = useRef<AudioContext | null>(null)
+  const nextPlayTimeRef = useRef<number>(0)
+  const audioQueueRef = useRef<AudioBuffer[]>([])
+
   const addMessage = (message: string) => {
     const timestamp = new Date().toLocaleTimeString()
     setMessages((prev) => [...prev, `[${timestamp}] ${message}`])
@@ -108,6 +113,9 @@ export default function TestLivePage() {
     }
 
     try {
+      // Reset audio playback for new session
+      resetAudioPlayback()
+
       addMessage('🔄 Initializing live session...')
       setConnectionState('connecting')
 
@@ -194,6 +202,7 @@ export default function TestLivePage() {
     if (client) {
       addMessage('🔄 Disconnecting...')
       stopRecording()
+      resetAudioPlayback()
       client.disconnect()
       setClient(null)
       setConnectionState('disconnected')
@@ -293,12 +302,15 @@ export default function TestLivePage() {
 
   const playAudioResponse = async (base64Audio: string) => {
     try {
-      addMessage(`🔊 Received AI audio (${base64Audio.length} chars)`)
+      // Create playback context once and reuse it
+      if (!playbackContextRef.current) {
+        playbackContextRef.current = new AudioContext()
+        nextPlayTimeRef.current = playbackContextRef.current.currentTime
+      }
 
-      // Create a new AudioContext for playback (separate from recording)
-      const playbackContext = new AudioContext()
+      const playbackContext = playbackContextRef.current
 
-      // Ensure context is running (required for autoplay in some browsers)
+      // Ensure context is running
       if (playbackContext.state === 'suspended') {
         await playbackContext.resume()
       }
@@ -309,8 +321,6 @@ export default function TestLivePage() {
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i)
       }
-
-      console.log('Audio bytes:', bytes.length, 'first 20:', Array.from(bytes.slice(0, 20)))
 
       // Convert bytes to Int16Array (little-endian 16-bit PCM)
       const dataView = new DataView(bytes.buffer)
@@ -324,42 +334,60 @@ export default function TestLivePage() {
       // Convert 16-bit PCM to Float32Array (normalized to -1.0 to 1.0)
       const float32 = new Float32Array(pcm16.length)
       for (let i = 0; i < pcm16.length; i++) {
-        // Normalize: divide by 32768 for proper range
         float32[i] = pcm16[i] / 32768.0
       }
 
       // Gemini uses 24kHz sample rate for native audio output
-      // Try 24000 first, but log so we can adjust if needed
       const sampleRate = 24000
-      const duration = numSamples / sampleRate
-
-      console.log('Audio info:', {
-        samples: numSamples,
-        sampleRate,
-        duration: duration.toFixed(2) + 's',
-        peakValue: Math.max(...float32.map(Math.abs)).toFixed(3)
-      })
-
       const audioBuffer = playbackContext.createBuffer(1, float32.length, sampleRate)
       audioBuffer.copyToChannel(float32, 0)
 
-      // Create source and play
+      // Schedule this chunk to play after previous chunks
+      const currentTime = playbackContext.currentTime
+
+      // If nextPlayTime is in the past, start immediately
+      if (nextPlayTimeRef.current < currentTime) {
+        nextPlayTimeRef.current = currentTime
+      }
+
       const source = playbackContext.createBufferSource()
       source.buffer = audioBuffer
       source.connect(playbackContext.destination)
 
-      addMessage(`✅ Playing AI audio (${duration.toFixed(1)}s at ${sampleRate}Hz)`)
+      // Start at scheduled time
+      source.start(nextPlayTimeRef.current)
 
-      source.onended = () => {
-        addMessage('✅ Audio playback completed')
-        playbackContext.close()
+      // Log first chunk
+      if (audioQueueRef.current.length === 0) {
+        addMessage(`🔊 Started streaming AI audio at ${sampleRate}Hz`)
       }
 
-      source.start(0)
+      // Update next play time
+      nextPlayTimeRef.current += audioBuffer.duration
+
+      // Track queued buffers
+      audioQueueRef.current.push(audioBuffer)
+
+      // Log progress every 10 chunks
+      if (audioQueueRef.current.length % 10 === 0) {
+        const totalDuration = audioQueueRef.current.reduce((sum, buf) => sum + buf.duration, 0)
+        console.log(`Queued ${audioQueueRef.current.length} chunks, total: ${totalDuration.toFixed(1)}s`)
+      }
     } catch (error: any) {
       console.error('Audio playback error:', error)
       addMessage(`❌ Audio playback error: ${error.message}`)
     }
+  }
+
+  // Reset audio playback queue (call when starting new conversation)
+  const resetAudioPlayback = () => {
+    if (playbackContextRef.current) {
+      playbackContextRef.current.close()
+      playbackContextRef.current = null
+    }
+    nextPlayTimeRef.current = 0
+    audioQueueRef.current = []
+    addMessage('🔄 Audio playback reset')
   }
 
   const handleSendTest = () => {
