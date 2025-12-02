@@ -121,3 +121,152 @@ export interface ApplicationNote {
   created_at: string
   updated_at: string
 }
+
+// Interview feature types
+export type SessionType = 'behavioral' | 'technical' | 'company_specific' | 'mixed' | 'resume_grill'
+export type SessionStatus = 'in_progress' | 'completed' | 'abandoned'
+export type InterviewDifficulty = 'easy' | 'medium' | 'hard'
+export type AnswerType = 'voice' | 'text'
+
+export type QuestionCategory =
+  | 'behavioral_leadership'
+  | 'behavioral_teamwork'
+  | 'behavioral_conflict'
+  | 'behavioral_failure'
+  | 'technical_system_design'
+  | 'technical_concepts'
+  | 'company_culture'
+  | 'company_values'
+  | 'resume_specific'
+  | 'other'
+
+
+export interface IdealAnswerOutline {
+  structure: string
+  keyPoints: string[]
+  exampleMetrics?: string[]
+  commonPitfalls?: string[]
+}
+
+export interface EvaluationCriteria {
+  mustInclude?: string[]
+  bonusPoints?: string[]
+  redFlags?: string[]
+}
+
+export interface InterviewFeedback {
+  overall: string
+  strengths: string[]
+  weaknesses: string[]
+  suggestions: string[]
+}
+
+export interface ScoreBreakdown {
+  clarity: number
+  structure: number
+  relevance: number
+  depth: number
+  confidence: number
+}
+
+export interface InterviewSession {
+  id: string
+  application_id: string
+  user_id: string
+  session_type: SessionType
+  company_name: string | null
+  difficulty: InterviewDifficulty | null
+  status: SessionStatus
+  started_at: string
+  completed_at: string | null
+  total_questions: number
+  answered_questions: number
+  average_score: number | null
+  total_duration_seconds: number | null
+  created_at: string
+  updated_at: string
+}
+
+export interface InterviewQuestion {
+  id: string
+  session_id: string
+  user_id: string
+  question_text: string
+  question_category: QuestionCategory
+  difficulty: InterviewDifficulty | null
+  ideal_answer_outline: IdealAnswerOutline | null
+  evaluation_criteria: EvaluationCriteria | null
+  question_order: number
+  estimated_duration_seconds: number
+  created_at: string
+}
+
+export interface InterviewAnswer {
+  id: string
+  question_id: string
+  session_id: string
+  user_id: string
+  answer_text: string
+  answer_type: AnswerType
+  audio_url: string | null
+  audio_duration_seconds: number | null
+  transcription_confidence: number | null
+  score: number
+  feedback: InterviewFeedback
+  clarity_score: number | null
+  structure_score: number | null
+  relevance_score: number | null
+  depth_score: number | null
+  confidence_score: number | null
+  time_taken_seconds: number | null
+  answered_at: string
+  created_at: string
+}
+
+export interface InterviewAnalytics {
+  id: string
+  user_id: string
+  application_id: string | null
+  period_start: string
+  period_end: string
+  total_sessions: number
+  total_questions: number
+  total_answers: number
+  average_score: number | null
+  average_clarity_score: number | null
+  average_structure_score: number | null
+  average_relevance_score: number | null
+  average_depth_score: number | null
+  average_confidence_score: number | null
+  scores_by_category: Record<string, number> | null
+  top_strengths: string[] | null
+  common_weaknesses: string[] | null
+  score_trend: Array<{ date: string; score: number }> | null
+  created_at: string
+  updated_at: string
+}
+
+export interface TemplateQuestion {
+  text: string
+  category: QuestionCategory
+  difficulty: InterviewDifficulty
+  idealOutline: IdealAnswerOutline
+  evaluationCriteria: EvaluationCriteria
+  estimatedDurationSeconds: number
+  tags?: string[]
+}
+
+export interface CompanyTemplate {
+  id: string
+  company_name: string
+  company_slug: string
+  job_role: string | null
+  interview_round: string | null
+  questions: TemplateQuestion[]
+  description: string | null
+  tips: string[] | null
+  times_used: number
+  last_used_at: string | null
+  created_at: string
+  updated_at: string
+}
