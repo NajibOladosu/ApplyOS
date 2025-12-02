@@ -147,7 +147,10 @@ export default function TestLivePage() {
             addMessage('✅ Setup complete - ready for audio')
           },
           onServerContent: (content) => {
+            console.log('Server content received:', content)
             if (content.modelTurn?.parts) {
+              console.log('Parts:', content.modelTurn.parts)
+
               // Handle text response
               const textPart = content.modelTurn.parts.find((p: any) => p.text)
               if (textPart) {
@@ -159,11 +162,17 @@ export default function TestLivePage() {
 
               // Handle audio response
               const audioPart = content.modelTurn.parts.find((p: any) => p.inlineData)
+              console.log('Audio part found:', audioPart)
               if (audioPart?.inlineData?.data) {
                 addMessage(`🔊 Playing AI audio response...`)
                 playAudioResponse(audioPart.inlineData.data)
               }
             }
+          },
+          onAudioResponse: (audioData) => {
+            console.log('onAudioResponse called with data length:', audioData.length)
+            addMessage(`🔊 AI audio response received (${audioData.length} chars)`)
+            playAudioResponse(audioData)
           },
           onToolCall: (toolCall) => {
             addMessage(`🔧 Tool call: ${toolCall.name}`)
@@ -294,22 +303,43 @@ export default function TestLivePage() {
         await playbackContext.resume()
       }
 
-      // Decode base64 to Int16Array
+      // Decode base64 to raw bytes
       const binaryString = atob(base64Audio)
-      const uint8Array = new Uint8Array(binaryString.length)
+      const bytes = new Uint8Array(binaryString.length)
       for (let i = 0; i < binaryString.length; i++) {
-        uint8Array[i] = binaryString.charCodeAt(i)
+        bytes[i] = binaryString.charCodeAt(i)
       }
-      const pcm16 = new Int16Array(uint8Array.buffer)
 
-      // Convert 16-bit PCM to Float32Array
+      console.log('Audio bytes:', bytes.length, 'first 20:', Array.from(bytes.slice(0, 20)))
+
+      // Convert bytes to Int16Array (little-endian 16-bit PCM)
+      const dataView = new DataView(bytes.buffer)
+      const numSamples = Math.floor(bytes.length / 2)
+      const pcm16 = new Int16Array(numSamples)
+
+      for (let i = 0; i < numSamples; i++) {
+        pcm16[i] = dataView.getInt16(i * 2, true) // true = little-endian
+      }
+
+      // Convert 16-bit PCM to Float32Array (normalized to -1.0 to 1.0)
       const float32 = new Float32Array(pcm16.length)
       for (let i = 0; i < pcm16.length; i++) {
-        float32[i] = pcm16[i] / (pcm16[i] < 0 ? 0x8000 : 0x7fff)
+        // Normalize: divide by 32768 for proper range
+        float32[i] = pcm16[i] / 32768.0
       }
 
-      // Gemini typically uses 24kHz sample rate for audio output
+      // Gemini uses 24kHz sample rate for native audio output
+      // Try 24000 first, but log so we can adjust if needed
       const sampleRate = 24000
+      const duration = numSamples / sampleRate
+
+      console.log('Audio info:', {
+        samples: numSamples,
+        sampleRate,
+        duration: duration.toFixed(2) + 's',
+        peakValue: Math.max(...float32.map(Math.abs)).toFixed(3)
+      })
+
       const audioBuffer = playbackContext.createBuffer(1, float32.length, sampleRate)
       audioBuffer.copyToChannel(float32, 0)
 
@@ -318,7 +348,7 @@ export default function TestLivePage() {
       source.buffer = audioBuffer
       source.connect(playbackContext.destination)
 
-      addMessage(`✅ Playing AI audio (${(audioBuffer.duration).toFixed(1)}s)`)
+      addMessage(`✅ Playing AI audio (${duration.toFixed(1)}s at ${sampleRate}Hz)`)
 
       source.onended = () => {
         addMessage('✅ Audio playback completed')
