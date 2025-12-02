@@ -366,31 +366,31 @@ Rules:
     const normalized: ParsedDocument = {
       education: Array.isArray(obj.education)
         ? obj.education.map((e: any) => ({
-            institution: String(e?.institution || ''),
-            degree: String(e?.degree || ''),
-            field: String(e?.field || ''),
-            start_date: String(e?.start_date || ''),
-            end_date: String(e?.end_date || ''),
-            description: String(e?.description || ''),
-          }))
+          institution: String(e?.institution || ''),
+          degree: String(e?.degree || ''),
+          field: String(e?.field || ''),
+          start_date: String(e?.start_date || ''),
+          end_date: String(e?.end_date || ''),
+          description: String(e?.description || ''),
+        }))
         : [],
       experience: Array.isArray(obj.experience)
         ? obj.experience.map((e: any) => ({
-            company: String(e?.company || ''),
-            role: String(e?.role || ''),
-            start_date: String(e?.start_date || ''),
-            end_date: String(e?.end_date || ''),
-            description: String(e?.description || ''),
-          }))
+          company: String(e?.company || ''),
+          role: String(e?.role || ''),
+          start_date: String(e?.start_date || ''),
+          end_date: String(e?.end_date || ''),
+          description: String(e?.description || ''),
+        }))
         : [],
       projects: Array.isArray(obj.projects)
         ? obj.projects.map((p: any) => ({
-            name: String(p?.name || ''),
-            description: String(p?.description || ''),
-            technologies: normalizeArray(p?.technologies),
-            start_date: p?.start_date ? String(p.start_date) : undefined,
-            end_date: p?.end_date ? String(p.end_date) : undefined,
-          }))
+          name: String(p?.name || ''),
+          description: String(p?.description || ''),
+          technologies: normalizeArray(p?.technologies),
+          start_date: p?.start_date ? String(p.start_date) : undefined,
+          end_date: p?.end_date ? String(p.end_date) : undefined,
+        }))
         : [],
       skills: {
         technical: normalizeArray(obj.skills?.technical),
@@ -400,10 +400,10 @@ Rules:
       achievements: normalizeArray(obj.achievements),
       certifications: Array.isArray(obj.certifications)
         ? obj.certifications.map((c: any) => ({
-            name: String(c?.name || ''),
-            issuer: String(c?.issuer || ''),
-            date: String(c?.date || ''),
-          }))
+          name: String(c?.name || ''),
+          issuer: String(c?.issuer || ''),
+          date: String(c?.date || ''),
+        }))
         : [],
       keywords: normalizeArray(obj.keywords),
       raw_highlights: normalizeArray(obj.raw_highlights),
@@ -642,13 +642,13 @@ MANDATORY RULES - DO NOT BREAK THESE:
       overallAssessment: String(obj.overallAssessment || 'Report generated'),
       categories: Array.isArray(obj.categories)
         ? obj.categories
-            .map((cat: any) => ({
-              name: String(cat?.name || ''),
-              score: typeof cat?.score === 'number' ? Math.min(10, Math.max(1, cat.score)) : 0,
-              strengths: Array.isArray(cat?.strengths) ? cat.strengths.map((s: any) => String(s)) : [],
-              improvements: Array.isArray(cat?.improvements) ? cat.improvements.map((i: any) => String(i)) : [],
-            }))
-            .filter((cat: any) => cat.name.length > 0)
+          .map((cat: any) => ({
+            name: String(cat?.name || ''),
+            score: typeof cat?.score === 'number' ? Math.min(10, Math.max(1, cat.score)) : 0,
+            strengths: Array.isArray(cat?.strengths) ? cat.strengths.map((s: any) => String(s)) : [],
+            improvements: Array.isArray(cat?.improvements) ? cat.improvements.map((i: any) => String(i)) : [],
+          }))
+          .filter((cat: any) => cat.name.length > 0)
         : [],
     }
 
@@ -659,6 +659,596 @@ MANDATORY RULES - DO NOT BREAK THESE:
     }
     console.error('Error generating document report:', error)
     return defaultReport
+  }
+}
+
+/**
+ * Generate interview questions for behavioral, technical, or mixed interviews.
+ *
+ * @param sessionType - Type of interview session
+ * @param difficulty - Difficulty level (easy, medium, hard)
+ * @param questionCount - Number of questions to generate
+ * @param jobDescription - Optional job description for context
+ * @param companyName - Optional company name for context
+ * @returns Array of generated questions with metadata
+ */
+export async function generateInterviewQuestions(params: {
+  sessionType: 'behavioral' | 'technical' | 'mixed'
+  difficulty: 'easy' | 'medium' | 'hard'
+  questionCount: number
+  jobDescription?: string
+  companyName?: string
+}): Promise<Array<{
+  question_text: string
+  question_category: string
+  difficulty: string
+  ideal_answer_outline: {
+    structure: string
+    keyPoints: string[]
+    exampleMetrics?: string[]
+    commonPitfalls?: string[]
+  }
+  evaluation_criteria: {
+    mustInclude: string[]
+    bonusPoints?: string[]
+    redFlags?: string[]
+  }
+  estimated_duration_seconds: number
+}>> {
+  if (!genAI) {
+    throw new Error('AI is not configured. Please add your Gemini API key.')
+  }
+
+  const { sessionType, difficulty, questionCount, jobDescription, companyName } = params
+
+  const sessionTypeMapping = {
+    behavioral: 'behavioral questions (leadership, teamwork, conflict resolution, failures, challenges)',
+    technical: 'technical discussion questions (system design, architecture, problem-solving approach, technical concepts)',
+    mixed: 'a mix of behavioral AND technical discussion questions',
+  }
+
+  const difficultyMapping = {
+    easy: 'entry-level or junior positions (straightforward, foundational)',
+    medium: 'mid-level positions (moderate complexity, some depth required)',
+    hard: 'senior-level positions (complex, strategic, high-impact)',
+  }
+
+  const validCategories = sessionType === 'behavioral'
+    ? ['behavioral_leadership', 'behavioral_teamwork', 'behavioral_conflict', 'behavioral_failure']
+    : sessionType === 'technical'
+      ? ['technical_system_design', 'technical_concepts']
+      : ['behavioral_leadership', 'behavioral_teamwork', 'technical_system_design', 'technical_concepts']
+
+  const prompt = `You are an expert technical recruiter creating interview questions for ${companyName || 'a company'}.
+
+Generate ${questionCount} ${sessionTypeMapping[sessionType]} at ${difficultyMapping[difficulty]} difficulty level.
+
+${jobDescription ? `Job Description:\n${jobDescription}\n\n` : ''}CRITICAL REQUIREMENTS:
+- ALL questions MUST be answerable through VERBAL responses only
+- DO NOT include coding challenges, whiteboard coding, or algorithm implementation questions
+- DO NOT ask candidates to write code, demonstrate skills, or perform tasks
+- Focus on discussion-based questions about concepts, experiences, and approaches
+- Technical questions should focus on system design discussions, architecture decisions, and conceptual understanding
+- Questions should test knowledge and problem-solving through conversation, not code
+
+Generate questions that:
+- Are specific and realistic for actual verbal interviews
+- Test knowledge and problem-solving ability through discussion
+- Include clear evaluation criteria
+- Provide helpful guidance for answering
+- Can be fully answered by speaking (no coding, writing, or demonstrations required)
+
+IMPORTANT: For "question_category", you MUST choose EXACTLY ONE from this list:
+${validCategories.map(c => `- ${c}`).join('\n')}
+
+Return ONLY valid JSON (no markdown, no code fences, no explanations):
+
+{
+  "questions": [
+    {
+      "question_text": "The actual interview question (verbal response only)",
+      "question_category": "Choose ONE from the list above (e.g., ${validCategories[0]})",
+      "difficulty": "${difficulty}",
+      "ideal_answer_outline": {
+        "structure": "${sessionType === 'behavioral' ? 'STAR (Situation, Task, Action, Result)' : 'Clarify → Explain Approach → Discuss Trade-offs → Describe Solution'}",
+        "keyPoints": [
+          "Key point 1 to cover in the answer",
+          "Key point 2 to cover",
+          "Key point 3 to cover"
+        ],
+        "exampleMetrics": [
+          "Example metric or outcome to mention"
+        ],
+        "commonPitfalls": [
+          "Common mistake candidates make",
+          "Another pitfall to avoid"
+        ]
+      },
+      "evaluation_criteria": {
+        "mustInclude": [
+          "Required element 1",
+          "Required element 2"
+        ],
+        "bonusPoints": [
+          "Extra credit item 1",
+          "Extra credit item 2"
+        ],
+        "redFlags": [
+          "Red flag 1",
+          "Red flag 2"
+        ]
+      },
+      "estimated_duration_seconds": ${sessionType === 'technical' ? '300' : '180'}
+    }
+  ]
+}
+
+Generate exactly ${questionCount} unique, high-quality VERBAL interview questions.`
+
+  try {
+    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
+
+    // Handle markdown code fences
+    let jsonText = text
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim()
+    }
+
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
+    if (!jsonMatch) {
+      console.warn('No JSON object found in response:', text.substring(0, 100))
+      throw new Error('Failed to parse AI response')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    if (!parsed.questions || !Array.isArray(parsed.questions)) {
+      throw new Error('Invalid response format')
+    }
+
+    // Validate and sanitize question categories
+    const allValidCategories = [
+      'behavioral_leadership',
+      'behavioral_teamwork',
+      'behavioral_conflict',
+      'behavioral_failure',
+      'technical_system_design',
+      'technical_concepts',
+      'company_culture',
+      'company_values',
+      'resume_specific',
+      'other'
+    ]
+
+    parsed.questions = parsed.questions.map((q: any) => {
+      // Validate category
+      if (!allValidCategories.includes(q.question_category)) {
+        console.warn(`Invalid question category "${q.question_category}", defaulting to "other"`)
+        q.question_category = 'other'
+      }
+      return q
+    })
+
+    return parsed.questions
+  } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error
+    }
+    console.error('Error generating interview questions:', error)
+    throw new Error('Failed to generate interview questions. Please try again.')
+  }
+}
+
+/**
+ * Generate "Resume Grill" questions based on the candidate's resume.
+ * These questions dig deep into specific experiences, projects, and claims.
+ *
+ * @param resumeText - Extracted text from the resume
+ * @param parsedData - Structured resume data
+ * @param questionCount - Number of questions to generate
+ * @param difficulty - Difficulty level
+ * @returns Array of resume-specific questions
+ */
+export async function generateResumeGrillQuestions(params: {
+  resumeText: string
+  parsedData?: unknown
+  questionCount: number
+  difficulty: 'easy' | 'medium' | 'hard'
+}): Promise<Array<{
+  question_text: string
+  question_category: string
+  difficulty: string
+  ideal_answer_outline: {
+    structure: string
+    keyPoints: string[]
+    exampleMetrics?: string[]
+    commonPitfalls?: string[]
+  }
+  evaluation_criteria: {
+    mustInclude: string[]
+    bonusPoints?: string[]
+    redFlags?: string[]
+  }
+  estimated_duration_seconds: number
+}>> {
+  if (!genAI) {
+    throw new Error('AI is not configured. Please add your Gemini API key.')
+  }
+
+  const { resumeText, parsedData, questionCount, difficulty } = params
+
+  const structuredData = parsedData ? JSON.stringify(parsedData, null, 2) : 'Not available'
+
+  const prompt = `You are an expert interviewer conducting a "Resume Grill" - asking deep, probing questions about specific claims and experiences on the candidate's resume.
+
+Resume Content:
+${resumeText}
+
+Structured Resume Data:
+${structuredData}
+
+CRITICAL REQUIREMENTS:
+- ALL questions MUST be answerable through VERBAL responses only
+- DO NOT ask candidates to write code, implement algorithms, or demonstrate technical skills
+- DO NOT include coding challenges or whiteboard exercises
+- Focus on discussing experiences, decisions, challenges, and learnings
+- Ask about the "what", "why", and "how" of their experiences through conversation
+- Questions should probe understanding and involvement through discussion, not code
+
+Generate ${questionCount} specific, challenging questions that:
+- Reference SPECIFIC projects, technologies, or experiences from the resume
+- Probe for depth of knowledge and actual involvement through discussion
+- Test whether claims are genuine or exaggerated via verbal explanation
+- Ask about decisions, trade-offs, and challenges faced
+- Verify understanding of technologies and concepts mentioned through conversation
+- Can be fully answered by speaking about experiences and knowledge
+
+Difficulty level: ${difficulty}
+
+Return ONLY valid JSON (no markdown, no code fences):
+
+{
+  "questions": [
+    {
+      "question_text": "I see you worked on [specific project]. Can you walk me through [specific aspect/challenge]?",
+      "question_category": "resume_specific",
+      "difficulty": "${difficulty}",
+      "ideal_answer_outline": {
+        "structure": "Specific project/experience → Context → Challenges → Approach → Solutions → Impact",
+        "keyPoints": [
+          "Demonstrates actual hands-on experience through detailed explanation",
+          "Shows understanding of technical concepts and decisions",
+          "Can articulate trade-offs and reasoning",
+          "Provides specific metrics or outcomes"
+        ],
+        "exampleMetrics": [
+          "Performance improvements",
+          "Scale achieved",
+          "Business impact"
+        ],
+        "commonPitfalls": [
+          "Vague or generic answers",
+          "Can't explain technical details or decisions",
+          "Over-reliance on 'we' instead of 'I'",
+          "Can't discuss challenges or failures"
+        ]
+      },
+      "evaluation_criteria": {
+        "mustInclude": [
+          "Specific details about the project or experience",
+          "Personal contribution (use of 'I' not just 'we')",
+          "Challenges faced and how they were overcome"
+        ],
+        "bonusPoints": [
+          "Discusses trade-offs considered",
+          "Mentions metrics or measurable impact",
+          "Shows learning or growth from the experience"
+        ],
+        "redFlags": [
+          "Cannot provide specific details",
+          "Vague or rehearsed answers",
+          "Blames others for failures",
+          "Inflated claims not backed by explanation"
+        ]
+      },
+      "estimated_duration_seconds": 240
+    }
+  ]
+}
+
+Generate exactly ${questionCount} questions that reference ACTUAL content from the resume and can be answered verbally.`
+
+  try {
+    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
+
+    // Handle markdown code fences
+    let jsonText = text
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim()
+    }
+
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
+    if (!jsonMatch) {
+      throw new Error('Failed to parse AI response')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    if (!parsed.questions || !Array.isArray(parsed.questions)) {
+      throw new Error('Invalid response format')
+    }
+
+    // Validate and sanitize question categories
+    const allValidCategories = [
+      'behavioral_leadership',
+      'behavioral_teamwork',
+      'behavioral_conflict',
+      'behavioral_failure',
+      'technical_system_design',
+      'technical_concepts',
+      'company_culture',
+      'company_values',
+      'resume_specific',
+      'other'
+    ]
+
+    parsed.questions = parsed.questions.map((q: any) => {
+      // Validate category
+      if (!allValidCategories.includes(q.question_category)) {
+        console.warn(`Invalid question category "${q.question_category}", defaulting to "resume_specific"`)
+        q.question_category = 'resume_specific'
+      }
+      return q
+    })
+
+    return parsed.questions
+  } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error
+    }
+    console.error('Error generating resume grill questions:', error)
+    throw new Error('Failed to generate resume-specific questions. Please try again.')
+  }
+}
+
+/**
+ * Generate company-specific interview questions from a template.
+ * Uses pre-defined question bank but customizes for the specific job description.
+ *
+ * @param templateQuestions - Questions from company_interview_templates
+ * @param jobDescription - Optional job description to customize questions
+ * @param questionCount - Number of questions to select/customize
+ * @returns Array of customized questions
+ */
+export async function generateCompanySpecificQuestions(params: {
+  templateQuestions: Array<any>
+  jobDescription?: string
+  questionCount: number
+}): Promise<Array<{
+  question_text: string
+  question_category: string
+  difficulty: string
+  ideal_answer_outline: any
+  evaluation_criteria: any
+  estimated_duration_seconds: number
+}>> {
+  if (!genAI) {
+    throw new Error('AI is not configured. Please add your Gemini API key.')
+  }
+
+  const { templateQuestions, jobDescription, questionCount } = params
+
+  if (templateQuestions.length === 0) {
+    throw new Error('No template questions provided')
+  }
+
+  // If we have enough template questions and no job description, just return them
+  if (templateQuestions.length >= questionCount && !jobDescription) {
+    return templateQuestions.slice(0, questionCount)
+  }
+
+  const prompt = `You are customizing interview questions from a company-specific question bank.
+
+Template Questions:
+${JSON.stringify(templateQuestions, null, 2)}
+
+${jobDescription ? `Job Description:\n${jobDescription}\n\n` : ''}Task: ${jobDescription ? 'Customize and adapt these questions to better fit the job description.' : 'Select and return the best questions from the template.'}
+
+Select exactly ${questionCount} questions. ${jobDescription ? 'Modify the questions slightly to reference the specific role/responsibilities from the job description while maintaining their core intent and evaluation criteria.' : ''}
+
+Return ONLY valid JSON (no markdown, no code fences):
+
+{
+  "questions": [
+    {
+      "question_text": "The question (customized if job description provided)",
+      "question_category": "category from template",
+      "difficulty": "difficulty from template",
+      "ideal_answer_outline": { ... from template ... },
+      "evaluation_criteria": { ... from template ... },
+      "estimated_duration_seconds": number from template
+    }
+  ]
+}
+
+Return exactly ${questionCount} questions.`
+
+  try {
+    const text = await callGeminiWithFallback(prompt, 'MEDIUM')
+
+    // Handle markdown code fences
+    let jsonText = text
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim()
+    }
+
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
+    if (!jsonMatch) {
+      // Fallback: just return template questions
+      return templateQuestions.slice(0, questionCount)
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+    if (!parsed.questions || !Array.isArray(parsed.questions)) {
+      return templateQuestions.slice(0, questionCount)
+    }
+
+    // Validate and sanitize question categories
+    const allValidCategories = [
+      'behavioral_leadership',
+      'behavioral_teamwork',
+      'behavioral_conflict',
+      'behavioral_failure',
+      'technical_system_design',
+      'technical_concepts',
+      'company_culture',
+      'company_values',
+      'resume_specific',
+      'other'
+    ]
+
+    parsed.questions = parsed.questions.map((q: any) => {
+      // Validate category
+      if (!allValidCategories.includes(q.question_category)) {
+        console.warn(`Invalid question category "${q.question_category}", defaulting to "company_culture"`)
+        q.question_category = 'company_culture'
+      }
+      return q
+    })
+
+    return parsed.questions
+  } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error
+    }
+    console.error('Error generating company-specific questions:', error)
+    // Fallback: return template questions
+    return templateQuestions.slice(0, questionCount)
+  }
+}
+
+/**
+ * Evaluate an interview answer and provide detailed feedback with scoring.
+ *
+ * @param question - The interview question
+ * @param answer - The candidate's answer
+ * @param idealOutline - Guidance on ideal answer structure
+ * @param evaluationCriteria - Criteria for evaluation
+ * @param answerType - Whether answer was voice or text
+ * @returns Evaluation with score breakdown and feedback
+ */
+export async function evaluateInterviewAnswer(params: {
+  question: string
+  answer: string
+  questionCategory: string
+  idealOutline?: any
+  evaluationCriteria?: any
+  answerType: 'voice' | 'text'
+}): Promise<{
+  score: number
+  clarity_score: number
+  structure_score: number
+  relevance_score: number
+  depth_score: number
+  confidence_score: number
+  feedback: {
+    overall: string
+    strengths: string[]
+    weaknesses: string[]
+    suggestions: string[]
+  }
+}> {
+  if (!genAI) {
+    throw new Error('AI is not configured. Please add your Gemini API key.')
+  }
+
+  const { question, answer, questionCategory, idealOutline, evaluationCriteria, answerType } = params
+
+  const isBehavioral = questionCategory.startsWith('behavioral')
+  const isTechnical = questionCategory.startsWith('technical')
+
+  const prompt = `You are an expert interviewer evaluating a candidate's answer to an interview question.
+
+Question: ${question}
+Category: ${questionCategory}
+
+Candidate's Answer (${answerType === 'voice' ? 'transcribed from voice' : 'typed'}):
+${answer}
+
+${idealOutline ? `Ideal Answer Guidance:\n${JSON.stringify(idealOutline, null, 2)}\n\n` : ''}${evaluationCriteria ? `Evaluation Criteria:\n${JSON.stringify(evaluationCriteria, null, 2)}\n\n` : ''}Evaluate this answer across 5 dimensions (each scored 0.00 to 10.00):
+
+1. **Clarity** (0-10): How clear and understandable is the answer?
+2. **Structure** (0-10): How well-organized is the answer? ${isBehavioral ? '(STAR method for behavioral)' : '(Logical flow for technical)'}
+3. **Relevance** (0-10): How directly does it address the question?
+4. **Depth** (0-10): How detailed and thorough is the answer?
+5. **Confidence** (0-10): ${answerType === 'voice' ? 'How confident did they sound?' : 'How confident does the writing appear?'}
+
+Return ONLY valid JSON (no markdown, no code fences):
+
+{
+  "score": <overall score 0.00-10.00 (average of the 5 dimensions)>,
+  "clarity_score": <0.00-10.00>,
+  "structure_score": <0.00-10.00>,
+  "relevance_score": <0.00-10.00>,
+  "depth_score": <0.00-10.00>,
+  "confidence_score": <0.00-10.00>,
+  "feedback": {
+    "overall": "1-2 sentence summary of the answer quality",
+    "strengths": [
+      "Specific strength 1 from the answer",
+      "Specific strength 2"
+    ],
+    "weaknesses": [
+      "Specific area for improvement 1",
+      "Specific area for improvement 2"
+    ],
+    "suggestions": [
+      "Actionable suggestion 1 to improve the answer",
+      "Actionable suggestion 2"
+    ]
+  }
+}
+
+Be honest but constructive. Scores should reflect genuine performance.`
+
+  try {
+    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
+
+    // Handle markdown code fences
+    let jsonText = text
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim()
+    }
+
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
+    if (!jsonMatch) {
+      throw new Error('Failed to parse AI response')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+
+    return {
+      score: Number(parsed.score) || 0,
+      clarity_score: Number(parsed.clarity_score) || 0,
+      structure_score: Number(parsed.structure_score) || 0,
+      relevance_score: Number(parsed.relevance_score) || 0,
+      depth_score: Number(parsed.depth_score) || 0,
+      confidence_score: Number(parsed.confidence_score) || 0,
+      feedback: {
+        overall: String(parsed.feedback?.overall || ''),
+        strengths: Array.isArray(parsed.feedback?.strengths) ? parsed.feedback.strengths : [],
+        weaknesses: Array.isArray(parsed.feedback?.weaknesses) ? parsed.feedback.weaknesses : [],
+        suggestions: Array.isArray(parsed.feedback?.suggestions) ? parsed.feedback.suggestions : [],
+      },
+    }
+  } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error
+    }
+    console.error('Error evaluating interview answer:', error)
+    throw new Error('Failed to evaluate answer. Please try again.')
   }
 }
 
