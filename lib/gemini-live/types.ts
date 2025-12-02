@@ -68,6 +68,13 @@ export interface SetupMessage {
 
 export interface ClientMessage {
   realtimeInput?: RealtimeInput
+  clientContent?: {
+    turns: Array<{
+      role: 'user' | 'model'
+      parts: Array<{ text: string }>
+    }>
+    turnComplete?: boolean
+  }
   toolResponse?: {
     functionResponses: Array<{
       response: Record<string, any>

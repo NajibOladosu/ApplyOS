@@ -23,8 +23,14 @@ export class GeminiLiveClient {
   private heartbeatInterval: NodeJS.Timeout | null = null
   private events: Partial<GeminiLiveClientEvents> = {}
 
-  constructor(config: LiveSessionConfig) {
+  constructor(
+    config: LiveSessionConfig,
+    events?: Partial<GeminiLiveClientEvents>
+  ) {
     this.config = config
+    if (events) {
+      this.events = events
+    }
   }
 
   /**
@@ -96,9 +102,9 @@ export class GeminiLiveClient {
           resolve()
         }
 
-        this.ws.onmessage = (event) => {
+        this.ws.onmessage = async (event) => {
           clearTimeout(connectionTimeout)
-          this.handleMessage(event.data)
+          await this.handleMessage(event.data)
         }
 
         this.ws.onerror = (error) => {
@@ -126,26 +132,41 @@ export class GeminiLiveClient {
 
           // Provide detailed close reason
           let closeReason = event.reason || 'Connection closed'
+          let shouldRetry = true
+
           if (event.code === 1006) {
             closeReason = 'Abnormal closure - possibly network issue or invalid endpoint'
           } else if (event.code === 1008) {
             closeReason = 'Policy violation - possibly invalid API key or authentication failure'
+            shouldRetry = false // Don't retry auth failures
           } else if (event.code === 1011) {
-            closeReason = 'Server error - Gemini API encountered an internal error'
+            // Check if it's a quota error
+            const reason = event.reason?.toLowerCase() || ''
+            if (reason.includes('quota') || reason.includes('exceeded')) {
+              closeReason = `Quota exceeded: ${event.reason}`
+              shouldRetry = false // Don't retry quota errors
+            } else {
+              closeReason = 'Server error - Gemini API encountered an internal error'
+            }
           }
+
+          // If connection never opened, reject the promise (check BEFORE changing state)
+          const wasConnecting = this.connectionState === 'connecting'
 
           this.connectionState = 'closed'
           this.stopHeartbeat()
           this.events.onDisconnected?.()
 
-          // If connection never opened, reject the promise
-          if (this.connectionState === 'connecting') {
+          if (wasConnecting) {
             reject(new Error(`Connection failed: ${closeReason} (code: ${event.code})`))
           }
 
-          // Attempt reconnection if not a clean close
-          if (event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+          // Attempt reconnection if not a clean close and not a quota/auth error
+          if (shouldRetry && event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
             this.attemptReconnect()
+          } else if (!shouldRetry) {
+            // Notify about non-retryable error
+            this.events.onError?.(new Error(closeReason))
           }
         }
       } catch (error) {
@@ -162,7 +183,7 @@ export class GeminiLiveClient {
   private sendSetup(): void {
     const setupMessage: SetupMessage = {
       setup: {
-        model: this.config.model || 'models/gemini-2.0-flash-exp',
+        model: this.config.model || 'models/gemini-2.5-flash-native-audio-preview-09-2025',
         generationConfig: {
           responseModalities: ['audio'],
           speechConfig: {
@@ -187,11 +208,27 @@ export class GeminiLiveClient {
   }
 
   /**
-   * Handle incoming WebSocket messages
+   * Handle incoming WebSocket messages (supports both text and binary)
    */
-  private handleMessage(data: string): void {
+  private async handleMessage(data: string | Blob | ArrayBuffer): Promise<void> {
     try {
-      const message: ServerMessage = JSON.parse(data)
+      // Convert Blob/ArrayBuffer to text if needed
+      let messageText: string
+
+      if (data instanceof Blob) {
+        // Convert Blob to text
+        messageText = await data.text()
+      } else if (data instanceof ArrayBuffer) {
+        // Convert ArrayBuffer to text
+        const decoder = new TextDecoder()
+        messageText = decoder.decode(data)
+      } else {
+        // Already a string
+        messageText = data
+      }
+
+      // Parse the JSON message
+      const message: ServerMessage = JSON.parse(messageText)
 
       // Handle setup complete
       if (message.setupComplete) {
@@ -269,6 +306,30 @@ export class GeminiLiveClient {
             data: base64Audio,
           },
         ],
+      },
+    }
+
+    this.send(message)
+  }
+
+  /**
+   * Send text message to Gemini
+   */
+  sendText(text: string): void {
+    if (this.connectionState !== 'connected') {
+      console.warn('Cannot send text: not connected')
+      return
+    }
+
+    const message: ClientMessage = {
+      clientContent: {
+        turns: [
+          {
+            role: 'user',
+            parts: [{ text }],
+          },
+        ],
+        turnComplete: true,
       },
     }
 
