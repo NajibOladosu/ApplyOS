@@ -1146,7 +1146,7 @@ export default function ApplicationDetailPage() {
                                       >
                                         {session.difficulty || 'medium'}
                                       </Badge>
-                                      {session.status === 'completed' && (
+                                      {(session.status === 'completed' || progress === 100) && (
                                         <Badge className="bg-green-600 text-white border-0 shadow-sm">
                                           ✓ Completed
                                         </Badge>
@@ -1155,12 +1155,12 @@ export default function ApplicationDetailPage() {
                                     {session.answered_questions > 0 && (
                                       <div className="flex items-center gap-1.5">
                                         <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-green-500/10 border border-green-500/30' :
-                                            avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                                              'bg-red-500/10 border border-red-500/30'
+                                          avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                                            'bg-red-500/10 border border-red-500/30'
                                           }`}>
                                           <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                              avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                                'text-red-600 dark:text-red-400'
+                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                              'text-red-600 dark:text-red-400'
                                             }`}>
                                             {avgScore.toFixed(1)}
                                           </span>
@@ -1198,22 +1198,25 @@ export default function ApplicationDetailPage() {
 
                                 {/* Action Buttons */}
                                 <div className="flex gap-2 pt-2">
+                                  {(session.status === 'completed' || progress === 100) && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-black glow-effect group/btn transition-all"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleViewReport(session.id)
+                                      }}
+                                    >
+                                      <FileText className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                                      View Report
+                                    </Button>
+                                  )}
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-black glow-effect group/btn transition-all"
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      handleViewReport(session.id)
-                                    }}
-                                  >
-                                    <FileText className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
-                                    View Report
-                                  </Button>
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className="text-red-600 border-red-600/50 hover:bg-red-600 hover:text-white transition-all"
+                                    className={`text-red-600 border-red-600/50 hover:bg-red-600 hover:text-white transition-all ${!(session.status === 'completed' || progress === 100) ? 'flex-1' : ''
+                                      }`}
                                     onClick={(e) => {
                                       e.stopPropagation()
                                       setSessionToDelete(session.id)
