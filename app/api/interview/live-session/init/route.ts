@@ -142,7 +142,7 @@ export async function POST(request: NextRequest) {
     })
 
     // Model configuration
-    const model = 'models/gemini-2.0-flash-exp'
+    const model = 'models/gemini-2.5-flash-native-audio-preview-09-2025'
 
     // TODO: Use ephemeral tokens once available in SDK
     // Ephemeral tokens provide better security by having a limited TTL (1 hour)
