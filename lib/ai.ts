@@ -54,7 +54,7 @@ function isRateLimitError(error: any): boolean {
 /**
  * Helper to call Gemini with fallback logic
  */
-async function callGeminiWithFallback(
+export async function callGeminiWithFallback(
   prompt: string,
   complexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX' = 'MEDIUM'
 ): Promise<string> {
@@ -78,11 +78,28 @@ async function callGeminiWithFallback(
     }
 
     try {
-      const genModel = genAI!.getGenerativeModel({ model })
+      console.log(`[AI] Attempting to generate content with model: ${model}`)
+
+      // Optimize for conversation: faster, more focused responses
+      const generationConfig = complexity === 'SIMPLE' ? {
+        temperature: 0.7,        // Lower = faster, more deterministic
+        maxOutputTokens: 150,    // Limit for brief conversation responses
+        topP: 0.8,
+        topK: 20,
+      } : undefined
+
+      const genModel = genAI!.getGenerativeModel({
+        model,
+        ...(generationConfig && { generationConfig })
+      })
+
       const result = await genModel.generateContent(prompt)
       const response = await result.response
-      return response.text()
+      const text = response.text()
+      console.log(`[AI] Successfully generated content with model: ${model}`)
+      return text
     } catch (error) {
+      console.error(`[AI] Error with model ${model}:`, error)
       lastError = error as Error
 
       if (isRateLimitError(error)) {
@@ -798,9 +815,11 @@ Generate exactly ${questionCount} unique, high-quality VERBAL interview question
     const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
     if (!jsonMatch) {
       console.warn('No JSON object found in response:', text.substring(0, 100))
+      console.log('Full response:', text)
       throw new Error('Failed to parse AI response')
     }
 
+    console.log('Parsing JSON:', jsonMatch[0])
     const parsed = JSON.parse(jsonMatch[0])
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
       throw new Error('Invalid response format')
