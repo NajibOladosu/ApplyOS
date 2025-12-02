@@ -194,11 +194,10 @@ export default function InterviewPage() {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className={`text-2xl font-bold ${
-                      averageScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                      averageScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                      'text-red-600 dark:text-red-400'
-                    }`}>
+                    <div className={`text-2xl font-bold ${averageScore >= 8 ? 'text-green-600 dark:text-green-400' :
+                        averageScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                          'text-red-600 dark:text-red-400'
+                      }`}>
                       {averageScore.toFixed(1)}/10
                     </div>
                     <p className="text-xs text-muted-foreground mt-1">
@@ -277,73 +276,87 @@ export default function InterviewPage() {
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
+                        whileHover={{ scale: 1.01 }}
                       >
                         <Link href={`/applications/${session.application_id}?tab=interview&session=${session.id}`}>
-                          <Card className="cursor-pointer hover:border-primary transition-all">
-                            <CardHeader>
-                              <div className="flex items-start justify-between gap-4">
+                          <Card className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm">
+                            {/* Gradient overlay on hover */}
+                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                            <CardHeader className="pb-3">
+                              <div className="flex items-start justify-between gap-3">
                                 <div className="flex-1 min-w-0">
-                                  <CardTitle className="text-lg flex items-center gap-2 flex-wrap">
-                                    {sessionTypeLabels[session.session_type] || session.session_type}
+                                  <div className="flex items-center gap-2 flex-wrap mb-2">
+                                    <CardTitle className="text-lg font-bold">
+                                      {sessionTypeLabels[session.session_type] || session.session_type}
+                                    </CardTitle>
                                     {session.company_name && (
-                                      <Badge variant="outline" className="text-xs">
+                                      <Badge variant="outline" className="text-xs font-medium">
                                         {session.company_name}
                                       </Badge>
                                     )}
-                                  </CardTitle>
-                                  <CardDescription className="mt-1">
+                                  </div>
+                                  <CardDescription className="text-xs">
                                     {session.application?.title || 'Unknown Application'} •{' '}
                                     {new Date(session.created_at).toLocaleDateString()}
                                   </CardDescription>
                                 </div>
-                                <Badge
-                                  variant="outline"
-                                  className={`capitalize shrink-0 ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
-                                >
-                                  {session.difficulty || 'medium'}
-                                </Badge>
-                              </div>
-                            </CardHeader>
-                            <CardContent className="space-y-4">
-                              {/* Progress Bar */}
-                              <div className="space-y-2">
-                                <div className="flex justify-between text-sm">
-                                  <span className="text-muted-foreground">Progress</span>
-                                  <span className="font-medium">
-                                    {session.answered_questions} / {session.total_questions} questions
-                                  </span>
-                                </div>
-                                <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-primary transition-all"
-                                    style={{ width: `${progress}%` }}
-                                  />
-                                </div>
-                              </div>
-
-                              {/* Stats */}
-                              <div className="flex justify-between items-center pt-2">
-                                {session.answered_questions > 0 ? (
-                                  <>
-                                    <div className="text-sm">
-                                      <span className="text-muted-foreground">Avg Score: </span>
-                                      <span className={`font-semibold ${
-                                        avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                        avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                        'text-red-600 dark:text-red-400'
-                                      }`}>
-                                        {avgScore.toFixed(1)}/10
-                                      </span>
-                                    </div>
-                                    {session.status === 'completed' && (
-                                      <Badge variant="success" className="bg-green-600 text-white">
-                                        Completed
+                                <div className="flex flex-col gap-2 items-end shrink-0">
+                                  <div className="flex items-center gap-2">
+                                    <Badge
+                                      variant="outline"
+                                      className={`capitalize font-semibold ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
+                                    >
+                                      {session.difficulty || 'medium'}
+                                    </Badge>
+                                    {(session.status === 'completed' || progress === 100) && (
+                                      <Badge className="bg-green-600 text-white border-0 shadow-sm">
+                                        ✓ Completed
                                       </Badge>
                                     )}
-                                  </>
-                                ) : (
-                                  <span className="text-sm text-muted-foreground">No answers yet</span>
-                                )}
+                                  </div>
+                                  {session.answered_questions > 0 && (
+                                    <div className="flex items-center gap-1.5">
+                                      <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-green-500/10 border border-green-500/30' :
+                                          avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                                            'bg-red-500/10 border border-red-500/30'
+                                        }`}>
+                                        <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
+                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                              'text-red-600 dark:text-red-400'
+                                          }`}>
+                                          {avgScore.toFixed(1)}
+                                        </span>
+                                      </div>
+                                      <span className="text-xs text-muted-foreground font-medium">Avg Score</span>
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </CardHeader>
+
+                            <CardContent className="space-y-2 pb-4">
+                              {/* Progress Section */}
+                              <div className="space-y-2">
+                                <div className="flex justify-between items-center text-sm">
+                                  <span className="text-muted-foreground font-medium">Progress</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold text-foreground">
+                                      {session.answered_questions} / {session.total_questions}
+                                    </span>
+                                    <span className="text-xs text-muted-foreground">
+                                      ({Math.round(progress)}%)
+                                    </span>
+                                  </div>
+                                </div>
+                                <div className="relative h-2.5 w-full bg-secondary/50 rounded-full overflow-hidden border border-border/50">
+                                  <div
+                                    className="h-full bg-gradient-to-r from-primary via-primary to-primary/80 transition-all duration-500 ease-out relative"
+                                    style={{ width: `${progress}%` }}
+                                  >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                                  </div>
+                                </div>
                               </div>
                             </CardContent>
                           </Card>
@@ -381,11 +394,10 @@ export default function InterviewPage() {
                                     </p>
                                   </div>
                                   {session.answered_questions > 0 && (
-                                    <div className={`text-lg font-bold ${
-                                      avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                      avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                      'text-red-600 dark:text-red-400'
-                                    }`}>
+                                    <div className={`text-lg font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
+                                        avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                          'text-red-600 dark:text-red-400'
+                                      }`}>
                                       {avgScore.toFixed(1)}/10
                                     </div>
                                   )}
