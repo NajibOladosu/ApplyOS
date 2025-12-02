@@ -84,10 +84,10 @@ const nextConfig = {
             value: 'strict-origin-when-cross-origin',
           },
 
-          // Restrict browser features (camera, microphone, geolocation)
+          // Restrict browser features (allow microphone for voice interviews)
           {
             key: 'Permissions-Policy',
-            value: 'camera=(), microphone=(), geolocation=()',
+            value: 'camera=(), microphone=(self), geolocation=()',
           },
 
           // Force HTTPS in production (HSTS)

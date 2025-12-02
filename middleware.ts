@@ -96,7 +96,7 @@ export async function middleware(request: NextRequest) {
   response.headers.set('X-Frame-Options', 'DENY') // Prevent clickjacking
   response.headers.set('X-Content-Type-Options', 'nosniff') // Prevent MIME type sniffing
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin') // Control referrer information
-  response.headers.set('Permissions-Policy', 'camera=(), microphone=(), geolocation=()') // Restrict browser features
+  response.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()') // Restrict browser features (allow microphone for voice interviews)
 
   // HSTS (HTTP Strict Transport Security) - only in production with HTTPS
   if (process.env.NODE_ENV === 'production') {
