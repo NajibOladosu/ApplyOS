@@ -34,8 +34,8 @@ const nextConfig = {
               // Fonts: Allow self and data URIs
               "font-src 'self' data:",
 
-              // API connections: Allow self, Supabase API, and Google Gemini API
-              "connect-src 'self' https://hvmaerptxgeldviarcuj.supabase.co https://*.supabase.co https://generativelanguage.googleapis.com wss://hvmaerptxgeldviarcuj.supabase.co",
+              // API connections: Allow self, Supabase API, Google Gemini API, and Gemini Live WebSocket
+              "connect-src 'self' https://hvmaerptxgeldviarcuj.supabase.co https://*.supabase.co https://generativelanguage.googleapis.com wss://hvmaerptxgeldviarcuj.supabase.co wss://generativelanguage.googleapis.com",
 
               // Forms: Only allow same-origin form submissions
               "form-action 'self'",

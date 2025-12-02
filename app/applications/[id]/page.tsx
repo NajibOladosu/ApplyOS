@@ -33,7 +33,7 @@ import { getApplication, updateApplication, getApplicationDocuments, updateAppli
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
-import { deleteInterviewSession } from "@/lib/services/interviews"
+import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/lib/services/interviews"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
@@ -44,7 +44,6 @@ import { InterviewReportModal } from "@/components/modals/interview-report-modal
 import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
 import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
-import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/lib/services/interviews"
 import type { InterviewSession } from "@/types/database"
 
 export default function ApplicationDetailPage() {
@@ -88,7 +87,10 @@ export default function ApplicationDetailPage() {
   const [interviewLoading, setInterviewLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("questions")
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
+  const [viewingReportSessionId, setViewingReportSessionId] = useState<string | null>(null)
+  const [reportData, setReportData] = useState<any | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -376,20 +378,6 @@ export default function ApplicationDetailPage() {
     } catch (err) {
       console.error('Error deleting session:', err)
       setError('Failed to delete interview session')
-    }
-  }
-
-  const handleViewReport = async (sessionId: string) => {
-    setReportLoading(true)
-    try {
-      const data = await getSessionWithQuestionsAndAnswers(sessionId)
-      setReportData(data)
-      setViewingReportSessionId(sessionId)
-    } catch (err) {
-      console.error('Error loading report:', err)
-      setError('Failed to load interview report')
-    } finally {
-      setReportLoading(false)
     }
   }
 
