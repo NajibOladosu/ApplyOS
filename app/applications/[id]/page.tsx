@@ -1140,49 +1140,52 @@ export default function ApplicationDetailPage() {
                                     </Badge>
                                   </div>
                                 </div>
-
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 mt-3">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 text-primary border-primary hover:bg-primary hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      handleViewReport(session.id)
+                                    }}
+                                  >
+                                    <FileText className="h-4 w-4 mr-2" />
+                                    View Report
+                                  </Button>
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="flex-1 text-red-600 border-red-600 hover:bg-red-600 hover:text-white"
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setSessionToDelete(session.id)
+                                    }}
+                                    disabled={deletingSessionId === session.id}
+                                  >
+                                    {deletingSessionId === session.id ? (
+                                      <>
+                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                        Deleting...
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Trash2 className="h-4 w-4 mr-2" />
+                                        Delete
+                                      </>
+                                    )}
+                                  </Button>
+                                </div>
                               </CardHeader>
                               <CardContent className="space-y-4">
                                 {/* Progress Bar */}
                                 <div className="space-y-2">
-                                  <div className="flex items-center justify-between text-sm mb-2">
+                                  <div className="flex justify-between text-sm">
                                     <span className="text-muted-foreground">Progress</span>
-                                    <div className="flex items-center gap-3">
-                                      <span className="font-medium">
-                                        {session.answered_questions} / {session.total_questions} questions
-                                      </span>
-                                      <div className="flex gap-2">
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-7 text-xs text-primary border-primary hover:bg-primary hover:text-white px-2"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleViewReport(session.id)
-                                          }}
-                                        >
-                                          <FileText className="h-3 w-3 mr-1" />
-                                          View Report
-                                        </Button>
-                                        <Button
-                                          variant="outline"
-                                          size="sm"
-                                          className="h-7 text-xs text-red-600 border-red-600 hover:bg-red-600 hover:text-white px-2"
-                                          onClick={(e) => {
-                                            e.stopPropagation()
-                                            setSessionToDelete(session.id)
-                                          }}
-                                          disabled={deletingSessionId === session.id}
-                                        >
-                                          {deletingSessionId === session.id ? (
-                                            <Loader2 className="h-3 w-3 animate-spin" />
-                                          ) : (
-                                            <Trash2 className="h-3 w-3 mr-1" />
-                                          )}
-                                          {deletingSessionId === session.id ? "Deleting..." : "Delete"}
-                                        </Button>
-                                      </div>
-                                    </div>
+                                    <span className="font-medium">
+                                      {session.answered_questions} / {session.total_questions} questions
+                                    </span>
                                   </div>
                                   <div className="h-2 w-full bg-secondary rounded-full overflow-hidden">
                                     <div
