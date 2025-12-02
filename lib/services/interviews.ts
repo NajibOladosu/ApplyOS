@@ -13,7 +13,13 @@ import type {
   IdealAnswerOutline,
   EvaluationCriteria,
   InterviewFeedback,
+  ConversationTurn,
 } from '@/types/database'
+import { getConversationTurns as getConversationTurnsFromService } from './conversation'
+
+// Re-export conversation functions
+export { getConversationTurns } from './conversation'
+
 
 // ============================================================================
 // INTERVIEW SESSIONS

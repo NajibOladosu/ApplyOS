@@ -24,6 +24,8 @@ import {
   StickyNote,
   ArrowUpDown,
   Mic,
+  Trash2,
+  FileText,
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
@@ -37,10 +39,11 @@ import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { NoteModal } from "@/components/modals/note-modal"
 import { NewInterviewModal } from "@/components/modals/new-interview-modal"
+import { InterviewReportModal } from "@/components/modals/interview-report-modal"
 import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
-import { InterviewSessionDetail } from "@/components/interview/interview-session-detail"
-import { getInterviewSessions } from "@/lib/services/interviews"
+import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
+import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/lib/services/interviews"
 import type { InterviewSession } from "@/types/database"
 
 export default function ApplicationDetailPage() {
@@ -83,6 +86,11 @@ export default function ApplicationDetailPage() {
   const [selectedSessionId, setSelectedSessionId] = useState<string | null>(null)
   const [interviewLoading, setInterviewLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("questions")
+  const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
+  const [viewingReportSessionId, setViewingReportSessionId] = useState<string | null>(null)
+  const [reportData, setReportData] = useState<any>(null)
+  const [reportLoading, setReportLoading] = useState(false)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -353,6 +361,37 @@ export default function ApplicationDetailPage() {
     const textarea = textareaRefs.get(questionId)
     if (textarea) {
       textarea.value = aiAnswer
+    }
+  }
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!id) return
+    try {
+      await deleteInterviewSession(sessionId)
+      // Reload sessions
+      const sessions = await getInterviewSessions(id)
+      setInterviewSessions(sessions)
+      setShowDeleteConfirmModal(false)
+      setDeletingSessionId(null)
+      setSuccessMessage('Interview session deleted successfully')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      console.error('Error deleting session:', err)
+      setError('Failed to delete interview session')
+    }
+  }
+
+  const handleViewReport = async (sessionId: string) => {
+    setReportLoading(true)
+    try {
+      const data = await getSessionWithQuestionsAndAnswers(sessionId)
+      setReportData(data)
+      setViewingReportSessionId(sessionId)
+    } catch (err) {
+      console.error('Error loading report:', err)
+      setError('Failed to load interview report')
+    } finally {
+      setReportLoading(false)
     }
   }
 
@@ -764,8 +803,8 @@ export default function ApplicationDetailPage() {
                                 key={doc.id}
                                 onClick={() => toggleDocumentSelection(doc.id)}
                                 className={`w-full text-left p-3 rounded border transition-all ${pendingDocumentIds.includes(doc.id)
-                                    ? "border-primary bg-primary/10"
-                                    : "border-input hover:border-primary/50 hover:bg-muted/50"
+                                  ? "border-primary bg-primary/10"
+                                  : "border-input hover:border-primary/50 hover:bg-muted/50"
                                   }`}
                               >
                                 <p className="text-sm font-medium truncate">{doc.file_name}</p>
@@ -1003,7 +1042,7 @@ export default function ApplicationDetailPage() {
             <div className="space-y-4">
               {selectedSessionId ? (
                 // Show session detail when a session is selected
-                <InterviewSessionDetail
+                <InterviewModeWrapper
                   sessionId={selectedSessionId}
                   onComplete={async () => {
                     // Reload sessions to update completion status
@@ -1138,8 +1177,8 @@ export default function ApplicationDetailPage() {
                                       <div className="text-sm">
                                         <span className="text-muted-foreground">Avg Score: </span>
                                         <span className={`font-semibold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                              'text-red-600 dark:text-red-400'
+                                          avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                            'text-red-600 dark:text-red-400'
                                           }`}>
                                           {avgScore.toFixed(1)}/10
                                         </span>
@@ -1153,6 +1192,37 @@ export default function ApplicationDetailPage() {
                                   ) : (
                                     <span className="text-sm text-muted-foreground">No answers yet</span>
                                   )}
+                                </div>
+
+                                {/* Action Buttons */}
+                                <div className="flex gap-2 pt-4 border-t">
+                                  {session.answered_questions > 0 && session.status === 'completed' && (
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      className="flex-1"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        handleViewReport(session.id)
+                                      }}
+                                    >
+                                      <FileText className="h-4 w-4 mr-2" />
+                                      View Report
+                                    </Button>
+                                  )}
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className={session.answered_questions > 0 && session.status === 'completed' ? '' : 'flex-1'}
+                                    onClick={(e) => {
+                                      e.stopPropagation()
+                                      setDeletingSessionId(session.id)
+                                      setShowDeleteConfirmModal(true)
+                                    }}
+                                  >
+                                    <Trash2 className="h-4 w-4 mr-2" />
+                                    Delete
+                                  </Button>
                                 </div>
                               </CardContent>
                             </Card>
@@ -1447,6 +1517,36 @@ export default function ApplicationDetailPage() {
         onConfirm={handleConfirmExtractQuestions}
         onCancel={() => setShowExtractConfirmModal(false)}
         isLoading={extracting}
+      />
+
+      {/* Delete Interview Session Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirmModal}
+        title="Delete Interview Session?"
+        description="This will permanently delete this interview session and all associated questions and answers. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={async () => {
+          if (deletingSessionId) {
+            await handleDeleteSession(deletingSessionId)
+          }
+        }}
+        onCancel={() => {
+          setShowDeleteConfirmModal(false)
+          setDeletingSessionId(null)
+        }}
+        isLoading={false}
+      />
+
+      {/* Interview Report Modal */}
+      <InterviewReportModal
+        isOpen={!!viewingReportSessionId}
+        onClose={() => {
+          setViewingReportSessionId(null)
+          setReportData(null)
+        }}
+        reportData={reportData}
+        sessionId={viewingReportSessionId || ''}
       />
 
       {/* Success Message Modal */}
