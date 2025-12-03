@@ -51,6 +51,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const processorRef = useRef<ScriptProcessorNode | null>(null)
   const playbackContextRef = useRef<AudioContext | null>(null)
   const nextPlayTimeRef = useRef<number>(0)
+  const clientRef = useRef<GeminiLiveClient | null>(null)
 
   // Blob state
   const [blobState, setBlobState] = useState<BlobState>('idle')
@@ -115,9 +116,15 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             onError?.(error)
           },
           onSetupComplete: () => {
-            console.log('[Interview] Setup complete, starting recording...')
-            // AI is ready, start recording
+            console.log('[Interview] Setup complete, starting recording and interview...')
+            // Start continuous audio streaming
             startRecording()
+            // Send initial message to begin interview
+            if (clientRef.current) {
+              console.log('[Interview] Sending initial prompt to start interview')
+              clientRef.current.sendText('Begin the interview. Greet the candidate and ask the first question.')
+              setBlobState('speaking')
+            }
           },
           onTextResponse: (text) => {
             setCurrentAIMessage(text)
