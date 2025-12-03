@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
               turn_number: turn.turn_number,
               speaker: turn.speaker,
               content: turn.content,
-              metadata: turn.metadata || undefined,
+              ...(turn.metadata && { metadata: turn.metadata }),
             },
             supabase
           )
