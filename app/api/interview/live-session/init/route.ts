@@ -86,52 +86,18 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
 
-    // Get or generate questions
-    let questions = await getQuestionsForSession(sessionId)
+    // Load existing questions - DO NOT regenerate
+    const questions = await getQuestionsForSession(sessionId)
 
     if (questions.length === 0) {
-      console.log(`No questions found for session ${sessionId}, generating...`)
-
-      // Fetch application details for context
-      const { data: application } = await supabase
-        .from('applications')
-        .select('job_description, company')
-        .eq('id', session.application_id)
-        .single()
-
-      // Generate questions
-      const aiQuestions = await generateInterviewQuestions({
-        sessionType: session.session_type as any,
-        difficulty: (session.difficulty || 'medium') as any,
-        questionCount: session.total_questions || 5,
-        jobDescription: application?.job_description || undefined,
-        companyName: session.company_name || application?.company || undefined,
-      })
-
-      if (aiQuestions.length === 0) {
-        return NextResponse.json(
-          { error: 'Failed to generate interview questions' },
-          { status: 500 }
-        )
-      }
-
-      // Save questions to database
-      questions = await createQuestionsForSession(
-        session.id,
-        aiQuestions.map((q, index) => ({
-          question_text: q.question_text,
-          question_category: q.question_category as QuestionCategory,
-          difficulty: q.difficulty as 'easy' | 'medium' | 'hard',
-          ideal_answer_outline: q.ideal_answer_outline,
-          evaluation_criteria: q.evaluation_criteria,
-          question_order: index + 1,
-          estimated_duration_seconds: q.estimated_duration_seconds,
-        })),
-        supabase
+      console.error(`No questions found for session ${sessionId}. Interview session must have questions before starting.`)
+      return NextResponse.json(
+        { error: 'Interview questions not found. Please create a new interview.' },
+        { status: 400 }
       )
-
-      console.log(`Generated and saved ${questions.length} questions`)
     }
+
+    console.log(`Loaded ${questions.length} existing questions for session ${sessionId}`)
 
     // Generate system instruction
     const systemInstruction = generateSystemInstruction({

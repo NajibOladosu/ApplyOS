@@ -82,15 +82,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 
-    // Create interview session
-    const session = await createInterviewSession({
-      application_id: applicationId,
-      session_type: sessionType,
-      difficulty,
-      company_name: companyName || application.company || null,
-    }, supabase)
-
-    // Generate questions using AI
+    // Generate questions FIRST - fail early if this fails
+    console.log(`Generating ${questionCount} questions for ${sessionType} interview...`)
     const aiQuestions = await generateInterviewQuestions({
       sessionType,
       difficulty,
@@ -98,6 +91,27 @@ export async function POST(request: NextRequest) {
       jobDescription: application.job_description || undefined,
       companyName: companyName || application.company || undefined,
     })
+
+    if (!aiQuestions || aiQuestions.length === 0) {
+      console.error('Question generation failed - no questions returned')
+      return NextResponse.json(
+        { error: 'Failed to generate interview questions. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    console.log(`Successfully generated ${aiQuestions.length} questions`)
+
+    // Only create session if questions were generated successfully
+    const session = await createInterviewSession({
+      application_id: applicationId,
+      session_type: sessionType,
+      difficulty,
+      company_name: companyName || application.company || null,
+      total_questions: aiQuestions.length,
+    }, supabase)
+
+    console.log(`Created interview session: ${session.id}`)
 
     // Save questions to database
     const questions = await createQuestionsForSession(
@@ -113,6 +127,8 @@ export async function POST(request: NextRequest) {
       })),
       supabase
     )
+
+    console.log(`Saved ${questions.length} questions to database`)
 
     return NextResponse.json(
       {
