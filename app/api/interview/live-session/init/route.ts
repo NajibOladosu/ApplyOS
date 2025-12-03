@@ -104,6 +104,28 @@ export async function POST(request: NextRequest) {
       questions: questions,
     })
 
+    // Define interview control tools
+    const tools = [{
+      functionDeclarations: [{
+        name: 'signal_interview_complete',
+        description: 'Call this function when you have finished asking all interview questions and received answers from the candidate. This signals that the interview is complete and should be ended gracefully.',
+        parameters: {
+          type: 'object',
+          properties: {
+            reason: {
+              type: 'string',
+              description: 'Brief explanation of why the interview is complete (e.g., "All questions answered", "Time limit reached")',
+            },
+            questions_asked: {
+              type: 'number',
+              description: 'Number of main questions you asked during the interview',
+            },
+          },
+          required: ['reason', 'questions_asked'],
+        },
+      }],
+    }]
+
     // Model configuration
     const model = 'models/gemini-2.5-flash-native-audio-preview-09-2025'
 
@@ -139,6 +161,7 @@ export async function POST(request: NextRequest) {
           difficulty: q.difficulty,
         })),
         systemInstruction,
+        tools,
         model,
       },
       { status: 200 }
