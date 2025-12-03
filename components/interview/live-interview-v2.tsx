@@ -169,6 +169,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
    */
   const startRecording = async () => {
     try {
+      console.log('[Recording] Requesting microphone access...')
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
@@ -177,16 +178,29 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           noiseSuppression: true,
         },
       })
+      console.log('[Recording] Microphone access granted')
 
       mediaStreamRef.current = stream
 
       // Create AudioContext for recording
+      console.log('[Recording] Creating AudioContext for recording...')
       const audioContext = new AudioContext({ sampleRate: 16000 })
-      const source = audioContext.createMediaStreamSource(stream)
-      const processor = audioContext.createScriptProcessor(4096, 1, 1)
+      console.log('[Recording] Recording AudioContext created, state:', audioContext.state)
 
+      const source = audioContext.createMediaStreamSource(stream)
+      console.log('[Recording] MediaStreamSource created')
+
+      const processor = audioContext.createScriptProcessor(4096, 1, 1)
+      console.log('[Recording] ScriptProcessor created')
+
+      let chunkCount = 0
       processor.onaudioprocess = (event) => {
-        if (!client || connectionState !== 'connected') return
+        if (!client || connectionState !== 'connected') {
+          if (chunkCount === 0) {
+            console.log('[Recording] Audio processing skipped - client not connected')
+          }
+          return
+        }
 
         try {
           const inputData = event.inputBuffer.getChannelData(0)
@@ -213,20 +227,30 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
           // Send to Gemini
           client.sendAudio(base64Audio)
+
+          // Log first few chunks
+          if (chunkCount < 3) {
+            console.log(`[Recording] Sent audio chunk ${chunkCount + 1}, size: ${base64Audio.length}, level: ${level.toFixed(4)}`)
+          }
+          chunkCount++
         } catch (error) {
-          console.error('Audio processing error:', error)
+          console.error('[Recording] Audio processing error:', error)
         }
       }
 
+      console.log('[Recording] Connecting audio nodes...')
       source.connect(processor)
       processor.connect(audioContext.destination)
+      console.log('[Recording] Audio nodes connected')
 
       audioContextRef.current = audioContext
       processorRef.current = processor
 
       setIsRecording(true)
       setBlobState('listening')
+      console.log('[Recording] Recording active, blob state set to listening')
     } catch (err: any) {
+      console.error('[Recording] Microphone access error:', err)
       setError(`Microphone access denied: ${err.message}`)
     }
   }
