@@ -204,6 +204,7 @@ export class GeminiLiveClient {
       }
     }
 
+    console.log('[Client] Sending setup message')
     this.send(setupMessage)
   }
 
@@ -265,26 +266,32 @@ export class GeminiLiveClient {
    * Handle server content (AI responses)
    */
   private handleServerContent(content: ServerContent): void {
+    console.log('[Client] Server content received:', {
+      hasParts: !!content.modelTurn?.parts,
+      partCount: content.modelTurn?.parts?.length,
+      turnComplete: content.turnComplete,
+    })
+
     this.events.onContent?.(content)
 
     if (content.modelTurn?.parts) {
       for (const part of content.modelTurn.parts) {
         // Handle text response
         if ('text' in part) {
-          console.log('AI text:', part.text)
+          console.log('[Client] AI text:', part.text.substring(0, 100))
           this.events.onTextResponse?.(part.text)
         }
 
         // Handle audio response
         if ('inlineData' in part && part.inlineData.mimeType.startsWith('audio/')) {
-          console.log('AI audio received')
+          console.log('[Client] AI audio received, MIME:', part.inlineData.mimeType, 'size:', part.inlineData.data.length)
           this.events.onAudioResponse?.(part.inlineData.data)
         }
       }
     }
 
     if (content.turnComplete) {
-      console.log('Turn complete')
+      console.log('[Client] Turn complete')
       this.events.onTurnComplete?.()
     }
   }

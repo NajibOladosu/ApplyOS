@@ -64,6 +64,19 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setConnectionState('connecting')
       setError(null)
 
+      // Initialize AudioContext for playback (must be created in user gesture)
+      if (!playbackContextRef.current) {
+        console.log('[Audio] Creating AudioContext from user interaction')
+        playbackContextRef.current = new AudioContext()
+        nextPlayTimeRef.current = playbackContextRef.current.currentTime
+
+        // Resume if suspended
+        if (playbackContextRef.current.state === 'suspended') {
+          await playbackContextRef.current.resume()
+        }
+        console.log('[Audio] AudioContext ready, state:', playbackContextRef.current.state)
+      }
+
       // Call init endpoint
       const response = await fetch('/api/interview/live-session/init', {
         method: 'POST',
@@ -83,15 +96,18 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         { token, systemInstruction, model },
         {
           onConnected: () => {
+            console.log('[Interview] WebSocket connected')
             setConnectionState('connected')
             setInterviewState('active')
           },
           onDisconnected: () => {
+            console.log('[Interview] WebSocket disconnected')
             setConnectionState('disconnected')
             setBlobState('idle')
             stopRecording()
           },
           onError: (error) => {
+            console.error('[Interview] Error:', error.message)
             setError(error.message)
             setConnectionState('error')
             setInterviewState('idle')
@@ -99,6 +115,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             onError?.(error)
           },
           onSetupComplete: () => {
+            console.log('[Interview] Setup complete, starting recording...')
             // AI is ready, start recording
             startRecording()
           },
@@ -247,15 +264,21 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
    */
   const playAudioResponse = async (base64Audio: string) => {
     try {
+      console.log('[Audio] Received audio data, length:', base64Audio.length)
+
       if (!playbackContextRef.current) {
+        console.log('[Audio] Creating new AudioContext')
         playbackContextRef.current = new AudioContext()
         nextPlayTimeRef.current = playbackContextRef.current.currentTime
       }
 
       const playbackContext = playbackContextRef.current
+      console.log('[Audio] AudioContext state:', playbackContext.state)
 
       if (playbackContext.state === 'suspended') {
+        console.log('[Audio] Resuming suspended AudioContext')
         await playbackContext.resume()
+        console.log('[Audio] AudioContext resumed, new state:', playbackContext.state)
       }
 
       // Decode base64 to PCM
@@ -264,6 +287,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       for (let i = 0; i < binaryString.length; i++) {
         bytes[i] = binaryString.charCodeAt(i)
       }
+
+      console.log('[Audio] Decoded bytes:', bytes.length)
 
       // Convert to Int16Array
       const dataView = new DataView(bytes.buffer)
@@ -280,10 +305,14 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         float32[i] = pcm16[i] / 32768.0
       }
 
+      console.log('[Audio] Converted to float32, samples:', float32.length)
+
       // Create audio buffer
       const sampleRate = 24000
       const audioBuffer = playbackContext.createBuffer(1, float32.length, sampleRate)
       audioBuffer.copyToChannel(float32, 0)
+
+      console.log('[Audio] Created buffer, duration:', audioBuffer.duration.toFixed(2), 's')
 
       // Schedule playback
       const currentTime = playbackContext.currentTime
@@ -294,11 +323,22 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       const source = playbackContext.createBufferSource()
       source.buffer = audioBuffer
       source.connect(playbackContext.destination)
+
+      console.log('[Audio] Starting playback at:', nextPlayTimeRef.current.toFixed(2), 's')
       source.start(nextPlayTimeRef.current)
 
       nextPlayTimeRef.current += audioBuffer.duration
+      console.log('[Audio] Next play time:', nextPlayTimeRef.current.toFixed(2), 's')
+
+      // Update blob state to speaking
+      setBlobState('speaking')
+
+      // Reset to listening after audio finishes
+      setTimeout(() => {
+        setBlobState('listening')
+      }, audioBuffer.duration * 1000)
     } catch (error) {
-      console.error('Audio playback error:', error)
+      console.error('[Audio] Playback error:', error)
     }
   }
 
