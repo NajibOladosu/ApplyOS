@@ -153,7 +153,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             playAudioResponse(audioData)
           },
           onTurnComplete: () => {
-            setBlobState('listening')
+            console.log('[Interview] Turn complete')
+            setBlobState('idle')
             setCurrentAIMessage('')
           },
         }
@@ -203,20 +204,16 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
       let chunkCount = 0
       processor.onaudioprocess = (event) => {
-        if (!client || connectionState !== 'connected') {
+        const currentClient = clientRef.current
+        if (!currentClient) {
           if (chunkCount === 0) {
-            console.log('[Recording] Audio processing skipped - client not connected')
+            console.log('[Recording] Audio processing skipped - client not available')
           }
           return
         }
 
         try {
           const inputData = event.inputBuffer.getChannelData(0)
-
-          // Calculate audio level for blob pulsation
-          const sum = inputData.reduce((acc, val) => acc + Math.abs(val), 0)
-          const level = sum / inputData.length
-          setAudioLevel(Math.min(level * 10, 1)) // Normalize to 0-1
 
           // Convert to 16-bit PCM
           const pcm16 = new Int16Array(inputData.length)
@@ -233,12 +230,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           }
           const base64Audio = btoa(binaryString)
 
-          // Send to Gemini
-          client.sendAudio(base64Audio)
+          // Send to Gemini - continuous streaming
+          currentClient.sendAudio(base64Audio)
 
           // Log first few chunks
           if (chunkCount < 3) {
-            console.log(`[Recording] Sent audio chunk ${chunkCount + 1}, size: ${base64Audio.length}, level: ${level.toFixed(4)}`)
+            console.log(`[Recording] Sent audio chunk ${chunkCount + 1}, size: ${base64Audio.length}`)
           }
           chunkCount++
         } catch (error) {
@@ -255,8 +252,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       processorRef.current = processor
 
       setIsRecording(true)
-      setBlobState('listening')
-      console.log('[Recording] Recording active, blob state set to listening')
+      console.log('[Recording] Recording active, continuous streaming started')
     } catch (err: any) {
       console.error('[Recording] Microphone access error:', err)
       setError(`Microphone access denied: ${err.message}`)
