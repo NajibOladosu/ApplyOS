@@ -21,6 +21,8 @@
     "@radix-ui/react-toast": "^1.2.15",
     "@react-email/components": "^1.0.0",
     "@react-email/render": "^2.0.0",
+    "@react-three/drei": "^9.122.0",
+    "@react-three/fiber": "^8.18.0",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.43.0",
@@ -45,8 +47,10 @@
     "react-dom": "^18.3.0",
     "react-dropzone": "^14.2.3",
     "recharts": "^2.15.4",
+    "simplex-noise": "^4.0.3",
     "tailwind-merge": "^2.3.0",
-    "tailwindcss-animate": "^1.0.7"
+    "tailwindcss-animate": "^1.0.7",
+    "three": "^0.181.2"
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
