@@ -162,6 +162,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       // Connect
       await wsClient.connect()
       setClient(wsClient)
+      clientRef.current = wsClient
     } catch (err: any) {
       setError(err.message)
       setConnectionState('error')
