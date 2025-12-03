@@ -260,9 +260,11 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   }
 
   /**
-   * Stop recording
+   * Stop recording - called when ending the interview
    */
   const stopRecording = () => {
+    console.log('[Recording] Stopping recording and cleaning up...')
+
     if (processorRef.current) {
       processorRef.current.disconnect()
       processorRef.current = null
@@ -279,12 +281,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
     }
 
     setIsRecording(false)
-    setBlobState('thinking')
-
-    // Signal turn completion
-    if (client && connectionState === 'connected') {
-      client.sendText('')
-    }
   }
 
   /**
