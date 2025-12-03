@@ -1,0 +1,493 @@
+'use client'
+
+import { useState, useRef, useEffect } from 'react'
+import { Button } from '@/components/ui/button'
+import { AIBlob } from './ai-blob'
+import type { BlobState } from './ai-blob'
+import { AlertCircle } from 'lucide-react'
+import { GeminiLiveClient } from '@/lib/gemini-live/client'
+import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
+import type { ConversationTurn } from '@/types/database'
+import { motion, AnimatePresence } from 'framer-motion'
+
+interface LiveInterviewProps {
+  sessionId: string
+  onComplete?: (transcript: ConversationTurn[]) => void
+  onError?: (error: Error) => void
+}
+
+export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewProps) {
+  // Interview state
+  const [interviewState, setInterviewState] = useState<'idle' | 'starting' | 'active' | 'ending' | 'completed'>('idle')
+  const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
+  const [client, setClient] = useState<GeminiLiveClient | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  // Recording state
+  const [isRecording, setIsRecording] = useState(false)
+  const [audioLevel, setAudioLevel] = useState(0)
+
+  // Transcript state
+  const [transcript, setTranscript] = useState<ConversationTurn[]>([])
+  const [currentAIMessage, setCurrentAIMessage] = useState<string>('')
+
+  // Turn buffering
+  const [turnBuffer, setTurnBuffer] = useState<BufferedTurn[]>([])
+  const [turnCount, setTurnCount] = useState(0)
+  const FLUSH_THRESHOLD = 8
+
+  // Audio refs
+  const mediaStreamRef = useRef<MediaStream | null>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
+  const processorRef = useRef<ScriptProcessorNode | null>(null)
+  const playbackContextRef = useRef<AudioContext | null>(null)
+  const nextPlayTimeRef = useRef<number>(0)
+
+  // Blob state
+  const [blobState, setBlobState] = useState<BlobState>('idle')
+
+  /**
+   * Start the interview
+   */
+  const startInterview = async () => {
+    try {
+      setInterviewState('starting')
+      setConnectionState('connecting')
+      setError(null)
+
+      // Call init endpoint
+      const response = await fetch('/api/interview/live-session/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to initialize session')
+      }
+
+      const { token, systemInstruction, model } = await response.json()
+
+      // Create WebSocket client
+      const wsClient = new GeminiLiveClient(
+        { token, systemInstruction, model },
+        {
+          onConnected: () => {
+            setConnectionState('connected')
+            setInterviewState('active')
+          },
+          onDisconnected: () => {
+            setConnectionState('disconnected')
+            setBlobState('idle')
+            stopRecording()
+          },
+          onError: (error) => {
+            setError(error.message)
+            setConnectionState('error')
+            setInterviewState('idle')
+            setBlobState('idle')
+            onError?.(error)
+          },
+          onSetupComplete: () => {
+            // AI is ready, start recording
+            startRecording()
+          },
+          onTextResponse: (text) => {
+            setCurrentAIMessage(text)
+            setBlobState('speaking')
+
+            // Add to transcript
+            const turn: ConversationTurn = {
+              id: `${Date.now()}-ai`,
+              session_id: sessionId,
+              user_id: '',
+              turn_number: turnCount + 1,
+              speaker: 'ai',
+              content: text,
+              audio_url: null,
+              audio_duration_seconds: null,
+              timestamp: new Date().toISOString(),
+              metadata: null,
+              created_at: new Date().toISOString(),
+            }
+            setTranscript((prev) => [...prev, turn])
+
+            // Buffer turn
+            addTurn('ai', text)
+          },
+          onAudioResponse: (audioData) => {
+            playAudioResponse(audioData)
+          },
+          onTurnComplete: () => {
+            setBlobState('listening')
+            setCurrentAIMessage('')
+          },
+        }
+      )
+
+      // Connect
+      await wsClient.connect()
+      setClient(wsClient)
+    } catch (err: any) {
+      setError(err.message)
+      setConnectionState('error')
+      setInterviewState('idle')
+      setBlobState('idle')
+      onError?.(err)
+    }
+  }
+
+  /**
+   * Start audio recording
+   */
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: {
+          channelCount: 1,
+          sampleRate: 16000,
+          echoCancellation: true,
+          noiseSuppression: true,
+        },
+      })
+
+      mediaStreamRef.current = stream
+
+      // Create AudioContext for recording
+      const audioContext = new AudioContext({ sampleRate: 16000 })
+      const source = audioContext.createMediaStreamSource(stream)
+      const processor = audioContext.createScriptProcessor(4096, 1, 1)
+
+      processor.onaudioprocess = (event) => {
+        if (!client || connectionState !== 'connected') return
+
+        try {
+          const inputData = event.inputBuffer.getChannelData(0)
+
+          // Calculate audio level for blob pulsation
+          const sum = inputData.reduce((acc, val) => acc + Math.abs(val), 0)
+          const level = sum / inputData.length
+          setAudioLevel(Math.min(level * 10, 1)) // Normalize to 0-1
+
+          // Convert to 16-bit PCM
+          const pcm16 = new Int16Array(inputData.length)
+          for (let i = 0; i < inputData.length; i++) {
+            const clamped = Math.max(-1, Math.min(1, inputData[i]))
+            pcm16[i] = clamped < 0 ? clamped * 0x8000 : clamped * 0x7fff
+          }
+
+          // Convert to base64
+          const uint8Array = new Uint8Array(pcm16.buffer)
+          let binaryString = ''
+          for (let i = 0; i < uint8Array.length; i++) {
+            binaryString += String.fromCharCode(uint8Array[i])
+          }
+          const base64Audio = btoa(binaryString)
+
+          // Send to Gemini
+          client.sendAudio(base64Audio)
+        } catch (error) {
+          console.error('Audio processing error:', error)
+        }
+      }
+
+      source.connect(processor)
+      processor.connect(audioContext.destination)
+
+      audioContextRef.current = audioContext
+      processorRef.current = processor
+
+      setIsRecording(true)
+      setBlobState('listening')
+    } catch (err: any) {
+      setError(`Microphone access denied: ${err.message}`)
+    }
+  }
+
+  /**
+   * Stop recording
+   */
+  const stopRecording = () => {
+    if (processorRef.current) {
+      processorRef.current.disconnect()
+      processorRef.current = null
+    }
+
+    if (audioContextRef.current) {
+      audioContextRef.current.close()
+      audioContextRef.current = null
+    }
+
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop())
+      mediaStreamRef.current = null
+    }
+
+    setIsRecording(false)
+    setBlobState('thinking')
+
+    // Signal turn completion
+    if (client && connectionState === 'connected') {
+      client.sendText('')
+    }
+  }
+
+  /**
+   * Play audio response
+   */
+  const playAudioResponse = async (base64Audio: string) => {
+    try {
+      if (!playbackContextRef.current) {
+        playbackContextRef.current = new AudioContext()
+        nextPlayTimeRef.current = playbackContextRef.current.currentTime
+      }
+
+      const playbackContext = playbackContextRef.current
+
+      if (playbackContext.state === 'suspended') {
+        await playbackContext.resume()
+      }
+
+      // Decode base64 to PCM
+      const binaryString = atob(base64Audio)
+      const bytes = new Uint8Array(binaryString.length)
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i)
+      }
+
+      // Convert to Int16Array
+      const dataView = new DataView(bytes.buffer)
+      const numSamples = Math.floor(bytes.length / 2)
+      const pcm16 = new Int16Array(numSamples)
+
+      for (let i = 0; i < numSamples; i++) {
+        pcm16[i] = dataView.getInt16(i * 2, true)
+      }
+
+      // Convert to Float32Array
+      const float32 = new Float32Array(pcm16.length)
+      for (let i = 0; i < pcm16.length; i++) {
+        float32[i] = pcm16[i] / 32768.0
+      }
+
+      // Create audio buffer
+      const sampleRate = 24000
+      const audioBuffer = playbackContext.createBuffer(1, float32.length, sampleRate)
+      audioBuffer.copyToChannel(float32, 0)
+
+      // Schedule playback
+      const currentTime = playbackContext.currentTime
+      if (nextPlayTimeRef.current < currentTime) {
+        nextPlayTimeRef.current = currentTime
+      }
+
+      const source = playbackContext.createBufferSource()
+      source.buffer = audioBuffer
+      source.connect(playbackContext.destination)
+      source.start(nextPlayTimeRef.current)
+
+      nextPlayTimeRef.current += audioBuffer.duration
+    } catch (error) {
+      console.error('Audio playback error:', error)
+    }
+  }
+
+  /**
+   * Add turn to buffer
+   */
+  const addTurn = async (speaker: 'ai' | 'user', content: string) => {
+    const turn: BufferedTurn = {
+      turn_number: turnCount + 1,
+      speaker,
+      content,
+      timestamp: new Date().toISOString(),
+    }
+
+    const newBuffer = [...turnBuffer, turn]
+    setTurnBuffer(newBuffer)
+    setTurnCount(turnCount + 1)
+
+    if (newBuffer.length >= FLUSH_THRESHOLD) {
+      await flushTurns(newBuffer)
+      setTurnBuffer([])
+    }
+  }
+
+  /**
+   * Flush turns
+   */
+  const flushTurns = async (turns: BufferedTurn[]) => {
+    if (turns.length === 0) return
+
+    try {
+      await fetch('/api/interview/live-session/flush', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId, turns }),
+      })
+    } catch (error) {
+      console.error('Flush error:', error)
+    }
+  }
+
+  /**
+   * End interview
+   */
+  const endInterview = async () => {
+    try {
+      setInterviewState('ending')
+      stopRecording()
+
+      if (client) {
+        client.disconnect()
+      }
+
+      // Complete session
+      const response = await fetch('/api/interview/live-session/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          remainingTurns: turnBuffer,
+          transcript,
+        }),
+      })
+
+      if (playbackContextRef.current) {
+        playbackContextRef.current.close()
+        playbackContextRef.current = null
+      }
+
+      setConnectionState('disconnected')
+      setBlobState('idle')
+      setInterviewState('completed')
+
+      if (response.ok) {
+        onComplete?.(transcript)
+      }
+    } catch (err: any) {
+      setError(err.message)
+    }
+  }
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      stopRecording()
+      if (client) {
+        client.disconnect()
+      }
+      if (playbackContextRef.current) {
+        playbackContextRef.current.close()
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+      {/* Error Toast */}
+      <AnimatePresence>
+        {error && (
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            className="fixed top-6 left-1/2 -translate-x-1/2 z-50 max-w-md w-full mx-4"
+          >
+            <div className="bg-destructive/10 backdrop-blur-sm border border-destructive/50 rounded-xl p-4 flex items-start gap-3 shadow-lg">
+              <AlertCircle className="w-5 h-5 text-destructive mt-0.5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-foreground">Error</p>
+                <p className="text-xs text-muted-foreground mt-1">{error}</p>
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => setError(null)}
+                className="flex-shrink-0 h-6 w-6 p-0"
+              >
+                ×
+              </Button>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Main Content */}
+      <div className="max-w-4xl w-full flex flex-col items-center space-y-12">
+        {/* Blob */}
+        <AIBlob state={blobState} audioLevel={audioLevel} />
+
+        {/* AI Message */}
+        <AnimatePresence mode="wait">
+          {currentAIMessage && interviewState === 'active' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full max-w-2xl"
+            >
+              <div className="bg-card/50 backdrop-blur-sm border border-primary/20 rounded-2xl p-6 text-center">
+                <p className="text-lg leading-relaxed">{currentAIMessage}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Start/End Interview Button */}
+        <div className="flex flex-col items-center gap-4">
+          {interviewState === 'idle' && (
+            <Button
+              size="lg"
+              onClick={startInterview}
+              className="px-12 py-6 text-lg rounded-full bg-primary hover:bg-primary/90 text-background font-semibold"
+            >
+              Start Interview
+            </Button>
+          )}
+
+          {interviewState === 'starting' && (
+            <Button
+              size="lg"
+              disabled
+              className="px-12 py-6 text-lg rounded-full"
+            >
+              Starting...
+            </Button>
+          )}
+
+          {interviewState === 'active' && (
+            <Button
+              size="lg"
+              variant="destructive"
+              onClick={endInterview}
+              className="px-12 py-6 text-lg rounded-full"
+            >
+              End Interview
+            </Button>
+          )}
+
+          {interviewState === 'ending' && (
+            <Button
+              size="lg"
+              disabled
+              variant="destructive"
+              className="px-12 py-6 text-lg rounded-full"
+            >
+              Ending...
+            </Button>
+          )}
+
+          {/* Status */}
+          {interviewState === 'active' && transcript.length > 0 && (
+            <p className="text-sm text-muted-foreground">
+              {Math.floor(transcript.length / 2)} questions answered
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  )
+}
