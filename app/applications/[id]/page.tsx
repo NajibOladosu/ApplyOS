@@ -1256,37 +1256,6 @@ export default function ApplicationDetailPage() {
                                     )}
                                   </Button>
                                 </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-2 pt-4 border-t">
-                                  {session.answered_questions > 0 && session.status === 'completed' && (
-                                    <Button
-                                      variant="outline"
-                                      size="sm"
-                                      className="flex-1"
-                                      onClick={(e) => {
-                                        e.stopPropagation()
-                                        handleViewReport(session.id)
-                                      }}
-                                    >
-                                      <FileText className="h-4 w-4 mr-2" />
-                                      View Report
-                                    </Button>
-                                  )}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className={session.answered_questions > 0 && session.status === 'completed' ? '' : 'flex-1'}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setDeletingSessionId(session.id)
-                                      setShowDeleteConfirmModal(true)
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4 mr-2" />
-                                    Delete
-                                  </Button>
-                                </div>
                               </CardContent>
                             </Card>
                           </motion.div>
