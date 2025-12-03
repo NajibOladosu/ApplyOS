@@ -357,9 +357,9 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       // Update blob state to speaking
       setBlobState('speaking')
 
-      // Reset to listening after audio finishes
+      // Reset to idle after audio finishes
       setTimeout(() => {
-        setBlobState('listening')
+        setBlobState('idle')
       }, audioBuffer.duration * 1000)
     } catch (error) {
       console.error('[Audio] Playback error:', error)
