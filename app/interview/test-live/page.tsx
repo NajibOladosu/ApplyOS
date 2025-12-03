@@ -154,14 +154,14 @@ export default function TestLivePage() {
           onSetupComplete: () => {
             addMessage('✅ Setup complete - ready for audio')
           },
-          onServerContent: (content) => {
+          onContent: (content) => {
             console.log('Server content received:', content)
             if (content.modelTurn?.parts) {
               console.log('Parts:', content.modelTurn.parts)
 
               // Handle text response
-              const textPart = content.modelTurn.parts.find((p: any) => p.text)
-              if (textPart) {
+              const textPart = content.modelTurn.parts.find((p: any) => 'text' in p)
+              if (textPart && 'text' in textPart) {
                 addMessage(`💬 AI: ${textPart.text.substring(0, 100)}...`)
 
                 // Add AI turn to buffer
@@ -169,9 +169,9 @@ export default function TestLivePage() {
               }
 
               // Handle audio response
-              const audioPart = content.modelTurn.parts.find((p: any) => p.inlineData)
+              const audioPart = content.modelTurn.parts.find((p: any) => 'inlineData' in p)
               console.log('Audio part found:', audioPart)
-              if (audioPart?.inlineData?.data) {
+              if (audioPart && 'inlineData' in audioPart && audioPart.inlineData?.data) {
                 addMessage(`🔊 Playing AI audio response...`)
                 playAudioResponse(audioPart.inlineData.data)
               }
@@ -183,7 +183,8 @@ export default function TestLivePage() {
             playAudioResponse(audioData)
           },
           onToolCall: (toolCall) => {
-            addMessage(`🔧 Tool call: ${toolCall.name}`)
+            const calls = toolCall.functionCalls?.map(fc => fc.name).join(', ') || 'unknown'
+            addMessage(`🔧 Tool call: ${calls}`)
           },
         }
       )
