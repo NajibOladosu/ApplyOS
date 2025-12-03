@@ -9,6 +9,8 @@ import { GeminiLiveClient } from '@/lib/gemini-live/client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
 import type { ConversationTurn } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
+import { InterviewReportModal } from '@/components/modals/interview-report-modal'
+import { useRouter } from 'next/navigation'
 
 interface LiveInterviewProps {
   sessionId: string
@@ -17,11 +19,18 @@ interface LiveInterviewProps {
 }
 
 export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewProps) {
+  const router = useRouter()
+
   // Interview state
-  const [interviewState, setInterviewState] = useState<'idle' | 'starting' | 'active' | 'ending' | 'completed'>('idle')
+  const [interviewState, setInterviewState] = useState<'idle' | 'starting' | 'active' | 'ending' | 'completed' | 'generating-report'>('idle')
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [client, setClient] = useState<GeminiLiveClient | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Report state
+  const [showReportModal, setShowReportModal] = useState(false)
+  const [reportData, setReportData] = useState<any>(null)
+  const [generatingReport, setGeneratingReport] = useState(false)
 
   // Recording state
   const [isRecording, setIsRecording] = useState(false)
@@ -361,13 +370,79 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
       setConnectionState('disconnected')
       setBlobState('idle')
-      setInterviewState('completed')
 
       if (response.ok) {
+        // Generate report
+        setInterviewState('generating-report')
+        setGeneratingReport(true)
+        await generateReport()
         onComplete?.(transcript)
       }
     } catch (err: any) {
       setError(err.message)
+      setInterviewState('idle')
+    }
+  }
+
+  /**
+   * Generate interview report
+   */
+  const generateReport = async () => {
+    try {
+      const response = await fetch('/api/interview/report/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate report')
+      }
+
+      const data = await response.json()
+      setReportData(data.reportData)
+      setGeneratingReport(false)
+      setInterviewState('completed')
+      setShowReportModal(true)
+    } catch (err: any) {
+      console.error('Error generating report:', err)
+      setError('Failed to generate report. Please try again.')
+      setGeneratingReport(false)
+      setInterviewState('completed')
+    }
+  }
+
+  /**
+   * Handle retake interview
+   */
+  const handleRetake = async () => {
+    try {
+      setShowReportModal(false)
+      setGeneratingReport(true)
+
+      const response = await fetch('/api/interview/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to reset interview')
+      }
+
+      // Reset local state
+      setTranscript([])
+      setTurnBuffer([])
+      setTurnCount(0)
+      setReportData(null)
+      setGeneratingReport(false)
+      setError(null)
+      setInterviewState('idle')
+      setConnectionState('disconnected')
+    } catch (err: any) {
+      console.error('Error resetting interview:', err)
+      setError('Failed to reset interview. Please refresh the page.')
+      setGeneratingReport(false)
     }
   }
 
@@ -480,6 +555,16 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             </Button>
           )}
 
+          {interviewState === 'generating-report' && (
+            <Button
+              size="lg"
+              disabled
+              className="px-12 py-6 text-lg rounded-full"
+            >
+              Generating Report...
+            </Button>
+          )}
+
           {/* Status */}
           {interviewState === 'active' && transcript.length > 0 && (
             <p className="text-sm text-muted-foreground">
@@ -488,6 +573,17 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           )}
         </div>
       </div>
+
+      {/* Report Modal */}
+      {reportData && (
+        <InterviewReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          reportData={reportData}
+          sessionId={sessionId}
+          onRetake={handleRetake}
+        />
+      )}
     </div>
   )
 }
