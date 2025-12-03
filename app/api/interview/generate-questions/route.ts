@@ -108,7 +108,6 @@ export async function POST(request: NextRequest) {
       session_type: sessionType,
       difficulty,
       company_name: companyName || application.company || null,
-      total_questions: aiQuestions.length,
     }, supabase)
 
     console.log(`Created interview session: ${session.id}`)
