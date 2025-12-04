@@ -48,6 +48,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
+  const [isReviewMode, setIsReviewMode] = useState(false)
 
   const MAX_ANSWER_LENGTH = 5000
   const characterCount = answerText.length
@@ -196,10 +197,26 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1)
-      setShowFeedback(false)
-      setCurrentFeedback(null)
-      setAnswerText("")
+      const nextIndex = currentQuestionIndex + 1
+      setCurrentQuestionIndex(nextIndex)
+
+      if (isReviewMode) {
+        // In review mode, show feedback for the next question immediately
+        const nextQuestion = questions[nextIndex]
+        if (nextQuestion.answer) {
+          setCurrentFeedback(nextQuestion.answer)
+          setShowFeedback(true)
+        } else {
+          // Should not happen in review mode if all answered, but fallback
+          setShowFeedback(false)
+          setCurrentFeedback(null)
+        }
+      } else {
+        // Normal mode
+        setShowFeedback(false)
+        setCurrentFeedback(null)
+        setAnswerText("")
+      }
     }
   }
 
@@ -312,6 +329,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
             <div className="flex flex-col gap-3 pt-4">
               <Button
                 onClick={() => {
+                  setIsReviewMode(true)
                   setCurrentQuestionIndex(0)
                   if (questions[0]?.answer) {
                     handleViewAnswer(questions[0])
@@ -448,8 +466,8 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                               Aim for clear, structured responses
                             </p>
                             <p className={`text-xs font-medium ${isOverLimit ? 'text-destructive' :
-                                characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
-                                  'text-muted-foreground'
+                              characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
+                                'text-muted-foreground'
                               }`}>
                               {characterCount} / {MAX_ANSWER_LENGTH}
                             </p>
@@ -637,12 +655,28 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       </div>
                     )}
 
+                    <div className="space-y-4 mb-6">
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <p className="text-sm font-semibold mb-1">Question:</p>
+                        <p className="text-sm text-muted-foreground">{currentQuestion.question_text}</p>
+                      </div>
+                      <div className="bg-muted p-4 rounded-lg">
+                        <p className="text-sm font-semibold mb-1">Your Answer:</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {currentFeedback.answer_text}
+                        </p>
+                      </div>
+                    </div>
+
                     <Button
                       onClick={() => {
-                        setShowFeedback(false)
-                        setCurrentFeedback(null)
                         if (currentQuestionIndex < questions.length - 1) {
                           handleNextQuestion()
+                        } else {
+                          // Finish review
+                          setShowFeedback(false)
+                          setCurrentFeedback(null)
+                          setIsReviewMode(false)
                         }
                       }}
                       className="w-full"
@@ -655,7 +689,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       ) : (
                         <>
                           <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Continue
+                          Finish Review
                         </>
                       )}
                     </Button>
