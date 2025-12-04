@@ -303,6 +303,18 @@ export class GeminiLiveClient {
       }
     }
 
+    // Handle AI speech transcription (what the AI is saying)
+    if (content.outputTranscription?.text) {
+      console.log('[Client] AI transcription:', content.outputTranscription.text)
+      this.events.onOutputTranscription?.(content.outputTranscription.text)
+    }
+
+    // Handle user speech transcription (what the user said)
+    if (content.inputTranscription?.text) {
+      console.log('[Client] User transcription:', content.inputTranscription.text)
+      this.events.onInputTranscription?.(content.inputTranscription.text)
+    }
+
     if (content.turnComplete) {
       console.log('[Client] Turn complete')
       this.events.onTurnComplete?.()

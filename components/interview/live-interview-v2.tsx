@@ -43,6 +43,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   // Transcript state
   const [transcript, setTranscript] = useState<ConversationTurn[]>([])
   const [currentAIMessage, setCurrentAIMessage] = useState<string>('')
+  const [currentAITranscription, setCurrentAITranscription] = useState<string>('')
+  const [currentUserTranscription, setCurrentUserTranscription] = useState<string>('')
 
   // Turn buffering
   const [turnBuffer, setTurnBuffer] = useState<BufferedTurn[]>([])
