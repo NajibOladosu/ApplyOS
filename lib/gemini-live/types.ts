@@ -39,6 +39,12 @@ export interface ModelTurn {
 export interface ServerContent {
   modelTurn?: ModelTurn
   turnComplete?: boolean
+  outputTranscription?: {
+    text: string
+  }
+  inputTranscription?: {
+    text: string
+  }
 }
 
 export interface ToolCall {
@@ -60,6 +66,8 @@ export interface SetupMessage {
           }
         }
       }
+      outputAudioTranscription?: {}
+      inputAudioTranscription?: {}
     }
     systemInstruction?: {
       parts: Array<{ text: string }>
@@ -107,6 +115,8 @@ export interface GeminiLiveClientEvents {
   onContent: (content: ServerContent) => void
   onAudioResponse: (audioData: string) => void
   onTextResponse: (text: string) => void
+  onOutputTranscription: (text: string) => void  // AI's speech transcription
+  onInputTranscription: (text: string) => void   // User's speech transcription
   onTurnComplete: () => void
   onToolCall: (toolCall: ToolCall) => void
   onError: (error: Error) => void

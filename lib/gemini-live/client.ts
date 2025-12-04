@@ -196,6 +196,8 @@ export class GeminiLiveClient {
               },
             },
           },
+          outputAudioTranscription: {}, // Enable AI speech transcription
+          inputAudioTranscription: {},  // Enable user speech transcription
         },
       },
     }
