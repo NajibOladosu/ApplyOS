@@ -71,6 +71,20 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setConnectionState('connecting')
       setError(null)
 
+      // Cleanup previous session if exists
+      if (clientRef.current) {
+        console.log('[Interview] Cleaning up previous session before starting new one')
+        clientRef.current.disconnect()
+        clientRef.current = null
+        setClient(null)
+      }
+      stopRecording()
+      setTranscript([])
+      setTurnBuffer([])
+      setTurnCount(0)
+      setCurrentAITranscription('')
+      setCurrentUserTranscription('')
+
       // Initialize AudioContext for playback (must be created in user gesture)
       if (!playbackContextRef.current) {
         console.log('[Audio] Creating AudioContext from user interaction')
@@ -191,7 +205,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           onOutputTranscription: (text) => {
             // AI speech transcription - display this instead of text response
             console.log('[Interview] AI transcription:', text)
-            setCurrentAITranscription(text)
+            setCurrentAITranscription(prev => prev + (prev ? ' ' : '') + text)
             setOrbMode('ai')
 
             // Add to transcript using transcription
@@ -216,7 +230,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           onInputTranscription: (text) => {
             // User speech transcription - save as answer
             console.log('[Interview] User transcription:', text)
-            setCurrentUserTranscription(text)
+            // We don't display user transcription anymore, but we still track it for logic if needed
+            // setCurrentUserTranscription(text) 
             setOrbMode('user')
 
             // Add to transcript using transcription
@@ -510,8 +525,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setInterviewState('ending')
       stopRecording()
 
-      if (client) {
-        client.disconnect()
+      if (clientRef.current) {
+        clientRef.current.disconnect()
+        clientRef.current = null
+        setClient(null)
       }
 
       // Complete session
@@ -593,6 +610,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       }
 
       // Reset local state
+      if (clientRef.current) {
+        clientRef.current.disconnect()
+        clientRef.current = null
+        setClient(null)
+      }
+
       setTranscript([])
       setTurnBuffer([])
       setTurnCount(0)
@@ -609,14 +632,18 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   }
 
   // Cleanup on unmount
+  // Cleanup on unmount
   useEffect(() => {
     return () => {
       stopRecording()
-      if (client) {
-        client.disconnect()
+      if (clientRef.current) {
+        console.log('[Interview] Unmounting - disconnecting client')
+        clientRef.current.disconnect()
+        clientRef.current = null
       }
       if (playbackContextRef.current) {
         playbackContextRef.current.close()
+        playbackContextRef.current = null
       }
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -677,21 +704,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         </AnimatePresence>
 
         {/* User Transcription (Speech) */}
-        <AnimatePresence mode="wait">
-          {currentUserTranscription && interviewState === 'active' && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-2xl"
-            >
-              <div className="bg-muted/50 backdrop-blur-sm border border-muted-foreground/20 rounded-2xl p-6 text-center">
-                <p className="text-sm text-muted-foreground mb-1">You said:</p>
-                <p className="text-lg leading-relaxed">{currentUserTranscription}</p>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+
 
         {/* Start/End Interview Button */}
         <div className="flex flex-col items-center gap-4">
