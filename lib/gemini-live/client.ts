@@ -20,6 +20,7 @@ export class GeminiLiveClient {
   private reconnectAttempts = 0
   private maxReconnectAttempts = 3
   private reconnectDelay = 2000 // Start with 2 seconds
+  private intentionalDisconnect = false // Flag to prevent reconnection after intentional disconnect
   private heartbeatInterval: NodeJS.Timeout | null = null
   private events: Partial<GeminiLiveClientEvents> = {}
 
@@ -61,6 +62,7 @@ export class GeminiLiveClient {
 
     this.connectionState = 'connecting'
     this.reconnectAttempts = 0
+    this.intentionalDisconnect = false // Reset flag on new connection
 
     return this.establishConnection()
   }
@@ -162,7 +164,8 @@ export class GeminiLiveClient {
           }
 
           // Attempt reconnection if not a clean close and not a quota/auth error
-          if (shouldRetry && event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts) {
+          // AND not an intentional disconnect
+          if (shouldRetry && event.code !== 1000 && this.reconnectAttempts < this.maxReconnectAttempts && !this.intentionalDisconnect) {
             this.attemptReconnect()
           } else if (!shouldRetry) {
             // Notify about non-retryable error
@@ -415,6 +418,8 @@ export class GeminiLiveClient {
    * Disconnect from Gemini Live API
    */
   disconnect(): void {
+    console.log('[Client] Intentional disconnect requested')
+    this.intentionalDisconnect = true
     this.stopHeartbeat()
 
     if (this.ws) {
