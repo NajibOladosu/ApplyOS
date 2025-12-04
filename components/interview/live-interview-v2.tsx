@@ -58,6 +58,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const playbackContextRef = useRef<AudioContext | null>(null)
   const nextPlayTimeRef = useRef<number>(0)
   const clientRef = useRef<GeminiLiveClient | null>(null)
+  const isAITurnCompleteRef = useRef<boolean>(false)
 
   // Orb mode
   const [orbMode, setOrbMode] = useState<OrbMode>('idle')
@@ -84,6 +85,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setTurnCount(0)
       setCurrentAITranscription('')
       setCurrentUserTranscription('')
+      isAITurnCompleteRef.current = false
 
       // Initialize AudioContext for playback (must be created in user gesture)
       if (!playbackContextRef.current) {
@@ -162,8 +164,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             console.log('[Interview] Turn complete')
             setOrbMode('idle')
             setCurrentAIMessage('')
-            setCurrentAITranscription('')
+            // Don't clear transcription here, keep it visible until next turn
+            // setCurrentAITranscription('') 
             setCurrentUserTranscription('')
+            isAITurnCompleteRef.current = true
           },
           onToolCall: (toolCall) => {
             console.log('[Interview] Tool call received:', toolCall)
@@ -193,11 +197,19 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                   console.log('[Interview] Auto-ending interview after AI completion')
                   setAiSignaledCompletion(true)
 
-                  // Wait 5 seconds for the AI's closing audio to finish playing, then end
+                  // Calculate remaining audio duration
+                  let delay = 5000 // Default fallback
+                  if (playbackContextRef.current) {
+                    const remainingTime = nextPlayTimeRef.current - playbackContextRef.current.currentTime
+                    delay = Math.max(1000, remainingTime * 1000 + 1000) // Add 1s buffer
+                    console.log(`[Interview] Calculated audio delay: ${delay}ms`)
+                  }
+
+                  // Wait for audio to finish playing
                   setTimeout(() => {
                     console.log('[Interview] Executing delayed auto-end')
                     endInterview()
-                  }, 5000)
+                  }, delay)
                 }
               }
             }
@@ -205,7 +217,16 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           onOutputTranscription: (text) => {
             // AI speech transcription - display this instead of text response
             console.log('[Interview] AI transcription:', text)
-            setCurrentAITranscription(prev => prev + (prev ? ' ' : '') + text)
+
+            if (isAITurnCompleteRef.current) {
+              // New turn starting, replace text
+              setCurrentAITranscription(text)
+              isAITurnCompleteRef.current = false
+            } else {
+              // Continuing current turn, append text
+              setCurrentAITranscription(prev => prev + (prev ? ' ' : '') + text)
+            }
+
             setOrbMode('ai')
 
             // Add to transcript using transcription
