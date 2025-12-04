@@ -283,7 +283,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   }
 
   // Completion screen
-  if (allAnswered && !showFeedback) {
+  if ((allAnswered || session?.status === 'completed') && !showFeedback) {
     const avgScore = session.average_score || 0
     const scoreColor = avgScore >= 8 ? "text-green-500" : avgScore >= 6 ? "text-yellow-500" : "text-red-500"
 
