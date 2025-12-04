@@ -71,16 +71,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify application belongs to user
-    const { data: application } = await supabase
+    console.log(`[DEBUG] Looking up application ${applicationId} for user ${user.id}`)
+    const { data: application, error: appError } = await supabase
       .from('applications')
       .select('id, company, job_description')
       .eq('id', applicationId)
       .eq('user_id', user.id)
       .single()
 
+    if (appError) {
+      console.error('[DEBUG] Application query error:', appError)
+      return NextResponse.json({ error: `Database error: ${appError.message}` }, { status: 500 })
+    }
+
     if (!application) {
+      console.error(`[DEBUG] Application ${applicationId} not found for user ${user.id}`)
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
+
+    console.log(`[DEBUG] Found application: ${application.id} - ${application.company}`)
 
     // Generate questions FIRST - fail early if this fails
     console.log(`Generating ${questionCount} questions for ${sessionType} interview...`)

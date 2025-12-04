@@ -1,295 +1,152 @@
 'use client'
 
-import { motion, AnimatePresence } from 'framer-motion'
-import { useEffect, useState } from 'react'
-import { Mic, Brain, Volume2, Sparkles } from 'lucide-react'
+import { useRef, useMemo, useState, useEffect } from 'react'
+import { Canvas, useFrame } from '@react-three/fiber'
+import * as THREE from 'three'
+import { createNoise3D } from 'simplex-noise'
 
-export type OrbState = 'idle' | 'listening' | 'thinking' | 'speaking'
+export type OrbMode = 'idle' | 'user' | 'ai'
 
-interface AIOrbProps {
-    state: OrbState
-    className?: string
+interface OrbProps {
+  mode: OrbMode
+  audioLevel?: number
 }
 
-export function AIOrb({ state, className = '' }: AIOrbProps) {
-    const [audioLevel, setAudioLevel] = useState(0)
-    const [particlePositions, setParticlePositions] = useState<Array<{ x: number; y: number }>>([])
+function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
+  const meshRef = useRef<THREE.Mesh>(null)
+  const wireRef = useRef<THREE.Mesh>(null)
+  const geometryRef = useRef<THREE.SphereGeometry | null>(null)
 
-    // Generate particle positions for thinking state
-    useEffect(() => {
-        if (state === 'thinking') {
-            const positions = Array.from({ length: 12 }, (_, i) => {
-                const angle = (i / 12) * Math.PI * 2
-                const radius = 100 + Math.random() * 20
-                return {
-                    x: Math.cos(angle) * radius,
-                    y: Math.sin(angle) * radius,
-                }
-            })
-            setParticlePositions(positions)
-        }
-    }, [state])
+  const noise3D = useMemo(() => createNoise3D(), [])
 
-    // Simulate audio level for speaking state
-    useEffect(() => {
-        if (state === 'speaking') {
-            const interval = setInterval(() => {
-                setAudioLevel(Math.random() * 0.5 + 0.5)
-            }, 100)
-            return () => clearInterval(interval)
-        } else {
-            setAudioLevel(0)
-        }
-    }, [state])
+  const colors = {
+    idle: '#00FF6A',
+    user: '#FFD600',
+    ai: '#00FF6A',
+  }
 
-    const getOrbConfig = () => {
-        switch (state) {
-            case 'idle':
-                return {
-                    scale: 1,
-                    color: 'from-gray-400 via-gray-500 to-gray-600',
-                    glowColor: 'rgba(156, 163, 175, 0.4)',
-                    icon: Sparkles,
-                    pulseSpeed: 3,
-                }
-            case 'listening':
-                return {
-                    scale: 1.05,
-                    color: 'from-green-400 via-emerald-500 to-teal-600',
-                    glowColor: 'rgba(16, 185, 129, 0.5)',
-                    icon: Mic,
-                    pulseSpeed: 1.5,
-                }
-            case 'thinking':
-                return {
-                    scale: 1,
-                    color: 'from-amber-400 via-orange-500 to-red-500',
-                    glowColor: 'rgba(251, 146, 60, 0.5)',
-                    icon: Brain,
-                    pulseSpeed: 2,
-                }
-            case 'speaking':
-                return {
-                    scale: 1 + audioLevel * 0.15,
-                    color: 'from-blue-400 via-indigo-500 to-purple-600',
-                    glowColor: 'rgba(99, 102, 241, 0.5)',
-                    icon: Volume2,
-                    pulseSpeed: 0.8,
-                }
-        }
+  const amplitudes = {
+    idle: 0.15,
+    user: 0.05,
+    ai: 0.45,
+  }
+
+  const glows = {
+    idle: 0.25,
+    user: 0.15,
+    ai: 0.45,
+  }
+
+  const scales = {
+    idle: 1,
+    user: 1,
+    ai: 1.1,
+  }
+
+  useMemo(() => {
+    geometryRef.current = new THREE.SphereGeometry(1, 64, 64)
+  }, [])
+
+  useFrame(({ clock }) => {
+    if (!meshRef.current || !geometryRef.current) return
+
+    const t = clock.getElapsedTime()
+    const mesh = meshRef.current
+    const wire = wireRef.current
+    const geometry = geometryRef.current
+
+    const targetScale = scales[mode]
+    mesh.scale.set(targetScale, targetScale, targetScale)
+
+    const positionAttribute = geometry.attributes.position
+    const vertex = new THREE.Vector3()
+
+    for (let i = 0; i < positionAttribute.count; i++) {
+      vertex.fromBufferAttribute(positionAttribute, i)
+      const originalVertex = vertex.clone().normalize()
+
+      const noiseValue = noise3D(
+        originalVertex.x * 2 + t * 0.5,
+        originalVertex.y * 2 + t * 0.5,
+        originalVertex.z * 2 + t * 0.5
+      )
+
+      const amp = amplitudes[mode] + (mode === 'user' ? audioLevel * 0.1 : 0)
+      const displacement = 1 + noiseValue * amp
+
+      vertex.copy(originalVertex).multiplyScalar(displacement)
+      positionAttribute.setXYZ(i, vertex.x, vertex.y, vertex.z)
     }
 
-    const config = getOrbConfig()
-    const StateIcon = config.icon
+    positionAttribute.needsUpdate = true
+    geometry.computeVertexNormals()
 
+    if (wire && wire.geometry) {
+      const wirePositionAttribute = wire.geometry.attributes.position
+      for (let i = 0; i < positionAttribute.count; i++) {
+        wirePositionAttribute.setXYZ(
+          i,
+          positionAttribute.getX(i),
+          positionAttribute.getY(i),
+          positionAttribute.getZ(i)
+        )
+      }
+      wirePositionAttribute.needsUpdate = true
+    }
+  })
+
+  return (
+    <group>
+      <mesh ref={meshRef} geometry={geometryRef.current || undefined}>
+        <meshStandardMaterial
+          color={colors[mode]}
+          emissive={colors[mode]}
+          emissiveIntensity={glows[mode]}
+          roughness={0.1}
+          metalness={0.8}
+        />
+      </mesh>
+      <mesh ref={wireRef} geometry={geometryRef.current || undefined}>
+        <meshBasicMaterial
+          wireframe
+          color={colors[mode]}
+          opacity={0.3}
+          transparent
+        />
+      </mesh>
+    </group>
+  )
+}
+
+interface AIOrbProps {
+  mode: OrbMode
+  audioLevel?: number
+  className?: string
+}
+
+export function AIOrb({ mode, audioLevel = 0, className = '' }: AIOrbProps) {
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  if (!mounted) {
     return (
-        <div className={`relative flex items-center justify-center ${className}`}>
-            {/* Outer glow ring */}
-            <motion.div
-                className="absolute rounded-full"
-                style={{
-                    width: '280px',
-                    height: '280px',
-                    background: `radial-gradient(circle, ${config.glowColor} 0%, transparent 70%)`,
-                }}
-                animate={{
-                    scale: [1, 1.1, 1],
-                    opacity: [0.4, 0.6, 0.4],
-                }}
-                transition={{
-                    duration: config.pulseSpeed,
-                    repeat: Infinity,
-                    ease: 'easeInOut',
-                }}
-            />
-
-            {/* Listening sound waves */}
-            <AnimatePresence>
-                {state === 'listening' && (
-                    <>
-                        {[0, 1, 2].map((i) => (
-                            <motion.div
-                                key={`wave-${i}`}
-                                className="absolute rounded-full"
-                                style={{
-                                    width: '200px',
-                                    height: '200px',
-                                    border: '2px solid rgba(16, 185, 129, 0.3)',
-                                }}
-                                initial={{ scale: 0.9, opacity: 0 }}
-                                animate={{
-                                    scale: [0.9, 1.8],
-                                    opacity: [0.5, 0],
-                                }}
-                                transition={{
-                                    duration: 2,
-                                    repeat: Infinity,
-                                    delay: i * 0.5,
-                                    ease: 'easeOut',
-                                }}
-                            />
-                        ))}
-                    </>
-                )}
-            </AnimatePresence>
-
-            {/* Thinking particles */}
-            <AnimatePresence>
-                {state === 'thinking' && (
-                    <>
-                        {particlePositions.map((pos, i) => (
-                            <motion.div
-                                key={`particle-${i}`}
-                                className="absolute w-2 h-2 rounded-full"
-                                style={{
-                                    background: 'linear-gradient(135deg, rgba(251, 146, 60, 0.8), rgba(239, 68, 68, 0.8))',
-                                }}
-                                initial={{ x: 0, y: 0, opacity: 0, scale: 0 }}
-                                animate={{
-                                    x: [0, pos.x * 0.5, pos.x, pos.x * 0.5, 0],
-                                    y: [0, pos.y * 0.5, pos.y, pos.y * 0.5, 0],
-                                    opacity: [0, 0.6, 1, 0.6, 0],
-                                    scale: [0, 1, 1.2, 1, 0],
-                                }}
-                                transition={{
-                                    duration: 3,
-                                    repeat: Infinity,
-                                    delay: i * 0.15,
-                                    ease: 'easeInOut',
-                                }}
-                            />
-                        ))}
-                    </>
-                )}
-            </AnimatePresence>
-
-            {/* Main orb container */}
-            <motion.div
-                className="relative"
-                animate={{
-                    scale: config.scale,
-                    rotate: state === 'thinking' ? 360 : 0,
-                }}
-                transition={{
-                    scale: {
-                        duration: config.pulseSpeed,
-                        repeat: Infinity,
-                        repeatType: 'reverse',
-                        ease: 'easeInOut',
-                    },
-                    rotate: {
-                        duration: 8,
-                        repeat: Infinity,
-                        ease: 'linear',
-                    },
-                }}
-            >
-                {/* Main orb */}
-                <motion.div
-                    className={`relative w-48 h-48 rounded-full bg-gradient-to-br ${config.color} shadow-2xl overflow-hidden`}
-                >
-                    {/* Glass morphism effect */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-white/20 via-transparent to-black/10" />
-
-                    {/* Animated gradient overlay */}
-                    <motion.div
-                        className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-transparent"
-                        animate={{
-                            rotate: [0, 360],
-                        }}
-                        transition={{
-                            duration: 8,
-                            repeat: Infinity,
-                            ease: 'linear',
-                        }}
-                    />
-
-                    {/* Inner glow pulse */}
-                    <motion.div
-                        className="absolute inset-4 rounded-full bg-gradient-to-br from-white/30 to-transparent"
-                        animate={{
-                            scale: [0.9, 1, 0.9],
-                            opacity: [0.5, 0.8, 0.5],
-                        }}
-                        transition={{
-                            duration: config.pulseSpeed * 1.5,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                        }}
-                    />
-
-                    {/* Center content */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                        {state === 'speaking' ? (
-                            // Waveform for speaking
-                            <div className="flex items-center justify-center gap-1.5">
-                                {[...Array(7)].map((_, i) => (
-                                    <motion.div
-                                        key={`bar-${i}`}
-                                        className="w-2 bg-white rounded-full"
-                                        animate={{
-                                            height: [
-                                                16,
-                                                24 + audioLevel * 40 * Math.sin((i * Math.PI) / 6),
-                                                16,
-                                            ],
-                                        }}
-                                        transition={{
-                                            duration: 0.4,
-                                            repeat: Infinity,
-                                            delay: i * 0.08,
-                                            ease: 'easeInOut',
-                                        }}
-                                    />
-                                ))}
-                            </div>
-                        ) : (
-                            // Icon for other states
-                            <motion.div
-                                initial={{ scale: 0, rotate: -180 }}
-                                animate={{ scale: 1, rotate: 0 }}
-                                transition={{ type: 'spring', stiffness: 200, damping: 15 }}
-                            >
-                                <StateIcon className="w-16 h-16 text-white" strokeWidth={1.5} />
-                            </motion.div>
-                        )}
-                    </div>
-                </motion.div>
-            </motion.div>
-
-            {/* State label with enhanced styling */}
-            <motion.div
-                className="absolute -bottom-16 text-center"
-                initial={{ opacity: 0, y: -10 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-            >
-                <motion.div
-                    className="px-6 py-2 rounded-full backdrop-blur-sm border border-gray-200 dark:border-gray-700"
-                    style={{
-                        background: `linear-gradient(135deg, ${config.glowColor}, transparent)`,
-                    }}
-                    animate={{
-                        boxShadow: [
-                            `0 0 20px ${config.glowColor}`,
-                            `0 0 30px ${config.glowColor}`,
-                            `0 0 20px ${config.glowColor}`,
-                        ],
-                    }}
-                    transition={{
-                        duration: 2,
-                        repeat: Infinity,
-                        ease: 'easeInOut',
-                    }}
-                >
-                    <p className="text-sm font-semibold text-gray-900 dark:text-white uppercase tracking-wider">
-                        {state === 'idle' && '✨ Ready'}
-                        {state === 'listening' && '🎤 Listening'}
-                        {state === 'thinking' && '🧠 Thinking'}
-                        {state === 'speaking' && '🔊 Speaking'}
-                    </p>
-                </motion.div>
-            </motion.div>
-        </div>
+      <div className={`w-full h-full flex items-center justify-center ${className}`}>
+        <div className="w-48 h-48 rounded-full bg-gradient-to-br from-green-400 to-green-600 animate-pulse opacity-50" />
+      </div>
     )
+  }
+
+  return (
+    <div className={`w-full h-full ${className}`}>
+      <Canvas camera={{ position: [0, 0, 3], fov: 50 }}>
+        <ambientLight intensity={0.4} />
+        <pointLight position={[5, 5, 5]} intensity={2} />
+        <pointLight position={[-5, -5, -5]} intensity={1} />
+        <OrbMesh mode={mode} audioLevel={audioLevel} />
+      </Canvas>
+    </div>
+  )
 }

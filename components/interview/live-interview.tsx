@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { AIOrb, type OrbState } from './ai-orb'
+import { AIOrb, type OrbMode } from './ai-orb'
 import { Mic, MicOff, Square, AlertCircle } from 'lucide-react'
 import { GeminiLiveClient } from '@/lib/gemini-live/client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
@@ -45,7 +45,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const nextPlayTimeRef = useRef<number>(0)
 
   // AI Orb state
-  const [orbState, setOrbState] = useState<OrbState>('idle')
+  const [orbState, setOrbState] = useState<OrbMode>('idle')
 
   /**
    * Initialize live session
@@ -94,7 +94,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           },
           onTextResponse: (text) => {
             setCurrentAIMessage(text)
-            setOrbState('speaking')
+            setOrbState('ai')
 
             // Add to transcript
             const turn: ConversationTurn = {
@@ -119,7 +119,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             playAudioResponse(audioData)
           },
           onTurnComplete: () => {
-            setOrbState('listening')
+            setOrbState('user')
             setCurrentAIMessage('')
           },
         }
@@ -196,7 +196,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       processorRef.current = processor
 
       setIsRecording(true)
-      setOrbState('listening')
+      setOrbState('user')
     } catch (err: any) {
       setMicPermission('denied')
       setError(`Microphone access denied: ${err.message}`)
@@ -223,7 +223,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
     }
 
     setIsRecording(false)
-    setOrbState('thinking')
+    setOrbState('ai')
 
     // Signal turn completion
     if (client && connectionState === 'connected') {
@@ -477,7 +477,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           <div className="max-w-3xl w-full space-y-8">
             {/* AI Orb */}
             <div className="flex justify-center">
-              <AIOrb state={orbState} />
+              <AIOrb mode={orbState} />
             </div>
 
             {/* Current AI Message */}

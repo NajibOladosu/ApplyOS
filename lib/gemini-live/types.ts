@@ -7,6 +7,7 @@ export interface LiveSessionConfig {
   token: string
   model?: string
   systemInstruction?: string
+  tools?: any[]
 }
 
 export interface AudioChunk {
@@ -63,6 +64,7 @@ export interface SetupMessage {
     systemInstruction?: {
       parts: Array<{ text: string }>
     }
+    tools?: any[]
   }
 }
 

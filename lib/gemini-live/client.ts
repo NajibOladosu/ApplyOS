@@ -204,6 +204,14 @@ export class GeminiLiveClient {
       }
     }
 
+    // Add tools if provided
+    if (this.config.tools && this.config.tools.length > 0) {
+      setupMessage.setup.tools = this.config.tools
+      console.log('[Client] Sending setup with tools:', this.config.tools.map(t =>
+        t.functionDeclarations.map((f: any) => f.name).join(', ')
+      ))
+    }
+
     console.log('[Client] Sending setup message')
     this.send(setupMessage)
   }

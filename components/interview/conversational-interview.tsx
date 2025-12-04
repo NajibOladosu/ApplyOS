@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
-import { AIOrb, type OrbState } from './ai-orb'
+import { AIOrb, type OrbMode } from './ai-orb'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Mic, MicOff, Square } from 'lucide-react'
@@ -19,7 +19,7 @@ interface ConversationalInterviewProps {
 }
 
 export function ConversationalInterview({ sessionId, onComplete }: ConversationalInterviewProps) {
-    const [orbState, setOrbState] = useState<OrbState>('idle')
+    const [orbState, setOrbState] = useState<OrbMode>('idle')
     const [isRecording, setIsRecording] = useState(false)
     const [transcript, setTranscript] = useState<ConversationTurn[]>([])
     const [currentAIMessage, setCurrentAIMessage] = useState<string>('')
@@ -132,7 +132,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
                 utterance.volume = 1
 
                 utterance.onstart = () => {
-                    setOrbState('speaking')
+                    setOrbState('ai')
                 }
 
                 utterance.onend = () => {
@@ -155,7 +155,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
 
     const startInterview = async () => {
         try {
-            setOrbState('thinking')
+            setOrbState('ai')
             setError(null)
 
             const response = await fetch('/api/interview/conversation', {
@@ -222,7 +222,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
 
         setIsRecording(false)
         isRecordingRef.current = false
-        setOrbState('thinking')
+        setOrbState('ai')
         interimTranscriptRef.current = ''
 
         // Add user turn to transcript
@@ -331,7 +331,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
 
             {/* AI Orb */}
             <div className="flex items-center justify-center py-8">
-                <AIOrb state={orbState} />
+                <AIOrb mode={orbState} />
             </div>
 
             {/* Transcript */}
