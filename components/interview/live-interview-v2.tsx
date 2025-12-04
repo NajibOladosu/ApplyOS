@@ -59,6 +59,14 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const nextPlayTimeRef = useRef<number>(0)
   const clientRef = useRef<GeminiLiveClient | null>(null)
   const isAITurnCompleteRef = useRef<boolean>(false)
+  const userAnswerAccumulator = useRef<string>('')
+
+  const [questions, setQuestions] = useState<any[]>([])
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
+
+  // Refs for state accessible in callbacks
+  const questionsRef = useRef<any[]>([])
+  const currentQuestionIndexRef = useRef(0)
 
   // Orb mode
   const [orbMode, setOrbMode] = useState<OrbMode>('idle')
@@ -86,6 +94,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setCurrentAITranscription('')
       setCurrentUserTranscription('')
       isAITurnCompleteRef.current = false
+      userAnswerAccumulator.current = ''
+      setCurrentQuestionIndex(0)
 
       // Initialize AudioContext for playback (must be created in user gesture)
       if (!playbackContextRef.current) {
@@ -112,10 +122,16 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         throw new Error(error.error || 'Failed to initialize session')
       }
 
-      const { token, systemInstruction, model, tools, questions } = await response.json()
+      const { token, systemInstruction, model, tools, questions: fetchedQuestions } = await response.json()
 
-      // Store total questions for validation
-      setTotalQuestions(questions.length)
+      // Store questions and total count
+      setQuestions(fetchedQuestions)
+      questionsRef.current = fetchedQuestions
+      setTotalQuestions(fetchedQuestions.length)
+
+      // Reset index
+      setCurrentQuestionIndex(0)
+      currentQuestionIndexRef.current = 0
 
       // Create WebSocket client
       const wsClient = new GeminiLiveClient(
@@ -219,7 +235,21 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             console.log('[Interview] AI transcription:', text)
 
             if (isAITurnCompleteRef.current) {
-              // New turn starting, replace text
+              // New turn starting
+
+              // Check if we have a user answer to save
+              if (userAnswerAccumulator.current.trim()) {
+                console.log('[Interview] Saving user answer for question index:', currentQuestionIndexRef.current)
+                saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
+                userAnswerAccumulator.current = ''
+
+                // Increment index
+                const nextIndex = currentQuestionIndexRef.current + 1
+                setCurrentQuestionIndex(nextIndex)
+                currentQuestionIndexRef.current = nextIndex
+              }
+
+              // Replace text
               setCurrentAITranscription(text)
               isAITurnCompleteRef.current = false
             } else {
@@ -254,6 +284,9 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             // We don't display user transcription anymore, but we still track it for logic if needed
             // setCurrentUserTranscription(text) 
             setOrbMode('user')
+
+            // Accumulate user answer
+            userAnswerAccumulator.current += (userAnswerAccumulator.current ? ' ' : '') + text
 
             // Add to transcript using transcription
             const turn: ConversationTurn = {
@@ -518,6 +551,37 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
     if (newBuffer.length >= FLUSH_THRESHOLD) {
       await flushTurns(newBuffer)
       setTurnBuffer([])
+    }
+  }
+
+  /**
+   * Save user answer to database
+   */
+  const saveUserAnswer = async (answerText: string, questionIndex: number) => {
+    // Use ref to avoid stale closure
+    const currentQuestions = questionsRef.current
+
+    if (!currentQuestions[questionIndex]) {
+      console.warn('[Interview] No question found for index:', questionIndex)
+      return
+    }
+
+    const questionId = currentQuestions[questionIndex].id
+    console.log('[Interview] Submitting answer for question:', questionId)
+
+    try {
+      await fetch('/api/interview/submit-answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId,
+          questionId,
+          answerText,
+          answerType: 'text', // We're submitting the transcript as text
+        }),
+      })
+    } catch (error) {
+      console.error('[Interview] Failed to save answer:', error)
     }
   }
 

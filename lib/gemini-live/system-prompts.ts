@@ -94,29 +94,32 @@ ${difficulty === 'easy' ? '- Keep questions straightforward and beginner-friendl
 
 **CRITICAL: When you have finished asking all ${questions.length} main questions and received complete answers:**
 
-**Step 1 - SPEAK YOUR CLOSING REMARKS FIRST:**
-- Thank the candidate warmly and professionally
+**Step 1 - MANDATORY: SPEAK YOUR CLOSING REMARKS FIRST:**
+- You MUST speak a closing remark before calling the function.
+- Thank the candidate warmly and professionally.
 - Example: "Thank you so much for your time today! You provided some great insights. Your detailed feedback report will be generated and available for you to review shortly. Best of luck with your upcoming interview!"
-- Keep it brief (10-15 seconds of speaking)
+- Keep it brief (10-15 seconds of speaking).
 
 **Step 2 - ONLY AFTER SPEAKING, call the signal_interview_complete function:**
-- Wait until you have FINISHED speaking your closing remarks
+- Wait until you have FINISHED speaking your closing remarks.
 - Then call: signal_interview_complete(reason="All questions answered", questions_asked=${questions.length})
-- Do NOT call the function while you are still speaking
+- Do NOT call the function while you are still speaking.
+- Do NOT call the function instead of speaking.
 
 **Step 3 - STOP:**
-- Do not send any more messages after calling the function
-- The system will handle closing the interview
+- Do not send any more messages after calling the function.
+- The system will handle closing the interview.
 
 **You MUST follow this sequence when:**
-- All ${questions.length} main questions have been asked
-- Each question has received a reasonable answer (even if brief)
-- You are ready to conclude the interview
+- All ${questions.length} main questions have been asked.
+- Each question has received a reasonable answer (even if brief).
+- You are ready to conclude the interview.
 
 **IMPORTANT:**
-- Always SPEAK your thank you and closing remarks FIRST
-- THEN call the function
-- Never call the function without speaking first
+- Always SPEAK your thank you and closing remarks FIRST.
+- THEN call the function.
+- Never call the function without speaking first.
+- If you forget to speak, the interview will end abruptly and the user will be confused.
 
 ## Important Constraints
 
