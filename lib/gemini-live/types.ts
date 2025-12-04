@@ -59,6 +59,8 @@ export interface SetupMessage {
     model?: string
     generationConfig?: {
       responseModalities?: string[]
+      outputAudioTranscription?: {}  // AI speech transcription (same level as responseModalities)
+      inputAudioTranscription?: {}   // User speech transcription (same level as responseModalities)
       speechConfig?: {
         voiceConfig?: {
           prebuiltVoiceConfig?: {
@@ -66,8 +68,6 @@ export interface SetupMessage {
           }
         }
       }
-      outputAudioTranscription?: {}
-      inputAudioTranscription?: {}
     }
     systemInstruction?: {
       parts: Array<{ text: string }>
