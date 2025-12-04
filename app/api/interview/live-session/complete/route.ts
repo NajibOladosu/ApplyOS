@@ -125,7 +125,12 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error: any) {
-    console.error('Error completing interview session:', error)
+    console.error('Error completing interview session:', {
+      message: error.message,
+      details: error.toString(),
+      hint: error.hint || '',
+      code: error.code || '',
+    })
     return NextResponse.json(
       { error: error.message || 'Internal server error' },
       { status: 500 }

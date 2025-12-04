@@ -141,8 +141,11 @@ export async function completeInterviewSession(sessionId: string): Promise<Inter
 // INTERVIEW QUESTIONS
 // ============================================================================
 
-export async function getQuestionsForSession(sessionId: string): Promise<InterviewQuestion[]> {
-  const supabase = createClient()
+export async function getQuestionsForSession(
+  sessionId: string,
+  supabaseClient?: SupabaseClient
+): Promise<InterviewQuestion[]> {
+  const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_questions')
     .select('*')
