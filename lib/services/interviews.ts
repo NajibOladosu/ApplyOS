@@ -29,12 +29,23 @@ export async function getInterviewSessions(applicationId: string): Promise<Inter
   const supabase = createClient()
   const { data, error } = await supabase
     .from('interview_sessions')
-    .select('*')
+    .select(`
+      *,
+      db_total_questions,
+      db_answered_questions,
+      db_average_score
+    `)
     .eq('application_id', applicationId)
     .order('started_at', { ascending: false })
 
   if (error) throw error
-  return data as InterviewSession[]
+
+  return (data || []).map((session: any) => ({
+    ...session,
+    total_questions: session.db_total_questions ?? session.total_questions,
+    answered_questions: session.db_answered_questions ?? session.answered_questions,
+    average_score: session.db_average_score ?? session.average_score,
+  })) as InterviewSession[]
 }
 
 export async function getInterviewSession(
@@ -44,13 +55,25 @@ export async function getInterviewSession(
   const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_sessions')
-    .select('*')
+    .select(`
+      *,
+      db_total_questions,
+      db_answered_questions,
+      db_average_score
+    `)
     .eq('id', sessionId)
     .maybeSingle()
 
   if (error) throw error
   if (!data) throw new Error(`Interview session not found or access denied: ${sessionId}`)
-  return data as InterviewSession
+
+  const session = data as any
+  return {
+    ...session,
+    total_questions: session.db_total_questions ?? session.total_questions,
+    answered_questions: session.db_answered_questions ?? session.answered_questions,
+    average_score: session.db_average_score ?? session.average_score,
+  } as InterviewSession
 }
 
 export async function createInterviewSession(
