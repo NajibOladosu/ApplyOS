@@ -262,14 +262,26 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
               if (userAnswerAccumulator.current.trim()) {
                 const answerLength = userAnswerAccumulator.current.trim().length
                 const timeSinceLastSave = Date.now() - lastSaveTimeRef.current
-                const minLength = 20 // Minimum characters to be considered a valid answer
+                const minLength = 5 // Lowered to catch short valid answers like "I did."
                 const minTime = 5000 // Minimum milliseconds between saves
 
                 // Turn 1 = Intro -> Q1 transition (Accumulator has "I'm ready")
                 // Turn 2 = Q1 -> Q2 transition (Accumulator has Answer 1)
                 if (aiTurnCounterRef.current > 1) {
-                  // FRAGMENTATION FIX: Enforce constraints
-                  if (answerLength >= minLength && timeSinceLastSave >= minTime) {
+                  // SMART FILTER: For Turn 2 (Answer 1), check if it's just a "Ready" confirmation
+                  const isIntroResponse = aiTurnCounterRef.current === 2 && (
+                    userAnswerAccumulator.current.toLowerCase().includes('ready') ||
+                    userAnswerAccumulator.current.toLowerCase().includes('yes') ||
+                    answerLength < 15 // "Yes I am ready" is 14 chars. "I worked at X" is 13. Tricky.
+                    // Let's rely on semantic keywords + length for the intro response.
+                    // If it's short AND has "ready"/"yes", it's likely the intro response.
+                  )
+
+                  // If it's Turn 2 and looks like an intro response, SKIP it.
+                  // Otherwise (Turn > 2 OR Turn 2 but looks like a real answer), check constraints.
+                  if (isIntroResponse) {
+                    console.log(`[Interview] Skipping likely intro response (Turn 2): "${userAnswerAccumulator.current}"`)
+                  } else if (answerLength >= minLength && timeSinceLastSave >= minTime) {
                     // Check bounds
                     if (currentQuestionIndexRef.current < questionsRef.current.length) {
                       console.log(`[Interview] Saving user answer. Turn: ${aiTurnCounterRef.current}, Index: ${currentQuestionIndexRef.current}`)
