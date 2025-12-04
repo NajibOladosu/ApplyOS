@@ -600,6 +600,19 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                     <CardTitle>AI Feedback</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="space-y-4 mb-6">
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <p className="text-sm font-semibold mb-1">Question:</p>
+                        <p className="text-sm text-muted-foreground">{currentQuestion.question_text}</p>
+                      </div>
+                      <div className="bg-muted p-4 rounded-lg">
+                        <p className="text-sm font-semibold mb-1">Your Answer:</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {currentFeedback.answer_text}
+                        </p>
+                      </div>
+                    </div>
+
                     <div>
                       <p className="text-sm text-muted-foreground">{currentFeedback.feedback.overall}</p>
                     </div>
@@ -654,19 +667,6 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                         </ul>
                       </div>
                     )}
-
-                    <div className="space-y-4 mb-6">
-                      <div className="bg-muted/50 p-4 rounded-lg">
-                        <p className="text-sm font-semibold mb-1">Question:</p>
-                        <p className="text-sm text-muted-foreground">{currentQuestion.question_text}</p>
-                      </div>
-                      <div className="bg-muted p-4 rounded-lg">
-                        <p className="text-sm font-semibold mb-1">Your Answer:</p>
-                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
-                          {currentFeedback.answer_text}
-                        </p>
-                      </div>
-                    </div>
 
                     <Button
                       onClick={() => {
