@@ -184,27 +184,28 @@ export class GeminiLiveClient {
    * Send setup message to configure the session
    */
   private sendSetup(): void {
-    const setupMessage: SetupMessage = {
+    // Note: Raw WebSocket JSON uses snake_case, not camelCase
+    const setupMessage: any = {
       setup: {
         model: this.config.model || 'models/gemini-2.5-flash-native-audio-preview-09-2025',
-        generationConfig: {
-          responseModalities: ['audio'],
-          speechConfig: {
-            voiceConfig: {
-              prebuiltVoiceConfig: {
-                voiceName: 'Puck', // Professional voice
+        generation_config: {
+          response_modalities: ['AUDIO'],
+          output_audio_transcription: {},  // Enable AI speech transcription
+          input_audio_transcription: {},   // Enable user speech transcription
+          speech_config: {
+            voice_config: {
+              prebuilt_voice_config: {
+                voice_name: 'Puck', // Professional voice
               },
             },
           },
-          outputAudioTranscription: {}, // Enable AI speech transcription
-          inputAudioTranscription: {},  // Enable user speech transcription
         },
       },
     }
 
     // Add system instruction if provided
     if (this.config.systemInstruction) {
-      setupMessage.setup.systemInstruction = {
+      setupMessage.setup.system_instruction = {
         parts: [{ text: this.config.systemInstruction }],
       }
     }

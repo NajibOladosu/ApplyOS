@@ -14,7 +14,6 @@ interface OrbProps {
 
 function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   const meshRef = useRef<THREE.Mesh>(null)
-  const wireRef = useRef<THREE.Mesh>(null)
   const geometryRef = useRef<THREE.SphereGeometry | null>(null)
 
   const noise3D = useMemo(() => createNoise3D(), [])
@@ -52,7 +51,6 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
 
     const t = clock.getElapsedTime()
     const mesh = meshRef.current
-    const wire = wireRef.current
     const geometry = geometryRef.current
 
     const targetScale = scales[mode]
@@ -80,38 +78,16 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
 
     positionAttribute.needsUpdate = true
     geometry.computeVertexNormals()
-
-    if (wire && wire.geometry) {
-      const wirePositionAttribute = wire.geometry.attributes.position
-      for (let i = 0; i < positionAttribute.count; i++) {
-        wirePositionAttribute.setXYZ(
-          i,
-          positionAttribute.getX(i),
-          positionAttribute.getY(i),
-          positionAttribute.getZ(i)
-        )
-      }
-      wirePositionAttribute.needsUpdate = true
-    }
   })
 
   return (
     <group>
       <mesh ref={meshRef} geometry={geometryRef.current || undefined}>
-        <meshStandardMaterial
-          color={colors[mode]}
-          emissive={colors[mode]}
-          emissiveIntensity={glows[mode]}
-          roughness={0.1}
-          metalness={0.8}
-        />
-      </mesh>
-      <mesh ref={wireRef} geometry={geometryRef.current || undefined}>
         <meshBasicMaterial
           wireframe
           color={colors[mode]}
-          opacity={0.3}
-          transparent
+          opacity={1}
+          transparent={false}
         />
       </mesh>
     </group>
