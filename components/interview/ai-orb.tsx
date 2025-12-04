@@ -19,9 +19,9 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   const noise3D = useMemo(() => createNoise3D(), [])
 
   const colors = {
-    idle: '#00FF6A',
+    idle: '#00FF88',
     user: '#FFD600',
-    ai: '#00FF6A',
+    ai: '#00FF88',
   }
 
   const amplitudes = {
@@ -83,11 +83,38 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   return (
     <group>
       <mesh ref={meshRef} geometry={geometryRef.current || undefined}>
-        <meshBasicMaterial
+        <shaderMaterial
           wireframe
-          color={colors[mode]}
-          opacity={1}
-          transparent={false}
+          transparent
+          vertexShader={`
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            
+            void main() {
+              vPosition = position;
+              vNormal = normalize(normalMatrix * normal);
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `}
+          fragmentShader={`
+            uniform vec3 color;
+            varying vec3 vPosition;
+            varying vec3 vNormal;
+            
+            void main() {
+              // Create varying opacity based on position
+              float opacity = 0.3 + abs(sin(vPosition.x * 2.0 + vPosition.y * 2.0)) * 0.7;
+              
+              // Add some variation based on normal direction
+              float normalFactor = abs(dot(vNormal, vec3(0.0, 1.0, 0.0)));
+              opacity = mix(opacity, 1.0, normalFactor * 0.3);
+              
+              gl_FragColor = vec4(color, opacity);
+            }
+          `}
+          uniforms={{
+            color: { value: new THREE.Color(colors[mode]) }
+          }}
         />
       </mesh>
     </group>
