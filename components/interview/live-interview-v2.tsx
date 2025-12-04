@@ -2,8 +2,8 @@
 
 import { useState, useRef, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
-import { AIBlob } from './ai-blob'
-import type { BlobState } from './ai-blob'
+import { AIOrb } from './ai-orb'
+import type { OrbMode } from './ai-orb'
 import { AlertCircle } from 'lucide-react'
 import { GeminiLiveClient } from '@/lib/gemini-live/client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
@@ -26,6 +26,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [client, setClient] = useState<GeminiLiveClient | null>(null)
   const [error, setError] = useState<string | null>(null)
+
+  // Auto-termination state
+  const [aiSignaledCompletion, setAiSignaledCompletion] = useState(false)
+  const [totalQuestions, setTotalQuestions] = useState(0)
 
   // Report state
   const [showReportModal, setShowReportModal] = useState(false)
@@ -53,8 +57,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const nextPlayTimeRef = useRef<number>(0)
   const clientRef = useRef<GeminiLiveClient | null>(null)
 
-  // Blob state
-  const [blobState, setBlobState] = useState<BlobState>('idle')
+  // Orb mode
+  const [orbMode, setOrbMode] = useState<OrbMode>('idle')
 
   /**
    * Start the interview
@@ -90,11 +94,14 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         throw new Error(error.error || 'Failed to initialize session')
       }
 
-      const { token, systemInstruction, model } = await response.json()
+      const { token, systemInstruction, model, tools, questions } = await response.json()
+
+      // Store total questions for validation
+      setTotalQuestions(questions.length)
 
       // Create WebSocket client
       const wsClient = new GeminiLiveClient(
-        { token, systemInstruction, model },
+        { token, systemInstruction, model, tools },
         {
           onConnected: () => {
             console.log('[Interview] WebSocket connected')
@@ -104,7 +111,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           onDisconnected: () => {
             console.log('[Interview] WebSocket disconnected')
             setConnectionState('disconnected')
-            setBlobState('idle')
+            setOrbMode('idle')
             stopRecording()
           },
           onError: (error) => {
@@ -112,7 +119,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             setError(error.message)
             setConnectionState('error')
             setInterviewState('idle')
-            setBlobState('idle')
+            setOrbMode('idle')
             onError?.(error)
           },
           onSetupComplete: () => {
@@ -123,12 +130,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             if (clientRef.current) {
               console.log('[Interview] Sending initial prompt to start interview')
               clientRef.current.sendText('Begin the interview. Greet the candidate and ask the first question.')
-              setBlobState('speaking')
+              setOrbMode('ai')
             }
           },
           onTextResponse: (text) => {
             setCurrentAIMessage(text)
-            setBlobState('speaking')
+            setOrbMode('ai')
 
             // Add to transcript
             const turn: ConversationTurn = {
@@ -154,8 +161,45 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           },
           onTurnComplete: () => {
             console.log('[Interview] Turn complete')
-            setBlobState('idle')
+            setOrbMode('idle')
             setCurrentAIMessage('')
+          },
+          onToolCall: (toolCall) => {
+            console.log('[Interview] Tool call received:', toolCall)
+
+            // Check if AI called signal_interview_complete
+            if (toolCall.functionCalls) {
+              for (const fc of toolCall.functionCalls) {
+                if (fc.name === 'signal_interview_complete') {
+                  console.log('[Interview] AI signaled interview completion:', fc.args)
+
+                  const { reason, questions_asked } = fc.args
+
+                  // Validate that AI actually asked enough questions
+                  const userAnswers = transcript.filter(t => t.speaker === 'user').length
+
+                  if (userAnswers < totalQuestions) {
+                    console.warn(
+                      `[Interview] AI signaled completion but only ${userAnswers}/${totalQuestions} answers received`
+                    )
+                    // Still allow auto-end if close enough (within 1 question)
+                    if (userAnswers < totalQuestions - 1) {
+                      console.warn('[Interview] Too few answers, not auto-ending')
+                      return
+                    }
+                  }
+
+                  console.log('[Interview] Auto-ending interview after AI completion')
+                  setAiSignaledCompletion(true)
+
+                  // Wait 5 seconds for the AI's closing audio to finish playing, then end
+                  setTimeout(() => {
+                    console.log('[Interview] Executing delayed auto-end')
+                    endInterview()
+                  }, 5000)
+                }
+              }
+            }
           },
         }
       )
@@ -168,7 +212,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setError(err.message)
       setConnectionState('error')
       setInterviewState('idle')
-      setBlobState('idle')
+      setOrbMode('idle')
       onError?.(err)
     }
   }
@@ -214,6 +258,23 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
         try {
           const inputData = event.inputBuffer.getChannelData(0)
+
+          // Calculate audio level for voice activity detection
+          let sum = 0
+          for (let i = 0; i < inputData.length; i++) {
+            sum += inputData[i] * inputData[i]
+          }
+          const rms = Math.sqrt(sum / inputData.length)
+          const level = Math.min(1, rms * 10) // Normalize to 0-1
+          setAudioLevel(level)
+
+          // Voice activity detection - switch to user mode when speaking
+          const VOICE_THRESHOLD = 0.02
+          if (level > VOICE_THRESHOLD && orbMode !== 'ai') {
+            setOrbMode('user')
+          } else if (level <= VOICE_THRESHOLD && orbMode === 'user') {
+            setOrbMode('idle')
+          }
 
           // Convert to 16-bit PCM
           const pcm16 = new Int16Array(inputData.length)
@@ -354,12 +415,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       nextPlayTimeRef.current += audioBuffer.duration
       console.log('[Audio] Next play time:', nextPlayTimeRef.current.toFixed(2), 's')
 
-      // Update blob state to speaking
-      setBlobState('speaking')
+      // Update orb mode to AI speaking
+      setOrbMode('ai')
 
       // Reset to idle after audio finishes
       setTimeout(() => {
-        setBlobState('idle')
+        setOrbMode('idle')
       }, audioBuffer.duration * 1000)
     } catch (error) {
       console.error('[Audio] Playback error:', error)
@@ -433,7 +494,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       }
 
       setConnectionState('disconnected')
-      setBlobState('idle')
+      setOrbMode('idle')
 
       if (response.ok) {
         // Generate report
@@ -556,8 +617,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
       {/* Main Content */}
       <div className="max-w-4xl w-full flex flex-col items-center space-y-12">
-        {/* Blob */}
-        <AIBlob state={blobState} audioLevel={audioLevel} />
+        {/* AI Orb */}
+        <div className="w-[450px] h-[450px]">
+          <AIOrb mode={orbMode} audioLevel={audioLevel} />
+        </div>
 
         {/* AI Message */}
         <AnimatePresence mode="wait">
@@ -609,14 +672,26 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           )}
 
           {interviewState === 'ending' && (
-            <Button
-              size="lg"
-              disabled
-              variant="destructive"
-              className="px-12 py-6 text-lg rounded-full"
-            >
-              Ending...
-            </Button>
+            <div className="text-center space-y-2">
+              <Button
+                size="lg"
+                disabled
+                variant="destructive"
+                className="px-12 py-6 text-lg rounded-full"
+              >
+                Ending...
+              </Button>
+              {aiSignaledCompletion && (
+                <p className="text-sm text-gray-600">
+                  Interview completed by AI. Generating your report...
+                </p>
+              )}
+              {!aiSignaledCompletion && (
+                <p className="text-sm text-gray-600">
+                  Ending interview...
+                </p>
+              )}
+            </div>
           )}
 
           {interviewState === 'generating-report' && (

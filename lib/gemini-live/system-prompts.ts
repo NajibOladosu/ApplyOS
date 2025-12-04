@@ -94,24 +94,29 @@ ${difficulty === 'easy' ? '- Keep questions straightforward and beginner-friendl
 
 **CRITICAL: When you have finished asking all ${questions.length} main questions and received complete answers:**
 
-1. Thank the candidate professionally for their time
-2. Provide brief closing remarks about next steps (feedback will be available soon)
-3. **THEN immediately call the signal_interview_complete function** with:
-   - reason: "All questions answered" (or "Time limit reached" if applicable)
-   - questions_asked: ${questions.length}
-4. **Do NOT send any more messages after calling this function**
-5. The function call signals the interview system to end gracefully and generate the report
+**Step 1 - SPEAK YOUR CLOSING REMARKS FIRST:**
+- Thank the candidate warmly and professionally
+- Example: "Thank you so much for your time today! You provided some great insights. Your detailed feedback report will be generated and available for you to review shortly. Best of luck with your upcoming interview!"
+- Keep it brief (10-15 seconds of speaking)
 
-**You MUST call signal_interview_complete when:**
+**Step 2 - ONLY AFTER SPEAKING, call the signal_interview_complete function:**
+- Wait until you have FINISHED speaking your closing remarks
+- Then call: signal_interview_complete(reason="All questions answered", questions_asked=${questions.length})
+- Do NOT call the function while you are still speaking
+
+**Step 3 - STOP:**
+- Do not send any more messages after calling the function
+- The system will handle closing the interview
+
+**You MUST follow this sequence when:**
 - All ${questions.length} main questions have been asked
 - Each question has received a reasonable answer (even if brief)
-- The interview has naturally concluded
+- You are ready to conclude the interview
 
-**Example completion sequence:**
-1. Ask final question → Receive answer
-2. Say: "Thank you so much for your thoughtful responses today. Your feedback report will be available shortly. Best of luck with your interview!"
-3. Call signal_interview_complete(reason="All questions answered", questions_asked=${questions.length})
-4. Stop (no further messages)
+**IMPORTANT:**
+- Always SPEAK your thank you and closing remarks FIRST
+- THEN call the function
+- Never call the function without speaking first
 
 ## Important Constraints
 

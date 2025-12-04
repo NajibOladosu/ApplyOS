@@ -84,10 +84,25 @@ export async function POST(request: NextRequest) {
     }
 
     // Load existing questions - DO NOT regenerate
-    const questions = await getQuestionsForSession(sessionId)
+    console.log(`[INIT DEBUG] Loading questions for session ${sessionId}`)
+    const questions = await getQuestionsForSession(sessionId, supabase)  // Pass server client!
+    console.log(`[INIT DEBUG] Query returned ${questions.length} questions`)
+
+    if (questions.length > 0) {
+      console.log(`[INIT DEBUG] Questions found:`, questions.map(q => ({ id: q.id, text: q.question_text?.substring(0, 50) })))
+    }
 
     if (questions.length === 0) {
       console.error(`No questions found for session ${sessionId}. Interview session must have questions before starting.`)
+
+      // Debug: Try to query directly with supabase client
+      const { data: debugQuestions, error: debugError } = await supabase
+        .from('interview_questions')
+        .select('id')
+        .eq('session_id', sessionId)
+
+      console.error(`[INIT DEBUG] Direct query: found ${debugQuestions?.length || 0} questions, error:`, debugError)
+
       return NextResponse.json(
         { error: 'Interview questions not found. Please create a new interview.' },
         { status: 400 }
