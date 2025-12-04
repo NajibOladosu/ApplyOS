@@ -136,27 +136,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             }
           },
           onTextResponse: (text) => {
+            // Keep for fallback/debugging, but transcriptions are primary
             setCurrentAIMessage(text)
-            setOrbMode('ai')
-
-            // Add to transcript
-            const turn: ConversationTurn = {
-              id: `${Date.now()}-ai`,
-              session_id: sessionId,
-              user_id: '',
-              turn_number: turnCount + 1,
-              speaker: 'ai',
-              content: text,
-              audio_url: null,
-              audio_duration_seconds: null,
-              timestamp: new Date().toISOString(),
-              metadata: null,
-              created_at: new Date().toISOString(),
-            }
-            setTranscript((prev) => [...prev, turn])
-
-            // Buffer turn
-            addTurn('ai', text)
+            console.log('[Interview] AI text response (fallback):', text.substring(0, 100))
+            // Note: Not adding to transcript here - transcriptions handle that
           },
           onAudioResponse: (audioData) => {
             playAudioResponse(audioData)
