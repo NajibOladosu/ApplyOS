@@ -190,8 +190,6 @@ export class GeminiLiveClient {
         model: this.config.model || 'models/gemini-2.5-flash-native-audio-preview-09-2025',
         generation_config: {
           response_modalities: ['AUDIO'],
-          output_audio_transcription: {},  // Enable AI speech transcription
-          input_audio_transcription: {},   // Enable user speech transcription
           speech_config: {
             voice_config: {
               prebuilt_voice_config: {
@@ -200,6 +198,10 @@ export class GeminiLiveClient {
             },
           },
         },
+        // Enable AI speech transcription
+        output_audio_transcription: {},
+        // Enable user speech transcription
+        input_audio_transcription: {},
       },
     }
 
