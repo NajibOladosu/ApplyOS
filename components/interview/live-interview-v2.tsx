@@ -165,6 +165,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             console.log('[Interview] Turn complete')
             setOrbMode('idle')
             setCurrentAIMessage('')
+            setCurrentAITranscription('')
+            setCurrentUserTranscription('')
           },
           onToolCall: (toolCall) => {
             console.log('[Interview] Tool call received:', toolCall)
@@ -202,6 +204,56 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                 }
               }
             }
+          },
+          onOutputTranscription: (text) => {
+            // AI speech transcription - display this instead of text response
+            console.log('[Interview] AI transcription:', text)
+            setCurrentAITranscription(text)
+            setOrbMode('ai')
+
+            // Add to transcript using transcription
+            const turn: ConversationTurn = {
+              id: `${Date.now()}-ai`,
+              session_id: sessionId,
+              user_id: '',
+              turn_number: turnCount + 1,
+              speaker: 'ai',
+              content: text,
+              audio_url: null,
+              audio_duration_seconds: null,
+              timestamp: new Date().toISOString(),
+              metadata: null,
+              created_at: new Date().toISOString(),
+            }
+            setTranscript((prev) => [...prev, turn])
+
+            // Buffer turn
+            addTurn('ai', text)
+          },
+          onInputTranscription: (text) => {
+            // User speech transcription - save as answer
+            console.log('[Interview] User transcription:', text)
+            setCurrentUserTranscription(text)
+            setOrbMode('user')
+
+            // Add to transcript using transcription
+            const turn: ConversationTurn = {
+              id: `${Date.now()}-user`,
+              session_id: sessionId,
+              user_id: '',
+              turn_number: turnCount + 2,
+              speaker: 'user',
+              content: text,
+              audio_url: null,
+              audio_duration_seconds: null,
+              timestamp: new Date().toISOString(),
+              metadata: null,
+              created_at: new Date().toISOString(),
+            }
+            setTranscript((prev) => [...prev, turn])
+
+            // Buffer turn
+            addTurn('user', text)
           },
         }
       )
@@ -624,9 +676,9 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           <AIOrb mode={orbMode} audioLevel={audioLevel} />
         </div>
 
-        {/* AI Message */}
+        {/* AI Transcription (Speech) */}
         <AnimatePresence mode="wait">
-          {currentAIMessage && interviewState === 'active' && (
+          {currentAITranscription && interviewState === 'active' && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
@@ -634,7 +686,25 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
               className="w-full max-w-2xl"
             >
               <div className="bg-card/50 backdrop-blur-sm border border-primary/20 rounded-2xl p-6 text-center">
-                <p className="text-lg leading-relaxed">{currentAIMessage}</p>
+                <p className="text-sm text-muted-foreground mb-1">AI is saying:</p>
+                <p className="text-lg leading-relaxed">{currentAITranscription}</p>
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* User Transcription (Speech) */}
+        <AnimatePresence mode="wait">
+          {currentUserTranscription && interviewState === 'active' && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="w-full max-w-2xl"
+            >
+              <div className="bg-muted/50 backdrop-blur-sm border border-muted-foreground/20 rounded-2xl p-6 text-center">
+                <p className="text-sm text-muted-foreground mb-1">You said:</p>
+                <p className="text-lg leading-relaxed">{currentUserTranscription}</p>
               </div>
             </motion.div>
           )}
