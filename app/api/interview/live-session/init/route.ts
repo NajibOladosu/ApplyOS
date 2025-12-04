@@ -123,7 +123,7 @@ export async function POST(request: NextRequest) {
     const tools = [{
       functionDeclarations: [{
         name: 'signal_interview_complete',
-        description: 'Call this function when you have finished asking all interview questions and received answers from the candidate. This signals that the interview is complete and should be ended gracefully.',
+        description: 'Call this function ONLY AFTER you have spoken your closing remarks to the candidate. This signals that the interview is complete. Do not call this without saying goodbye first.',
         parameters: {
           type: 'object',
           properties: {
