@@ -68,6 +68,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const questionsRef = useRef<any[]>([])
   const currentQuestionIndexRef = useRef(0)
   const aiTurnCounterRef = useRef(0)
+  const lastSaveTimeRef = useRef(0)
 
   // Orb mode
   const [orbMode, setOrbMode] = useState<OrbMode>('idle')
@@ -215,6 +216,20 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                   console.log('[Interview] Auto-ending interview after AI completion')
                   setAiSignaledCompletion(true)
 
+                  // FLUSH PENDING ANSWER: Check if there's a pending user answer in the accumulator
+                  // This happens if the user answered the last question and the AI immediately called the tool
+                  // without a distinct "new turn" event in between.
+                  if (userAnswerAccumulator.current.trim()) {
+                    console.log('[Interview] Flushing pending answer before completion')
+                    saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
+                    userAnswerAccumulator.current = ''
+
+                    // Increment index just to be safe/consistent, though interview is ending
+                    const nextIndex = currentQuestionIndexRef.current + 1
+                    setCurrentQuestionIndex(nextIndex)
+                    currentQuestionIndexRef.current = nextIndex
+                  }
+
                   // Calculate remaining audio duration
                   let delay = 5000 // Default fallback
                   if (playbackContextRef.current) {
@@ -245,16 +260,41 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
               // We skip the first turn (transition from Intro -> Question 1)
               // because the user's input was just "Yes, I'm ready"
               if (userAnswerAccumulator.current.trim()) {
-                if (aiTurnCounterRef.current > 1) {
-                  console.log('[Interview] Saving user answer for question index:', currentQuestionIndexRef.current)
-                  saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
+                const answerLength = userAnswerAccumulator.current.trim().length
+                const timeSinceLastSave = Date.now() - lastSaveTimeRef.current
+                const minLength = 20 // Minimum characters to be considered a valid answer
+                const minTime = 5000 // Minimum milliseconds between saves
 
-                  // Increment index
-                  const nextIndex = currentQuestionIndexRef.current + 1
-                  setCurrentQuestionIndex(nextIndex)
-                  currentQuestionIndexRef.current = nextIndex
+                // Turn 1 = Intro -> Q1 transition (Accumulator has "I'm ready")
+                // Turn 2 = Q1 -> Q2 transition (Accumulator has Answer 1)
+                if (aiTurnCounterRef.current > 1) {
+                  // FRAGMENTATION FIX: Enforce constraints
+                  if (answerLength >= minLength && timeSinceLastSave >= minTime) {
+                    // Check bounds
+                    if (currentQuestionIndexRef.current < questionsRef.current.length) {
+                      console.log(`[Interview] Saving user answer. Turn: ${aiTurnCounterRef.current}, Index: ${currentQuestionIndexRef.current}`)
+                      console.log(`[Interview] Answer text (${answerLength} chars): "${userAnswerAccumulator.current.substring(0, 50)}..."`)
+
+                      saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
+                      lastSaveTimeRef.current = Date.now()
+
+                      // Increment index
+                      const nextIndex = currentQuestionIndexRef.current + 1
+                      setCurrentQuestionIndex(nextIndex)
+                      currentQuestionIndexRef.current = nextIndex
+                    } else {
+                      console.warn('[Interview] Index out of bounds, not saving/incrementing')
+                    }
+                  } else {
+                    console.log(`[Interview] Skipping save: Too short (${answerLength}<${minLength}) or too soon (${timeSinceLastSave}<${minTime}ms)`)
+                    // Don't clear accumulator if it was just a short interruption, keep accumulating?
+                    // Actually, if AI is speaking, it's a new turn. If we don't save now, we lose it?
+                    // No, we should probably append it to the next one OR just save it if it's the *only* thing.
+                    // For now, let's assume if it's too short it's just noise/acknowledgement ("Okay", "Right").
+                    // We CLEAR it to prevent it from being prepended to the next answer.
+                  }
                 } else {
-                  console.log('[Interview] Skipping save for intro response')
+                  console.log(`[Interview] Skipping save for intro response. Turn: ${aiTurnCounterRef.current}`)
                 }
 
                 // Always clear accumulator after processing

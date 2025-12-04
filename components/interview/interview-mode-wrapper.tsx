@@ -228,12 +228,14 @@ export function InterviewModeWrapper({ sessionId, onComplete, onBack }: Intervie
         )
     }
 
-    if (mode === 'review' && transcript.length > 0) {
+    if (mode === 'review') {
+        // For completed conversational interviews, we want to show the full report details
+        // The InterviewSessionDetail component handles the "completed" state by showing the summary/score card
         return (
-            <ConversationTranscript
+            <InterviewSessionDetail
                 sessionId={sessionId}
-                transcript={transcript}
-                onClose={onBack}
+                onComplete={onComplete}
+                onBack={onBack}
             />
         )
     }
