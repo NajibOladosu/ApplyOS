@@ -67,6 +67,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   // Refs for state accessible in callbacks
   const questionsRef = useRef<any[]>([])
   const currentQuestionIndexRef = useRef(0)
+  const aiTurnCounterRef = useRef(0)
 
   // Orb mode
   const [orbMode, setOrbMode] = useState<OrbMode>('idle')
@@ -132,6 +133,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       // Reset index
       setCurrentQuestionIndex(0)
       currentQuestionIndexRef.current = 0
+      aiTurnCounterRef.current = 0
 
       // Create WebSocket client
       const wsClient = new GeminiLiveClient(
@@ -236,17 +238,27 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
             if (isAITurnCompleteRef.current) {
               // New turn starting
+              aiTurnCounterRef.current += 1
+              console.log('[Interview] AI Turn Count:', aiTurnCounterRef.current)
 
               // Check if we have a user answer to save
+              // We skip the first turn (transition from Intro -> Question 1)
+              // because the user's input was just "Yes, I'm ready"
               if (userAnswerAccumulator.current.trim()) {
-                console.log('[Interview] Saving user answer for question index:', currentQuestionIndexRef.current)
-                saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
-                userAnswerAccumulator.current = ''
+                if (aiTurnCounterRef.current > 1) {
+                  console.log('[Interview] Saving user answer for question index:', currentQuestionIndexRef.current)
+                  saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
 
-                // Increment index
-                const nextIndex = currentQuestionIndexRef.current + 1
-                setCurrentQuestionIndex(nextIndex)
-                currentQuestionIndexRef.current = nextIndex
+                  // Increment index
+                  const nextIndex = currentQuestionIndexRef.current + 1
+                  setCurrentQuestionIndex(nextIndex)
+                  currentQuestionIndexRef.current = nextIndex
+                } else {
+                  console.log('[Interview] Skipping save for intro response')
+                }
+
+                // Always clear accumulator after processing
+                userAnswerAccumulator.current = ''
               }
 
               // Replace text
