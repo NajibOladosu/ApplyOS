@@ -63,12 +63,11 @@ export async function getApplicationMetrics(
   supabaseClient?: SupabaseClient
 ): Promise<ApplicationMetrics> {
   try {
-    console.log('\n=== GET APPLICATION METRICS ===')
-    console.log(`Time Range: ${timeRange}`)
+
 
     const supabase = supabaseClient || createClient()
     const dateFilter = getDateFilter(timeRange)
-    console.log(`Date Filter: ${dateFilter ? dateFilter.toISOString() : 'None'}`)
+
 
     let query = supabase
       .from('applications')
@@ -78,54 +77,52 @@ export async function getApplicationMetrics(
       query = query.gte('created_at', dateFilter.toISOString())
     }
 
-    console.log('Executing query to applications table...')
     const { data: applications, error } = await query
-    console.log(`Query completed. Found ${applications?.length || 0} applications`)
 
     if (error) {
       console.error('Supabase error in getApplicationMetrics:', error)
       throw error
     }
 
-  const total = applications?.length || 0
-  if (total === 0) {
-    return {
-      total: 0,
-      successRate: 0,
-      averageTimeToOutcome: null,
-      interviewConversionRate: 0,
+    const total = applications?.length || 0
+    if (total === 0) {
+      return {
+        total: 0,
+        successRate: 0,
+        averageTimeToOutcome: null,
+        interviewConversionRate: 0,
+      }
     }
-  }
 
-  // Calculate success rate (offers / total submitted or beyond)
-  const submitted = applications?.filter(app =>
-    ['submitted', 'in_review', 'interview', 'offer', 'rejected'].includes(app.status)
-  ).length || 0
+    // Calculate success rate (offers / total submitted or beyond)
+    const submitted = applications?.filter(app =>
+      ['submitted', 'in_review', 'interview', 'offer', 'rejected'].includes(app.status)
+    ).length || 0
 
-  const offers = applications?.filter(app => app.status === 'offer').length || 0
-  const successRate = submitted > 0 ? (offers / submitted) * 100 : 0
+    const offers = applications?.filter(app => app.status === 'offer').length || 0
+    const successRate = submitted > 0 ? (offers / submitted) * 100 : 0
 
-  // Calculate interview conversion rate (interviews / submitted)
-  const interviews = applications?.filter(app =>
-    ['interview', 'offer'].includes(app.status)
-  ).length || 0
-  const interviewConversionRate = submitted > 0 ? (interviews / submitted) * 100 : 0
+    // Calculate interview conversion rate (interviews / submitted)
+    const interviews = applications?.filter(app =>
+      ['interview', 'offer'].includes(app.status)
+    ).length || 0
+    const interviewConversionRate = submitted > 0 ? (interviews / submitted) * 100 : 0
 
-  // Calculate average time to outcome (for completed applications: offer or rejected)
-  const completedApps = applications?.filter(app =>
-    ['offer', 'rejected'].includes(app.status)
-  ) || []
+    // Calculate average time to outcome (for completed applications: offer or rejected)
+    const completedApps = applications?.filter(app =>
+      ['offer', 'rejected'].includes(app.status)
+    ) || []
 
-  let averageTimeToOutcome: number | null = null
-  if (completedApps.length > 0) {
-    const totalDays = completedApps.reduce((sum, app) => {
-      const created = new Date(app.created_at).getTime()
-      const updated = new Date(app.updated_at).getTime()
-      const days = (updated - created) / (1000 * 60 * 60 * 24)
-      return sum + days
-    }, 0)
-    averageTimeToOutcome = Math.round(totalDays / completedApps.length)
-  }
+    let averageTimeToOutcome: number | null = null
+    if (completedApps.length > 0) {
+      const totalDays = completedApps.reduce((sum, app) => {
+        const created = new Date(app.created_at).getTime()
+        const updated = new Date(app.updated_at).getTime()
+        const days = (updated - created) / (1000 * 60 * 60 * 24)
+        return sum + days
+      }, 0)
+      averageTimeToOutcome = Math.round(totalDays / completedApps.length)
+    }
 
     const result = {
       total,
@@ -134,8 +131,7 @@ export async function getApplicationMetrics(
       interviewConversionRate: Math.round(interviewConversionRate * 10) / 10,
     }
 
-    console.log('Metrics calculated:', result)
-    console.log('=== END GET APPLICATION METRICS ===\n')
+
 
     return result
   } catch (err) {
@@ -220,22 +216,12 @@ export async function getStatusFlowData(
 
   if (appsError) throw appsError
 
-  console.log('=== SANKEY GRAPH DEBUG ===')
-  console.log(`Time Range: ${timeRange}`)
-  console.log(`Date Filter: ${dateFilter ? dateFilter.toISOString() : 'None (All Time)'}`)
-  console.log(`Total Applications in DB: ${allApplications?.length || 0}`)
-
   if (!allApplications || allApplications.length === 0) {
-    console.log('No applications found in database - returning empty data')
-    console.log('=== END SANKEY DEBUG ===\n')
     return { nodes: [], links: [] }
   }
 
   // Log all applications with their status
-  console.log('All Applications:')
-  allApplications.forEach(app => {
-    console.log(`  - ID: ${app.id.substring(0, 8)}..., Status: ${app.status}, Created: ${new Date(app.created_at).toLocaleDateString()}`)
-  })
+
 
   // Determine which applications to include based on time filter
   let includedAppIds: Set<string>
@@ -243,7 +229,6 @@ export async function getStatusFlowData(
   if (!dateFilter) {
     // All Time: Include all applications
     includedAppIds = new Set(allApplications.map(app => app.id))
-    console.log(`All Time Filter: Including all ${allApplications.length} applications`)
   } else {
     // Time-filtered: Include apps with transitions in time range OR created in time range
     includedAppIds = new Set<string>()
@@ -256,12 +241,8 @@ export async function getStatusFlowData(
 
     if (historyError) throw historyError
 
-    console.log(`Status History Transitions in Time Range: ${recentHistory?.length || 0}`)
-
-    // Add apps that had transitions
     recentHistory?.forEach(h => {
       includedAppIds.add(h.application_id)
-      console.log(`  - Including app ${h.application_id.substring(0, 8)}... (had transition)`)
     })
 
     // Add apps created in the time range
@@ -270,26 +251,14 @@ export async function getStatusFlowData(
       if (new Date(app.created_at) >= dateFilter) {
         includedAppIds.add(app.id)
         createdInRange.push(app.id)
-        console.log(`  - Including app ${app.id.substring(0, 8)}... (created in range: ${new Date(app.created_at).toLocaleDateString()})`)
       }
     })
-
-    console.log(`Total Apps with Transitions: ${recentHistory?.length || 0}`)
-    console.log(`Total Apps Created in Range: ${createdInRange.length}`)
-    console.log(`Total Unique Apps Included: ${includedAppIds.size}`)
   }
 
   // Filter applications to only included ones
   const includedApplications = allApplications.filter(app => includedAppIds.has(app.id))
 
-  console.log(`\nFinal Included Applications: ${includedApplications.length}`)
-  includedApplications.forEach(app => {
-    console.log(`  - ID: ${app.id.substring(0, 8)}..., Status: ${app.status}`)
-  })
-
   if (includedApplications.length === 0) {
-    console.log('No applications match the time filter - returning empty data')
-    console.log('=== END SANKEY DEBUG ===\n')
     return { nodes: [], links: [] }
   }
 
@@ -304,23 +273,17 @@ export async function getStatusFlowData(
   })
 
   const farthestStage = stages[farthestStageIndex]
-  console.log(`\n🎯 Farthest stage reached: ${farthestStage} (index ${farthestStageIndex})`)
-  console.log('   Stages before this will link to "Pending" if stuck')
-  console.log('   This stage becomes a terminal node (no Pending link)')
+
 
   // Build direct path from draft to current status for each application
   // Only stages BEFORE the farthest stage link to "Pending"
   const flowCounts = new Map<string, number>()
 
-  console.log('\nBuilding Flow Paths:')
   includedApplications.forEach(app => {
     const currentStatus = app.status as ApplicationStatus
     const currentIndex = stages.indexOf(currentStatus)
 
-    console.log(`\nApp ${app.id.substring(0, 8)}...: Status = ${currentStatus} (index ${currentIndex})`)
-
     if (currentIndex === -1) {
-      console.log('  ⚠️  Invalid status (not in stages array)')
       return
     }
 
@@ -334,19 +297,16 @@ export async function getStatusFlowData(
       // Draft applications flow to "Not Submitted"
       const key = 'draft->not_submitted'
       flowCounts.set(key, (flowCounts.get(key) || 0) + 1)
-      console.log(`  ℹ️  Status is "draft" - linking to "not_submitted"`)
       return
     }
 
     // Build direct path: draft → current status
-    console.log(`  Building path from draft (0) to ${currentStatus} (${currentIndex}):`)
     for (let i = 0; i < currentIndex; i++) {
       const from = stages[i]
       const to = stages[i + 1]
       const key = `${from}->${to}`
       const newCount = (flowCounts.get(key) || 0) + 1
       flowCounts.set(key, newCount)
-      console.log(`    ${from} → ${to} (count: ${newCount})`)
     }
 
     // Only link to "Pending" if:
@@ -355,18 +315,8 @@ export async function getStatusFlowData(
     if (!isTerminal) {
       const key = `${currentStatus}->pending`
       flowCounts.set(key, (flowCounts.get(key) || 0) + 1)
-      console.log(`  ℹ️  Status "${currentStatus}" is before farthest stage - linking to "pending"`)
     } else if (isFarthestStage && !isNaturallyTerminal) {
-      console.log(`  🎯 Status "${currentStatus}" is the farthest stage - NO pending link (terminal)`)
     }
-  })
-
-  console.log(`\n✨ Dynamic terminal logic: Stages before "${farthestStage}" link to Pending`)
-  console.log(`   "${farthestStage}" and beyond are terminal nodes`)
-
-  console.log('\nFinal Flow Counts:')
-  flowCounts.forEach((count, key) => {
-    console.log(`  ${key}: ${count}`)
   })
 
   // Create links from flow counts
@@ -403,17 +353,11 @@ export async function getStatusFlowData(
         target: toIndex,
         value: count,
       })
-      console.log(`  Creating link: ${from}[${fromIndex}] → ${to}[${toIndex}] (value: ${count})`)
     }
   })
 
   // Create nodes with values calculated from link flows
   const allNodes = createNodesFromLinks(links)
-
-  console.log('\nAll nodes with calculated values (before filtering):')
-  allNodes.forEach((node, index) => {
-    console.log(`  [${index}] ${node.name}: ${node.value}`)
-  })
 
   // Filter out nodes with 0 values
   const indexMapping = new Map<number, number>() // old index -> new index
@@ -428,11 +372,6 @@ export async function getStatusFlowData(
     return false
   })
 
-  console.log('\nFiltered nodes (only non-zero values):')
-  nodes.forEach((node, index) => {
-    console.log(`  [${index}] ${node.name}: ${node.value}`)
-  })
-
   // Update link indices to match filtered nodes and remove invalid links
   const filteredLinks = links
     .filter(link => {
@@ -445,10 +384,6 @@ export async function getStatusFlowData(
       target: indexMapping.get(link.target)!,
       value: link.value,
     }))
-
-  console.log(`\nTotal Links After Filtering: ${filteredLinks.length}`)
-  console.log('Filtered Links:', JSON.stringify(filteredLinks, null, 2))
-  console.log('=== END SANKEY DEBUG ===\n')
 
   return { nodes, links: filteredLinks }
 }

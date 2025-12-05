@@ -238,7 +238,7 @@ export async function checkMicrophonePermission(): Promise<PermissionState | nul
     }
 
     const result = await navigator.permissions.query({ name: 'microphone' as PermissionName })
-    console.log('Microphone permission state:', result.state)
+
     return result.state
   } catch (error) {
     console.warn('Could not check microphone permission:', error)
@@ -258,7 +258,7 @@ export async function requestMicrophoneAccess(): Promise<MediaStream | null> {
 
   // Check permission state first
   const permissionState = await checkMicrophonePermission()
-  console.log('Current permission state:', permissionState)
+
 
   if (permissionState === 'denied') {
     console.error('⚠️ Microphone permission is BLOCKED by browser')
@@ -268,12 +268,12 @@ export async function requestMicrophoneAccess(): Promise<MediaStream | null> {
     console.error('   Safari: Safari → Settings → Websites → Microphone → Allow')
 
     const error = new Error('Microphone permission is blocked by browser. Please check your browser settings.')
-    ;(error as any).name = 'PermissionBlockedError'
+      ; (error as any).name = 'PermissionBlockedError'
     throw error
   }
 
   try {
-    console.log('🎤 Requesting microphone access...')
+
 
     const stream = await navigator.mediaDevices.getUserMedia({
       audio: {
@@ -285,7 +285,7 @@ export async function requestMicrophoneAccess(): Promise<MediaStream | null> {
       }
     })
 
-    console.log('✅ Microphone access granted')
+
     return stream
   } catch (error) {
     console.error('❌ Microphone access error:', error)

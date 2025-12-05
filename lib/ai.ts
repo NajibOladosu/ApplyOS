@@ -78,7 +78,7 @@ export async function callGeminiWithFallback(
     }
 
     try {
-      console.log(`[AI] Attempting to generate content with model: ${model}`)
+
 
       // Optimize for conversation: faster, more focused responses
       const generationConfig = complexity === 'SIMPLE' ? {
@@ -96,7 +96,7 @@ export async function callGeminiWithFallback(
       const result = await genModel.generateContent(prompt)
       const response = await result.response
       const text = response.text()
-      console.log(`[AI] Successfully generated content with model: ${model}`)
+
       return text
     } catch (error) {
       console.error(`[AI] Error with model ${model}:`, error)
@@ -815,11 +815,11 @@ Generate exactly ${questionCount} unique, high-quality VERBAL interview question
     const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
     if (!jsonMatch) {
       console.warn('No JSON object found in response:', text.substring(0, 100))
-      console.log('Full response:', text)
+
       throw new Error('Failed to parse AI response')
     }
 
-    console.log('Parsing JSON:', jsonMatch[0])
+
     const parsed = JSON.parse(jsonMatch[0])
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
       throw new Error('Invalid response format')

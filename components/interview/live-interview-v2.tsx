@@ -101,7 +101,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
       // Initialize AudioContext for playback (must be created in user gesture)
       if (!playbackContextRef.current) {
-        console.log('[Audio] Creating AudioContext from user interaction')
         playbackContextRef.current = new AudioContext()
         nextPlayTimeRef.current = playbackContextRef.current.currentTime
 
@@ -109,7 +108,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         if (playbackContextRef.current.state === 'suspended') {
           await playbackContextRef.current.resume()
         }
-        console.log('[Audio] AudioContext ready, state:', playbackContextRef.current.state)
       }
 
       // Call init endpoint
@@ -141,18 +139,15 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         { token, systemInstruction, model, tools },
         {
           onConnected: () => {
-            console.log('[Interview] WebSocket connected')
             setConnectionState('connected')
             setInterviewState('active')
           },
           onDisconnected: () => {
-            console.log('[Interview] WebSocket disconnected')
             setConnectionState('disconnected')
             setOrbMode('idle')
             stopRecording()
           },
           onError: (error) => {
-            console.error('[Interview] Error:', error.message)
             setError(error.message)
             setConnectionState('error')
             setInterviewState('idle')
@@ -160,12 +155,11 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             onError?.(error)
           },
           onSetupComplete: () => {
-            console.log('[Interview] Setup complete, starting recording and interview...')
             // Start continuous audio streaming
             startRecording()
             // Send initial message to begin interview
             if (clientRef.current) {
-              console.log('[Interview] Sending initial prompt to start interview')
+
               clientRef.current.sendText('Begin the interview. Greet the candidate and ask the first question.')
               setOrbMode('ai')
             }
@@ -173,14 +167,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           onTextResponse: (text) => {
             // Keep for fallback/debugging, but transcriptions are primary
             setCurrentAIMessage(text)
-            console.log('[Interview] AI text response (fallback):', text.substring(0, 100))
             // Note: Not adding to transcript here - transcriptions handle that
           },
           onAudioResponse: (audioData) => {
             playAudioResponse(audioData)
           },
           onTurnComplete: () => {
-            console.log('[Interview] Turn complete')
             setOrbMode('idle')
             setCurrentAIMessage('')
             // Don't clear transcription here, keep it visible until next turn
@@ -189,13 +181,11 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             isAITurnCompleteRef.current = true
           },
           onToolCall: (toolCall) => {
-            console.log('[Interview] Tool call received:', toolCall)
 
             // Check if AI called signal_interview_complete
             if (toolCall.functionCalls) {
               for (const fc of toolCall.functionCalls) {
                 if (fc.name === 'signal_interview_complete') {
-                  console.log('[Interview] AI signaled interview completion:', fc.args)
 
                   const { reason, questions_asked } = fc.args
 
@@ -203,24 +193,18 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                   const userAnswers = transcript.filter(t => t.speaker === 'user').length
 
                   if (userAnswers < totalQuestions) {
-                    console.warn(
-                      `[Interview] AI signaled completion but only ${userAnswers}/${totalQuestions} answers received`
-                    )
                     // Still allow auto-end if close enough (within 1 question)
                     if (userAnswers < totalQuestions - 1) {
-                      console.warn('[Interview] Too few answers, not auto-ending')
                       return
                     }
                   }
 
-                  console.log('[Interview] Auto-ending interview after AI completion')
                   setAiSignaledCompletion(true)
 
                   // FLUSH PENDING ANSWER: Check if there's a pending user answer in the accumulator
                   // This happens if the user answered the last question and the AI immediately called the tool
                   // without a distinct "new turn" event in between.
                   if (userAnswerAccumulator.current.trim()) {
-                    console.log('[Interview] Flushing pending answer before completion')
                     saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
                     userAnswerAccumulator.current = ''
 
@@ -235,12 +219,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                   if (playbackContextRef.current) {
                     const remainingTime = nextPlayTimeRef.current - playbackContextRef.current.currentTime
                     delay = Math.max(1000, remainingTime * 1000 + 1000) // Add 1s buffer
-                    console.log(`[Interview] Calculated audio delay: ${delay}ms`)
                   }
 
                   // Wait for audio to finish playing
                   setTimeout(() => {
-                    console.log('[Interview] Executing delayed auto-end')
                     endInterview()
                   }, delay)
                 }
@@ -249,12 +231,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           },
           onOutputTranscription: (text) => {
             // AI speech transcription - display this instead of text response
-            console.log('[Interview] AI transcription:', text)
 
             if (isAITurnCompleteRef.current) {
               // New turn starting
               aiTurnCounterRef.current += 1
-              console.log('[Interview] AI Turn Count:', aiTurnCounterRef.current)
 
               // Check if we have a user answer to save
               // We skip the first turn (transition from Intro -> Question 1)
@@ -280,12 +260,9 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                   // If it's Turn 2 and looks like an intro response, SKIP it.
                   // Otherwise (Turn > 2 OR Turn 2 but looks like a real answer), check constraints.
                   if (isIntroResponse) {
-                    console.log(`[Interview] Skipping likely intro response (Turn 2): "${userAnswerAccumulator.current}"`)
                   } else if (answerLength >= minLength && timeSinceLastSave >= minTime) {
                     // Check bounds
                     if (currentQuestionIndexRef.current < questionsRef.current.length) {
-                      console.log(`[Interview] Saving user answer. Turn: ${aiTurnCounterRef.current}, Index: ${currentQuestionIndexRef.current}`)
-                      console.log(`[Interview] Answer text (${answerLength} chars): "${userAnswerAccumulator.current.substring(0, 50)}..."`)
 
                       saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
                       lastSaveTimeRef.current = Date.now()
@@ -295,10 +272,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                       setCurrentQuestionIndex(nextIndex)
                       currentQuestionIndexRef.current = nextIndex
                     } else {
-                      console.warn('[Interview] Index out of bounds, not saving/incrementing')
                     }
                   } else {
-                    console.log(`[Interview] Skipping save: Too short (${answerLength}<${minLength}) or too soon (${timeSinceLastSave}<${minTime}ms)`)
                     // Don't clear accumulator if it was just a short interruption, keep accumulating?
                     // Actually, if AI is speaking, it's a new turn. If we don't save now, we lose it?
                     // No, we should probably append it to the next one OR just save it if it's the *only* thing.
@@ -306,7 +281,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                     // We CLEAR it to prevent it from being prepended to the next answer.
                   }
                 } else {
-                  console.log(`[Interview] Skipping save for intro response. Turn: ${aiTurnCounterRef.current}`)
                 }
 
                 // Always clear accumulator after processing
@@ -344,7 +318,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           },
           onInputTranscription: (text) => {
             // User speech transcription - save as answer
-            console.log('[Interview] User transcription:', text)
             // We don't display user transcription anymore, but we still track it for logic if needed
             // setCurrentUserTranscription(text) 
             setOrbMode('user')
@@ -392,7 +365,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
    */
   const startRecording = async () => {
     try {
-      console.log('[Recording] Requesting microphone access...')
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: {
           channelCount: 1,
@@ -401,27 +373,21 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           noiseSuppression: true,
         },
       })
-      console.log('[Recording] Microphone access granted')
 
       mediaStreamRef.current = stream
 
       // Create AudioContext for recording
-      console.log('[Recording] Creating AudioContext for recording...')
       const audioContext = new AudioContext({ sampleRate: 16000 })
-      console.log('[Recording] Recording AudioContext created, state:', audioContext.state)
 
       const source = audioContext.createMediaStreamSource(stream)
-      console.log('[Recording] MediaStreamSource created')
 
       const processor = audioContext.createScriptProcessor(4096, 1, 1)
-      console.log('[Recording] ScriptProcessor created')
 
       let chunkCount = 0
       processor.onaudioprocess = (event) => {
         const currentClient = clientRef.current
         if (!currentClient) {
           if (chunkCount === 0) {
-            console.log('[Recording] Audio processing skipped - client not available')
           }
           return
         }
@@ -466,26 +432,20 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
           // Log first few chunks
           if (chunkCount < 3) {
-            console.log(`[Recording] Sent audio chunk ${chunkCount + 1}, size: ${base64Audio.length}`)
           }
           chunkCount++
         } catch (error) {
-          console.error('[Recording] Audio processing error:', error)
         }
       }
 
-      console.log('[Recording] Connecting audio nodes...')
       source.connect(processor)
       processor.connect(audioContext.destination)
-      console.log('[Recording] Audio nodes connected')
 
       audioContextRef.current = audioContext
       processorRef.current = processor
 
       setIsRecording(true)
-      console.log('[Recording] Recording active, continuous streaming started')
     } catch (err: any) {
-      console.error('[Recording] Microphone access error:', err)
       setError(`Microphone access denied: ${err.message}`)
     }
   }
@@ -494,7 +454,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
    * Stop recording - called when ending the interview
    */
   const stopRecording = () => {
-    console.log('[Recording] Stopping recording and cleaning up...')
 
     if (processorRef.current) {
       processorRef.current.disconnect()
@@ -519,21 +478,16 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
    */
   const playAudioResponse = async (base64Audio: string) => {
     try {
-      console.log('[Audio] Received audio data, length:', base64Audio.length)
 
       if (!playbackContextRef.current) {
-        console.log('[Audio] Creating new AudioContext')
         playbackContextRef.current = new AudioContext()
         nextPlayTimeRef.current = playbackContextRef.current.currentTime
       }
 
       const playbackContext = playbackContextRef.current
-      console.log('[Audio] AudioContext state:', playbackContext.state)
 
       if (playbackContext.state === 'suspended') {
-        console.log('[Audio] Resuming suspended AudioContext')
         await playbackContext.resume()
-        console.log('[Audio] AudioContext resumed, new state:', playbackContext.state)
       }
 
       // Decode base64 to PCM
@@ -543,7 +497,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         bytes[i] = binaryString.charCodeAt(i)
       }
 
-      console.log('[Audio] Decoded bytes:', bytes.length)
 
       // Convert to Int16Array
       const dataView = new DataView(bytes.buffer)
@@ -560,14 +513,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         float32[i] = pcm16[i] / 32768.0
       }
 
-      console.log('[Audio] Converted to float32, samples:', float32.length)
 
       // Create audio buffer
       const sampleRate = 24000
       const audioBuffer = playbackContext.createBuffer(1, float32.length, sampleRate)
       audioBuffer.copyToChannel(float32, 0)
 
-      console.log('[Audio] Created buffer, duration:', audioBuffer.duration.toFixed(2), 's')
 
       // Schedule playback
       const currentTime = playbackContext.currentTime
@@ -579,11 +530,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       source.buffer = audioBuffer
       source.connect(playbackContext.destination)
 
-      console.log('[Audio] Starting playback at:', nextPlayTimeRef.current.toFixed(2), 's')
       source.start(nextPlayTimeRef.current)
 
       nextPlayTimeRef.current += audioBuffer.duration
-      console.log('[Audio] Next play time:', nextPlayTimeRef.current.toFixed(2), 's')
+
 
       // Update orb mode to AI speaking
       setOrbMode('ai')
@@ -786,7 +736,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
     return () => {
       stopRecording()
       if (clientRef.current) {
-        console.log('[Interview] Unmounting - disconnecting client')
+
         clientRef.current.disconnect()
         clientRef.current = null
       }

@@ -31,20 +31,39 @@ ${testText}
 Return ONLY this JSON structure with no other text:
 {"education": [], "experience": [], "skills": {"technical": [], "soft": [], "other": []}, "achievements": [], "certifications": [], "keywords": [], "raw_highlights": []}`;
 
-    console.log('Testing Gemini API...');
+    // console.log('Testing Gemini API...');
+
     const result = await model.generateContent(prompt);
     const response = await result.response;
     const text = response.text();
 
-    console.log('✅ API Response received');
-    console.log('Response:', text.substring(0, 300));
-    
+    // console.log('✅ API Response received');
+    // console.log('Response:', text.substring(0, 300));
+
     try {
       const parsed = JSON.parse(text);
-      console.log('✅ Valid JSON parsed');
-      console.log('Data:', JSON.stringify(parsed, null, 2));
+      // console.log('✅ Valid JSON parsed');
+      // console.log('Data:', JSON.stringify(parsed, null, 2));
     } catch (e) {
-      console.log('⚠️ Response is not valid JSON');
+      // console.log('⚠️ Response is not valid JSON');
+    }
+
+    // Test JSON mode
+    const jsonModel = genAI.getGenerativeModel({
+      model: 'gemini-1.5-flash',
+      generationConfig: { responseMimeType: "application/json" }
+    });
+
+    try {
+      const jsonPrompt = 'Generate a JSON object with a "name" and "description" field for a task tracker app.';
+      const jsonResult = await jsonModel.generateContent(jsonPrompt);
+      const jsonResponse = await jsonResult.response;
+      const jsonText = jsonResponse.text();
+      const parsed = JSON.parse(jsonText);
+      // console.log('✅ Valid JSON parsed');
+      // console.log('Data:', JSON.stringify(parsed, null, 2));
+    } catch (e) {
+      // console.log('⚠️ Response is not valid JSON');
     }
   } catch (error) {
     console.error('❌ Error:', error.message);
