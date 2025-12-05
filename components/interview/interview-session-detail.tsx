@@ -296,6 +296,38 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
         animate={{ opacity: 1, scale: 1 }}
         className="space-y-6"
       >
+        <ConfirmDialog
+          open={showRetryDialog}
+          title="Retry Interview?"
+          description="This will delete all your current answers and score for this session. You will be able to start over from the beginning."
+          confirmLabel="Yes, Retry"
+          cancelLabel="Cancel"
+          variant="destructive"
+          onConfirm={async () => {
+            try {
+              setLoading(true)
+              const response = await fetch('/api/interview/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId }),
+              })
+
+              if (!response.ok) throw new Error('Failed to reset session')
+
+              // Reload the page to reset state and show mode selection
+              window.location.reload()
+            } catch (err) {
+              console.error('Error resetting session:', err)
+              toast({
+                title: "Error",
+                description: "Failed to reset session. Please try again.",
+                variant: "destructive",
+              })
+              setLoading(false)
+            }
+          }}
+          onCancel={() => setShowRetryDialog(false)}
+        />
         <Card className="border-2 border-primary">
           <CardHeader>
             <div className="flex items-center justify-center mb-4">
