@@ -97,7 +97,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Template has no questions' }, { status: 400 })
     }
 
-    // Create interview session
+    // Generate/customize questions FIRST - fail early if this fails
+    console.log(`Generating ${questionCount} company-specific questions for ${template.company_name}...`)
+    const aiQuestions = await generateCompanySpecificQuestions({
+      templateQuestions,
+      jobDescription: customizeForJob ? application.job_description || undefined : undefined,
+      questionCount: Math.min(questionCount, templateQuestions.length),
+    })
+
+    if (!aiQuestions || aiQuestions.length === 0) {
+      console.error('Question generation failed - no questions returned')
+      return NextResponse.json(
+        { error: 'Failed to generate interview questions. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    console.log(`Successfully generated ${aiQuestions.length} questions`)
+
+    // Only create session if questions were generated successfully
     const session = await createInterviewSession({
       application_id: applicationId,
       session_type: 'company_specific',
@@ -105,12 +123,7 @@ export async function POST(request: NextRequest) {
       company_name: template.company_name,
     }, supabase)
 
-    // Generate/customize questions
-    const aiQuestions = await generateCompanySpecificQuestions({
-      templateQuestions,
-      jobDescription: customizeForJob ? application.job_description || undefined : undefined,
-      questionCount: Math.min(questionCount, templateQuestions.length),
-    })
+    console.log(`Created interview session: ${session.id}`)
 
     // Save questions to database
     const questions = await createQuestionsForSession(
@@ -126,6 +139,8 @@ export async function POST(request: NextRequest) {
       })),
       supabase
     )
+
+    console.log(`Saved ${questions.length} questions to database`)
 
     return NextResponse.json(
       {

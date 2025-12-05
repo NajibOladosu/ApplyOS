@@ -183,6 +183,10 @@ export interface InterviewSession {
   answered_questions: number
   average_score: number | null
   total_duration_seconds: number | null
+  conversation_mode: boolean
+  full_transcript: ConversationTurn[] | null
+  conversation_started_at: string | null
+  conversation_ended_at: string | null
   created_at: string
   updated_at: string
 }
@@ -269,4 +273,18 @@ export interface CompanyTemplate {
   last_used_at: string | null
   created_at: string
   updated_at: string
+}
+
+export interface ConversationTurn {
+  id: string
+  session_id: string
+  user_id: string
+  turn_number: number
+  speaker: 'ai' | 'user'
+  content: string
+  audio_url: string | null
+  audio_duration_seconds: number | null
+  timestamp: string
+  metadata: Record<string, any> | null
+  created_at: string
 }
