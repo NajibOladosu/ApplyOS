@@ -227,7 +227,7 @@ function SignupContent() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
-                  minLength={12}
+                  minLength={8}
                 />
 
                 {/* Password strength indicator */}
@@ -264,7 +264,7 @@ function SignupContent() {
                     <div className="space-y-0.5">
                       <p className="font-medium text-muted-foreground">Password must contain:</p>
                       <ul className="text-muted-foreground space-y-0.5">
-                        <li>• At least 12 characters</li>
+                        <li>• At least 8 characters</li>
                         <li>• Uppercase and lowercase letters</li>
                         <li>• Numbers and special characters</li>
                       </ul>
