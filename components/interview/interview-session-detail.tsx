@@ -19,12 +19,14 @@ import {
   TrendingDown,
   Lightbulb,
   AlertCircle,
+  RefreshCcw,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, InterviewFeedback } from "@/types/database"
 import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
 import { VoiceRecorder } from "@/components/interview/VoiceRecorder"
 import { Keyboard } from "lucide-react"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface InterviewSessionDetailProps {
   sessionId: string
@@ -49,6 +51,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   const [error, setError] = useState<string | null>(null)
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
   const [isReviewMode, setIsReviewMode] = useState(false)
+  const [showRetryDialog, setShowRetryDialog] = useState(false)
 
   const MAX_ANSWER_LENGTH = 5000
   const characterCount = answerText.length
@@ -344,6 +347,15 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Finish Interview
               </Button>
+
+              <Button
+                onClick={() => setShowRetryDialog(true)}
+                variant="outline"
+                className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Retry Interview
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -353,6 +365,39 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={showRetryDialog}
+        title="Retry Interview?"
+        description="This will delete all your current answers and score for this session. You will be able to start over from the beginning."
+        confirmLabel="Yes, Retry"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={async () => {
+          try {
+            setLoading(true)
+            const response = await fetch('/api/interview/reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId }),
+            })
+
+            if (!response.ok) throw new Error('Failed to reset session')
+
+            // Reload the page to reset state and show mode selection
+            window.location.reload()
+          } catch (err) {
+            console.error('Error resetting session:', err)
+            toast({
+              title: "Error",
+              description: "Failed to reset session. Please try again.",
+              variant: "destructive",
+            })
+            setLoading(false)
+          }
+        }}
+        onCancel={() => setShowRetryDialog(false)}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
