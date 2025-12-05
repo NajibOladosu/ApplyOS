@@ -49,13 +49,11 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
             recognition.lang = 'en-US'
 
             recognition.onstart = () => {
-                console.log('Speech recognition started')
                 setIsRecording(true)
                 isRecordingRef.current = true
             }
 
             recognition.onend = () => {
-                console.log('Speech recognition ended')
                 // Only update state if we didn't manually stop it (e.g. silence or error)
                 // If we are still "recording" logically, we might want to restart it? 
                 // For now, let's just sync the state.
@@ -74,7 +72,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
                     .join('')
 
                 interimTranscriptRef.current = transcript
-                console.log('Transcript update:', transcript.length, 'chars')
+
 
                 // Reset silence timer on speech
                 if (silenceTimerRef.current) {
@@ -83,7 +81,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
 
                 // Set new silence timer (2 seconds of silence = end of speech)
                 silenceTimerRef.current = setTimeout(() => {
-                    console.log('Silence detected, stopping recording...')
+
                     if (isRecordingRef.current) {
                         stopRecording(transcript)
                     }

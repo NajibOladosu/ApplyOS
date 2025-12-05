@@ -76,7 +76,7 @@ export class GeminiLiveClient {
         // Gemini Live API WebSocket endpoint
         const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.config.token}`
 
-        console.log('Attempting WebSocket connection to Gemini Live API...')
+
         this.ws = new WebSocket(wsUrl)
 
         // Add connection timeout (10 seconds)
@@ -90,7 +90,7 @@ export class GeminiLiveClient {
 
         this.ws.onopen = () => {
           clearTimeout(connectionTimeout)
-          console.log('WebSocket connected to Gemini Live API')
+
           this.connectionState = 'connected'
           this.reconnectAttempts = 0
           this.events.onConnected?.()
@@ -130,7 +130,7 @@ export class GeminiLiveClient {
 
         this.ws.onclose = (event) => {
           clearTimeout(connectionTimeout)
-          console.log(`WebSocket closed: code=${event.code}, reason="${event.reason || 'No reason provided'}", wasClean=${event.wasClean}`)
+
 
           // Provide detailed close reason
           let closeReason = event.reason || 'Connection closed'
@@ -215,12 +215,9 @@ export class GeminiLiveClient {
     // Add tools if provided
     if (this.config.tools && this.config.tools.length > 0) {
       setupMessage.setup.tools = this.config.tools
-      console.log('[Client] Sending setup with tools:', this.config.tools.map(t =>
-        t.functionDeclarations.map((f: any) => f.name).join(', ')
-      ))
     }
 
-    console.log('[Client] Sending setup message')
+
     this.send(setupMessage)
   }
 
@@ -249,7 +246,7 @@ export class GeminiLiveClient {
 
       // Handle setup complete
       if (message.setupComplete) {
-        console.log('Setup complete')
+
         this.events.onSetupComplete?.()
         return
       }
@@ -262,14 +259,14 @@ export class GeminiLiveClient {
 
       // Handle tool calls
       if (message.toolCall) {
-        console.log('Tool call received:', message.toolCall)
+
         this.events.onToolCall?.(message.toolCall)
         return
       }
 
       // Handle tool call cancellation
       if (message.toolCallCancellation) {
-        console.log('Tool call cancelled:', message.toolCallCancellation.ids)
+
         return
       }
     } catch (error) {
@@ -282,11 +279,6 @@ export class GeminiLiveClient {
    * Handle server content (AI responses)
    */
   private handleServerContent(content: ServerContent): void {
-    console.log('[Client] Server content received:', {
-      hasParts: !!content.modelTurn?.parts,
-      partCount: content.modelTurn?.parts?.length,
-      turnComplete: content.turnComplete,
-    })
 
     this.events.onContent?.(content)
 
@@ -294,13 +286,13 @@ export class GeminiLiveClient {
       for (const part of content.modelTurn.parts) {
         // Handle text response
         if ('text' in part) {
-          console.log('[Client] AI text:', part.text.substring(0, 100))
+
           this.events.onTextResponse?.(part.text)
         }
 
         // Handle audio response
         if ('inlineData' in part && part.inlineData.mimeType.startsWith('audio/')) {
-          console.log('[Client] AI audio received, MIME:', part.inlineData.mimeType, 'size:', part.inlineData.data.length)
+
           this.events.onAudioResponse?.(part.inlineData.data)
         }
       }
@@ -308,18 +300,18 @@ export class GeminiLiveClient {
 
     // Handle AI speech transcription (what the AI is saying)
     if (content.outputTranscription?.text) {
-      console.log('[Client] AI transcription:', content.outputTranscription.text)
+
       this.events.onOutputTranscription?.(content.outputTranscription.text)
     }
 
     // Handle user speech transcription (what the user said)
     if (content.inputTranscription?.text) {
-      console.log('[Client] User transcription:', content.inputTranscription.text)
+
       this.events.onInputTranscription?.(content.inputTranscription.text)
     }
 
     if (content.turnComplete) {
-      console.log('[Client] Turn complete')
+
       this.events.onTurnComplete?.()
     }
   }
@@ -435,7 +427,7 @@ export class GeminiLiveClient {
    * Disconnect from Gemini Live API
    */
   disconnect(): void {
-    console.log('[Client] Intentional disconnect requested')
+
     this.intentionalDisconnect = true
     this.stopHeartbeat()
 
