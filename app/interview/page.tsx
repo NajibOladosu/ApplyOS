@@ -79,20 +79,25 @@ export default function InterviewPage() {
   }
 
   const handleRetryClick = (e: React.MouseEvent, sessionId: string) => {
+    console.log("Retry button clicked for session:", sessionId)
     e.preventDefault()
     e.stopPropagation()
     setRetrySessionId(sessionId)
   }
 
   const handleConfirmRetry = async () => {
+    console.log("Confirm retry for session:", retrySessionId)
     if (!retrySessionId) return
 
     try {
+      console.log("Calling reset API...")
       const response = await fetch('/api/interview/reset', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ sessionId: retrySessionId }),
       })
+
+      console.log("Reset API response status:", response.status)
 
       if (!response.ok) throw new Error('Failed to reset session')
 

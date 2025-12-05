@@ -9,14 +9,17 @@ export async function POST(request: NextRequest) {
     const supabase = await createClient()
     const {
       data: { user },
+      error: authError,
     } = await supabase.auth.getUser()
 
-    if (!user) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    if (authError || !user) {
+      console.error('Auth error in reset route:', authError)
+      return NextResponse.json({ error: 'Unauthorized', details: authError?.message }, { status: 401 })
     }
 
     const body = await request.json()
     const { sessionId } = body
+    console.log("Reset API received request for session:", sessionId)
 
     if (!sessionId) {
       return NextResponse.json(
@@ -32,7 +35,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Reset session
-    const updatedSession = await resetInterviewSession(sessionId)
+    const updatedSession = await resetInterviewSession(sessionId, supabase)
 
     return NextResponse.json({ session: updatedSession }, { status: 200 })
   } catch (error: any) {
