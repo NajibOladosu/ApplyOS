@@ -76,10 +76,10 @@ export function validatePasswordStrength(password: string): {
   message?: string
 } {
   // Minimum length
-  if (password.length < 12) {
+  if (password.length < 8) {
     return {
       valid: false,
-      message: 'Password must be at least 12 characters long',
+      message: 'Password must be at least 8 characters long',
     }
   }
 
