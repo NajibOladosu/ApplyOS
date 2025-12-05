@@ -160,6 +160,30 @@ export async function completeInterviewSession(sessionId: string): Promise<Inter
   })
 }
 
+export async function resetInterviewSession(sessionId: string): Promise<InterviewSession> {
+  const supabase = createClient()
+
+  // 1. Delete all answers for this session
+  const { error: deleteError } = await supabase
+    .from('interview_answers')
+    .delete()
+    .eq('session_id', sessionId)
+
+  if (deleteError) throw deleteError
+
+  // 2. Reset session status and metrics
+  // We set conversation_mode to false so the user can choose again
+  return updateInterviewSession(sessionId, {
+    status: 'in_progress', // Reset to in_progress
+    completed_at: null,
+    answered_questions: 0,
+    average_score: null,
+    total_duration_seconds: 0,
+    conversation_mode: false,
+    conversation_started_at: null,
+  })
+}
+
 // ============================================================================
 // INTERVIEW QUESTIONS
 // ============================================================================

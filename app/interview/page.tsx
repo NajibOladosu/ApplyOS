@@ -14,19 +14,25 @@ import {
   Clock,
   BarChart3,
   Loader2,
+  RefreshCcw,
 } from "lucide-react"
 import Link from "next/link"
 import type { InterviewSession, Application } from "@/types/database"
 import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui/use-toast"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface SessionWithApplication extends InterviewSession {
   application: Application | null
 }
 
 export default function InterviewPage() {
+  const { toast } = useToast()
   const [sessions, setSessions] = useState<SessionWithApplication[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
+  const [retrySessionId, setRetrySessionId] = useState<string | null>(null)
 
   useEffect(() => {
     loadSessions()
@@ -69,6 +75,42 @@ export default function InterviewPage() {
       console.error('Error loading interview sessions:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRetryClick = (e: React.MouseEvent, sessionId: string) => {
+    e.preventDefault()
+    e.stopPropagation()
+    setRetrySessionId(sessionId)
+  }
+
+  const handleConfirmRetry = async () => {
+    if (!retrySessionId) return
+
+    try {
+      const response = await fetch('/api/interview/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: retrySessionId }),
+      })
+
+      if (!response.ok) throw new Error('Failed to reset session')
+
+      toast({
+        title: "Session Reset",
+        description: "The interview session has been reset. You can now start over.",
+      })
+
+      loadSessions()
+    } catch (err) {
+      console.error('Error resetting session:', err)
+      toast({
+        title: "Error",
+        description: "Failed to reset session. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setRetrySessionId(null)
     }
   }
 
@@ -435,6 +477,19 @@ export default function InterviewPage() {
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                                   </div>
                                 </div>
+
+                                {/* Actions */}
+                                <div className="pt-3 flex justify-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+                                    onClick={(e) => handleRetryClick(e, session.id)}
+                                  >
+                                    <RefreshCcw className="h-3 w-3 mr-1" />
+                                    Retry
+                                  </Button>
+                                </div>
                               </CardContent>
                             </Card>
                           </Link>
@@ -448,6 +503,17 @@ export default function InterviewPage() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!retrySessionId}
+        title="Retry Interview?"
+        description="This will delete all your current answers and score for this session. You will be able to start over from the beginning."
+        confirmLabel="Yes, Retry"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmRetry}
+        onCancel={() => setRetrySessionId(null)}
+      />
     </DashboardLayout>
   )
 }
