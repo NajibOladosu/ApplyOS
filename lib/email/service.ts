@@ -288,7 +288,7 @@ export async function processPendingEmails() {
     return;
   }
 
-  console.log(`Processing ${pendingEmails.length} pending emails...`);
+  // console.log(`Processing ${pendingEmails.length} pending emails...`);
 
   // Send each email
   for (const email of pendingEmails) {

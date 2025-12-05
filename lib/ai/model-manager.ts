@@ -188,7 +188,7 @@ export class ModelManager {
     if (tracker) {
       tracker.limitedUntil = null
       tracker.retryAfter = null
-      console.log(`[Model Manager] Reset rate limit for ${model}`)
+
     }
   }
 
@@ -200,7 +200,7 @@ export class ModelManager {
       tracker.limitedUntil = null
       tracker.retryAfter = null
     })
-    console.log('[Model Manager] Reset all rate limits')
+
   }
 }
 
