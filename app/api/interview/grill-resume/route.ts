@@ -94,7 +94,26 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Create interview session
+    // Generate resume-specific questions FIRST - fail early if this fails
+    console.log(`Generating ${questionCount} resume grill questions...`)
+    const aiQuestions = await generateResumeGrillQuestions({
+      resumeText: document.extracted_text,
+      parsedData: document.parsed_data,
+      questionCount,
+      difficulty,
+    })
+
+    if (!aiQuestions || aiQuestions.length === 0) {
+      console.error('Question generation failed - no questions returned')
+      return NextResponse.json(
+        { error: 'Failed to generate interview questions. Please try again.' },
+        { status: 500 }
+      )
+    }
+
+    console.log(`Successfully generated ${aiQuestions.length} questions`)
+
+    // Only create session if questions were generated successfully
     const session = await createInterviewSession({
       application_id: applicationId,
       session_type: 'resume_grill',
@@ -102,13 +121,7 @@ export async function POST(request: NextRequest) {
       company_name: application.company || null,
     }, supabase)
 
-    // Generate resume-specific questions using AI
-    const aiQuestions = await generateResumeGrillQuestions({
-      resumeText: document.extracted_text,
-      parsedData: document.parsed_data,
-      questionCount,
-      difficulty,
-    })
+    console.log(`Created interview session: ${session.id}`)
 
     // Save questions to database
     const questions = await createQuestionsForSession(
@@ -124,6 +137,8 @@ export async function POST(request: NextRequest) {
       })),
       supabase
     )
+
+    console.log(`Saved ${questions.length} questions to database`)
 
     return NextResponse.json(
       {

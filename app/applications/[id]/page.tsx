@@ -33,17 +33,17 @@ import { getApplication, updateApplication, getApplicationDocuments, updateAppli
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
-import { deleteInterviewSession } from "@/lib/services/interviews"
+import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/lib/services/interviews"
 import { EditApplicationModal } from "@/components/modals/edit-application-modal"
 import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { NoteModal } from "@/components/modals/note-modal"
 import { NewInterviewModal } from "@/components/modals/new-interview-modal"
+import { InterviewReportModal } from "@/components/modals/interview-report-modal"
 import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
-import { InterviewSessionDetail } from "@/components/interview/interview-session-detail"
-import { getInterviewSessions } from "@/lib/services/interviews"
+import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
 import type { InterviewSession } from "@/types/database"
 
 export default function ApplicationDetailPage() {
@@ -87,7 +87,10 @@ export default function ApplicationDetailPage() {
   const [interviewLoading, setInterviewLoading] = useState(false)
   const [activeTab, setActiveTab] = useState("questions")
   const [deletingSessionId, setDeletingSessionId] = useState<string | null>(null)
+  const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
+  const [viewingReportSessionId, setViewingReportSessionId] = useState<string | null>(null)
+  const [reportData, setReportData] = useState<any | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -358,6 +361,23 @@ export default function ApplicationDetailPage() {
     const textarea = textareaRefs.get(questionId)
     if (textarea) {
       textarea.value = aiAnswer
+    }
+  }
+
+  const handleDeleteSession = async (sessionId: string) => {
+    if (!id) return
+    try {
+      await deleteInterviewSession(sessionId)
+      // Reload sessions
+      const sessions = await getInterviewSessions(id)
+      setInterviewSessions(sessions)
+      setShowDeleteConfirmModal(false)
+      setDeletingSessionId(null)
+      setSuccessMessage('Interview session deleted successfully')
+      setTimeout(() => setSuccessMessage(null), 3000)
+    } catch (err) {
+      console.error('Error deleting session:', err)
+      setError('Failed to delete interview session')
     }
   }
 
@@ -1028,7 +1048,7 @@ export default function ApplicationDetailPage() {
             <div className="space-y-4">
               {selectedSessionId ? (
                 // Show session detail when a session is selected
-                <InterviewSessionDetail
+                <InterviewModeWrapper
                   sessionId={selectedSessionId}
                   onComplete={async () => {
                     // Reload sessions to update completion status
@@ -1529,6 +1549,36 @@ export default function ApplicationDetailPage() {
         onConfirm={handleConfirmExtractQuestions}
         onCancel={() => setShowExtractConfirmModal(false)}
         isLoading={extracting}
+      />
+
+      {/* Delete Interview Session Confirmation Modal */}
+      <ConfirmModal
+        isOpen={showDeleteConfirmModal}
+        title="Delete Interview Session?"
+        description="This will permanently delete this interview session and all associated questions and answers. This action cannot be undone."
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={async () => {
+          if (deletingSessionId) {
+            await handleDeleteSession(deletingSessionId)
+          }
+        }}
+        onCancel={() => {
+          setShowDeleteConfirmModal(false)
+          setDeletingSessionId(null)
+        }}
+        isLoading={false}
+      />
+
+      {/* Interview Report Modal */}
+      <InterviewReportModal
+        isOpen={!!viewingReportSessionId}
+        onClose={() => {
+          setViewingReportSessionId(null)
+          setReportData(null)
+        }}
+        reportData={reportData}
+        sessionId={viewingReportSessionId || ''}
       />
 
       {/* Success Message Modal */}

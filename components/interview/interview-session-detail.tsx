@@ -19,12 +19,14 @@ import {
   TrendingDown,
   Lightbulb,
   AlertCircle,
+  RefreshCcw,
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, InterviewFeedback } from "@/types/database"
 import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
 import { VoiceRecorder } from "@/components/interview/VoiceRecorder"
 import { Keyboard } from "lucide-react"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface InterviewSessionDetailProps {
   sessionId: string
@@ -48,6 +50,8 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [inputMode, setInputMode] = useState<'text' | 'voice'>('text')
+  const [isReviewMode, setIsReviewMode] = useState(false)
+  const [showRetryDialog, setShowRetryDialog] = useState(false)
 
   const MAX_ANSWER_LENGTH = 5000
   const characterCount = answerText.length
@@ -196,10 +200,26 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
 
   const handleNextQuestion = () => {
     if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1)
-      setShowFeedback(false)
-      setCurrentFeedback(null)
-      setAnswerText("")
+      const nextIndex = currentQuestionIndex + 1
+      setCurrentQuestionIndex(nextIndex)
+
+      if (isReviewMode) {
+        // In review mode, show feedback for the next question immediately
+        const nextQuestion = questions[nextIndex]
+        if (nextQuestion.answer) {
+          setCurrentFeedback(nextQuestion.answer)
+          setShowFeedback(true)
+        } else {
+          // Should not happen in review mode if all answered, but fallback
+          setShowFeedback(false)
+          setCurrentFeedback(null)
+        }
+      } else {
+        // Normal mode
+        setShowFeedback(false)
+        setCurrentFeedback(null)
+        setAnswerText("")
+      }
     }
   }
 
@@ -266,7 +286,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
   }
 
   // Completion screen
-  if (allAnswered && !showFeedback) {
+  if ((allAnswered || session?.status === 'completed') && !showFeedback) {
     const avgScore = session.average_score || 0
     const scoreColor = avgScore >= 8 ? "text-green-500" : avgScore >= 6 ? "text-yellow-500" : "text-red-500"
 
@@ -276,6 +296,38 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
         animate={{ opacity: 1, scale: 1 }}
         className="space-y-6"
       >
+        <ConfirmDialog
+          open={showRetryDialog}
+          title="Retry Interview?"
+          description="This will delete all your current answers and score for this session. You will be able to start over from the beginning."
+          confirmLabel="Yes, Retry"
+          cancelLabel="Cancel"
+          variant="destructive"
+          onConfirm={async () => {
+            try {
+              setLoading(true)
+              const response = await fetch('/api/interview/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ sessionId }),
+              })
+
+              if (!response.ok) throw new Error('Failed to reset session')
+
+              // Reload the page to reset state and show mode selection
+              window.location.reload()
+            } catch (err) {
+              console.error('Error resetting session:', err)
+              toast({
+                title: "Error",
+                description: "Failed to reset session. Please try again.",
+                variant: "destructive",
+              })
+              setLoading(false)
+            }
+          }}
+          onCancel={() => setShowRetryDialog(false)}
+        />
         <Card className="border-2 border-primary">
           <CardHeader>
             <div className="flex items-center justify-center mb-4">
@@ -312,6 +364,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
             <div className="flex flex-col gap-3 pt-4">
               <Button
                 onClick={() => {
+                  setIsReviewMode(true)
                   setCurrentQuestionIndex(0)
                   if (questions[0]?.answer) {
                     handleViewAnswer(questions[0])
@@ -326,6 +379,15 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                 <CheckCircle2 className="h-4 w-4 mr-2" />
                 Finish Interview
               </Button>
+
+              <Button
+                onClick={() => setShowRetryDialog(true)}
+                variant="outline"
+                className="w-full hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+              >
+                <RefreshCcw className="h-4 w-4 mr-2" />
+                Retry Interview
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -335,6 +397,39 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
 
   return (
     <div className="space-y-6">
+      <ConfirmDialog
+        open={showRetryDialog}
+        title="Retry Interview?"
+        description="This will delete all your current answers and score for this session. You will be able to start over from the beginning."
+        confirmLabel="Yes, Retry"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={async () => {
+          try {
+            setLoading(true)
+            const response = await fetch('/api/interview/reset', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ sessionId }),
+            })
+
+            if (!response.ok) throw new Error('Failed to reset session')
+
+            // Reload the page to reset state and show mode selection
+            window.location.reload()
+          } catch (err) {
+            console.error('Error resetting session:', err)
+            toast({
+              title: "Error",
+              description: "Failed to reset session. Please try again.",
+              variant: "destructive",
+            })
+            setLoading(false)
+          }
+        }}
+        onCancel={() => setShowRetryDialog(false)}
+      />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
@@ -448,8 +543,8 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                               Aim for clear, structured responses
                             </p>
                             <p className={`text-xs font-medium ${isOverLimit ? 'text-destructive' :
-                                characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
-                                  'text-muted-foreground'
+                              characterCount > MAX_ANSWER_LENGTH * 0.9 ? 'text-yellow-600 dark:text-yellow-400' :
+                                'text-muted-foreground'
                               }`}>
                               {characterCount} / {MAX_ANSWER_LENGTH}
                             </p>
@@ -582,6 +677,19 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                     <CardTitle>AI Feedback</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    <div className="space-y-4 mb-6">
+                      <div className="bg-muted/50 p-4 rounded-lg">
+                        <p className="text-sm font-semibold mb-1">Question:</p>
+                        <p className="text-sm text-muted-foreground">{currentQuestion.question_text}</p>
+                      </div>
+                      <div className="bg-muted p-4 rounded-lg">
+                        <p className="text-sm font-semibold mb-1">Your Answer:</p>
+                        <p className="text-sm text-muted-foreground whitespace-pre-wrap">
+                          {currentFeedback.answer_text}
+                        </p>
+                      </div>
+                    </div>
+
                     <div>
                       <p className="text-sm text-muted-foreground">{currentFeedback.feedback.overall}</p>
                     </div>
@@ -639,10 +747,13 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
 
                     <Button
                       onClick={() => {
-                        setShowFeedback(false)
-                        setCurrentFeedback(null)
                         if (currentQuestionIndex < questions.length - 1) {
                           handleNextQuestion()
+                        } else {
+                          // Finish review
+                          setShowFeedback(false)
+                          setCurrentFeedback(null)
+                          setIsReviewMode(false)
                         }
                       }}
                       className="w-full"
@@ -655,7 +766,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       ) : (
                         <>
                           <CheckCircle2 className="h-4 w-4 mr-2" />
-                          Continue
+                          Finish Review
                         </>
                       )}
                     </Button>

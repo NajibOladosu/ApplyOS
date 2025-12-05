@@ -13,7 +13,13 @@ import type {
   IdealAnswerOutline,
   EvaluationCriteria,
   InterviewFeedback,
+  ConversationTurn,
 } from '@/types/database'
+import { getConversationTurns as getConversationTurnsFromService } from './conversation'
+
+// Re-export conversation functions
+export { getConversationTurns } from './conversation'
+
 
 // ============================================================================
 // INTERVIEW SESSIONS
@@ -23,12 +29,23 @@ export async function getInterviewSessions(applicationId: string): Promise<Inter
   const supabase = createClient()
   const { data, error } = await supabase
     .from('interview_sessions')
-    .select('*')
+    .select(`
+      *,
+      db_total_questions,
+      db_answered_questions,
+      db_average_score
+    `)
     .eq('application_id', applicationId)
     .order('started_at', { ascending: false })
 
   if (error) throw error
-  return data as InterviewSession[]
+
+  return (data || []).map((session: any) => ({
+    ...session,
+    total_questions: session.db_total_questions ?? session.total_questions,
+    answered_questions: session.db_answered_questions ?? session.answered_questions,
+    average_score: session.db_average_score ?? session.average_score,
+  })) as InterviewSession[]
 }
 
 export async function getInterviewSession(
@@ -38,13 +55,25 @@ export async function getInterviewSession(
   const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_sessions')
-    .select('*')
+    .select(`
+      *,
+      db_total_questions,
+      db_answered_questions,
+      db_average_score
+    `)
     .eq('id', sessionId)
     .maybeSingle()
 
   if (error) throw error
   if (!data) throw new Error(`Interview session not found or access denied: ${sessionId}`)
-  return data as InterviewSession
+
+  const session = data as any
+  return {
+    ...session,
+    total_questions: session.db_total_questions ?? session.total_questions,
+    answered_questions: session.db_answered_questions ?? session.answered_questions,
+    average_score: session.db_average_score ?? session.average_score,
+  } as InterviewSession
 }
 
 export async function createInterviewSession(
@@ -131,12 +160,46 @@ export async function completeInterviewSession(sessionId: string): Promise<Inter
   })
 }
 
+export async function resetInterviewSession(
+  sessionId: string,
+  supabaseClient?: SupabaseClient
+): Promise<InterviewSession> {
+  const supabase = supabaseClient || createClient()
+
+  // 1. Delete all answers for this session
+  const { error: deleteError } = await supabase
+    .from('interview_answers')
+    .delete()
+    .eq('session_id', sessionId)
+
+  if (deleteError) throw deleteError
+
+  // 2. Reset session status and metrics
+  // We set conversation_mode to false so the user can choose again
+  return updateInterviewSession(
+    sessionId,
+    {
+      status: 'in_progress', // Reset to in_progress
+      completed_at: null,
+      answered_questions: 0,
+      average_score: null,
+      total_duration_seconds: 0,
+      conversation_mode: false,
+      conversation_started_at: null,
+    },
+    supabase
+  )
+}
+
 // ============================================================================
 // INTERVIEW QUESTIONS
 // ============================================================================
 
-export async function getQuestionsForSession(sessionId: string): Promise<InterviewQuestion[]> {
-  const supabase = createClient()
+export async function getQuestionsForSession(
+  sessionId: string,
+  supabaseClient?: SupabaseClient
+): Promise<InterviewQuestion[]> {
+  const supabase = supabaseClient || createClient()
   const { data, error } = await supabase
     .from('interview_questions')
     .select('*')

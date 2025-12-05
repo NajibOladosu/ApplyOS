@@ -14,19 +14,25 @@ import {
   Clock,
   BarChart3,
   Loader2,
+  RefreshCcw,
 } from "lucide-react"
 import Link from "next/link"
 import type { InterviewSession, Application } from "@/types/database"
 import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/components/ui/button"
+import { useToast } from "@/components/ui/use-toast"
+import { ConfirmDialog } from "@/components/ui/confirm-dialog"
 
 interface SessionWithApplication extends InterviewSession {
   application: Application | null
 }
 
 export default function InterviewPage() {
+  const { toast } = useToast()
   const [sessions, setSessions] = useState<SessionWithApplication[]>([])
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState("overview")
+  const [retrySessionId, setRetrySessionId] = useState<string | null>(null)
 
   useEffect(() => {
     loadSessions()
@@ -47,18 +53,69 @@ export default function InterviewPage() {
         .from('interview_sessions')
         .select(`
           *,
-          application:applications(*)
+          application:applications(*),
+          db_total_questions,
+          db_answered_questions,
+          db_average_score
         `)
         .eq('user_id', user.id)
         .order('created_at', { ascending: false })
 
       if (error) throw error
 
-      setSessions(sessionsData || [])
+      const mappedSessions = (sessionsData || []).map((session: any) => ({
+        ...session,
+        total_questions: session.db_total_questions ?? session.total_questions,
+        answered_questions: session.db_answered_questions ?? session.answered_questions,
+        average_score: session.db_average_score ?? session.average_score,
+      }))
+
+      setSessions(mappedSessions)
     } catch (err) {
       console.error('Error loading interview sessions:', err)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleRetryClick = (e: React.MouseEvent, sessionId: string) => {
+    console.log("Retry button clicked for session:", sessionId)
+    e.preventDefault()
+    e.stopPropagation()
+    setRetrySessionId(sessionId)
+  }
+
+  const handleConfirmRetry = async () => {
+    console.log("Confirm retry for session:", retrySessionId)
+    if (!retrySessionId) return
+
+    try {
+      console.log("Calling reset API...")
+      const response = await fetch('/api/interview/reset', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sessionId: retrySessionId }),
+      })
+
+      console.log("Reset API response status:", response.status)
+
+      if (!response.ok) throw new Error('Failed to reset session')
+
+      toast({
+        title: "Session Reset",
+        description: "The interview session has been reset. You can now start over.",
+      })
+
+      loadSessions()
+    } catch (err) {
+      console.error('Error resetting session:', err)
+      toast({
+        title: "Error",
+        description: "Failed to reset session. Please try again.",
+        variant: "destructive",
+      })
+    } finally {
+      setRetrySessionId(null)
     }
   }
 
@@ -404,12 +461,12 @@ export default function InterviewPage() {
                                     )}
                                     {session.answered_questions > 0 && (
                                       <div className={`flex items-center justify-center h-8 w-8 rounded-full ${avgScore >= 8 ? 'bg-green-500/10 border border-green-500/30' :
-                                          avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                                            'bg-red-500/10 border border-red-500/30'
+                                        avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                                          'bg-red-500/10 border border-red-500/30'
                                         }`}>
                                         <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                              'text-red-600 dark:text-red-400'
+                                          avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                            'text-red-600 dark:text-red-400'
                                           }`}>
                                           {avgScore.toFixed(1)}
                                         </span>
@@ -425,6 +482,19 @@ export default function InterviewPage() {
                                     <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                                   </div>
                                 </div>
+
+                                {/* Actions */}
+                                <div className="pt-3 flex justify-end">
+                                  <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="h-8 text-xs hover:bg-destructive/10 hover:text-destructive hover:border-destructive/50"
+                                    onClick={(e) => handleRetryClick(e, session.id)}
+                                  >
+                                    <RefreshCcw className="h-3 w-3 mr-1" />
+                                    Retry
+                                  </Button>
+                                </div>
                               </CardContent>
                             </Card>
                           </Link>
@@ -438,6 +508,17 @@ export default function InterviewPage() {
           </>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!retrySessionId}
+        title="Retry Interview?"
+        description="This will delete all your current answers and score for this session. You will be able to start over from the beginning."
+        confirmLabel="Yes, Retry"
+        cancelLabel="Cancel"
+        variant="destructive"
+        onConfirm={handleConfirmRetry}
+        onCancel={() => setRetrySessionId(null)}
+      />
     </DashboardLayout>
   )
 }
