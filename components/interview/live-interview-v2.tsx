@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useEffect } from 'react'
+import { useState, useRef, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { AIOrb } from './ai-orb'
 import type { OrbMode } from './ai-orb'
@@ -69,9 +69,17 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const currentQuestionIndexRef = useRef(0)
   const aiTurnCounterRef = useRef(0)
   const lastSaveTimeRef = useRef(0)
+  const isAudioPlayingRef = useRef(false)
+  const orbModeRef = useRef<OrbMode>('idle')
 
   // Orb mode
   const [orbMode, setOrbMode] = useState<OrbMode>('idle')
+
+  // Wrapper function to update both state and ref
+  const updateOrbMode = useCallback((newMode: OrbMode) => {
+    orbModeRef.current = newMode
+    setOrbMode(newMode)
+  }, [])
 
   /**
    * Start the interview
@@ -173,7 +181,11 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             playAudioResponse(audioData)
           },
           onTurnComplete: () => {
-            setOrbMode('idle')
+            console.log('[Interview] Turn complete')
+            // Only reset to idle if audio is not currently playing
+            if (!isAudioPlayingRef.current) {
+              setOrbMode('idle')
+            }
             setCurrentAIMessage('')
             // Don't clear transcription here, keep it visible until next turn
             // setCurrentAITranscription('') 
@@ -406,10 +418,25 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
           // Voice activity detection - switch to user mode when speaking
           const VOICE_THRESHOLD = 0.02
-          if (level > VOICE_THRESHOLD && orbMode !== 'ai') {
-            setOrbMode('user')
-          } else if (level <= VOICE_THRESHOLD && orbMode === 'user') {
-            setOrbMode('idle')
+          const currentOrbMode = orbModeRef.current
+
+          // Log audio level periodically for debugging
+          if (Math.random() < 0.01) { // Log ~1% of the time to avoid spam
+            console.log('[Voice Detection] Audio level:', level.toFixed(3), 'Current orbMode:', currentOrbMode, 'Threshold:', VOICE_THRESHOLD)
+          }
+
+          if (level > VOICE_THRESHOLD) {
+            // User is speaking - always switch to user mode
+            if (currentOrbMode !== 'user') {
+              console.log('[Voice Detection] User speaking detected! Level:', level.toFixed(3), 'Switching from', currentOrbMode, 'to user')
+              updateOrbMode('user')
+            }
+          } else if (currentOrbMode === 'user') {
+            // User stopped speaking - return to idle (unless AI is playing audio)
+            if (!isAudioPlayingRef.current) {
+              console.log('[Voice Detection] User stopped speaking, level:', level.toFixed(3))
+              updateOrbMode('idle')
+            }
           }
 
           // Convert to 16-bit PCM
@@ -535,15 +562,18 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       nextPlayTimeRef.current += audioBuffer.duration
 
 
-      // Update orb mode to AI speaking
+      // Update orb mode to AI speaking and mark audio as playing
+      isAudioPlayingRef.current = true
       setOrbMode('ai')
 
       // Reset to idle after audio finishes
       setTimeout(() => {
+        isAudioPlayingRef.current = false
         setOrbMode('idle')
       }, audioBuffer.duration * 1000)
     } catch (error) {
       console.error('[Audio] Playback error:', error)
+      isAudioPlayingRef.current = false
     }
   }
 
