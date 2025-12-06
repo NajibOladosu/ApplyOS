@@ -192,38 +192,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             isAITurnCompleteRef.current = true
           },
           onToolCall: (toolCall) => {
-
             // Check if AI called signal_interview_complete
             if (toolCall.functionCalls) {
               for (const fc of toolCall.functionCalls) {
                 if (fc.name === 'signal_interview_complete') {
-
                   const { reason, questions_asked } = fc.args
-
-                  // Validate that AI actually asked enough questions
-                  const userAnswers = transcript.filter(t => t.speaker === 'user').length
-
-                  if (userAnswers < totalQuestions) {
-                    // Still allow auto-end if close enough (within 1 question)
-                    if (userAnswers < totalQuestions - 1) {
-                      return
-                    }
-                  }
-
                   setAiSignaledCompletion(true)
-
-                  // FLUSH PENDING ANSWER: Check if there's a pending user answer in the accumulator
-                  // This happens if the user answered the last question and the AI immediately called the tool
-                  // without a distinct "new turn" event in between.
-                  if (userAnswerAccumulator.current.trim()) {
-                    saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
-                    userAnswerAccumulator.current = ''
-
-                    // Increment index just to be safe/consistent, though interview is ending
-                    const nextIndex = currentQuestionIndexRef.current + 1
-                    setCurrentQuestionIndex(nextIndex)
-                    currentQuestionIndexRef.current = nextIndex
-                  }
 
                   // Calculate remaining audio duration
                   let delay = 5000 // Default fallback
@@ -237,6 +211,21 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                     endInterview()
                   }, delay)
                 }
+                else if (fc.name === 'save_answer_and_feedback') {
+                  // AI is saving the answer + feedback
+                  const { question_index, user_response, feedback, score, tone_analysis } = fc.args
+                  console.log(`[Interview] AI saving answer for Q${question_index}`)
+
+                  // Call API to save
+                  // Note: We don't await this to block the UI, but the AI is instructed to wait
+                  saveRichAnswer({
+                    questionIndex: question_index,
+                    userAnswer: user_response,
+                    feedback,
+                    score,
+                    toneAnalysis: tone_analysis
+                  })
+                }
               }
             }
           },
@@ -245,59 +234,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
             if (isAITurnCompleteRef.current) {
               // New turn starting
-              aiTurnCounterRef.current += 1
-
-              // Check if we have a user answer to save
-              // We skip the first turn (transition from Intro -> Question 1)
-              // because the user's input was just "Yes, I'm ready"
-              if (userAnswerAccumulator.current.trim()) {
-                const answerLength = userAnswerAccumulator.current.trim().length
-                const timeSinceLastSave = Date.now() - lastSaveTimeRef.current
-                const minLength = 5 // Lowered to catch short valid answers like "I did."
-                const minTime = 5000 // Minimum milliseconds between saves
-
-                // Turn 1 = Intro -> Q1 transition (Accumulator has "I'm ready")
-                // Turn 2 = Q1 -> Q2 transition (Accumulator has Answer 1)
-                if (aiTurnCounterRef.current > 1) {
-                  // SMART FILTER: For Turn 2 (Answer 1), check if it's just a "Ready" confirmation
-                  const isIntroResponse = aiTurnCounterRef.current === 2 && (
-                    userAnswerAccumulator.current.toLowerCase().includes('ready') ||
-                    userAnswerAccumulator.current.toLowerCase().includes('yes') ||
-                    answerLength < 15 // "Yes I am ready" is 14 chars. "I worked at X" is 13. Tricky.
-                    // Let's rely on semantic keywords + length for the intro response.
-                    // If it's short AND has "ready"/"yes", it's likely the intro response.
-                  )
-
-                  // If it's Turn 2 and looks like an intro response, SKIP it.
-                  // Otherwise (Turn > 2 OR Turn 2 but looks like a real answer), check constraints.
-                  if (isIntroResponse) {
-                  } else if (answerLength >= minLength && timeSinceLastSave >= minTime) {
-                    // Check bounds
-                    if (currentQuestionIndexRef.current < questionsRef.current.length) {
-
-                      saveUserAnswer(userAnswerAccumulator.current, currentQuestionIndexRef.current)
-                      lastSaveTimeRef.current = Date.now()
-
-                      // Increment index
-                      const nextIndex = currentQuestionIndexRef.current + 1
-                      setCurrentQuestionIndex(nextIndex)
-                      currentQuestionIndexRef.current = nextIndex
-                    } else {
-                    }
-                  } else {
-                    // Don't clear accumulator if it was just a short interruption, keep accumulating?
-                    // Actually, if AI is speaking, it's a new turn. If we don't save now, we lose it?
-                    // No, we should probably append it to the next one OR just save it if it's the *only* thing.
-                    // For now, let's assume if it's too short it's just noise/acknowledgement ("Okay", "Right").
-                    // We CLEAR it to prevent it from being prepended to the next answer.
-                  }
-                } else {
-                }
-
-                // Always clear accumulator after processing
-                userAnswerAccumulator.current = ''
-              }
-
               // Replace text
               setCurrentAITranscription(text)
               isAITurnCompleteRef.current = false
@@ -309,51 +245,14 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             setOrbMode('ai')
 
             // Add to transcript using transcription
-            const turn: ConversationTurn = {
-              id: `${Date.now()}-ai`,
-              session_id: sessionId,
-              user_id: '',
-              turn_number: turnCount + 1,
-              speaker: 'ai',
-              content: text,
-              audio_url: null,
-              audio_duration_seconds: null,
-              timestamp: new Date().toISOString(),
-              metadata: null,
-              created_at: new Date().toISOString(),
-            }
-            setTranscript((prev) => [...prev, turn])
-
-            // Buffer turn
-            addTurn('ai', text)
+            // We use a simplified transcript for UI now, focusing on AI
+            // The "full" transcript is less critical since we save rich answers via tool
           },
           onInputTranscription: (text) => {
-            // User speech transcription - save as answer
-            // We don't display user transcription anymore, but we still track it for logic if needed
-            // setCurrentUserTranscription(text) 
+            // User speech transcription
+            // We NO LONGER accumulate or save this manually
+            // The AI hears it and aggregates it for the tool call
             setOrbMode('user')
-
-            // Accumulate user answer
-            userAnswerAccumulator.current += (userAnswerAccumulator.current ? ' ' : '') + text
-
-            // Add to transcript using transcription
-            const turn: ConversationTurn = {
-              id: `${Date.now()}-user`,
-              session_id: sessionId,
-              user_id: '',
-              turn_number: turnCount + 2,
-              speaker: 'user',
-              content: text,
-              audio_url: null,
-              audio_duration_seconds: null,
-              timestamp: new Date().toISOString(),
-              metadata: null,
-              created_at: new Date().toISOString(),
-            }
-            setTranscript((prev) => [...prev, turn])
-
-            // Buffer turn
-            addTurn('user', text)
           },
         }
       )
@@ -596,38 +495,38 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   }
 
   /**
-   * Save user answer to database
+   * Save rich answer from AI tool call
    */
-  const saveUserAnswer = async (answerText: string, questionIndex: number) => {
-    // Use ref to avoid stale closure
-    const currentQuestions = questionsRef.current
-
-    if (!currentQuestions[questionIndex]) {
-      console.warn('[Interview] No question found for index:', questionIndex)
-      return
-    }
-
-    const questionId = currentQuestions[questionIndex].id
-    console.log('[Interview] Submitting answer for question:', questionId)
-
+  const saveRichAnswer = async (data: {
+    questionIndex: number,
+    userAnswer: string,
+    feedback: string,
+    score: number,
+    toneAnalysis: string
+  }) => {
     try {
-      await fetch('/api/interview/submit-answer', {
+      console.log(`[Interview] Saving rich answer for question ${data.questionIndex}...`)
+      const response = await fetch('/api/interview/save-answer-v2', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           sessionId,
-          questionId,
-          answerText,
-          answerType: 'text', // We're submitting the transcript as text
+          ...data
         }),
       })
+
+      if (!response.ok) {
+        throw new Error('Failed to save rich answer')
+      }
+
+      console.log('[Interview] Rich answer saved successfully')
     } catch (error) {
-      console.error('[Interview] Failed to save answer:', error)
+      console.error('[Interview] Error saving rich answer:', error)
     }
   }
 
   /**
-   * Flush turns
+   * Flush turns (Optional now, mainly for transcript history if we want to save full chat log)
    */
   const flushTurns = async (turns: BufferedTurn[]) => {
     if (turns.length === 0) return
