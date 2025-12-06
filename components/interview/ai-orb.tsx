@@ -25,9 +25,9 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   }
 
   const amplitudes = {
-    idle: 0.15,
-    user: 0.05,
-    ai: 0.45,
+    idle: 0.075,
+    user: 0.2,
+    ai: 0.3,
   }
 
   const glows = {
@@ -39,7 +39,7 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   const scales = {
     idle: 1,
     user: 1,
-    ai: 1.1,
+    ai: 1,
   }
 
   useMemo(() => {
@@ -53,8 +53,8 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
     const mesh = meshRef.current
     const geometry = geometryRef.current
 
-    const targetScale = scales[mode]
-    mesh.scale.set(targetScale, targetScale, targetScale)
+    // Keep scale constant at 1.0 - wobble comes from vertex displacement
+    mesh.scale.set(1, 1, 1)
 
     const positionAttribute = geometry.attributes.position
     const vertex = new THREE.Vector3()
@@ -80,41 +80,25 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
     geometry.computeVertexNormals()
   })
 
+  // Get current color based on mode
+  const currentColor = useMemo(() => {
+    const colorMap = {
+      idle: '#00ff88',
+      user: '#ff8800',
+      ai: '#00ff88',
+    }
+    console.log('[AIOrb] Rendering with color:', colorMap[mode], 'for mode:', mode)
+    return colorMap[mode]
+  }, [mode])
+
   return (
     <group>
       <mesh ref={meshRef} geometry={geometryRef.current || undefined}>
-        <shaderMaterial
+        <meshBasicMaterial
           wireframe
-          transparent
-          vertexShader={`
-            varying vec3 vPosition;
-            varying vec3 vNormal;
-            
-            void main() {
-              vPosition = position;
-              vNormal = normalize(normalMatrix * normal);
-              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-            }
-          `}
-          fragmentShader={`
-            uniform vec3 color;
-            varying vec3 vPosition;
-            varying vec3 vNormal;
-            
-            void main() {
-              // Create varying opacity based on position
-              float opacity = 0.3 + abs(sin(vPosition.x * 2.0 + vPosition.y * 2.0)) * 0.7;
-              
-              // Add some variation based on normal direction
-              float normalFactor = abs(dot(vNormal, vec3(0.0, 1.0, 0.0)));
-              opacity = mix(opacity, 1.0, normalFactor * 0.3);
-              
-              gl_FragColor = vec4(color, opacity);
-            }
-          `}
-          uniforms={{
-            color: { value: new THREE.Color(colors[mode]) }
-          }}
+          color={currentColor}
+          opacity={1.0}
+          transparent={false}
         />
       </mesh>
     </group>
