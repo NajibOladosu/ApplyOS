@@ -113,26 +113,60 @@ export async function POST(request: NextRequest) {
     })
 
     // Define interview control tools
-    const tools = [{
-      functionDeclarations: [{
-        name: 'signal_interview_complete',
-        description: 'Call this function ONLY AFTER you have spoken your closing remarks to the candidate. This signals that the interview is complete. Do not call this without saying goodbye first.',
-        parameters: {
-          type: 'object',
-          properties: {
-            reason: {
-              type: 'string',
-              description: 'Brief explanation of why the interview is complete (e.g., "All questions answered", "Time limit reached")',
-            },
-            questions_asked: {
-              type: 'number',
-              description: 'Number of main questions you asked during the interview',
+    const tools = [
+      {
+        functionDeclarations: [
+          {
+            name: 'signal_interview_complete',
+            description: 'Call this function ONLY AFTER you have spoken your closing remarks to the candidate. This signals that the interview is complete. Do not call this without saying goodbye first.',
+            parameters: {
+              type: 'object',
+              properties: {
+                reason: {
+                  type: 'string',
+                  description: 'Brief explanation of why the interview is complete (e.g., "All questions answered", "Time limit reached")',
+                },
+                questions_asked: {
+                  type: 'number',
+                  description: 'Number of main questions you asked during the interview',
+                },
+              },
+              required: ['reason', 'questions_asked'],
             },
           },
-          required: ['reason', 'questions_asked'],
-        },
-      }],
-    }]
+          {
+            name: 'save_answer_and_feedback',
+            description: 'Call this function immediately after the user answers a question. This saves their answer and your feedback to the database.',
+            parameters: {
+              type: 'object',
+              properties: {
+                question_index: {
+                  type: 'number',
+                  description: 'The index of the question you just asked (1-based index). Question 1 = 1.',
+                },
+                user_response: {
+                  type: 'string',
+                  description: 'The verbatim transcription of the user\'s full answer to the question.',
+                },
+                feedback: {
+                  type: 'string',
+                  description: 'Concise, constructive feedback on the user\'s answer.',
+                },
+                score: {
+                  type: 'number',
+                  description: 'Score from 1-10 evaluating the quality of the answer.',
+                },
+                tone_analysis: {
+                  type: 'string',
+                  description: 'Brief analysis of the user\'s tone and confidence.',
+                },
+              },
+              required: ['question_index', 'user_response', 'feedback', 'score', 'tone_analysis'],
+            },
+          },
+        ],
+      },
+    ]
 
     // Model configuration
     const model = 'models/gemini-2.5-flash-native-audio-preview-09-2025'
