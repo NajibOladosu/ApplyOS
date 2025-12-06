@@ -181,11 +181,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             playAudioResponse(audioData)
           },
           onTurnComplete: () => {
-            console.log('[Interview] Turn complete')
-            // Only reset to idle if audio is not currently playing
-            if (!isAudioPlayingRef.current) {
-              setOrbMode('idle')
-            }
+            console.log('[Interview] Turn complete - resetting to idle')
+            // Turn is complete, reset audio playing state and orb mode
+            isAudioPlayingRef.current = false
+            updateOrbMode('idle')
             setCurrentAIMessage('')
             // Don't clear transcription here, keep it visible until next turn
             // setCurrentAITranscription('') 
@@ -557,20 +556,18 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       source.buffer = audioBuffer
       source.connect(playbackContext.destination)
 
-      source.start(nextPlayTimeRef.current)
+      // Calculate when this audio chunk will actually start playing
+      const delayUntilStart = Math.max(0, (nextPlayTimeRef.current - currentTime) * 1000)
 
-      nextPlayTimeRef.current += audioBuffer.duration
-
-
-      // Update orb mode to AI speaking and mark audio as playing
-      isAudioPlayingRef.current = true
-      setOrbMode('ai')
-
-      // Reset to idle after audio finishes
+      // Set orb to AI mode when audio actually starts
       setTimeout(() => {
-        isAudioPlayingRef.current = false
-        setOrbMode('idle')
-      }, audioBuffer.duration * 1000)
+        isAudioPlayingRef.current = true
+        updateOrbMode('ai')
+        console.log('[Audio] AI audio started playing at scheduled time')
+      }, delayUntilStart)
+
+      source.start(nextPlayTimeRef.current)
+      nextPlayTimeRef.current += audioBuffer.duration
     } catch (error) {
       console.error('[Audio] Playback error:', error)
       isAudioPlayingRef.current = false
