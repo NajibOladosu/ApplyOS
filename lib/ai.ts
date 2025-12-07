@@ -1195,7 +1195,21 @@ Category: ${questionCategory}
 Candidate's Answer (${answerType === 'voice' ? 'transcribed from voice' : 'typed'}):
 ${answer}
 
-${idealOutline ? `Ideal Answer Guidance:\n${JSON.stringify(idealOutline, null, 2)}\n\n` : ''}${evaluationCriteria ? `Evaluation Criteria:\n${JSON.stringify(evaluationCriteria, null, 2)}\n\n` : ''}Evaluate this answer across 5 dimensions (each scored 0.00 to 10.00):
+${idealOutline ? `Ideal Answer Guidance:\n${JSON.stringify(idealOutline, null, 2)}\n\n` : ''}${evaluationCriteria ? `Evaluation Criteria:\n${JSON.stringify(evaluationCriteria, null, 2)}\n\n` : ''}CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE:
+1. You MUST provide ALL 5 individual scores (clarity, structure, relevance, depth, confidence)
+2. Each score MUST be a decimal number between 0.00 and 10.00 (e.g., 7.5, 8.2, 9.1)
+3. You MUST provide detailed feedback with:
+   - overall: 2-3 sentences summarizing the answer quality
+   - strengths: At least 2-3 specific positive aspects from the actual answer
+   - weaknesses: At least 2-3 specific areas for improvement
+   - suggestions: At least 2-3 actionable recommendations
+   - tone_analysis: 1-2 sentences analyzing communication style and delivery
+
+4. Be SPECIFIC - reference actual content from the candidate's answer
+5. Empty arrays are NOT acceptable - always provide at least 2 items per array
+6. All feedback must be constructive and helpful
+
+Evaluate this answer across 5 dimensions (each scored 0.00 to 10.00):
 
 1. **Clarity** (0-10): How clear and understandable is the answer?
 2. **Structure** (0-10): How well-organized is the answer? ${isBehavioral ? '(STAR method for behavioral)' : '(Logical flow for technical)'}
@@ -1207,29 +1221,33 @@ Return ONLY valid JSON (no markdown, no code fences):
 
 {
   "score": <overall score 0.00-10.00 (average of the 5 dimensions)>,
-  "clarity_score": <0.00-10.00>,
-  "structure_score": <0.00-10.00>,
-  "relevance_score": <0.00-10.00>,
-  "depth_score": <0.00-10.00>,
-  "confidence_score": <0.00-10.00>,
+  "clarity_score": <decimal 0.00-10.00>,
+  "structure_score": <decimal 0.00-10.00>,
+  "relevance_score": <decimal 0.00-10.00>,
+  "depth_score": <decimal 0.00-10.00>,
+  "confidence_score": <decimal 0.00-10.00>,
   "feedback": {
-    "overall": "1-2 sentence summary of the answer quality",
+    "overall": "2-3 sentence summary of the answer quality",
     "strengths": [
-      "Specific strength 1 from the answer",
-      "Specific strength 2"
+      "Specific strength 1 with reference to answer content",
+      "Specific strength 2",
+      "Specific strength 3"
     ],
     "weaknesses": [
       "Specific area for improvement 1",
-      "Specific area for improvement 2"
+      "Specific area for improvement 2",
+      "Specific area for improvement 3"
     ],
     "suggestions": [
       "Actionable suggestion 1 to improve the answer",
-      "Actionable suggestion 2"
-    ]
+      "Actionable suggestion 2",
+      "Actionable suggestion 3"
+    ],
+    "tone_analysis": "1-2 sentences analyzing communication style and delivery"
   }
 }
 
-Be honest but constructive. Scores should reflect genuine performance.`
+MANDATORY: All arrays must have at least 2 items. Be specific and reference actual answer content. Scores must be decimals.`
 
   try {
     const text = await callGeminiWithFallback(prompt, 'COMPLEX')
@@ -1248,18 +1266,38 @@ Be honest but constructive. Scores should reflect genuine performance.`
 
     const parsed = JSON.parse(jsonMatch[0])
 
+    // Validation helper to ensure arrays have minimum items
+    const ensureArray = (arr: any, minLength: number = 2, fieldName: string = 'field'): string[] => {
+      if (!Array.isArray(arr) || arr.length < minLength) {
+        console.warn(`[AI Evaluation] Incomplete ${fieldName} array, expected at least ${minLength} items, got ${arr?.length || 0}`)
+        return arr && Array.isArray(arr) ? arr : []
+      }
+      return arr.map(item => String(item))
+    }
+
+    // Ensure all scores are valid numbers
+    const ensureScore = (score: any, fieldName: string = 'score'): number => {
+      const num = Number(score)
+      if (isNaN(num) || num < 0 || num > 10) {
+        console.warn(`[AI Evaluation] Invalid ${fieldName}: ${score}, defaulting to 0`)
+        return 0
+      }
+      return num
+    }
+
     return {
-      score: Number(parsed.score) || 0,
-      clarity_score: Number(parsed.clarity_score) || 0,
-      structure_score: Number(parsed.structure_score) || 0,
-      relevance_score: Number(parsed.relevance_score) || 0,
-      depth_score: Number(parsed.depth_score) || 0,
-      confidence_score: Number(parsed.confidence_score) || 0,
+      score: ensureScore(parsed.score, 'overall score'),
+      clarity_score: ensureScore(parsed.clarity_score, 'clarity_score'),
+      structure_score: ensureScore(parsed.structure_score, 'structure_score'),
+      relevance_score: ensureScore(parsed.relevance_score, 'relevance_score'),
+      depth_score: ensureScore(parsed.depth_score, 'depth_score'),
+      confidence_score: ensureScore(parsed.confidence_score, 'confidence_score'),
       feedback: {
-        overall: String(parsed.feedback?.overall || ''),
-        strengths: Array.isArray(parsed.feedback?.strengths) ? parsed.feedback.strengths : [],
-        weaknesses: Array.isArray(parsed.feedback?.weaknesses) ? parsed.feedback.weaknesses : [],
-        suggestions: Array.isArray(parsed.feedback?.suggestions) ? parsed.feedback.suggestions : [],
+        overall: String(parsed.feedback?.overall || 'Feedback generated'),
+        strengths: ensureArray(parsed.feedback?.strengths, 2, 'strengths'),
+        weaknesses: ensureArray(parsed.feedback?.weaknesses, 2, 'weaknesses'),
+        suggestions: ensureArray(parsed.feedback?.suggestions, 2, 'suggestions'),
+        tone_analysis: String(parsed.feedback?.tone_analysis || ''),
       },
     }
   } catch (error) {
