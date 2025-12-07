@@ -690,11 +690,49 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       </div>
                     </div>
 
-                    <div>
-                      <p className="text-sm text-muted-foreground">{currentFeedback.feedback.overall}</p>
-                    </div>
+                    {/* New Format: Simple text feedback */}
+                    {currentFeedback.feedback.text && (
+                      <div className="space-y-4">
+                        <div>
+                          <h4 className="text-sm font-semibold mb-2">Feedback</h4>
+                          <p className="text-sm text-muted-foreground">{currentFeedback.feedback.text}</p>
+                        </div>
+                        {currentFeedback.feedback.tone_analysis && (
+                          <div>
+                            <h4 className="text-sm font-semibold mb-2">Tone Analysis</h4>
+                            <p className="text-sm text-muted-foreground italic">"{currentFeedback.feedback.tone_analysis}"</p>
+                          </div>
+                        )}
+                        {currentFeedback.feedback.rubric && (
+                          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                            {Object.entries(currentFeedback.feedback.rubric).map(([key, score]) => (
+                              <div key={key} className="flex flex-col">
+                                <div className="flex justify-between text-xs mb-1">
+                                  <span className="capitalize text-muted-foreground">{key}</span>
+                                  <span className="font-semibold">{Number(score)}/10</span>
+                                </div>
+                                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                                  <div
+                                    className="h-full bg-primary/70 rounded-full"
+                                    style={{ width: `${(Number(score) / 10) * 100}%` }}
+                                  />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
 
-                    {currentFeedback.feedback.strengths.length > 0 && (
+                    {/* Legacy Format: Overall feedback */}
+                    {currentFeedback.feedback.overall && (
+                      <div>
+                        <p className="text-sm text-muted-foreground">{currentFeedback.feedback.overall}</p>
+                      </div>
+                    )}
+
+                    {/* Legacy Format: Strengths */}
+                    {currentFeedback.feedback.strengths && currentFeedback.feedback.strengths.length > 0 && (
                       <div>
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
                           <TrendingUp className="h-4 w-4 text-green-500" />
@@ -711,7 +749,8 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       </div>
                     )}
 
-                    {currentFeedback.feedback.weaknesses.length > 0 && (
+                    {/* Legacy Format: Weaknesses */}
+                    {currentFeedback.feedback.weaknesses && currentFeedback.feedback.weaknesses.length > 0 && (
                       <div>
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
                           <TrendingDown className="h-4 w-4 text-yellow-500" />
@@ -728,7 +767,8 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       </div>
                     )}
 
-                    {currentFeedback.feedback.suggestions.length > 0 && (
+                    {/* Legacy Format: Suggestions */}
+                    {currentFeedback.feedback.suggestions && currentFeedback.feedback.suggestions.length > 0 && (
                       <div>
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
                           <Lightbulb className="h-4 w-4 text-blue-500" />
