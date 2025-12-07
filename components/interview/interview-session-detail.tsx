@@ -690,56 +690,25 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       </div>
                     </div>
 
-                    {/* New Format: Simple text feedback */}
-                    {currentFeedback.feedback.text && (
-                      <div className="space-y-4">
-                        <div>
-                          <h4 className="text-sm font-semibold mb-2">Feedback</h4>
-                          <p className="text-sm text-muted-foreground">{currentFeedback.feedback.text}</p>
-                        </div>
-                        {currentFeedback.feedback.tone_analysis && (
-                          <div>
-                            <h4 className="text-sm font-semibold mb-2">Tone Analysis</h4>
-                            <p className="text-sm text-muted-foreground italic">"{currentFeedback.feedback.tone_analysis}"</p>
-                          </div>
-                        )}
-                        {currentFeedback.feedback.rubric && (
-                          <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
-                            {Object.entries(currentFeedback.feedback.rubric).map(([key, score]) => (
-                              <div key={key} className="flex flex-col">
-                                <div className="flex justify-between text-xs mb-1">
-                                  <span className="capitalize text-muted-foreground">{key}</span>
-                                  <span className="font-semibold">{Number(score)}/10</span>
-                                </div>
-                                <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
-                                  <div
-                                    className="h-full bg-primary/70 rounded-full"
-                                    style={{ width: `${(Number(score) / 10) * 100}%` }}
-                                  />
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                    {/* General Feedback - Display first */}
+                    {(currentFeedback.feedback.text || currentFeedback.feedback.overall) && (
+                      <div className="pb-4 border-b">
+                        <h4 className="text-sm font-semibold mb-2">General Feedback</h4>
+                        <p className="text-sm text-muted-foreground">
+                          {currentFeedback.feedback.text || currentFeedback.feedback.overall}
+                        </p>
                       </div>
                     )}
 
-                    {/* Legacy Format: Overall feedback */}
-                    {currentFeedback.feedback.overall && (
-                      <div>
-                        <p className="text-sm text-muted-foreground">{currentFeedback.feedback.overall}</p>
-                      </div>
-                    )}
-
-                    {/* Legacy Format: Strengths */}
+                    {/* Strengths */}
                     {currentFeedback.feedback.strengths && currentFeedback.feedback.strengths.length > 0 && (
-                      <div>
+                      <div className="pb-4 border-b">
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
                           <TrendingUp className="h-4 w-4 text-green-500" />
                           Strengths
                         </h4>
                         <ul className="space-y-1">
-                          {currentFeedback.feedback.strengths.map((strength, i) => (
+                          {currentFeedback.feedback.strengths.map((strength: string, i: number) => (
                             <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
                               <CheckCircle2 className="h-4 w-4 text-green-500 mt-0.5 flex-shrink-0" />
                               <span>{strength}</span>
@@ -749,17 +718,25 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       </div>
                     )}
 
-                    {/* Legacy Format: Weaknesses */}
+                    {/* Tone Analysis */}
+                    {currentFeedback.feedback.tone_analysis && (
+                      <div className="pb-4 border-b">
+                        <h4 className="text-sm font-semibold mb-2">Tone Analysis</h4>
+                        <p className="text-sm text-muted-foreground italic">"{currentFeedback.feedback.tone_analysis}"</p>
+                      </div>
+                    )}
+
+                    {/* Areas for Improvement */}
                     {currentFeedback.feedback.weaknesses && currentFeedback.feedback.weaknesses.length > 0 && (
-                      <div>
+                      <div className="pb-4 border-b">
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
                           <TrendingDown className="h-4 w-4 text-yellow-500" />
                           Areas for Improvement
                         </h4>
                         <ul className="space-y-1">
-                          {currentFeedback.feedback.weaknesses.map((weakness, i) => (
+                          {currentFeedback.feedback.weaknesses.map((weakness: string, i: number) => (
                             <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <XCircle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
+                              <AlertCircle className="h-4 w-4 text-yellow-500 mt-0.5 flex-shrink-0" />
                               <span>{weakness}</span>
                             </li>
                           ))}
@@ -767,7 +744,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                       </div>
                     )}
 
-                    {/* Legacy Format: Suggestions */}
+                    {/* Suggestions */}
                     {currentFeedback.feedback.suggestions && currentFeedback.feedback.suggestions.length > 0 && (
                       <div>
                         <h4 className="text-sm font-semibold flex items-center gap-2 mb-2">
@@ -775,13 +752,33 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                           Suggestions
                         </h4>
                         <ul className="space-y-1">
-                          {currentFeedback.feedback.suggestions.map((suggestion, i) => (
+                          {currentFeedback.feedback.suggestions.map((suggestion: string, i: number) => (
                             <li key={i} className="text-sm text-muted-foreground flex items-start gap-2">
-                              <span className="text-blue-500 mt-0.5 flex-shrink-0">•</span>
+                              <ArrowRight className="h-4 w-4 text-blue-500 mt-0.5 flex-shrink-0" />
                               <span>{suggestion}</span>
                             </li>
                           ))}
                         </ul>
+                      </div>
+                    )}
+
+                    {/* Rubric scores (if available in new format) */}
+                    {currentFeedback.feedback.rubric && (
+                      <div className="grid grid-cols-2 gap-4 mt-4 pt-4 border-t">
+                        {Object.entries(currentFeedback.feedback.rubric).map(([key, score]) => (
+                          <div key={key} className="flex flex-col">
+                            <div className="flex justify-between text-xs mb-1">
+                              <span className="capitalize text-muted-foreground">{key}</span>
+                              <span className="font-semibold">{Number(score)}/10</span>
+                            </div>
+                            <div className="h-1.5 w-full bg-secondary rounded-full overflow-hidden">
+                              <div
+                                className="h-full bg-primary/70 rounded-full"
+                                style={{ width: `${(Number(score) / 10) * 100}%` }}
+                              />
+                            </div>
+                          </div>
+                        ))}
                       </div>
                     )}
 
