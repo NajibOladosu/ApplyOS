@@ -159,6 +159,7 @@ export interface InterviewFeedback {
   strengths: string[]
   weaknesses: string[]
   suggestions: string[]
+  tone_analysis?: string  // Analysis of communication style and delivery
 }
 
 export interface ScoreBreakdown {
