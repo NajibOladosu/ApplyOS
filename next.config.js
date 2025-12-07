@@ -1,13 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
   typescript: {
     ignoreBuildErrors: true,
   },
   images: {
-    domains: ['hvmaerptxgeldviarcuj.supabase.co'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'hvmaerptxgeldviarcuj.supabase.co',
+      },
+    ],
   },
 
   async headers() {
