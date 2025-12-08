@@ -111,7 +111,7 @@ export async function POST(request: NextRequest) {
       const userTurn = userTurns[i]
 
       try {
-        // Generate scoring prompt
+        // Generate scoring prompt (matches enhanced evaluateInterviewAnswer format)
         const prompt = `You are an expert interview evaluator. Score the following answer to an interview question.
 
 Question:
@@ -120,27 +120,62 @@ ${question.question_text}
 Category: ${question.question_category}
 Difficulty: ${question.difficulty}
 
-${question.ideal_answer_outline ? `Ideal Answer Guidance:\n${JSON.stringify(question.ideal_answer_outline, null, 2)}\n` : ''}
-${question.evaluation_criteria ? `Evaluation Criteria:\n${JSON.stringify(question.evaluation_criteria, null, 2)}\n` : ''}
-
-Candidate's Answer:
+${question.ideal_answer_outline ? `Ideal Answer Guidance:\n${JSON.stringify(question.ideal_answer_outline, null, 2)}\n` : ''}${question.evaluation_criteria ? `Evaluation Criteria:\n${JSON.stringify(question.evaluation_criteria, null, 2)}\n` : ''}
+Candidate's Answer (transcribed from voice):
 ${userTurn.content}
 
-Provide a JSON response with the following structure:
+CRITICAL REQUIREMENTS - YOU MUST FOLLOW THESE:
+1. You MUST provide ALL 5 individual scores (clarity, structure, relevance, depth, confidence)
+2. Each score MUST be a decimal number between 0.00 and 10.00 (e.g., 7.5, 8.2, 9.1)
+3. You MUST provide detailed feedback with:
+   - overall: 2-3 sentences summarizing the answer quality
+   - strengths: At least 2-3 specific positive aspects from the actual answer
+   - weaknesses: At least 2-3 specific areas for improvement
+   - suggestions: At least 2-3 actionable recommendations
+   - tone_analysis: 1-2 sentences analyzing communication style and delivery
+
+4. Be SPECIFIC - reference actual content from the candidate's answer
+5. Empty arrays are NOT acceptable - always provide at least 2 items per array
+6. All feedback must be constructive and helpful
+
+Evaluate across 5 dimensions (each scored 0.00 to 10.00):
+1. **Clarity** (0-10): How clear and understandable is the answer?
+2. **Structure** (0-10): How well-organized is the answer?
+3. **Relevance** (0-10): How directly does it address the question?
+4. **Depth** (0-10): How detailed and thorough is the answer?
+5. **Confidence** (0-10): How confident did they sound in their voice delivery?
+
+Return ONLY valid JSON (no markdown, no code fences):
+
 {
-  "overall_score": <number 0-10>,
-  "clarity_score": <number 0-10>,
-  "structure_score": <number 0-10>,
-  "relevance_score": <number 0-10>,
-  "depth_score": <number 0-10>,
+  "overall_score": <decimal 0.00-10.00 (average of the 5 dimensions)>,
+  "clarity_score": <decimal 0.00-10.00>,
+  "structure_score": <decimal 0.00-10.00>,
+  "relevance_score": <decimal 0.00-10.00>,
+  "depth_score": <decimal 0.00-10.00>,
+  "confidence_score": <decimal 0.00-10.00>,
   "feedback": {
-    "strengths": ["strength 1", "strength 2"],
-    "areas_for_improvement": ["area 1", "area 2"],
-    "suggestions": ["suggestion 1", "suggestion 2"]
+    "overall": "2-3 sentence summary of the answer quality",
+    "strengths": [
+      "Specific strength 1 with reference to answer content",
+      "Specific strength 2",
+      "Specific strength 3"
+    ],
+    "weaknesses": [
+      "Specific area for improvement 1",
+      "Specific area for improvement 2",
+      "Specific area for improvement 3"
+    ],
+    "suggestions": [
+      "Actionable suggestion 1 to improve the answer",
+      "Actionable suggestion 2",
+      "Actionable suggestion 3"
+    ],
+    "tone_analysis": "1-2 sentences analyzing communication style and delivery"
   }
 }
 
-Be constructive and specific in your feedback. Focus on what the candidate did well and how they can improve.`
+MANDATORY: All arrays must have at least 2 items. Be specific and reference actual answer content. Scores must be decimals.`
 
         const result = await model.generateContent(prompt)
         const responseText = result.response.text()
@@ -167,6 +202,7 @@ Be constructive and specific in your feedback. Focus on what the candidate did w
             structure_score: evaluation.structure_score,
             relevance_score: evaluation.relevance_score,
             depth_score: evaluation.depth_score,
+            confidence_score: evaluation.confidence_score,  // Now included
             answered_at: userTurn.timestamp,
           })
           .select()

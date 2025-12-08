@@ -212,17 +212,38 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                   }, delay)
                 }
                 else if (fc.name === 'save_answer_and_feedback') {
-                  // AI is saving the answer + feedback
-                  const { question_index, user_response, feedback, score, tone_analysis } = fc.args
-                  console.log(`[Interview] AI saving answer for Q${question_index}`)
+                  // AI is saving the answer + detailed feedback
+                  const {
+                    question_index,
+                    user_response,
+                    overall_score,
+                    clarity_score,
+                    structure_score,
+                    relevance_score,
+                    depth_score,
+                    confidence_score,
+                    overall_feedback,
+                    strengths,
+                    weaknesses,
+                    suggestions,
+                    tone_analysis
+                  } = fc.args
+                  console.log(`[Interview] AI saving answer for Q${question_index} with score ${overall_score}`)
 
-                  // Call API to save
-                  // Note: We don't await this to block the UI, but the AI is instructed to wait
+                  // Call API to save with all fields
                   saveRichAnswer({
                     questionIndex: question_index,
                     userAnswer: user_response,
-                    feedback,
-                    score,
+                    overallScore: overall_score,
+                    clarityScore: clarity_score,
+                    structureScore: structure_score,
+                    relevanceScore: relevance_score,
+                    depthScore: depth_score,
+                    confidenceScore: confidence_score,
+                    overallFeedback: overall_feedback,
+                    strengths,
+                    weaknesses,
+                    suggestions,
                     toneAnalysis: tone_analysis
                   })
                 }
@@ -498,10 +519,18 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
    * Save rich answer from AI tool call
    */
   const saveRichAnswer = async (data: {
-    questionIndex: number,
-    userAnswer: string,
-    feedback: string,
-    score: number,
+    questionIndex: number
+    userAnswer: string
+    overallScore: number
+    clarityScore: number
+    structureScore: number
+    relevanceScore: number
+    depthScore: number
+    confidenceScore: number
+    overallFeedback: string
+    strengths: string[]
+    weaknesses: string[]
+    suggestions: string[]
     toneAnalysis: string
   }) => {
     try {
