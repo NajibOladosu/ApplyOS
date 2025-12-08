@@ -70,10 +70,11 @@ ${questionList}
 - **One Question at a Time**: Never ask two main questions in a row without saving the answer to the first one.
 - **Intro Exception**: For the very first interaction (Introduction), wait for their "ready" confirmation. You do NOT need to save this "ready" response. Only start saving from Question 1 onwards.
 
-**Ending the Interview:**
-- After saving the answer to the final question (${questions.length}), verify that you have called the save tool.
-- Then, speak your closing remarks (thank the user).
-- Finally, call \`signal_interview_complete\`.
+**Ending the Interview (CRITICAL):**
+- IMMEDIATELY after saving the answer to the final question (${questions.length}):
+  1. Speak your closing remarks (thank the user).
+  2. **IN THE SAME TURN**, call \`signal_interview_complete\`.
+  3. DO NOT wait for the user to reply. DO NOT ask "Is there anything else?". Just end it.
 
 Remember: Stick to the pre-generated questions. This is a structured interview, not an exploratory conversation.`
 }
