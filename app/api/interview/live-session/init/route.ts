@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
           },
           {
             name: 'save_answer_and_feedback',
-            description: 'Call this function immediately after the user answers a question. This saves their answer and your feedback to the database.',
+            description: 'Call this function immediately after the user answers a question. This saves their answer and your detailed evaluation to the database.',
             parameters: {
               type: 'object',
               properties: {
@@ -148,20 +148,55 @@ export async function POST(request: NextRequest) {
                   type: 'string',
                   description: 'The verbatim transcription of the user\'s full answer to the question.',
                 },
-                feedback: {
-                  type: 'string',
-                  description: 'Concise, constructive feedback on the user\'s answer.',
-                },
-                score: {
+                overall_score: {
                   type: 'number',
-                  description: 'Score from 1-10 evaluating the quality of the answer.',
+                  description: 'Overall score from 0-10 (average of the 5 dimension scores). Use decimals like 7.5, 8.2.',
+                },
+                clarity_score: {
+                  type: 'number',
+                  description: 'Score 0-10 for how clear and understandable the answer was.',
+                },
+                structure_score: {
+                  type: 'number',
+                  description: 'Score 0-10 for how well-organized the answer was.',
+                },
+                relevance_score: {
+                  type: 'number',
+                  description: 'Score 0-10 for how directly the answer addressed the question.',
+                },
+                depth_score: {
+                  type: 'number',
+                  description: 'Score 0-10 for how detailed and thorough the answer was.',
+                },
+                confidence_score: {
+                  type: 'number',
+                  description: 'Score 0-10 for how confident the user sounded in their delivery.',
+                },
+                overall_feedback: {
+                  type: 'string',
+                  description: '2-3 sentences summarizing the answer quality.',
+                },
+                strengths: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Array of 2-3 specific positive aspects from the answer.',
+                },
+                weaknesses: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Array of 2-3 specific areas for improvement.',
+                },
+                suggestions: {
+                  type: 'array',
+                  items: { type: 'string' },
+                  description: 'Array of 2-3 actionable recommendations.',
                 },
                 tone_analysis: {
                   type: 'string',
-                  description: 'Brief analysis of the user\'s tone and confidence.',
+                  description: '1-2 sentences analyzing communication style and delivery.',
                 },
               },
-              required: ['question_index', 'user_response', 'feedback', 'score', 'tone_analysis'],
+              required: ['question_index', 'user_response', 'overall_score', 'clarity_score', 'structure_score', 'relevance_score', 'depth_score', 'confidence_score', 'overall_feedback', 'strengths', 'weaknesses', 'suggestions', 'tone_analysis'],
             },
           },
         ],
