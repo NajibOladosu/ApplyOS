@@ -1200,14 +1200,15 @@ ${idealOutline ? `Ideal Answer Guidance:\n${JSON.stringify(idealOutline, null, 2
 2. Each score MUST be a decimal number between 0.00 and 10.00 (e.g., 7.5, 8.2, 9.1)
 3. You MUST provide detailed feedback with:
    - overall: 2-3 sentences summarizing the answer quality
-   - strengths: At least 2-3 specific positive aspects from the actual answer
-   - weaknesses: At least 2-3 specific areas for improvement
-   - suggestions: At least 2-3 actionable recommendations
+   - strengths: ONLY if score >= 5.0 (provide 2-3 specific positive aspects)
+   - weaknesses: ONLY if score < 7.0 (provide 2-3 specific areas for improvement)
+   - suggestions: Always provide 2-3 actionable recommendations
    - tone_analysis: 1-2 sentences analyzing communication style and delivery
 
 4. Be SPECIFIC - reference actual content from the candidate's answer
-5. Empty arrays are NOT acceptable - always provide at least 2 items per array
-6. All feedback must be constructive and helpful
+5. Be HONEST - if an answer is poor (score < 5), don't force strengths. If excellent (score >= 7), don't force weaknesses.
+6. Suggestions should always be provided regardless of score
+7. All feedback must be constructive and helpful
 
 Evaluate this answer across 5 dimensions (each scored 0.00 to 10.00):
 
@@ -1229,25 +1230,32 @@ Return ONLY valid JSON (no markdown, no code fences):
   "feedback": {
     "overall": "2-3 sentence summary of the answer quality",
     "strengths": [
+      // ONLY include if overall score >= 5.0
+      // If score < 5.0, return empty array []
       "Specific strength 1 with reference to answer content",
-      "Specific strength 2",
-      "Specific strength 3"
+      "Specific strength 2"
     ],
     "weaknesses": [
+      // ONLY include if overall score < 7.0
+      // If score >= 7.0, return empty array []
       "Specific area for improvement 1",
-      "Specific area for improvement 2",
-      "Specific area for improvement 3"
+      "Specific area for improvement 2"
     ],
     "suggestions": [
+      // ALWAYS provide suggestions regardless of score
       "Actionable suggestion 1 to improve the answer",
-      "Actionable suggestion 2",
-      "Actionable suggestion 3"
+      "Actionable suggestion 2"
     ],
     "tone_analysis": "1-2 sentences analyzing communication style and delivery"
   }
 }
 
-MANDATORY: All arrays must have at least 2 items. Be specific and reference actual answer content. Scores must be decimals.`
+SCORING GUIDELINES:
+- Score < 5.0: Poor answer - provide weaknesses and suggestions, skip strengths
+- Score 5.0-6.9: Average answer - provide strengths, weaknesses, and suggestions
+- Score >= 7.0: Good answer - provide strengths and suggestions, skip weaknesses
+
+Be honest with your scoring. Don't inflate or deflate scores.`
 
   try {
     const text = await callGeminiWithFallback(prompt, 'COMPLEX')
@@ -1266,11 +1274,15 @@ MANDATORY: All arrays must have at least 2 items. Be specific and reference actu
 
     const parsed = JSON.parse(jsonMatch[0])
 
-    // Validation helper to ensure arrays have minimum items
-    const ensureArray = (arr: any, minLength: number = 2, fieldName: string = 'field'): string[] => {
-      if (!Array.isArray(arr) || arr.length < minLength) {
-        console.warn(`[AI Evaluation] Incomplete ${fieldName} array, expected at least ${minLength} items, got ${arr?.length || 0}`)
-        return arr && Array.isArray(arr) ? arr : []
+    // Validation helper to ensure arrays are properly formatted
+    // Note: Empty arrays are now allowed for strengths/weaknesses (conditional based on score)
+    const ensureArray = (arr: any, minLength: number = 0, fieldName: string = 'field'): string[] => {
+      if (!Array.isArray(arr)) {
+        console.warn(`[AI Evaluation] ${fieldName} is not an array, got ${typeof arr}`)
+        return []
+      }
+      if (arr.length < minLength && minLength > 0) {
+        console.warn(`[AI Evaluation] ${fieldName} array has ${arr.length} items, expected at least ${minLength}`)
       }
       return arr.map(item => String(item))
     }
@@ -1294,9 +1306,9 @@ MANDATORY: All arrays must have at least 2 items. Be specific and reference actu
       confidence_score: ensureScore(parsed.confidence_score, 'confidence_score'),
       feedback: {
         overall: String(parsed.feedback?.overall || 'Feedback generated'),
-        strengths: ensureArray(parsed.feedback?.strengths, 2, 'strengths'),
-        weaknesses: ensureArray(parsed.feedback?.weaknesses, 2, 'weaknesses'),
-        suggestions: ensureArray(parsed.feedback?.suggestions, 2, 'suggestions'),
+        strengths: ensureArray(parsed.feedback?.strengths, 0, 'strengths'),  // Allow empty
+        weaknesses: ensureArray(parsed.feedback?.weaknesses, 0, 'weaknesses'),  // Allow empty
+        suggestions: ensureArray(parsed.feedback?.suggestions, 2, 'suggestions'),  // Always require 2+
         tone_analysis: String(parsed.feedback?.tone_analysis || ''),
       },
     }
