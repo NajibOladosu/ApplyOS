@@ -118,7 +118,7 @@ export async function POST(request: NextRequest) {
         functionDeclarations: [
           {
             name: 'signal_interview_complete',
-            description: 'Call this function ONLY AFTER you have spoken your closing remarks to the candidate. This signals that the interview is complete. Do not call this without saying goodbye first.',
+            description: 'Call this function IMMEDIATELY and AUTOMATICALLY in the SAME TURN after speaking your closing remarks to the candidate. This signals that the interview is complete. Do not wait for user input.',
             parameters: {
               type: 'object',
               properties: {
