@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
           },
           {
             name: 'save_answer_and_feedback',
-            description: 'Call this function immediately after the user answers a question. This saves their answer and your detailed evaluation to the database.',
+            description: 'Call this function immediately after the user answers a question. This saves their answer and your detailed evaluation to the database. Be honest with your evaluation - only provide strengths if the answer deserves them (score >= 5), and only provide weaknesses if there are actual issues (score < 7).',
             parameters: {
               type: 'object',
               properties: {
@@ -179,17 +179,17 @@ export async function POST(request: NextRequest) {
                 strengths: {
                   type: 'array',
                   items: { type: 'string' },
-                  description: 'Array of 2-3 specific positive aspects from the answer.',
+                  description: 'Array of 2-3 specific positive aspects. ONLY provide if overall_score >= 5.0. If score < 5.0, use empty array [].',
                 },
                 weaknesses: {
                   type: 'array',
                   items: { type: 'string' },
-                  description: 'Array of 2-3 specific areas for improvement.',
+                  description: 'Array of 2-3 specific areas for improvement. ONLY provide if overall_score < 7.0. If score >= 7.0, use empty array [].',
                 },
                 suggestions: {
                   type: 'array',
                   items: { type: 'string' },
-                  description: 'Array of 2-3 actionable recommendations.',
+                  description: 'Array of 2-3 actionable recommendations. ALWAYS provide regardless of score.',
                 },
                 tone_analysis: {
                   type: 'string',
