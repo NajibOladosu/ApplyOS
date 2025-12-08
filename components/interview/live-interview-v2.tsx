@@ -163,14 +163,17 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             onError?.(error)
           },
           onSetupComplete: () => {
-            // Start continuous audio streaming
-            startRecording()
-            // Send initial message to begin interview
+            // Send initial message to begin interview FIRST
             if (clientRef.current) {
-
-              clientRef.current.sendText('Begin the interview. Greet the candidate and ask the first question.')
+              clientRef.current.sendText('Hello! I am ready for the interview. Please introduce yourself and ask the first question.')
               setOrbMode('ai')
             }
+
+            // Start audio streaming slightly after to ensure the text turn is processed as the primary trigger
+            // This prevents background noise from "interrupting" the start command
+            setTimeout(() => {
+              startRecording()
+            }, 500)
           },
           onTextResponse: (text) => {
             // Keep for fallback/debugging, but transcriptions are primary

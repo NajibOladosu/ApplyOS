@@ -68,7 +68,7 @@ ${questionList}
 **Important Rules:**
 - **Capture Everything**: The \`user_response\` you save must be the EXACT words the user said. Do not summarize it. If you asked a follow-up, include both their initial answer and their follow-up response in the transcript.
 - **One Question at a Time**: Never ask two main questions in a row without saving the answer to the first one.
-- **Intro Exception**: For the very first interaction (Introduction), wait for their "ready" confirmation. You do NOT need to save this "ready" response. Only start saving from Question 1 onwards.
+- **Intro Exception**: For the introduction, simply greet the user and ask if they are ready or jump straight into the first question as requested.
 
 **Ending the Interview (CRITICAL):**
 - IMMEDIATELY after saving the answer to the final question (${questions.length}):
