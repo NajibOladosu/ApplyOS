@@ -40,9 +40,13 @@ export function InterviewModeWrapper({ sessionId, onComplete, onBack }: Intervie
                         setTranscript(turns)
                         setMode('conversation')
                     }
-                } else if (sessionData.status === 'completed') {
-                    // Text-based interview completed
-                    setMode('text')
+                } else {
+                    // Text mode or new session
+                    // If completed OR partially answered, default to text mode
+                    if (sessionData.status === 'completed' || sessionData.answered_questions > 0) {
+                        setMode('text')
+                    }
+                    // Otherwise keep 'select' mode (new session)
                 }
             } catch (err) {
                 console.error('Error loading session:', err)
