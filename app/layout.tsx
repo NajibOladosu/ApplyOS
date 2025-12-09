@@ -3,6 +3,8 @@ import { Manrope, Crimson_Text } from "next/font/google"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ToastProvider } from "@/components/ui/use-toast"
+import { SpeedInsights } from "@vercel/speed-insights/next"
+import { Analytics } from "@vercel/analytics/next"
 
 const manrope = Manrope({ subsets: ["latin"] })
 const crimsonText = Crimson_Text({
@@ -34,6 +36,8 @@ export default function RootLayout({
             {children}
           </ToastProvider>
         </AuthProvider>
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   )
