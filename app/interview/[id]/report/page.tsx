@@ -49,9 +49,13 @@ function aggregateStrengths(answersMap: Map<string, InterviewAnswer>): string[] 
   const strengthCounts = new Map<string, number>()
 
   answersMap.forEach(answer => {
-    answer.feedback.strengths?.forEach(strength => {
-      strengthCounts.set(strength, (strengthCounts.get(strength) || 0) + 1)
-    })
+    if (answer.feedback && Array.isArray(answer.feedback.strengths)) {
+      answer.feedback.strengths.forEach(strength => {
+        if (strength && typeof strength === 'string') {
+          strengthCounts.set(strength, (strengthCounts.get(strength) || 0) + 1)
+        }
+      })
+    }
   })
 
   return Array.from(strengthCounts.entries())
@@ -64,9 +68,13 @@ function aggregateWeaknesses(answersMap: Map<string, InterviewAnswer>): string[]
   const weaknessCounts = new Map<string, number>()
 
   answersMap.forEach(answer => {
-    answer.feedback.weaknesses?.forEach(weakness => {
-      weaknessCounts.set(weakness, (weaknessCounts.get(weakness) || 0) + 1)
-    })
+    if (answer.feedback && Array.isArray(answer.feedback.weaknesses)) {
+      answer.feedback.weaknesses.forEach(weakness => {
+        if (weakness && typeof weakness === 'string') {
+          weaknessCounts.set(weakness, (weaknessCounts.get(weakness) || 0) + 1)
+        }
+      })
+    }
   })
 
   return Array.from(weaknessCounts.entries())
@@ -106,6 +114,24 @@ export default function InterviewReportPage() {
 
         // Map answers by question_id for O(1) lookup
         const answersMap = new Map(answersData.map(ans => [ans.question_id, ans]))
+
+        // Debug logging
+        console.log('Interview Report Data:', {
+          sessionId,
+          sessionStatus: sessionData.status,
+          totalQuestions: sessionData.total_questions,
+          answeredQuestions: sessionData.answered_questions,
+          averageScore: sessionData.average_score,
+          questionsCount: questionsData.length,
+          answersCount: answersData.length,
+          answers: answersData.map(a => ({
+            id: a.id,
+            question_id: a.question_id,
+            has_feedback: !!a.feedback,
+            feedback_type: typeof a.feedback,
+            score: a.score
+          }))
+        })
 
         setSession(sessionData)
         setApplication(appData)
@@ -168,6 +194,7 @@ export default function InterviewReportPage() {
   }
 
   const isCompleted = session.status === 'completed'
+  const hasAnsweredQuestions = session.answered_questions > 0
   const completionPercentage = session.total_questions > 0
     ? (session.answered_questions / session.total_questions) * 100
     : 0
@@ -237,7 +264,7 @@ export default function InterviewReportPage() {
           </CardContent>
         </Card>
 
-        {/* Incomplete Interview UI */}
+        {/* Progress Card - Show for in-progress interviews */}
         {!isCompleted && (
           <>
             {/* Progress Card */}
@@ -305,50 +332,24 @@ export default function InterviewReportPage() {
               </CardContent>
             </Card>
 
-            {/* Questions Preview Card */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Questions Preview</CardTitle>
-                <CardDescription>
-                  {session.total_questions} question{session.total_questions !== 1 ? 's' : ''} in this interview
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  {questions.map((question, idx) => (
-                    <div
-                      key={question.id}
-                      className="p-3 border rounded-lg bg-background/50 hover:bg-muted/30 transition-colors"
-                    >
-                      <div className="flex items-start justify-between gap-3 mb-2">
-                        <p className="text-sm font-medium">Question {idx + 1}</p>
-                        <Badge variant="outline" className="text-xs">
-                          {question.question_category.replace(/_/g, ' ')}
-                        </Badge>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{question.question_text}</p>
-                      {answers.has(question.id) && (
-                        <div className="mt-2 flex items-center gap-2">
-                          <CheckCircle className="h-3 w-3 text-green-500" />
-                          <span className="text-xs text-green-600 dark:text-green-400">Answered</span>
-                        </div>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
           </>
         )}
 
-        {/* Completed Interview UI */}
-        {isCompleted && (
+        {/* Interview Analysis - Show for any interview with answered questions */}
+        {hasAnsweredQuestions && (
           <>
             {/* Overall Summary Card */}
             <Card className="border-primary/20">
               <CardHeader>
-                <CardTitle>Interview Summary</CardTitle>
-                <CardDescription>Overall performance and insights</CardDescription>
+                <CardTitle>
+                  {isCompleted ? 'Interview Summary' : 'Progress Summary'}
+                </CardTitle>
+                <CardDescription>
+                  {isCompleted
+                    ? 'Overall performance and insights'
+                    : `${session.answered_questions} of ${session.total_questions} questions answered`
+                  }
+                </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 {/* Stats Grid */}
@@ -426,13 +427,19 @@ export default function InterviewReportPage() {
               <CardHeader>
                 <CardTitle>Question-by-Question Analysis</CardTitle>
                 <CardDescription>
-                  Detailed feedback for each interview question
+                  {isCompleted
+                    ? 'Detailed feedback for each interview question'
+                    : 'Detailed feedback for answered questions'
+                  }
                 </CardDescription>
               </CardHeader>
               <CardContent>
                 <Accordion type="single" collapsible className="space-y-2">
                   {questions.map((question, idx) => {
                     const answer = answers.get(question.id)
+
+                    // For in-progress interviews, only show answered questions
+                    if (!isCompleted && !answer) return null
 
                     return (
                       <AccordionItem
@@ -509,78 +516,84 @@ export default function InterviewReportPage() {
                               )}
 
                               {/* Detailed Feedback */}
-                              <div className="space-y-3">
-                                <h4 className="text-xs font-semibold">Detailed Feedback</h4>
+                              {answer.feedback ? (
+                                <div className="space-y-3">
+                                  <h4 className="text-xs font-semibold">Detailed Feedback</h4>
 
-                                {/* Overall */}
-                                {answer.feedback.overall && (
-                                  <div>
-                                    <p className="text-xs font-medium mb-1">Overall Assessment</p>
-                                    <p className="text-sm text-muted-foreground">{answer.feedback.overall}</p>
-                                  </div>
-                                )}
+                                  {/* Overall */}
+                                  {answer.feedback.overall && (
+                                    <div>
+                                      <p className="text-xs font-medium mb-1">Overall Assessment</p>
+                                      <p className="text-sm text-muted-foreground">{answer.feedback.overall}</p>
+                                    </div>
+                                  )}
 
-                                {/* Strengths */}
-                                {answer.feedback.strengths && answer.feedback.strengths.length > 0 && (
-                                  <div>
-                                    <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">
-                                      Strengths
-                                    </p>
-                                    <ul className="space-y-1">
-                                      {answer.feedback.strengths.map((strength, i) => (
-                                        <li key={i} className="text-sm flex gap-2 items-start">
-                                          <span className="text-green-400 mt-0.5">✓</span>
-                                          <span>{strength}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
+                                  {/* Strengths */}
+                                  {answer.feedback.strengths && Array.isArray(answer.feedback.strengths) && answer.feedback.strengths.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">
+                                        Strengths
+                                      </p>
+                                      <ul className="space-y-1">
+                                        {answer.feedback.strengths.map((strength, i) => (
+                                          <li key={i} className="text-sm flex gap-2 items-start">
+                                            <span className="text-green-400 mt-0.5">✓</span>
+                                            <span>{strength}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
 
-                                {/* Weaknesses */}
-                                {answer.feedback.weaknesses && answer.feedback.weaknesses.length > 0 && (
-                                  <div>
-                                    <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
-                                      Weaknesses
-                                    </p>
-                                    <ul className="space-y-1">
-                                      {answer.feedback.weaknesses.map((weakness, i) => (
-                                        <li key={i} className="text-sm flex gap-2 items-start">
-                                          <span className="text-red-400 mt-0.5">✗</span>
-                                          <span>{weakness}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
+                                  {/* Weaknesses */}
+                                  {answer.feedback.weaknesses && Array.isArray(answer.feedback.weaknesses) && answer.feedback.weaknesses.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
+                                        Weaknesses
+                                      </p>
+                                      <ul className="space-y-1">
+                                        {answer.feedback.weaknesses.map((weakness, i) => (
+                                          <li key={i} className="text-sm flex gap-2 items-start">
+                                            <span className="text-red-400 mt-0.5">✗</span>
+                                            <span>{weakness}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
 
-                                {/* Suggestions */}
-                                {answer.feedback.suggestions && answer.feedback.suggestions.length > 0 && (
-                                  <div>
-                                    <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
-                                      Suggestions
-                                    </p>
-                                    <ul className="space-y-1">
-                                      {answer.feedback.suggestions.map((suggestion, i) => (
-                                        <li key={i} className="text-sm flex gap-2 items-start">
-                                          <span className="text-amber-400 mt-0.5">→</span>
-                                          <span>{suggestion}</span>
-                                        </li>
-                                      ))}
-                                    </ul>
-                                  </div>
-                                )}
+                                  {/* Suggestions */}
+                                  {answer.feedback.suggestions && Array.isArray(answer.feedback.suggestions) && answer.feedback.suggestions.length > 0 && (
+                                    <div>
+                                      <p className="text-xs font-medium text-amber-600 dark:text-amber-400 mb-1">
+                                        Suggestions
+                                      </p>
+                                      <ul className="space-y-1">
+                                        {answer.feedback.suggestions.map((suggestion, i) => (
+                                          <li key={i} className="text-sm flex gap-2 items-start">
+                                            <span className="text-amber-400 mt-0.5">→</span>
+                                            <span>{suggestion}</span>
+                                          </li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  )}
 
-                                {/* Tone Analysis */}
-                                {answer.feedback.tone_analysis && (
-                                  <div>
-                                    <p className="text-xs font-medium mb-1">Communication Style</p>
-                                    <p className="text-sm text-muted-foreground italic">
-                                      {answer.feedback.tone_analysis}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
+                                  {/* Tone Analysis */}
+                                  {answer.feedback.tone_analysis && (
+                                    <div>
+                                      <p className="text-xs font-medium mb-1">Communication Style</p>
+                                      <p className="text-sm text-muted-foreground italic">
+                                        {answer.feedback.tone_analysis}
+                                      </p>
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="text-sm text-muted-foreground italic">
+                                  No detailed feedback available for this answer.
+                                </div>
+                              )}
                             </>
                           ) : (
                             <p className="text-sm text-muted-foreground italic">
@@ -594,6 +607,43 @@ export default function InterviewReportPage() {
                 </Accordion>
               </CardContent>
             </Card>
+
+            {/* Remaining Questions - Show for in-progress interviews */}
+            {!isCompleted && session.answered_questions < session.total_questions && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Remaining Questions</CardTitle>
+                  <CardDescription>
+                    {session.total_questions - session.answered_questions} question{session.total_questions - session.answered_questions !== 1 ? 's' : ''} left to answer
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    {questions.map((question, idx) => {
+                      const answer = answers.get(question.id)
+
+                      // Only show unanswered questions
+                      if (answer) return null
+
+                      return (
+                        <div
+                          key={question.id}
+                          className="p-3 border rounded-lg bg-background/50 hover:bg-muted/30 transition-colors"
+                        >
+                          <div className="flex items-start justify-between gap-3 mb-2">
+                            <p className="text-sm font-medium">Question {idx + 1}</p>
+                            <Badge variant="outline" className="text-xs">
+                              {question.question_category.replace(/_/g, ' ')}
+                            </Badge>
+                          </div>
+                          <p className="text-sm text-muted-foreground">{question.question_text}</p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </>
         )}
       </div>
