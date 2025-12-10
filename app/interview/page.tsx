@@ -335,7 +335,7 @@ export default function InterviewPage() {
                         transition={{ duration: 0.3 }}
                         whileHover={{ scale: 1.01 }}
                       >
-                        <Link href={`/applications/${session.application_id}?tab=interview&session=${session.id}`}>
+                        <Link href={`/interview/${session.id}/report`}>
                           <Card className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm">
                             {/* Gradient overlay on hover */}
                             <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
@@ -440,7 +440,7 @@ export default function InterviewPage() {
                         const avgScore = session.average_score || 0
 
                         return (
-                          <Link key={session.id} href={`/applications/${session.application_id}?tab=interview&session=${session.id}`}>
+                          <Link key={session.id} href={`/interview/${session.id}/report`}>
                             <Card className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm">
                               {/* Gradient overlay on hover */}
                               <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
