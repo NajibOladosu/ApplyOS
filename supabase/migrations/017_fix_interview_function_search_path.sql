@@ -14,11 +14,11 @@
 -- Security fix: Sets search_path = public, pg_catalog to prevent injection
 
 -- ============================================================================
--- DROP EXISTING FUNCTIONS
+-- DROP EXISTING FUNCTIONS (with correct signatures)
 -- ============================================================================
-DROP FUNCTION IF EXISTS public.db_total_questions(UUID);
-DROP FUNCTION IF EXISTS public.db_answered_questions(UUID);
-DROP FUNCTION IF EXISTS public.db_average_score(UUID);
+DROP FUNCTION IF EXISTS public.db_total_questions(interview_sessions);
+DROP FUNCTION IF EXISTS public.db_answered_questions(interview_sessions);
+DROP FUNCTION IF EXISTS public.db_average_score(interview_sessions);
 
 -- ============================================================================
 -- FUNCTION 1: db_total_questions
@@ -26,8 +26,9 @@ DROP FUNCTION IF EXISTS public.db_average_score(UUID);
 -- Purpose: Calculates the total number of questions for an interview session
 -- Used as: Computed column in interview_sessions queries
 -- Security: SECURITY DEFINER with fixed search_path
+-- Note: Takes entire interview_sessions row as input (computed column)
 
-CREATE OR REPLACE FUNCTION public.db_total_questions(session_id_param UUID)
+CREATE OR REPLACE FUNCTION public.db_total_questions(rec interview_sessions)
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -39,7 +40,7 @@ BEGIN
   SELECT COUNT(*)::INTEGER
   INTO question_count
   FROM public.interview_questions
-  WHERE session_id = session_id_param;
+  WHERE session_id = rec.id;
 
   RETURN COALESCE(question_count, 0);
 END;
@@ -54,8 +55,9 @@ COMMENT ON FUNCTION public.db_total_questions IS
 -- Purpose: Calculates the number of answered questions for an interview session
 -- Used as: Computed column in interview_sessions queries
 -- Security: SECURITY DEFINER with fixed search_path
+-- Note: Takes entire interview_sessions row as input (computed column)
 
-CREATE OR REPLACE FUNCTION public.db_answered_questions(session_id_param UUID)
+CREATE OR REPLACE FUNCTION public.db_answered_questions(rec interview_sessions)
 RETURNS INTEGER
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -67,7 +69,7 @@ BEGIN
   SELECT COUNT(DISTINCT ia.question_id)::INTEGER
   INTO answered_count
   FROM public.interview_answers ia
-  WHERE ia.session_id = session_id_param;
+  WHERE ia.session_id = rec.id;
 
   RETURN COALESCE(answered_count, 0);
 END;
@@ -82,8 +84,9 @@ COMMENT ON FUNCTION public.db_answered_questions IS
 -- Purpose: Calculates the average score across all answered questions
 -- Used as: Computed column in interview_sessions queries
 -- Security: SECURITY DEFINER with fixed search_path
+-- Note: Takes entire interview_sessions row as input (computed column)
 
-CREATE OR REPLACE FUNCTION public.db_average_score(session_id_param UUID)
+CREATE OR REPLACE FUNCTION public.db_average_score(rec interview_sessions)
 RETURNS DECIMAL(4,2)
 LANGUAGE plpgsql
 SECURITY DEFINER
@@ -95,7 +98,7 @@ BEGIN
   SELECT AVG(ia.score)::DECIMAL(4,2)
   INTO avg_score
   FROM public.interview_answers ia
-  WHERE ia.session_id = session_id_param;
+  WHERE ia.session_id = rec.id;
 
   RETURN avg_score; -- Returns NULL if no answers
 END;
@@ -108,14 +111,14 @@ COMMENT ON FUNCTION public.db_average_score IS
 -- GRANT PERMISSIONS
 -- ============================================================================
 -- Allow authenticated users to execute these functions
-GRANT EXECUTE ON FUNCTION public.db_total_questions(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.db_answered_questions(UUID) TO authenticated;
-GRANT EXECUTE ON FUNCTION public.db_average_score(UUID) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.db_total_questions(interview_sessions) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.db_answered_questions(interview_sessions) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.db_average_score(interview_sessions) TO authenticated;
 
 -- Service role has full access
-GRANT EXECUTE ON FUNCTION public.db_total_questions(UUID) TO service_role;
-GRANT EXECUTE ON FUNCTION public.db_answered_questions(UUID) TO service_role;
-GRANT EXECUTE ON FUNCTION public.db_average_score(UUID) TO service_role;
+GRANT EXECUTE ON FUNCTION public.db_total_questions(interview_sessions) TO service_role;
+GRANT EXECUTE ON FUNCTION public.db_answered_questions(interview_sessions) TO service_role;
+GRANT EXECUTE ON FUNCTION public.db_average_score(interview_sessions) TO service_role;
 
 -- ============================================================================
 -- VERIFICATION QUERIES (run after applying)
