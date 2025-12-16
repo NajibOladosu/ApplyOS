@@ -175,7 +175,7 @@ export async function POST(request: NextRequest) {
 
     // Use Gemini to extract questions
     try {
-      const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' })
+      const model = genAI.getGenerativeModel({ model: 'models/gemini-2.5-flash-lite' })
 
       const prompt = `You are an AI assistant that extracts open-ended application questions from job postings and scholarship pages.
 
