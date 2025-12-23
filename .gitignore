@@ -43,4 +43,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .git-filter-repo.py
-# trackly-weekday-auto-publisher.json
+trackly-weekday-auto-publisher.json
+analyze-screenshot.js
+backfill-screenshots.js
