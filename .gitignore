@@ -44,5 +44,5 @@ yarn-error.log*
 next-env.d.ts
 .git-filter-repo.py
 trackly-weekday-auto-publisher.json
-analyze-screenshot.js
 backfill-screenshots.js
+analyze-screenshots.js
