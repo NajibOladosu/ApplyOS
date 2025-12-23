@@ -42,9 +42,18 @@ serve(async (req) => {
         const publicUrl = `${supabaseUrl}/storage/v1/object/public/marketing-assets/${record.name}`
 
         // Fetch and convert image to base64
+        // Fetch and convert image to base64
         const imageResponse = await fetch(publicUrl)
         const imageBuffer = await imageResponse.arrayBuffer()
-        const base64Image = btoa(String.fromCharCode(...new Uint8Array(imageBuffer)))
+
+        // Chunked conversion to avoid "Maximum call stack size exceeded"
+        let binary = '';
+        const bytes = new Uint8Array(imageBuffer);
+        const len = bytes.byteLength;
+        for (let i = 0; i < len; i += 1024) {
+            binary += String.fromCharCode(...bytes.subarray(i, i + 1024));
+        }
+        const base64Image = btoa(binary);
 
         // Analyze with Gemini
         const prompt = `Analyze this screenshot from Trackly, a SaaS application for managing job and scholarship applications.
@@ -61,6 +70,8 @@ Respond in JSON format:
   "key_elements": ["element1", "element2"],
   "user_action": "what the user is doing or can do here"
 }`
+
+        console.log('Gemini Key Length:', geminiKey?.length)
 
         const geminiResponse = await fetch(
             `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent?key=${geminiKey}`,
@@ -87,11 +98,13 @@ Respond in JSON format:
             }
         )
 
-        const geminiData = await geminiResponse.json()
-
-        if (geminiData.error) {
-            throw new Error(geminiData.error.message)
+        if (!geminiResponse.ok) {
+            const errorText = await geminiResponse.text()
+            console.error('Gemini API Error:', geminiResponse.status, errorText)
+            throw new Error(`Gemini API Error: ${geminiResponse.status} - ${errorText}`)
         }
+
+        const geminiData = await geminiResponse.json()
 
         const analysisText = geminiData.candidates[0].content.parts[0].text
         const analysis = JSON.parse(analysisText)
@@ -123,6 +136,7 @@ Respond in JSON format:
         )
 
     } catch (error) {
+        console.error('❌ Edge Function Error:', error)
         return new Response(
             JSON.stringify({ error: error.message }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
