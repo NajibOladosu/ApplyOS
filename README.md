@@ -1,4 +1,4 @@
-# Trackly - AI-Powered Application & Interview Manager
+# ApplyOS - AI-Powered Application & Interview Manager
 
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js-16.0.7-black" alt="Next.js" />
@@ -14,7 +14,7 @@
 
 > Your all-in-one platform for job applications with AI-powered document analysis, interview practice, and intelligent career tracking
 
-Trackly is a comprehensive full-stack web application that revolutionizes how you manage your career journey. From AI-powered resume analysis and cover letter generation to realistic interview practice with real-time feedback, Trackly helps you land your dream job with confidence.
+ApplyOS is a comprehensive full-stack web application that revolutionizes how you manage your career journey. From AI-powered resume analysis and cover letter generation to realistic interview practice with real-time feedback, ApplyOS helps you land your dream job with confidence.
 
 ## Table of Contents
 
@@ -206,8 +206,8 @@ Before you begin, ensure you have the following installed:
 1. **Clone the repository**
 
    ```bash
-   git clone https://github.com/NajibOladosu/Trackly.git
-   cd Trackly
+   git clone https://github.com/NajibOladosu/ApplyOS.git
+   cd ApplyOS
    ```
 
 2. **Install dependencies**
@@ -262,7 +262,7 @@ Before you begin, ensure you have the following installed:
 
    To enable email notifications:
    - Enable 2-Factor Authentication on your Gmail account
-   - Generate an App Password for Trackly
+   - Generate an App Password for ApplyOS
    - Add `GMAIL_USER` and `GMAIL_APP_PASSWORD` to `.env.local`
 
    **For detailed instructions, see [EMAIL_SETUP.md](./EMAIL_SETUP.md)**
@@ -489,7 +489,7 @@ npm run lint
 
 ### Email System
 
-Trackly includes a comprehensive email system:
+ApplyOS includes a comprehensive email system:
 
 - **Queue-based delivery** - Emails queued in database, processed reliably
 - **SMTP via Gmail** - Uses app passwords for secure delivery
@@ -585,7 +585,7 @@ All endpoints require `CRON_SECRET` header for security.
 ## Project Structure
 
 ```
-Trackly/
+ApplyOS/
 ├── app/                          # Next.js App Router
 │   ├── api/                      # API routes
 │   │   ├── account/             # Account management (avatar, delete)
@@ -800,7 +800,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-**Live Demo:** [trackly-chi.vercel.app](https://trackly-chi.vercel.app/)
+**Live Demo:** [applyos.vercel.app](https://applyos.vercel.app/)
 
 **Built with:** Next.js 16 • React 19 • TypeScript • Supabase • Google Gemini 2.0 Flash • Tailwind CSS • shadcn/ui
 

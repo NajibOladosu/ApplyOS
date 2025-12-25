@@ -9,7 +9,7 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trackly</title>
+  <title>ApplyOS</title>
   <style>
     * {
       margin: 0;
@@ -136,13 +136,13 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
 <body>
   <div class="container">
     <div class="header">
-      <h1>📊 Trackly</h1>
+      <h1>📊 ApplyOS</h1>
     </div>
     <div class="content">
       ${content}
     </div>
     <div class="footer">
-      <p>© ${year} Trackly. All rights reserved.</p>
+      <p>© ${year} ApplyOS. All rights reserved.</p>
       <p>
         <a href="[[APP_URL]]/settings" style="color: #6b7280; text-decoration: none;">Manage email preferences</a>
       </p>

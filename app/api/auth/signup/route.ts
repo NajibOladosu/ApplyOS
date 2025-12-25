@@ -174,7 +174,7 @@ export async function POST(request: NextRequest) {
       // Send directly via SMTP (not queued) with both HTML and plain text
       await sendEmailViaSMTP(
         email,
-        'Verify your Trackly email address',
+        'Verify your ApplyOS email address',
         htmlBody,
         textBody
       );
