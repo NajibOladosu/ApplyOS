@@ -121,7 +121,7 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Send email notification directly using Trackly theme
+          // Send email notification directly using ApplyOS theme
           try {
             const urgencyEmoji =
               daysUntil === 1 ? '🔴' : daysUntil <= 3 ? '🟠' : '🟡';
@@ -138,7 +138,7 @@ export async function POST(request: NextRequest) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trackly</title>
+  <title>ApplyOS</title>
   <style>
     * {
       margin: 0;
@@ -297,12 +297,12 @@ export async function POST(request: NextRequest) {
       </p>
     </div>
     <div class="footer">
-      <p class="footer-text">© ${new Date().getFullYear()} Trackly. All rights reserved.</p>
+      <p class="footer-text">© ${new Date().getFullYear()} ApplyOS. All rights reserved.</p>
       <p class="footer-text">
         <a href="${emailConfig.appUrl}/settings" class="footer-link">Manage email preferences</a>
       </p>
       <p class="footer-text">
-        Questions? Contact <a href="mailto:support@trackly.app" class="footer-link">support@trackly.app</a>
+        Questions? Contact <a href="mailto:support@applyos.io" class="footer-link">support@applyos.io</a>
       </p>
     </div>
   </div>

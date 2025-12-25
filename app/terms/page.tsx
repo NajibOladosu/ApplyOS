@@ -13,11 +13,11 @@ export default function TermsOfService() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>A</span>
             </div>
             <span className="text-xl font-bold">
-              <span className="text-primary">Track</span>
-              <span className="text-white">ly</span>
+              <span className="text-primary">Apply</span>
+              <span className="text-white">OS</span>
             </span>
           </Link>
 
@@ -56,7 +56,7 @@ export default function TermsOfService() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Agreement to Terms</h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    By accessing or using Trackly, you agree to be bound by these Terms of Service and all applicable laws
+                    By accessing or using ApplyOS, you agree to be bound by these Terms of Service and all applicable laws
                     and regulations. If you do not agree with any of these terms, you are prohibited from using or accessing
                     this application.
                   </p>
@@ -67,7 +67,7 @@ export default function TermsOfService() {
                   <h2 className="text-2xl font-bold text-primary mb-4">Account Registration</h2>
                   <div className="space-y-4 text-muted-foreground">
                     <p className="leading-relaxed">
-                      To use Trackly, you must create an account by providing accurate and complete information. You are
+                      To use ApplyOS, you must create an account by providing accurate and complete information. You are
                       responsible for:
                     </p>
                     <ul className="space-y-2 list-disc list-inside ml-4">
@@ -78,7 +78,7 @@ export default function TermsOfService() {
                     </ul>
                     <p className="leading-relaxed mt-4">
                       You must be at least 13 years old to create an account. If you are under 18, you must have parental
-                      consent to use Trackly.
+                      consent to use ApplyOS.
                     </p>
                   </div>
                 </section>
@@ -89,7 +89,7 @@ export default function TermsOfService() {
                   <div className="space-y-4 text-muted-foreground">
                     <p className="leading-relaxed">You agree not to:</p>
                     <ul className="space-y-2 list-disc list-inside ml-4">
-                      <li>Use Trackly for any illegal or unauthorized purpose</li>
+                      <li>Use ApplyOS for any illegal or unauthorized purpose</li>
                       <li>Upload malicious code, viruses, or harmful content</li>
                       <li>Attempt to gain unauthorized access to our systems</li>
                       <li>Interfere with or disrupt the service or servers</li>
@@ -108,7 +108,7 @@ export default function TermsOfService() {
                   <h2 className="text-2xl font-bold text-primary mb-4">User Content</h2>
                   <div className="space-y-4 text-muted-foreground">
                     <p className="leading-relaxed">
-                      You retain all rights to the content you upload to Trackly, including documents, applications, and
+                      You retain all rights to the content you upload to ApplyOS, including documents, applications, and
                       other materials. By uploading content, you grant us a license to:
                     </p>
                     <ul className="space-y-2 list-disc list-inside ml-4">
@@ -118,7 +118,7 @@ export default function TermsOfService() {
                     </ul>
                     <p className="leading-relaxed mt-4">
                       You are responsible for ensuring you have the right to upload and share any content you submit to
-                      Trackly. You agree not to upload content that infringes on intellectual property rights, contains
+                      ApplyOS. You agree not to upload content that infringes on intellectual property rights, contains
                       confidential information you're not authorized to share, or violates any laws.
                     </p>
                   </div>
@@ -129,7 +129,7 @@ export default function TermsOfService() {
                   <h2 className="text-2xl font-bold text-primary mb-4">AI-Powered Features</h2>
                   <div className="space-y-4 text-muted-foreground">
                     <p className="leading-relaxed">
-                      Trackly uses artificial intelligence to analyze documents and generate answers. You acknowledge that:
+                      ApplyOS uses artificial intelligence to analyze documents and generate answers. You acknowledge that:
                     </p>
                     <ul className="space-y-2 list-disc list-inside ml-4">
                       <li>AI-generated content may contain errors or inaccuracies</li>
@@ -149,7 +149,7 @@ export default function TermsOfService() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Intellectual Property</h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    Trackly and its original content, features, and functionality are owned by Trackly and are protected
+                    ApplyOS and its original content, features, and functionality are owned by ApplyOS and are protected
                     by international copyright, trademark, patent, trade secret, and other intellectual property laws.
                     You may not copy, modify, distribute, sell, or lease any part of our services without explicit permission.
                   </p>
@@ -163,7 +163,7 @@ export default function TermsOfService() {
                       We strive to provide reliable service, but we do not guarantee that:
                     </p>
                     <ul className="space-y-2 list-disc list-inside ml-4">
-                      <li>Trackly will be available 24/7 without interruption</li>
+                      <li>ApplyOS will be available 24/7 without interruption</li>
                       <li>The service will be error-free or bug-free</li>
                       <li>Defects will be corrected immediately</li>
                       <li>The service will meet your specific requirements</li>
@@ -181,7 +181,7 @@ export default function TermsOfService() {
                   <p className="text-muted-foreground leading-relaxed">
                     While we implement backup procedures, you are responsible for maintaining your own backup copies of
                     important content. We are not liable for any data loss, corruption, or deletion that may occur.
-                    We strongly recommend keeping copies of important documents outside of Trackly.
+                    We strongly recommend keeping copies of important documents outside of ApplyOS.
                   </p>
                 </section>
 
@@ -210,7 +210,7 @@ export default function TermsOfService() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Disclaimers</h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    TRACKLY IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
+                    APPLYOS IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED,
                     INCLUDING BUT NOT LIMITED TO WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, OR
                     NON-INFRINGEMENT. WE DO NOT WARRANT THAT THE SERVICE WILL BE UNINTERRUPTED, SECURE, OR ERROR-FREE.
                   </p>
@@ -220,7 +220,7 @@ export default function TermsOfService() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Limitation of Liability</h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    TO THE MAXIMUM EXTENT PERMITTED BY LAW, TRACKLY SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
+                    TO THE MAXIMUM EXTENT PERMITTED BY LAW, APPLYOS SHALL NOT BE LIABLE FOR ANY INDIRECT, INCIDENTAL, SPECIAL,
                     CONSEQUENTIAL, OR PUNITIVE DAMAGES, OR ANY LOSS OF PROFITS, REVENUE, DATA, OR USE, ARISING OUT OF OR
                     RELATED TO YOUR USE OF THE SERVICE. OUR TOTAL LIABILITY SHALL NOT EXCEED THE AMOUNT YOU PAID US IN THE
                     PAST 12 MONTHS, OR $100, WHICHEVER IS GREATER.
@@ -231,7 +231,7 @@ export default function TermsOfService() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Indemnification</h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    You agree to indemnify and hold harmless Trackly, its affiliates, and their respective officers, directors,
+                    You agree to indemnify and hold harmless ApplyOS, its affiliates, and their respective officers, directors,
                     employees, and agents from any claims, damages, losses, liabilities, and expenses (including legal fees)
                     arising from your use of the service, violation of these terms, or infringement of any rights of another
                     party.
@@ -244,7 +244,7 @@ export default function TermsOfService() {
                   <p className="text-muted-foreground leading-relaxed">
                     These Terms shall be governed by and construed in accordance with the laws of the United States,
                     without regard to its conflict of law provisions. Any disputes arising from these terms or your use
-                    of Trackly shall be subject to the exclusive jurisdiction of the courts in that location.
+                    of ApplyOS shall be subject to the exclusive jurisdiction of the courts in that location.
                   </p>
                 </section>
 
@@ -254,7 +254,7 @@ export default function TermsOfService() {
                   <p className="text-muted-foreground leading-relaxed">
                     We reserve the right to modify these Terms at any time. We will notify users of any material changes
                     by posting the new Terms on this page and updating the "Last updated" date. Your continued use of
-                    Trackly after any changes constitutes acceptance of the new Terms.
+                    ApplyOS after any changes constitutes acceptance of the new Terms.
                   </p>
                 </section>
 
@@ -275,8 +275,8 @@ export default function TermsOfService() {
                     If you have any questions about these Terms of Service, please contact us at:
                   </p>
                   <div className="text-foreground">
-                    <p className="font-semibold">Trackly Support</p>
-                    <p className="text-muted-foreground">Email: legal@trackly.app</p>
+                    <p className="font-semibold">ApplyOS Support</p>
+                    <p className="text-muted-foreground">Email: legal@applyos.io</p>
                   </div>
                 </section>
               </div>
@@ -296,7 +296,7 @@ export default function TermsOfService() {
       <footer className="border-t border-border py-8 px-6">
         <div className="container mx-auto text-center">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Trackly. All rights reserved.
+            © {new Date().getFullYear()} ApplyOS. All rights reserved.
           </p>
         </div>
       </footer>

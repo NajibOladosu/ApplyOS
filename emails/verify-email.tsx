@@ -12,7 +12,7 @@ import {
   Text,
   Link,
 } from '@react-email/components';
-import { TracklyButton } from './components/button';
+import { ApplyOSButton } from './components/button';
 
 interface VerifyEmailProps {
   userName: string;
@@ -27,7 +27,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
 
   return (
     <Html>
-      <Preview>Verify your Trackly email address</Preview>
+      <Preview>Verify your ApplyOS email address</Preview>
       <Body
         style={{
           backgroundColor: '#0A0A0A',
@@ -69,7 +69,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                 margin: '0',
               }}
             >
-              Complete your Trackly account setup
+              Complete your ApplyOS account setup
             </Text>
           </Section>
 
@@ -102,7 +102,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                 lineHeight: '1.6',
               }}
             >
-              Thank you for signing up for Trackly! To complete your account setup and start tracking your applications, please verify your email address by clicking the button below.
+              Thank you for signing up for ApplyOS! To complete your account setup and start tracking your applications, please verify your email address by clicking the button below.
             </Text>
 
             {/* Verification button */}
@@ -112,9 +112,9 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                 textAlign: 'center',
               }}
             >
-              <TracklyButton href={verificationUrl}>
+              <ApplyOSButton href={verificationUrl}>
                 Verify Email Address
-              </TracklyButton>
+              </ApplyOSButton>
             </Row>
 
             {/* Fallback link */}
@@ -186,7 +186,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                   letterSpacing: '0.5px',
                 }}
               >
-                What you can do with Trackly:
+                What you can do with ApplyOS:
               </Text>
               {[
                 'Upload and analyze documents with AI',
@@ -226,7 +226,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                 margin: '0 0 10px 0',
               }}
             >
-              © {year} Trackly. All rights reserved.
+              © {year} ApplyOS. All rights reserved.
             </Text>
             <Text
               style={{
@@ -237,13 +237,13 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
             >
               Questions? Contact support at{' '}
               <Link
-                href="mailto:support@trackly.app"
+                href="mailto:support@applyos.io"
                 style={{
                   color: '#00FF88',
                   textDecoration: 'none',
                 }}
               >
-                support@trackly.app
+                support@applyos.io
               </Link>
             </Text>
           </Section>

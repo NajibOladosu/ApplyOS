@@ -27,13 +27,13 @@ export const emailConfig = {
 
   // Email sender settings
   from: {
-    name: 'Trackly',
-    email: process.env.GMAIL_USER || 'noreply@trackly.app',
+    name: 'ApplyOS',
+    email: process.env.GMAIL_USER || 'noreply@applyos.io',
   },
 
   // Application settings
   appUrl: process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000',
-  appName: 'Trackly',
+  appName: 'ApplyOS',
 
   // Email sending settings
   maxRetries: 3,

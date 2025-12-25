@@ -109,10 +109,10 @@ export default function ProfilePage() {
       setProfile((prev) =>
         prev
           ? {
-              ...prev,
-              name: name || prev.name,
-              avatar_url: avatarUrl || prev.avatar_url,
-            }
+            ...prev,
+            name: name || prev.name,
+            avatar_url: avatarUrl || prev.avatar_url,
+          }
           : prev
       )
       setSuccess(true)
@@ -347,7 +347,7 @@ export default function ProfilePage() {
           <CardHeader>
             <CardTitle>Account Overview</CardTitle>
             <CardDescription>
-              Your Trackly account statistics
+              Your ApplyOS account statistics
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -472,7 +472,7 @@ export default function ProfilePage() {
               <div>
                 <p className="font-medium">Delete Account</p>
                 <p className="text-sm text-muted-foreground">
-                  This will delete your Trackly profile, applications, questions,
+                  This will delete your ApplyOS profile, applications, questions,
                   documents, notifications, and status history. This action cannot
                   be undone.
                 </p>

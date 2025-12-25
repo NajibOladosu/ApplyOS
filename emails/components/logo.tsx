@@ -5,7 +5,7 @@ interface LogoProps {
   height?: number;
 }
 
-export const TracklyLogo: React.FC<LogoProps> = ({ width = 48, height = 48 }) => {
+export const ApplyOSLogo: React.FC<LogoProps> = ({ width = 48, height = 48 }) => {
   return (
     <div
       style={{
@@ -34,7 +34,7 @@ export const TracklyLogo: React.FC<LogoProps> = ({ width = 48, height = 48 }) =>
           fill="#00FF88"
           textAnchor="middle"
         >
-          T
+          A
         </text>
       </svg>
       {/* Brand text */}
@@ -46,7 +46,7 @@ export const TracklyLogo: React.FC<LogoProps> = ({ width = 48, height = 48 }) =>
           fontFamily: 'Manrope, sans-serif',
         }}
       >
-        Trackly
+        ApplyOS
       </span>
     </div>
   );
