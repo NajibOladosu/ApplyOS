@@ -79,7 +79,7 @@ export function ImportApplicationsModal({ isOpen, onClose, onSuccess }: ImportAp
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement("a")
       a.href = url
-      a.download = "trackly-import-template.csv"
+      a.download = "applyos-import-template.csv"
       document.body.appendChild(a)
       a.click()
       window.URL.revokeObjectURL(url)
@@ -379,14 +379,12 @@ export function ImportApplicationsModal({ isOpen, onClose, onSuccess }: ImportAp
                         </>
                       ) : (
                         validationData && (
-                          `Import ${
-                            skipDuplicates
-                              ? validationData.applications.length - validationData.duplicateCount
-                              : validationData.applications.length
-                          } Application${
-                            skipDuplicates
-                              ? validationData.applications.length - validationData.duplicateCount !== 1
-                              : validationData.applications.length !== 1
+                          `Import ${skipDuplicates
+                            ? validationData.applications.length - validationData.duplicateCount
+                            : validationData.applications.length
+                          } Application${skipDuplicates
+                            ? validationData.applications.length - validationData.duplicateCount !== 1
+                            : validationData.applications.length !== 1
                               ? "s"
                               : ""
                           }`

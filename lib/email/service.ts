@@ -168,7 +168,7 @@ export const emailService: EmailService = {
         verificationUrl: data.verificationUrl,
       })
     );
-    const subject = 'Verify your Trackly email address';
+    const subject = 'Verify your ApplyOS email address';
 
     await queueEmail(
       '', // Will be set by API route
@@ -231,10 +231,10 @@ export const emailService: EmailService = {
    * Send test email
    */
   async sendTestEmail(to: string) {
-    const subject = 'Trackly Email Test';
+    const subject = 'ApplyOS Email Test';
     const htmlBody = `
       <h2>Test Email</h2>
-      <p>This is a test email from Trackly.</p>
+      <p>This is a test email from ApplyOS.</p>
       <p>If you received this, your email configuration is working correctly!</p>
       <p style="color: #6b7280; font-size: 12px; margin-top: 30px;">
         Sent at: ${new Date().toLocaleString()}

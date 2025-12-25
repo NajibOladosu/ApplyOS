@@ -13,11 +13,11 @@ export default function PrivacyPolicy() {
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>A</span>
             </div>
             <span className="text-xl font-bold">
-              <span className="text-primary">Track</span>
-              <span className="text-white">ly</span>
+              <span className="text-primary">Apply</span>
+              <span className="text-white">OS</span>
             </span>
           </Link>
 
@@ -56,7 +56,7 @@ export default function PrivacyPolicy() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Introduction</h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    Welcome to Trackly. We are committed to protecting your personal information and your right to privacy.
+                    Welcome to ApplyOS. We are committed to protecting your personal information and your right to privacy.
                     This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use
                     our application management platform.
                   </p>
@@ -89,7 +89,7 @@ export default function PrivacyPolicy() {
                     <div>
                       <h3 className="text-lg font-semibold text-foreground mb-2">Usage Data</h3>
                       <p className="leading-relaxed">
-                        We automatically collect certain information when you use Trackly, including your IP address, browser type,
+                        We automatically collect certain information when you use ApplyOS, including your IP address, browser type,
                         device information, and usage patterns.
                       </p>
                     </div>
@@ -118,7 +118,7 @@ export default function PrivacyPolicy() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">AI Processing</h2>
                   <p className="text-muted-foreground leading-relaxed mb-4">
-                    Trackly uses Google Gemini AI to analyze your documents and generate answers. When you use AI features:
+                    ApplyOS uses Google Gemini AI to analyze your documents and generate answers. When you use AI features:
                   </p>
                   <ul className="space-y-2 list-disc list-inside ml-4 text-muted-foreground">
                     <li>Your document content is sent to Google's Gemini API for processing</li>
@@ -168,7 +168,7 @@ export default function PrivacyPolicy() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Third-Party Services</h2>
                   <div className="space-y-4 text-muted-foreground">
-                    <p className="leading-relaxed">Trackly integrates with the following third-party services:</p>
+                    <p className="leading-relaxed">ApplyOS integrates with the following third-party services:</p>
                     <ul className="space-y-2 list-disc list-inside ml-4">
                       <li><span className="font-semibold text-foreground">Supabase</span> - Database, authentication, and file storage</li>
                       <li><span className="font-semibold text-foreground">Google Gemini AI</span> - Document analysis and answer generation</li>
@@ -194,7 +194,7 @@ export default function PrivacyPolicy() {
                 <section className="glass-effect rounded-lg p-8">
                   <h2 className="text-2xl font-bold text-primary mb-4">Children's Privacy</h2>
                   <p className="text-muted-foreground leading-relaxed">
-                    Trackly is not intended for users under the age of 13. We do not knowingly collect personal information
+                    ApplyOS is not intended for users under the age of 13. We do not knowingly collect personal information
                     from children under 13. If you believe we have collected information from a child under 13, please contact
                     us immediately.
                   </p>
@@ -217,8 +217,8 @@ export default function PrivacyPolicy() {
                     If you have any questions about this Privacy Policy or our data practices, please contact us at:
                   </p>
                   <div className="text-foreground">
-                    <p className="font-semibold">Trackly Support</p>
-                    <p className="text-muted-foreground">Email: privacy@trackly.app</p>
+                    <p className="font-semibold">ApplyOS Support</p>
+                    <p className="text-muted-foreground">Email: privacy@applyos.io</p>
                   </div>
                 </section>
               </div>
@@ -238,7 +238,7 @@ export default function PrivacyPolicy() {
       <footer className="border-t border-border py-8 px-6">
         <div className="container mx-auto text-center">
           <p className="text-sm text-muted-foreground">
-            © {new Date().getFullYear()} Trackly. All rights reserved.
+            © {new Date().getFullYear()} ApplyOS. All rights reserved.
           </p>
         </div>
       </footer>

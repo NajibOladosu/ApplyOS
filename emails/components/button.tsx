@@ -7,7 +7,7 @@ interface EmailButtonProps {
   variant?: 'primary' | 'secondary';
 }
 
-export const TracklyButton: React.FC<EmailButtonProps> = ({
+export const ApplyOSButton: React.FC<EmailButtonProps> = ({
   href,
   children,
   variant = 'primary',
