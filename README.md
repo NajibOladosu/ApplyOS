@@ -353,18 +353,25 @@ In your Supabase project's SQL Editor, run the following migrations **in order**
 19. **Interview Function Security** (`017_fix_interview_function_search_path.sql`)
     - Secures interview trigger functions
     - Prevents injection attacks
+    -   Secures interview trigger functions
+    -   Prevents injection attacks
 
 20. **RLS Optimization** (`018_optimize_rls_policies.sql`)
-    - Optimizes Row Level Security policies
-    - Improves query performance
+    -   Optimizes Row Level Security policies
+    -   Improves query performance
+
+21. **Marketing Automation** (`019_create_marketing_content_calendar.sql`)
+    -   Creates marketing content calendar
+    -   Enables social media content planning
+    -   Tracks content status and copy
 
 ### Step 2: Create Storage Bucket
 
-1. In your Supabase Dashboard, go to **Storage**
-2. Click **Create a new bucket**
-3. Name it `documents`
-4. Set the bucket to **Private** (security best practice)
-5. Save the bucket
+1.  In your Supabase Dashboard, go to **Storage**
+2.  Click **Create a new bucket**
+3.  Name it `documents`
+4.  Set the bucket to **Private** (security best practice)
+5.  Save the bucket
 
 The RLS policies from migration 13 will handle access control.
 
@@ -427,160 +434,170 @@ npm run lint
 
 ### Document Processing Pipeline
 
-1. **Upload Flow**:
-   - User uploads PDF/TXT/DOCX via drag-and-drop
-   - File validated (type, size)
-   - Content extracted using pdf2json (PDFs) or mammoth (DOCX)
-   - File stored in Supabase Storage
-   - Metadata and extracted text saved to database
-   - AI analyzes content and extracts structured data
-   - Status updated (success/failed)
+1.  **Upload Flow**:
+    -   User uploads PDF/TXT/DOCX via drag-and-drop
+    -   File validated (type, size)
+    -   Content extracted using pdf2json (PDFs) or mammoth (DOCX)
+    -   File stored in Supabase Storage
+    -   Metadata and extracted text saved to database
+    -   AI analyzes content and extracts structured data
+    -   Status updated (success/failed)
 
-2. **AI Analysis**:
-   - Uses cached extracted text (instant!)
-   - Gemini 2.0 Flash extracts:
-     - Education (degree, institution, dates)
-     - Experience (company, role, dates, achievements)
-     - Skills (technical, soft, tools)
-     - Certifications
-   - Results stored in JSONB format
-   - Can be regenerated on-demand
+2.  **AI Analysis**:
+    -   Uses cached extracted text (instant!)
+    -   Gemini 2.0 Flash extracts:
+        -   Education (degree, institution, dates)
+        -   Experience (company, role, dates, achievements)
+        -   Skills (technical, soft, tools)
+        -   Certifications
+    -   Results stored in JSONB format
+    -   Can be regenerated on-demand
 
-3. **Report Generation**:
-   - Comprehensive document quality analysis
-   - Formatting suggestions
-   - Content recommendations
-   - ATS compatibility score
+3.  **Report Generation**:
+    -   Comprehensive document quality analysis
+    -   Formatting suggestions
+    -   Content recommendations
+    -   ATS compatibility score
 
 ### Interview Practice Workflow
 
-1. **Session Creation**:
-   - Select application to practice for
-   - Choose interview type (behavioral, technical, company-specific, resume grill)
-   - Set difficulty level
-   - AI generates contextual questions
+1.  **Session Creation**:
+    -   Select application to practice for
+    -   Choose interview type (behavioral, technical, company-specific, resume grill)
+    -   Set difficulty level
+    -   AI generates contextual questions
 
-2. **Practice Options**:
-   - **Text Mode**: Type your answers, get instant feedback
-   - **Voice Mode**: Record answers, automatic transcription
-   - **Live Conversation**: Real-time two-way AI conversation
-   - **Resume Grill**: AI challenges specific resume claims
+2.  **Practice Options**:
+    -   **Text Mode**: Type your answers, get instant feedback
+    -   **Voice Mode**: Record answers, automatic transcription
+    -   **Live Conversation**: Real-time two-way AI conversation
+    -   **Resume Grill**: AI challenges specific resume claims
 
-3. **Scoring System**:
-   - Overall score (0-10)
-   - Breakdown scores for:
-     - Clarity (how well you communicated)
-     - Structure (STAR method, logical flow)
-     - Relevance (answered the question)
-     - Depth (level of detail)
-     - Confidence (delivery quality)
+3.  **Scoring System**:
+    -   Overall score (0-10)
+    -   Breakdown scores for:
+        -   Clarity (how well you communicated)
+        -   Structure (STAR method, logical flow)
+        -   Relevance (answered the question)
+        -   Depth (level of detail)
+        -   Confidence (delivery quality)
 
-4. **Feedback & Reports**:
-   - Immediate feedback after each answer
-   - Strengths and weaknesses identified
-   - Actionable improvement suggestions
-   - Full session report with analytics
+4.  **Feedback & Reports**:
+    -   Immediate feedback after each answer
+    -   Strengths and weaknesses identified
+    -   Actionable improvement suggestions
+    -   Full session report with analytics
 
-5. **Progress Tracking**:
-   - Performance trends over time
-   - Category-specific improvements
-   - Common weaknesses patterns
-   - Interview readiness score
+5.  **Progress Tracking**:
+    -   Performance trends over time
+    -   Category-specific improvements
+    -   Common weaknesses patterns
+    -   Interview readiness score
 
 ### Email System
 
 ApplyOS includes a comprehensive email system:
 
-- **Queue-based delivery** - Emails queued in database, processed reliably
-- **SMTP via Gmail** - Uses app passwords for secure delivery
-- **Retry mechanism** - Failed emails automatically retried
-- **Status tracking** - Monitor delivery status per email
-- **Templates**:
-  - Welcome email for new users
-  - Deadline reminders (7/3/1 days before)
-  - Weekly digest of application activity
-  - Status update notifications
+-   **Queue-based delivery** - Emails queued in database, processed reliably
+-   **SMTP via Gmail** - Uses app passwords for secure delivery
+-   **Retry mechanism** - Failed emails automatically retried
+-   **Status tracking** - Monitor delivery status per email
+-   **Templates**:
+    -   Welcome email for new users
+    -   Deadline reminders (7/3/1 days before)
+    -   Weekly digest of application activity
+    -   Status update notifications
 
 ### Cron Jobs (Scheduled Tasks)
 
 Configured for Vercel or any cron scheduler:
 
-- **Deadline Reminders** (`/api/cron/deadline-reminders`)
-  - Runs daily
-  - Sends reminders 7, 3, and 1 day before deadlines
+-   **Deadline Reminders** (`/api/cron/deadline-reminders`)
+    -   Runs daily
+    -   Sends reminders 7, 3, and 1 day before deadlines
 
-- **Weekly Digest** (`/api/cron/weekly-digest`)
-  - Runs weekly
-  - Summarizes application activity
+-   **Weekly Digest** (`/api/cron/weekly-digest`)
+    -   Runs weekly
+    -   Summarizes application activity
 
-- **Notification Cleanup** (`/api/cron/cleanup-old-notifications`)
-  - Runs daily
-  - Removes old notifications
+-   **Notification Cleanup** (`/api/cron/cleanup-old-notifications`)
+    -   Runs daily
+    -   Removes old notifications
 
-- **AI Retry** (`/api/cron/retry-ai-tasks`)
-  - Runs every 30 minutes
-  - Retries rate-limited AI operations
+-   **AI Retry** (`/api/cron/retry-ai-tasks`)
+    -   Runs every 30 minutes
+    -   Retries rate-limited AI operations
 
 All endpoints require `CRON_SECRET` header for security.
+
+### Marketing Automation (Beta)
+
+ApplyOS includes internal tools for marketing content generation:
+
+-   **Content Calendar** - Database schema for planning LinkedIn and Twitter posts
+-   **n8n Workflows** - Integrated automation workflows (json files in root) for:
+    -   Auto-generating social media content using Gemini AI
+    -   Publishing to platforms via API
+    -   Image generation for posts
 
 ## Deployment
 
 ### Deploy to Vercel (Recommended)
 
-1. **Push to GitHub**
+1.  **Push to GitHub**
 
-   ```bash
-   git add .
-   git commit -m "Ready for deployment"
-   git push origin main
-   ```
+    ```bash
+    git add .
+    git commit -m "Ready for deployment"
+    git push origin main
+    ```
 
-2. **Import to Vercel**
+2.  **Import to Vercel**
 
-   - Go to [Vercel Dashboard](https://vercel.com/dashboard)
-   - Click "New Project"
-   - Import your GitHub repository
-   - Vercel will automatically detect Next.js
+    -   Go to [Vercel Dashboard](https://vercel.com/dashboard)
+    -   Click "New Project"
+    -   Import your GitHub repository
+    -   Vercel will automatically detect Next.js
 
-3. **Add Environment Variables**
+3.  **Add Environment Variables**
 
-   In Vercel project settings, add all variables from your `.env.local`:
-   - `NEXT_PUBLIC_SUPABASE_URL`
-   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-   - `GEMINI_API_KEY`
-   - `GMAIL_USER` (if using email)
-   - `GMAIL_APP_PASSWORD` (if using email)
-   - `CRON_SECRET` (if using cron jobs)
-   - `SUPABASE_SERVICE_ROLE_KEY` (optional)
-   - `NEXT_PUBLIC_APP_URL` (your production URL)
+    In Vercel project settings, add all variables from your `.env.local`:
+    -   `NEXT_PUBLIC_SUPABASE_URL`
+    -   `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+    -   `GEMINI_API_KEY`
+    -   `GMAIL_USER` (if using email)
+    -   `GMAIL_APP_PASSWORD` (if using email)
+    -   `CRON_SECRET` (if using cron jobs)
+    -   `SUPABASE_SERVICE_ROLE_KEY` (optional)
+    -   `NEXT_PUBLIC_APP_URL` (your production URL)
 
-4. **Configure Cron Jobs** (optional)
+4.  **Configure Cron Jobs** (optional)
 
-   In `vercel.json`, cron jobs are pre-configured:
-   - Deadline reminders: Daily at 9 AM UTC
-   - Weekly digest: Sundays at 10 AM UTC
-   - Cleanup: Daily at 2 AM UTC
-   - AI retry: Every 30 minutes
+    In `vercel.json`, cron jobs are pre-configured:
+    -   Deadline reminders: Daily at 9 AM UTC
+    -   Weekly digest: Sundays at 10 AM UTC
+    -   Cleanup: Daily at 2 AM UTC
+    -   AI retry: Every 30 minutes
 
-5. **Deploy**
+5.  **Deploy**
 
-   - Click "Deploy"
-   - Vercel automatically deploys on every push to `main`
-   - Preview deployments created for all pull requests
+    -   Click "Deploy"
+    -   Vercel automatically deploys on every push to `main`
+    -   Preview deployments created for all pull requests
 
 ### Production Checklist
 
-- [ ] All migrations applied to production Supabase
-- [ ] Storage bucket created and secured
-- [ ] Environment variables set in Vercel
-- [ ] Email SMTP credentials configured (if using emails)
-- [ ] Cron secret configured (if using scheduled tasks)
-- [ ] Production URL set in `NEXT_PUBLIC_APP_URL`
-- [ ] Test authentication flow
-- [ ] Test document upload and analysis
-- [ ] Test interview creation
-- [ ] Test email delivery (use `/api/email/test`)
-- [ ] Monitor Gemini API usage and costs
+-   [ ] All migrations applied to production Supabase
+-   [ ] Storage bucket created and secured
+-   [ ] Environment variables set in Vercel
+-   [ ] Email SMTP credentials configured (if using emails)
+-   [ ] Cron secret configured (if using scheduled tasks)
+-   [ ] Production URL set in `NEXT_PUBLIC_APP_URL`
+-   [ ] Test authentication flow
+-   [ ] Test document upload and analysis
+-   [ ] Test interview creation
+-   [ ] Test email delivery (use `/api/email/test`)
+-   [ ] Monitor Gemini API usage and costs
 
 ## Project Structure
 
@@ -645,7 +662,9 @@ ApplyOS/
 ├── next.config.js               # Next.js configuration
 ├── tailwind.config.ts           # Tailwind configuration
 ├── tsconfig.json                # TypeScript configuration
-└── vercel.json                  # Vercel deployment config
+├── vercel.json                  # Vercel deployment config
+├── Call_Gemini_Image_Generation_API.json # n8n workflow for images
+└── trackly-weekday-auto-publisher.json   # n8n workflow for social publishing
 ```
 
 ## API Endpoints
