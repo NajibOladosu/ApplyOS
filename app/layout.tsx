@@ -14,8 +14,8 @@ const crimsonText = Crimson_Text({
 })
 
 export const metadata: Metadata = {
-  title: "ApplyOS - AI-Powered Application Manager",
-  description: "Automate the way you apply for jobs and scholarships with AI-powered intelligence",
+  title: "ApplyOS - AI-Powered Application & Career Manager",
+  description: "Automate your career journey with AI-powered intelligence, document analysis, and interview practice.",
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
