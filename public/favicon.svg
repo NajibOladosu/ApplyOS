@@ -1,7 +1,20 @@
 <svg width="192" height="192" viewBox="0 0 192 192" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <!-- Black background rounded square -->
-  <rect width="192" height="192" rx="32" fill="#000000"/>
-
-  <!-- Green T letter in Old English Gothic style -->
-  <text x="96" y="140" font-family="'Crimson Text', serif" font-size="130" font-weight="700" fill="#00FF88" text-anchor="middle" letter-spacing="2">T</text>
+  <rect width="192" height="192" rx="48" fill="#0A0A0A"/>
+  
+  <!-- Geometric 'A' with circuit accents -->
+  <g stroke="#00FF88" stroke-width="10" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M96 40L45 140" />
+    <path d="M96 40L147 140" />
+    <path d="M65 105H127" />
+    
+    <!-- Circuit internal connections -->
+    <path d="M85 70L110 95" stroke-width="4" opacity="0.6"/>
+    <path d="M75 115L90 130" stroke-width="4" opacity="0.4"/>
+  </g>
+  
+  <!-- Nodes -->
+  <circle cx="96" cy="40" r="6" fill="#00FF88"/>
+  <circle cx="45" cy="140" r="6" fill="#00FF88"/>
+  <circle cx="147" cy="140" r="6" fill="#00FF88"/>
+  <circle cx="96" cy="105" r="4" fill="#00FF88"/>
 </svg>
