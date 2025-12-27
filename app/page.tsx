@@ -4,7 +4,6 @@ import Link from "next/link"
 import { motion } from "framer-motion"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Logo } from "@/components/ui/logo"
 import {
   Sparkles,
   FileText,
@@ -80,7 +79,13 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <Logo variant="landing" />
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>A</span>
+            </div>
+            <span className="text-xl font-bold">
+              <span className="text-primary">Apply</span>
+              <span className="text-white">OS</span>
+            </span>
           </Link>
 
           <div className="flex items-center space-x-4">
@@ -253,7 +258,13 @@ export default function Home() {
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center space-x-2">
-              <Logo />
+              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
+                <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>A</span>
+              </div>
+              <span className="text-xl font-bold">
+                <span className="text-primary">Apply</span>
+                <span className="text-white">OS</span>
+              </span>
             </div>
 
             <div className="flex items-center gap-6">
