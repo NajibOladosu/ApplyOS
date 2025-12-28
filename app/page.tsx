@@ -100,61 +100,61 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto text-center">
+      <section className="relative overflow-hidden pt-32 pb-20 px-6 text-center">
+        {/* Background Glow Effect behind the text */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[300px] bg-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
+
+        <div className="container mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            {/* The "Badge" - Signals a new tech standard */}
+            {/* The "Terminal Badge" */}
             <div className="mb-8 flex justify-center">
-              <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary ring-1 ring-inset ring-primary/20">
-                v1.0 Now Available
+              <span className="rounded-full bg-primary/10 px-4 py-1 text-sm font-mono font-semibold text-primary ring-1 ring-inset ring-primary/30">
+                &gt; System_Online: v1.0
               </span>
             </div>
 
-            {/* H1: The Authority Statement */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
+            {/* H1: High Contrast White + Neon */}
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight text-white">
               The Operating System for
               <br />
-              <span className="text-gradient">Your Job Search</span>
+              <span className="text-primary drop-shadow-[0_0_15px_rgba(0,255,136,0.25)]">
+                Your Job Search
+              </span>
             </h1>
 
-            {/* Subheadline: The "How" (Problem -> Solution) */}
+            {/* Subheadline: Light Gray for readability on Dark */}
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-8">
-              Stop juggling spreadsheets and copy-pasting generic answers.
-              <strong> ApplyOS</strong> parses job URLs, auto-generates tailored AI responses,
-              and tracks your application pipeline—all from one command center.
+              Stop juggling spreadsheets. <span className="text-white font-semibold">ApplyOS</span> parses job URLs,
+              auto-generates targeted AI responses, and executes your application pipeline from one command center.
             </p>
 
-            {/* CTAs: Action Oriented */}
-            <div className="flex items-center justify-center space-x-4">
+            {/* CTAs: Neon Button + Ghost Button */}
+            <div className="flex items-center justify-center space-x-6">
               <Button
                 size="lg"
                 asChild
-                className="glow-effect inline-flex items-center justify-center gap-2"
+                className="bg-primary text-secondary-foreground font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
-                <Link href="/auth/signup" className="flex items-center gap-2">
-                  <span>Initialize System</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                <Link href="/auth/signup">Initialize System</Link>
               </Button>
-              <Button
-                size="lg"
-                variant="outline"
-                asChild
-                className="inline-flex items-center justify-center gap-2"
+
+              <Link
+                href="#how-it-works"
+                className="group flex items-center text-sm font-semibold leading-6 text-white hover:text-primary transition-colors"
               >
-                <Link href="#how-it-works">
-                  View Workflow <span className="ml-1" aria-hidden="true">↓</span>
-                </Link>
-              </Button>
+                View Workflow <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1 rotate-90" aria-hidden="true" />
+              </Link>
             </div>
 
-            {/* Social Proof / Trust Signal */}
-            <div className="mt-12 text-sm text-muted-foreground">
-              <p>Powering applications for candidates at tech-forward companies.</p>
+            {/* Social Proof: Darker muted text */}
+            <div className="mt-16 pt-8 border-t border-white/5">
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase font-mono">
+                Optimized for high-performance candidates
+              </p>
             </div>
           </motion.div>
         </div>
