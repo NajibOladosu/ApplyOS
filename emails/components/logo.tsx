@@ -22,20 +22,15 @@ export const ApplyOSLogo: React.FC<LogoProps> = ({ width = 48, height = 48 }) =>
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-        {/* Rounded square background */}
-        <rect width="192" height="192" rx="32" fill="#000000" />
-        {/* Green T letter */}
-        <text
-          x="96"
-          y="136"
-          fontSize="140"
-          fontFamily="'Crimson Text', serif"
-          fontWeight="700"
-          fill="#00FF88"
-          textAnchor="middle"
-        >
-          A
-        </text>
+        {/* Green square background */}
+        <rect width="192" height="192" rx="32" fill="#00FF88" />
+        {/* Black Triangle Icon */}
+        <g transform="translate(36, 42) scale(0.133)">
+          <path
+            fill="#0A0A0A"
+            d="M864.05,836.07H616.58a17.42,17.42,0,0,1-17.42-17.42V788.5a17.42,17.42,0,0,1,17.42-17.43H784.84a15.25,15.25,0,0,0,13.43-22.47L463.42,125.83a15.25,15.25,0,0,0-26.84,0L99.26,748.56a15.25,15.25,0,0,0,13.41,22.51h168a17.42,17.42,0,0,1,17.42,17.43v29.4a18.16,18.16,0,0,1-18.17,18.17H33.17A33.21,33.21,0,0,1,7.79,824.69,32.5,32.5,0,0,1,3.92,788.1L421.57,17A32.49,32.49,0,0,1,450.14,0h.05a32.51,32.51,0,0,1,28.58,17.11L893.36,788.18a32.52,32.52,0,0,1-4,36.55A33.23,33.23,0,0,1,864.05,836.07Z"
+          />
+        </g>
       </svg>
       {/* Brand text */}
       <span
