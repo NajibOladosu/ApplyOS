@@ -279,7 +279,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
             <CardDescription>
-              Stored in your user metadata. Used to tailor how Trackly notifies you.
+              Stored in your user metadata. Used to tailor how ApplyOS notifies you.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
@@ -382,7 +382,7 @@ export default function SettingsPage() {
               </label>
               <div className="flex items-center justify-between">
                 <p className="text-sm text-muted-foreground max-w-md">
-                  When enabled, Trackly can automatically generate AI answers
+                  When enabled, ApplyOS can automatically generate AI answers
                   for new application questions using your documents and profile.
                 </p>
                 <Button
@@ -483,7 +483,7 @@ export default function SettingsPage() {
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>
-              Customize how Trackly looks
+              Customize how ApplyOS looks
             </CardDescription>
           </CardHeader>
           <CardContent>

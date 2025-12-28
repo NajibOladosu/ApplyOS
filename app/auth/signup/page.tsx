@@ -132,7 +132,7 @@ function SignupContent() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We've sent you a verification link. Click the link in your email to complete your signup and access Trackly.
+                We've sent you a verification link. Click the link in your email to complete your signup and access ApplyOS.
               </p>
               <div className="p-3 bg-muted rounded-lg border border-border">
                 <p className="text-xs text-muted-foreground">
@@ -160,17 +160,17 @@ function SignupContent() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect">
-                <span className="text-2xl font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect p-2">
+                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
               </div>
-              <span className="text-3xl font-bold">
-                <span className="text-primary">Track</span>
-                <span className="text-white">ly</span>
+              <span className="text-3xl font-bold font-mono">
+                <span className="text-primary">Apply</span>
+                <span className="text-white">OS</span>
               </span>
             </div>
           </Link>
           <h1 className="text-2xl font-bold text-foreground">Create an account</h1>
-          <p className="text-muted-foreground">Get started with Trackly today</p>
+          <p className="text-muted-foreground">Get started with ApplyOS today</p>
         </div>
 
         <Card className="glass-effect">
@@ -235,23 +235,21 @@ function SignupContent() {
                   <div className="space-y-1">
                     <div className="flex items-center justify-between text-xs">
                       <span className="text-muted-foreground">Password strength:</span>
-                      <span className={`font-medium ${
-                        passwordStrength.score >= 3 ? 'text-green-500' :
+                      <span className={`font-medium ${passwordStrength.score >= 3 ? 'text-green-500' :
                         passwordStrength.score >= 2 ? 'text-yellow-500' :
-                        'text-red-500'
-                      }`}>
+                          'text-red-500'
+                        }`}>
                         {passwordStrength.label}
                       </span>
                     </div>
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
-                        className={`h-full transition-all duration-300 ${
-                          passwordStrength.score >= 4 ? 'bg-green-500 w-full' :
+                        className={`h-full transition-all duration-300 ${passwordStrength.score >= 4 ? 'bg-green-500 w-full' :
                           passwordStrength.score >= 3 ? 'bg-green-500 w-3/4' :
-                          passwordStrength.score >= 2 ? 'bg-yellow-500 w-1/2' :
-                          passwordStrength.score >= 1 ? 'bg-red-500 w-1/4' :
-                          'bg-red-500 w-1/4'
-                        }`}
+                            passwordStrength.score >= 2 ? 'bg-yellow-500 w-1/2' :
+                              passwordStrength.score >= 1 ? 'bg-red-500 w-1/4' :
+                                'bg-red-500 w-1/4'
+                          }`}
                       />
                     </div>
                   </div>
@@ -279,7 +277,7 @@ function SignupContent() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading || checkingPassword}>
+              <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading || checkingPassword}>
                 {checkingPassword ? "Checking password..." : loading ? "Creating account..." : "Create Account"}
               </Button>
 

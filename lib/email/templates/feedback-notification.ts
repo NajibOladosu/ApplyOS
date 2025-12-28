@@ -41,7 +41,7 @@ export const feedbackNotificationTemplate = (data: FeedbackNotificationData, app
     <h2>New Feedback Received</h2>
 
     <p>
-      A user has submitted ${data.feedbackType} feedback on Trackly.
+      A user has submitted ${data.feedbackType} feedback on ApplyOS.
     </p>
 
     <div class="card">
@@ -64,7 +64,7 @@ export const feedbackNotificationTemplate = (data: FeedbackNotificationData, app
     <div class="divider"></div>
 
     <p style="text-align: center;">
-      <a href="${appUrl}" class="button">View Trackly Dashboard</a>
+      <a href="${appUrl}" class="button">View ApplyOS Dashboard</a>
     </p>
 
     <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">
@@ -77,5 +77,5 @@ export const feedbackNotificationTemplate = (data: FeedbackNotificationData, app
 
 export const feedbackNotificationSubject = (type: string) => {
   const typeLabel = feedbackTypeLabel[type] || 'Feedback';
-  return `New ${typeLabel} - Trackly`;
+  return `New ${typeLabel} - ApplyOS`;
 };

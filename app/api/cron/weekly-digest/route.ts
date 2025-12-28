@@ -136,7 +136,7 @@ export async function POST(request: NextRequest) {
           emailData,
           emailConfig.appUrl
         );
-        const subject = `Your Trackly Weekly Summary (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()})`;
+        const subject = `Your ApplyOS Weekly Summary (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()})`;
 
         await sendEmailDirectly(userData.user.email, subject, htmlBody);
 

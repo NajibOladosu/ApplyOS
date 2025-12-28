@@ -31,12 +31,12 @@ export default function VerifiedPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect">
-                <span className="text-2xl font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect p-2">
+                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
               </div>
-              <span className="text-3xl font-bold">
-                <span className="text-primary">Track</span>
-                <span className="text-white">ly</span>
+              <span className="text-3xl font-bold font-mono">
+                <span className="text-primary">Apply</span>
+                <span className="text-white">OS</span>
               </span>
             </div>
           </Link>
@@ -62,7 +62,7 @@ export default function VerifiedPage() {
           <CardContent className="space-y-6">
             <div className="space-y-3">
               <p className="text-sm text-muted-foreground text-center">
-                You can now sign in to your account and start using Trackly.
+                You can now sign in to your account and start using ApplyOS.
               </p>
             </div>
 

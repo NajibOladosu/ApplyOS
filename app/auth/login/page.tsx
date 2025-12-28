@@ -150,12 +150,12 @@ function LoginContent() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect">
-                <span className="text-2xl font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect p-2">
+                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
               </div>
-              <span className="text-3xl font-bold">
-                <span className="text-primary">Track</span>
-                <span className="text-white">ly</span>
+              <span className="text-3xl font-bold font-mono">
+                <span className="text-primary">Apply</span>
+                <span className="text-white">OS</span>
               </span>
             </div>
           </Link>
@@ -206,7 +206,7 @@ function LoginContent() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
 
