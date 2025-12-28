@@ -164,8 +164,8 @@ function SignupContent() {
                 <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
               </div>
               <span className="text-3xl font-bold font-mono">
-                <span className="text-primary">ApplyOS</span>
-                <span className="text-white">_</span>
+                <span className="text-primary">Apply</span>
+                <span className="text-white">OS</span>
               </span>
             </div>
           </Link>
