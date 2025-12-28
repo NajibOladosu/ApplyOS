@@ -1,0 +1,447 @@
+{
+  "name": "Trackly – Daily Auto Publisher (LinkedIn + X)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "da79585f-fa39-49cb-bfc6-f68b6c9413fe",
+      "name": "Daily 9AM Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -5552,
+        3136
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://hvmaerptxgeldviarcuj.supabase.co/rest/v1/screenshot_metadata?select=*",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "apikey",
+              "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bWFlcnB0eGdlbGR2aWFyY3VqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU4ODM2MiwiZXhwIjoyMDc4MTY0MzYyfQ.crTj-nfuximVx5bUHY2DOD13KJdpIWNrucARQuJFySA"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imh2bWFlcnB0eGdlbGR2aWFyY3VqIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc2MjU4ODM2MiwiZXhwIjoyMDc4MTY0MzYyfQ.crTj-nfuximVx5bUHY2DOD13KJdpIWNrucARQuJFySA"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "14a8c7ce-7d2c-40b1-a055-a98ce0dec7cf",
+      "name": "Fetch All Screenshots",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -5328,
+        3136
+      ],
+      "typeVersion": 4.2
+    },
+    {
+      "parameters": {
+        "jsCode": "return {\n  json: {\n    screenshots: $input.all().map(i => i.json)\n  }\n};"
+      },
+      "id": "fc6748f3-e654-4319-abde-269e1905b391",
+      "name": "Aggregate Screenshots",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -5104,
+        3136
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=You are the marketing director for Trackly (trackly-chi.vercel.app), a SaaS for job seekers and scholarship applicants.\n\n## Trackly Project Context:\nTrackly is an all-in-one platform to streamline the application process.\n**Core Modules:**\n1. **Dashboard**: Central hub for application metrics, daily tasks, and progress tracking.\n2. **Applications Tracker**: Kanban-style management of job/scholarship entries with status pipelines.\n3. **Interview Prep**: Dedicated module for practicing interviews with AI feedback and scoring.\n4. **Document Vault**: Secure storage system for resumes, cover letters, and transcripts.\n5. **Analytics**: Visual insights into application performance and success rates.\n6. **Smart Notifications**: System to ensure users never miss a deadline.\n\nInput: A list of available screenshot metadata from our app.\n\nYour Task:\n1. Brainstorm a unique, engaging daily topic or angle for a social media post (e.g., \"Organizing your search\", \"Never missing a deadline\", \"Analyzing offer letters\").\n2. Review the list of screenshots and SELECT THE SINGLE MOST RELEVANT screenshot that perfectly illustrates this topic.\n3. Verify the selected screenshot has a valid 'feature_description'.\n\nGenerate professional content for LinkedIn and X/Twitter based on that SPECIFIC selected screenshot.\n\nScreenshot Context Provided:\n{{ $json.screenshots.map(s => `ID: ${s.id} | URL: ${s.public_url} |Page: ${s.page_category} | Feature: ${s.feature_description}`).join('\\n') }}\n\nFor LinkedIn:\n- 4-5 short paragraphs\n- Professional but relatable tone\n- Explicitly reference the feature shown in the selected screenshot\n- Problem → Solution → Trackly Outcome structure\n- CTA: \"Try it free at trackly-chi.vercel.app\"\n- 3-4 hashtags\n\nFor X/Twitter:\n- Under 240 chars\n- Punchy, mentioning the specific feature\n- Link: trackly-chi.vercel.app\n\nImage Prompt:\n- Describe a modern SaaS marketing image that visually represents the selected feature/topic. Do NOT describe the screenshot itself, but a conceptual image that complements it.\n\nRespond in JSON:\n{\n  \"URL\": \"public url of the screenshot you chose\",\n  \"topic\": \"the topic you chose\",\n  \"linkedin_post\": \"...\",\n  \"twitter_post\": \"...\",\n  \"image_prompt\": \"...\"\n}",
+        "hasOutputParser": true,
+        "options": {}
+      },
+      "id": "3ca10292-8ae4-428d-b0f2-2d2c06a4281f",
+      "name": "Generate Content with Gemini",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "position": [
+        -4880,
+        3136
+      ],
+      "typeVersion": 1.7
+    },
+    {
+      "parameters": {
+        "modelName": "models/gemini-3-flash-preview",
+        "options": {
+          "temperature": 0.7
+        }
+      },
+      "id": "c1e8e1a8-0c6d-4e70-91b6-eba73f44e191",
+      "name": "Google Gemini LLM",
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "position": [
+        -4880,
+        3360
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "googlePalmApi": {
+          "id": "Sp2LLSPzsfnNyPoy",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\"type\":\"object\",\"properties\":{\"URL\":{\"type\":\"string\"},\"topic\":{\"type\":\"string\"},\"linkedin_post\":{\"type\":\"string\"},\"twitter_post\":{\"type\":\"string\"},\"image_prompt\":{\"type\":\"string\"}},\"required\":[\"URL\",\"topic\",\"linkedin_post\",\"twitter_post\",\"image_prompt\"]}"
+      },
+      "id": "2524ea9c-4d34-45c0-9ce2-fd38b4b04a76",
+      "name": "JSON Output Parser",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "position": [
+        -4752,
+        3360
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Generate Content with Gemini').item.json.output.twitter_post }}",
+        "additionalFields": {}
+      },
+      "id": "ad418e66-3007-4165-8b5d-d7615baab035",
+      "name": "Post to X/Twitter",
+      "type": "n8n-nodes-base.twitter",
+      "position": [
+        -5104,
+        3552
+      ],
+      "typeVersion": 2,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "text": "={{ $('Generate Content with Gemini').item.json.output.linkedin_post }}",
+        "shareMediaCategory": "IMAGE",
+        "additionalFields": {}
+      },
+      "id": "f4a9ee4c-001b-4737-80e8-56d9c3648b21",
+      "name": "Post to LinkedIn",
+      "type": "n8n-nodes-base.linkedIn",
+      "position": [
+        -5104,
+        3744
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "url": "https://hvmaerptxgeldviarcuj.supabase.co/storage/v1/object/public/marketing-assets/screenshots/Trackly%20Logo.png",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "logo"
+            }
+          }
+        }
+      },
+      "id": "6c78358d-37f6-406f-b5e5-bfe7c4848e54",
+      "name": "Download Logo Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4528,
+        2944
+      ]
+    },
+    {
+      "parameters": {
+        "url": "https://hvmaerptxgeldviarcuj.supabase.co/storage/v1/object/public/marketing-assets/screenshots/SCR-20251111-naud-2.png",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "reference"
+            }
+          }
+        }
+      },
+      "id": "c911330d-707c-48d9-9e9f-735982174e77",
+      "name": "Download Reference Image",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4528,
+        3136
+      ]
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.output.URL }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file",
+              "outputPropertyName": "screenshot"
+            }
+          }
+        }
+      },
+      "id": "5e87d635-5122-4367-bcee-1804e622af8d",
+      "name": "Download Selected Screenshot",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -4528,
+        3328
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst item = items[0];\n\n// Function to safely grab the real Base64 data from n8n Cloud storage\nconst getRealBase64 = async (propertyName) => {\n  try {\n    // 1. Get the binary item from the 'Merge All Images' node\n    const binaryItem = $(\"Merge All Images\").item.binary[propertyName];\n    \n    if (!binaryItem) return \"\";\n\n    // 2. Use the n8n helper to read the actual file buffer from disk\n    const buffer = await this.helpers.getBinaryDataBuffer(0, propertyName);\n    \n    // 3. Convert that buffer to a Base64 string\n    return buffer.toString('base64');\n  } catch (e) {\n    console.error(`Error processing ${propertyName}:`, e);\n    return \"\";\n  }\n};\n\n// We must wrap the logic in an async block to wait for the file reading\nconst logoData = await getRealBase64(\"logo\");\nconst referenceData = await getRealBase64(\"reference\");\nconst screenshotData = await getRealBase64(\"screenshot\");\n\nconst imagePrompt = $('Generate Content with Gemini').item.json.output.image_prompt;\n\nconst requestBody = {\n  contents: [\n    {\n      parts: [\n        {\n          text: `You are generating high-conversion SaaS marketing images for Trackly. GOAL: Create 2 photorealistic, high-quality promotional images. STYLE: Professional product photography with studio lighting setup - use three-point softbox lighting to create soft, diffused highlights and eliminate harsh shadows. Camera: Shot with an 85mm portrait lens at f/2.8 for natural depth of field and soft bokeh background. COMPOSITION: Slightly elevated 45-degree angle showcasing a modern workspace with Trackly dashboard visible on a laptop or desktop monitor. The screenshots provided should appear naturally integrated into the device screens, completely unchanged and clearly visible. LIGHTING: Soft, warm golden hour lighting or professional studio lighting. ATMOSPHERE: Clean, modern, professional. Any people should be photorealistic with natural skin tones and realistic fabric textures. BRAND: Incorporate Trackly colors (Primary: #00FF88, Background: #0A0A0A) subtly in the environment or UI elements. PURPOSE: High-conversion social media and landing page imagery that clearly communicates value. ASPECT RATIO: 16:9 landscape format. OUTPUT: Generate exactly 2 variations.\\n\\nContext Theme: ${imagePrompt}`\n        },\n        {\n          inline_data: {\n            mime_type: 'image/png',\n            data: logoData\n          }\n        },\n        {\n          inline_data: {\n            mime_type: 'image/png',\n            data: referenceData\n          }\n        },\n        {\n          inline_data: {\n            mime_type: 'image/png',\n            data: screenshotData\n          }\n        }\n      ]\n    }\n  ],\n  generationConfig: {\n    responseModalities: [\"IMAGE\"],\n    candidateCount: 1,\n    imageConfig: {\n      aspectRatio: '16:9'\n    }\n  }\n};\n\nreturn {\n  json: {\n    requestBody: requestBody\n  }\n};"
+      },
+      "id": "ddab4f15-05e2-43b8-9fdb-7edabbc637f0",
+      "name": "Build Gemini Request with Images",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -4080,
+        3136
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-3-pro-image-preview:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "key",
+              "value": "AIzaSyDqfbYFXz9x2AfZOkh47X7ZMOevP8-satQ"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "id": "f8996909-8431-4195-b62f-2b841ad59cad",
+      "name": "Call Gemini Image Generation API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.3,
+      "position": [
+        -3856,
+        3136
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 1. Get the full response from the Gemini API node\nconst response = $node[\"Call Gemini Image Generation API\"].json;\n\n// 2. Defensive check: Ensure candidates exist\nif (!response.candidates || response.candidates.length === 0) {\n  throw new Error(\"Gemini API returned no candidates. Check for safety filters.\");\n}\n\n// 3. Find the part containing the image data. \n// Note: We check both 'inlineData' and 'inline_data' just in case.\nconst parts = response.candidates[0].content.parts;\nconst imagePart = parts.find(part => part.inlineData || part.inline_data);\n\nif (!imagePart) {\n  throw new Error(\"No image data found. The response contains text but no pixels.\");\n}\n\n// 4. Extract data using the correct camelCase key found in your JSON\nconst imageData = imagePart.inlineData ? imagePart.inlineData.data : imagePart.inline_data.data;\nconst mimeType = imagePart.inlineData ? imagePart.inlineData.mimeType : imagePart.inline_data.mime_type;\n\nreturn {\n  json: {\n    message: \"Image successfully extracted\",\n    mimeType: mimeType || \"image/jpeg\"\n  },\n  binary: {\n    data: {\n      data: imageData,\n      mimeType: mimeType || \"image/jpeg\",\n      fileName: \"generated_marketing_image.jpg\"\n    }\n  }\n};"
+      },
+      "id": "1d9a864c-dc3f-4c3f-ada3-32512e1fca8c",
+      "name": "Extract Generated Images",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -3632,
+        3136
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 3,
+        "options": {}
+      },
+      "id": "5c37b9dc-964c-4cfd-8ba6-34428228e9c3",
+      "name": "Merge All Images",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -4304,
+        3120
+      ]
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Daily 9AM Trigger": {
+      "main": [
+        [
+          {
+            "node": "Fetch All Screenshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch All Screenshots": {
+      "main": [
+        [
+          {
+            "node": "Aggregate Screenshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Aggregate Screenshots": {
+      "main": [
+        [
+          {
+            "node": "Generate Content with Gemini",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini LLM": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate Content with Gemini",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "JSON Output Parser": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "Generate Content with Gemini",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate Content with Gemini": {
+      "main": [
+        [
+          {
+            "node": "Download Logo Image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Reference Image",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Download Selected Screenshot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Logo Image": {
+      "main": [
+        [
+          {
+            "node": "Merge All Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Reference Image": {
+      "main": [
+        [
+          {
+            "node": "Merge All Images",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Download Selected Screenshot": {
+      "main": [
+        [
+          {
+            "node": "Merge All Images",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "Build Gemini Request with Images": {
+      "main": [
+        [
+          {
+            "node": "Call Gemini Image Generation API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Gemini Image Generation API": {
+      "main": [
+        [
+          {
+            "node": "Extract Generated Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Merge All Images": {
+      "main": [
+        [
+          {
+            "node": "Build Gemini Request with Images",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": false
+  },
+  "versionId": "ce8186e1-683c-4d05-85a2-c256a74424f2",
+  "meta": {
+    "instanceId": "98cf99bcb2193faea343ac22486637e31a5eb9fb880b224558c6c9f3143e4add"
+  },
+  "id": "quURCDi3DjYIuoGr",
+  "tags": []
+}
