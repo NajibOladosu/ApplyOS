@@ -107,21 +107,28 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center space-x-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-2 mb-8">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm text-primary font-medium">AI-Powered Application Manager</span>
+            {/* The "Badge" - Signals a new tech standard */}
+            <div className="mb-8 flex justify-center">
+              <span className="rounded-full bg-primary/10 px-3 py-1 text-sm font-semibold text-primary ring-1 ring-inset ring-primary/20">
+                v1.0 Now Available
+              </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Your AI-Powered
+            {/* H1: The Authority Statement */}
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight">
+              The Operating System for
               <br />
-              <span className="text-gradient">Application Manager</span>
+              <span className="text-gradient">Your Job Search</span>
             </h1>
 
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Automate the way you apply for jobs and scholarships. Extract questions, generate answers, and track everything in one beautiful dashboard.
+            {/* Subheadline: The "How" (Problem -> Solution) */}
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-8">
+              Stop juggling spreadsheets and copy-pasting generic answers.
+              <strong> ApplyOS</strong> parses job URLs, auto-generates tailored AI responses,
+              and tracks your application pipeline—all from one command center.
             </p>
 
+            {/* CTAs: Action Oriented */}
             <div className="flex items-center justify-center space-x-4">
               <Button
                 size="lg"
@@ -129,7 +136,7 @@ export default function Home() {
                 className="glow-effect inline-flex items-center justify-center gap-2"
               >
                 <Link href="/auth/signup" className="flex items-center gap-2">
-                  <span>Start Free Trial</span>
+                  <span>Initialize System</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
@@ -139,30 +146,23 @@ export default function Home() {
                 asChild
                 className="inline-flex items-center justify-center gap-2"
               >
-                <Link href="#features">View Features</Link>
+                <Link href="#how-it-works">
+                  View Workflow <span className="ml-1" aria-hidden="true">↓</span>
+                </Link>
               </Button>
             </div>
 
-            <div className="mt-12 flex items-center justify-center space-x-8 text-sm text-muted-foreground">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Smart AI Assistance</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Apply 10x Faster</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Unlimited Applications</span>
-              </div>
+            {/* Social Proof / Trust Signal */}
+            <div className="mt-12 text-sm text-muted-foreground">
+              <p>Powering applications for candidates at tech-forward companies.</p>
             </div>
           </motion.div>
         </div>
       </section>
 
+
       {/* Features Section */}
-      <section id="features" className="py-20 px-6 bg-secondary/30">
+      < section id="features" className="py-20 px-6 bg-secondary/30" >
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
@@ -196,10 +196,10 @@ export default function Home() {
             })}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* How It Works Section */}
-      <section className="py-20 px-6">
+      < section className="py-20 px-6" >
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">How It Works</h2>
@@ -225,10 +225,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-secondary/30">
+      < section className="py-20 px-6 bg-secondary/30" >
         <div className="container mx-auto">
           <Card className="glass-effect border-primary/20">
             <CardContent className="p-12 text-center">
@@ -251,10 +251,10 @@ export default function Home() {
             </CardContent>
           </Card>
         </div>
-      </section>
+      </section >
 
       {/* Footer */}
-      <footer className="border-t border-border py-12 px-6">
+      < footer className="border-t border-border py-12 px-6" >
         <div className="container mx-auto">
           <div className="flex flex-col md:flex-row items-center justify-between gap-6">
             <div className="flex items-center space-x-2">
@@ -287,7 +287,7 @@ export default function Home() {
             </p>
           </div>
         </div>
-      </footer>
-    </div>
+      </footer >
+    </div >
   )
 }
