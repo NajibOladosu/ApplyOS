@@ -89,11 +89,11 @@ export default function Home() {
           </Link>
 
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" asChild>
+            <Button variant="outline" asChild className="text-white border-white/20 hover:border-primary hover:text-primary transition-all">
               <Link href="/auth/login">Sign In</Link>
             </Button>
-            <Button asChild>
-              <Link href="/auth/signup">Start Free Trial</Link>
+            <Button asChild className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90">
+              <Link href="/auth/signup">Initialize System</Link>
             </Button>
           </div>
         </div>
@@ -137,17 +137,21 @@ export default function Home() {
               <Button
                 size="lg"
                 asChild
-                className="bg-primary text-secondary-foreground font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
+                className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
                 <Link href="/auth/signup">Initialize System</Link>
               </Button>
 
-              <Link
-                href="#how-it-works"
-                className="group flex items-center text-sm font-semibold leading-6 text-white hover:text-primary transition-colors"
+              <Button
+                variant="outline"
+                size="lg"
+                asChild
+                className="text-white border-white/20 hover:border-primary hover:text-primary group transition-all"
               >
-                View Workflow <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1 rotate-90" aria-hidden="true" />
-              </Link>
+                <Link href="#how-it-works">
+                  View Workflow <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1 rotate-90" aria-hidden="true" />
+                </Link>
+              </Button>
             </div>
 
             {/* Social Proof: Darker muted text */}
@@ -241,10 +245,10 @@ export default function Home() {
               <Button
                 size="lg"
                 asChild
-                className="glow-effect-strong inline-flex items-center justify-center gap-2"
+                className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
                 <Link href="/auth/signup" className="flex items-center gap-2">
-                  <span>Get Started for Free</span>
+                  <span>Initialize System</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>

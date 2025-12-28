@@ -206,7 +206,7 @@ function LoginContent() {
                 />
               </div>
 
-              <Button type="submit" className="w-full" disabled={loading}>
+              <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
 
