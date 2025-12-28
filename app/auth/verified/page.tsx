@@ -31,12 +31,12 @@ export default function VerifiedPage() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect">
-                <span className="text-2xl font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>A</span>
+              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect p-2">
+                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
               </div>
-              <span className="text-3xl font-bold">
-                <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+              <span className="text-3xl font-bold font-mono">
+                <span className="text-primary">ApplyOS</span>
+                <span className="text-white">_</span>
               </span>
             </div>
           </Link>

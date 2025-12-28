@@ -77,9 +77,9 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 p-1.5">
                 <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
               </div>
-              <span className="text-xl font-bold">
-                <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+              <span className="text-xl font-bold font-mono">
+                <span className="text-primary">ApplyOS</span>
+                <span className="text-white">_</span>
               </span>
             </Link>
             {/* Close button for mobile */}
