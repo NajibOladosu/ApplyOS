@@ -82,9 +82,9 @@ export default function Home() {
             <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1.5">
               <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
             </div>
-            <span className="text-xl font-bold">
-              <span className="text-primary">Apply</span>
-              <span className="text-white">OS</span>
+            <span className="text-xl font-bold font-mono">
+              <span className="text-primary">ApplyOS</span>
+              <span className="text-white">_</span>
             </span>
           </Link>
 
@@ -204,8 +204,8 @@ export default function Home() {
       </section >
 
       {/* How It Works Section */}
-      < section className="py-20 px-6" >
-        <div className="container mx-auto">
+      <section id="how-it-works" className="py-20 px-6">
+        <div id="tracking" className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">How It Works</h2>
             <p className="text-xl text-muted-foreground">
@@ -259,40 +259,47 @@ export default function Home() {
       </section >
 
       {/* Footer */}
-      < footer className="border-t border-border py-12 px-6" >
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1.5">
-                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-              </div>
-              <span className="text-xl font-bold">
-                <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
-              </span>
-            </div>
+      <footer className="bg-[#0a0a0a] border-t border-white/10 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
 
-            <div className="flex items-center gap-6">
-              <Link
-                href="/privacy"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                Terms of Service
-              </Link>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} ApplyOS. All rights reserved.
+          {/* Brand Section */}
+          <div>
+            <h2 className="text-primary font-mono font-bold text-xl mb-4">ApplyOS_</h2>
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-sm font-sans">
+              ApplyOS is the definitive <strong>AI-powered application manager</strong> designed to streamline your career
+              growth. By leveraging advanced <strong>AI application autofill</strong> technology, we help
+              candidates <strong>automate job applications</strong>, extract complex scholarship questions, and
+              maintain a high-performance <strong>job search pipeline</strong>.
             </p>
           </div>
+
+          {/* Quick Links / SEO Keywords */}
+          <div className="grid grid-cols-2 gap-4 text-sm font-sans">
+            <div>
+              <h3 className="text-white font-semibold mb-3">System</h3>
+              <ul className="text-muted-foreground space-y-2">
+                <li><Link href="#features" className="hover:text-primary transition-colors">AI Answer Engine</Link></li>
+                <li><Link href="#tracking" className="hover:text-primary transition-colors">Pipeline Tracker</Link></li>
+                <li><Link href="/auth/signup" className="hover:text-primary transition-colors">Initialize Account</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-3">Resources</h3>
+              <ul className="text-muted-foreground space-y-2">
+                <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Protocol</Link></li>
+                <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+                <li className="text-muted-foreground/50">v1.0.4-stable</li>
+              </ul>
+            </div>
+          </div>
         </div>
-      </footer >
+
+        <div className="mt-12 border-t border-white/5 pt-8 text-center">
+          <p className="text-muted-foreground text-xs">
+            &copy; {new Date().getFullYear()} ApplyOS. High-Performance Job Search Automation.
+          </p>
+        </div>
+      </footer>
     </div >
   )
 }

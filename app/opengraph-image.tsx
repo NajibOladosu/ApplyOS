@@ -51,16 +51,15 @@ export default function Image() {
                 </div>
                 <div
                     style={{
-                        fontSize: '80px',
+                        fontSize: '85px',
                         fontWeight: 'bold',
-                        color: 'white',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '8px',
+                        fontFamily: 'monospace',
                     }}
                 >
-                    <span style={{ color: '#00ff88' }}>Apply</span>
-                    <span>OS</span>
+                    <span style={{ color: '#00ff88' }}>ApplyOS</span>
+                    <span style={{ color: 'white' }}>_</span>
                 </div>
                 <div
                     style={{
