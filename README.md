@@ -823,4 +823,4 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 **Built with:** Next.js 16 • React 19 • TypeScript • Supabase • Google Gemini 2.0 Flash • Tailwind CSS • shadcn/ui
 
-**Questions?** Open an issue or check out the [documentation](./CLAUDE.md).
+**Questions?** Open an issue or check out the documentation.
