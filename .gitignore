@@ -44,6 +44,7 @@ yarn-error.log*
 next-env.d.ts
 .git-filter-repo.py
 trackly-weekday-auto-publisher.json
+applyos-weekday-auto-publisher.json
 backfill-screenshots.js
 analyze-screenshots.js
 Call_Gemini_Image_Generation_API.json
