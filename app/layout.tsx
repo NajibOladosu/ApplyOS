@@ -14,12 +14,41 @@ const crimsonText = Crimson_Text({
 })
 
 export const metadata: Metadata = {
-  title: "ApplyOS - AI-Powered Application Manager",
-  description: "Automate the way you apply for jobs and scholarships with AI-powered intelligence",
+  metadataBase: new URL('https://www.applyos.io'),
+  title: {
+    default: 'ApplyOS | The AI Operating System for Your Job Search',
+    template: '%s | ApplyOS',
+  },
+  description: 'Stop juggling spreadsheets. ApplyOS extracts job questions, auto-fills applications with AI, and tracks your status in one command center.',
   icons: {
     icon: "/favicon.svg",
     shortcut: "/favicon.svg",
     apple: "/apple-icon?v=1",
+  },
+  openGraph: {
+    title: 'ApplyOS | Automate Your Job Search',
+    description: 'Auto-fill applications 10x faster with AI.',
+    url: 'https://www.applyos.io',
+    siteName: 'ApplyOS',
+    locale: 'en_US',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'ApplyOS | The AI Job Search OS',
+    description: 'Auto-fill applications and track status in one place.',
+    creator: '@applyos',
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      'max-video-preview': -1,
+      'max-image-preview': 'large',
+      'max-snippet': -1,
+    },
   },
 }
 
