@@ -819,7 +819,7 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 
 ---
 
-**Live Demo:** [applyos.vercel.app](https://applyos.vercel.app/)
+**Live:** [applyos.io](https://applyos.io/)
 
 **Built with:** Next.js 16 • React 19 • TypeScript • Supabase • Google Gemini 2.0 Flash • Tailwind CSS • shadcn/ui
 
