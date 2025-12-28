@@ -58,8 +58,8 @@ export default function Image() {
                         fontFamily: 'monospace',
                     }}
                 >
-                    <span style={{ color: '#00ff88' }}>ApplyOS</span>
-                    <span style={{ color: 'white' }}>_</span>
+                    <span style={{ color: '#00ff88' }}>Apply</span>
+                    <span style={{ color: 'white' }}>OS</span>
                 </div>
                 <div
                     style={{
