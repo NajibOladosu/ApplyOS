@@ -664,7 +664,7 @@ ApplyOS/
 ├── tsconfig.json                # TypeScript configuration
 ├── vercel.json                  # Vercel deployment config
 ├── Call_Gemini_Image_Generation_API.json # n8n workflow for images
-└── trackly-weekday-auto-publisher.json   # n8n workflow for social publishing
+└── applyos-weekday-auto-publisher.json   # n8n workflow for social publishing
 ```
 
 ## API Endpoints
