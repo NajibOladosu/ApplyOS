@@ -11,7 +11,7 @@ export async function GET() {
       status: 200,
       headers: {
         'Content-Type': 'text/csv; charset=utf-8',
-        'Content-Disposition': 'attachment; filename="trackly-import-template.csv"',
+        'Content-Disposition': 'attachment; filename="applyos-import-template.csv"',
       },
     })
   } catch (error) {

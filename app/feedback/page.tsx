@@ -21,7 +21,7 @@ export default function FeedbackPage() {
     {
       value: "general",
       label: "General Feedback",
-      description: "Share your thoughts and ideas about Trackly",
+      description: "Share your thoughts and ideas about ApplyOS",
     },
     {
       value: "bug",
@@ -146,7 +146,7 @@ export default function FeedbackPage() {
             </div>
             <div>
               <h1 className="text-3xl font-bold">Feedback</h1>
-              <p className="text-muted-foreground">Help us improve Trackly with your feedback</p>
+              <p className="text-muted-foreground">Help us improve ApplyOS with your feedback</p>
             </div>
           </div>
         </motion.div>
@@ -161,7 +161,7 @@ export default function FeedbackPage() {
             <CardHeader>
               <CardTitle>Send us your feedback</CardTitle>
               <CardDescription>
-                Choose a category and tell us what's on your mind. We read all feedback and use it to improve Trackly.
+                Choose a category and tell us what's on your mind. We read all feedback and use it to improve ApplyOS.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -177,11 +177,10 @@ export default function FeedbackPage() {
                         onClick={() => setFeedbackType(type.value)}
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${
-                          feedbackType === type.value
+                        className={`p-4 rounded-lg border-2 transition-all text-left ${feedbackType === type.value
                             ? "border-primary bg-primary/5 shadow-md"
                             : "border-border hover:border-border/75 bg-background"
-                        }`}
+                          }`}
                       >
                         <div className="font-medium">{type.label}</div>
                         <div className="text-xs text-muted-foreground mt-1">{type.description}</div>

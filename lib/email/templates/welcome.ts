@@ -8,10 +8,10 @@ import { WelcomeEmailData } from '../types';
 
 export const welcomeEmailTemplate = (data: WelcomeEmailData, appUrl: string) => {
   const content = `
-    <h2>Welcome to Trackly, ${data.userName}! 👋</h2>
+    <h2>Welcome to ApplyOS, ${data.userName}! 👋</h2>
 
     <p>
-      We're excited to have you on board. Trackly is your AI-powered assistant for managing
+      We're excited to have you on board. ApplyOS is your AI-powered assistant for managing
       job and scholarship applications with ease.
     </p>
 
@@ -40,11 +40,11 @@ export const welcomeEmailTemplate = (data: WelcomeEmailData, appUrl: string) => 
 
     <p style="margin-top: 30px; font-size: 12px; color: #6b7280;">
       Best regards,<br>
-      The Trackly Team
+      The ApplyOS Team
     </p>
   `;
 
   return baseTemplate(content).replace('[[APP_URL]]', appUrl);
 };
 
-export const welcomeEmailSubject = () => 'Welcome to Trackly! 🎉';
+export const welcomeEmailSubject = () => 'Welcome to ApplyOS! 🎉';

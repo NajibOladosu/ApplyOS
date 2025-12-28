@@ -56,7 +56,7 @@ serve(async (req) => {
         const base64Image = btoa(binary);
 
         // Analyze with Gemini
-        const prompt = `Analyze this screenshot from Trackly, a SaaS application for managing job and scholarship applications.
+        const prompt = `Analyze this screenshot from ApplyOS, a SaaS application for managing job and scholarship applications.
 
 Identify:
 1. Which page this screenshot is from: ${PAGES.join(', ')}

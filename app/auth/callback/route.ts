@@ -69,7 +69,7 @@ async function sendVerificationEmail(
 
     await sendEmailViaSMTP(
       email,
-      'Verify your Trackly email address',
+      'Verify your ApplyOS email address',
       htmlBody,
       textBody
     )

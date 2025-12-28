@@ -34,7 +34,7 @@ export async function checkPasswordBreached(password: string): Promise<boolean> 
     const response = await fetch(`https://api.pwnedpasswords.com/range/${prefix}`, {
       method: 'GET',
       headers: {
-        'User-Agent': 'Trackly-Password-Check',
+        'User-Agent': 'ApplyOS-Password-Check',
       },
     })
 

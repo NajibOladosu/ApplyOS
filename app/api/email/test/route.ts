@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Send test email
-    const subject = '🧪 Trackly Email Test';
+    const subject = '🧪 ApplyOS Email Test';
     const htmlBody = `
       <!DOCTYPE html>
       <html>
@@ -98,7 +98,7 @@ export async function POST(request: NextRequest) {
             </div>
 
             <p>
-              This is a test email from <strong>Trackly</strong>. If you're seeing this,
+              This is a test email from <strong>ApplyOS</strong>. If you're seeing this,
               it means your Gmail SMTP configuration is set up correctly.
             </p>
 
@@ -120,7 +120,7 @@ export async function POST(request: NextRequest) {
             <div class="footer">
               <p>
                 Test sent at: <strong>${new Date().toLocaleString()}</strong><br>
-                From: Trackly Email Service
+                From: ApplyOS Email Service
               </p>
             </div>
           </div>

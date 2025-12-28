@@ -17,8 +17,8 @@ export const weeklyDigestEmailTemplate = (
       ? `
     <h3 style="font-size: 16px; margin-bottom: 16px; color: #1f2937;">Recent Applications</h3>
     ${data.applications
-      .map(
-        (app) => `
+        .map(
+          (app) => `
       <div class="card">
         <div class="card-title">${app.title}</div>
         <div class="card-meta">${app.company}</div>
@@ -30,8 +30,8 @@ export const weeklyDigestEmailTemplate = (
         </p>
       </div>
     `
-      )
-      .join('')}
+        )
+        .join('')}
   `
       : '<p style="color: #6b7280; font-style: italic;">No applications updated this week</p>';
 
@@ -42,23 +42,22 @@ export const weeklyDigestEmailTemplate = (
       Upcoming Deadlines
     </h3>
     ${data.upcomingDeadlines
-      .map(
-        (deadline) => `
+        .map(
+          (deadline) => `
       <div class="card">
         <div class="card-title">${deadline.title}</div>
         <div class="card-meta">${deadline.company}</div>
         <p style="margin: 0; font-size: 12px;">
           <strong>Deadline:</strong> ${deadline.deadline.toLocaleDateString()}<br>
-          <strong style="color: ${
-            deadline.daysUntil <= 3 ? '#dc2626' : '#f97316'
-          };">
+          <strong style="color: ${deadline.daysUntil <= 3 ? '#dc2626' : '#f97316'
+            };">
             ⏳ ${deadline.daysUntil} days remaining
           </strong>
         </p>
       </div>
     `
-      )
-      .join('')}
+        )
+        .join('')}
   `
       : '';
 
@@ -107,4 +106,4 @@ export const weeklyDigestEmailTemplate = (
   return baseTemplate(content).replace('[[APP_URL]]', appUrl);
 };
 
-export const weeklyDigestEmailSubject = () => 'Your Trackly Weekly Summary 📊';
+export const weeklyDigestEmailSubject = () => 'Your ApplyOS Weekly Summary 📊';

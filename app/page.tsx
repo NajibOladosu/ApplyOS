@@ -79,90 +79,95 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-              <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1.5">
+              <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
             </div>
-            <span className="text-xl font-bold">
-              <span className="text-primary">Track</span>
-              <span className="text-white">ly</span>
+            <span className="text-xl font-bold font-mono">
+              <span className="text-primary">Apply</span>
+              <span className="text-white">OS</span>
             </span>
           </Link>
 
           <div className="flex items-center space-x-4">
-            <Button variant="ghost" asChild>
+            <Button variant="outline" asChild className="text-white border-white/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] transition-all">
               <Link href="/auth/login">Sign In</Link>
             </Button>
-            <Button asChild>
-              <Link href="/auth/signup">Start Free Trial</Link>
+            <Button asChild className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90">
+              <Link href="/auth/signup">Get Started</Link>
             </Button>
           </div>
         </div>
       </nav>
 
       {/* Hero Section */}
-      <section className="pt-32 pb-20 px-6">
-        <div className="container mx-auto text-center">
+      <section className="relative overflow-hidden pt-32 pb-20 px-6 text-center">
+        {/* Background Glow Effect behind the text */}
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[300px] bg-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
+
+        <div className="container mx-auto relative z-10">
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            <div className="inline-flex items-center space-x-2 bg-primary/10 border border-primary/20 rounded-full px-4 py-2 mb-8">
-              <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-sm text-primary font-medium">AI-Powered Application Manager</span>
+            {/* The "Terminal Badge" */}
+            <div className="mb-8 flex justify-center">
+              <span className="rounded-full bg-primary/10 px-4 py-1 text-sm font-mono font-semibold text-primary ring-1 ring-inset ring-primary/30">
+                &gt; System_Online: v1.0
+              </span>
             </div>
 
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight">
-              Your AI-Powered
+            {/* H1: High Contrast White + Neon */}
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight text-white">
+              The Operating System for
               <br />
-              <span className="text-gradient">Application Manager</span>
+              <span className="text-primary drop-shadow-[0_0_15px_rgba(0,255,136,0.25)]">
+                Your Job Search
+              </span>
             </h1>
 
-            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto">
-              Automate the way you apply for jobs and scholarships. Extract questions, generate answers, and track everything in one beautiful dashboard.
+            {/* Subheadline: Light Gray for readability on Dark */}
+            <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-8">
+              Stop juggling spreadsheets. <span className="text-white font-semibold">ApplyOS</span> parses job URLs,
+              auto-generates targeted AI responses, and executes your application pipeline from one command center.
             </p>
 
-            <div className="flex items-center justify-center space-x-4">
+            {/* CTAs: Neon Button + Ghost Button */}
+            <div className="flex items-center justify-center space-x-6">
               <Button
                 size="lg"
                 asChild
-                className="glow-effect inline-flex items-center justify-center gap-2"
+                className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
-                <Link href="/auth/signup" className="flex items-center gap-2">
-                  <span>Start Free Trial</span>
-                  <ArrowRight className="h-4 w-4" />
-                </Link>
+                <Link href="/auth/signup">Get Started</Link>
               </Button>
+
               <Button
-                size="lg"
                 variant="outline"
+                size="lg"
                 asChild
-                className="inline-flex items-center justify-center gap-2"
+                className="text-white border-white/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] group transition-all"
               >
-                <Link href="#features">View Features</Link>
+                <Link href="#how-it-works" className="flex items-center gap-2">
+                  <span>View Workflow</span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rotate-90" aria-hidden="true" />
+                </Link>
               </Button>
             </div>
 
-            <div className="mt-12 flex items-center justify-center space-x-8 text-sm text-muted-foreground">
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Smart AI Assistance</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Apply 10x Faster</span>
-              </div>
-              <div className="flex items-center space-x-2">
-                <CheckCircle className="h-4 w-4 text-primary" />
-                <span>Unlimited Applications</span>
-              </div>
+            {/* Social Proof: Darker muted text */}
+            <div className="mt-16 pt-8 border-t border-white/5">
+              <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase font-mono">
+                Optimized for high-performance candidates
+              </p>
             </div>
           </motion.div>
         </div>
       </section>
 
+
       {/* Features Section */}
-      <section id="features" className="py-20 px-6 bg-secondary/30">
+      < section id="features" className="py-20 px-6 bg-secondary/30" >
         <div className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">Powerful Features</h2>
@@ -196,11 +201,11 @@ export default function Home() {
             })}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* How It Works Section */}
-      <section className="py-20 px-6">
-        <div className="container mx-auto">
+      <section id="how-it-works" className="py-20 px-6">
+        <div id="tracking" className="container mx-auto">
           <div className="text-center mb-16">
             <h2 className="text-4xl font-bold mb-4">How It Works</h2>
             <p className="text-xl text-muted-foreground">
@@ -225,10 +230,10 @@ export default function Home() {
             ))}
           </div>
         </div>
-      </section>
+      </section >
 
       {/* CTA Section */}
-      <section className="py-20 px-6 bg-secondary/30">
+      < section className="py-20 px-6 bg-secondary/30" >
         <div className="container mx-auto">
           <Card className="glass-effect border-primary/20">
             <CardContent className="p-12 text-center">
@@ -241,53 +246,62 @@ export default function Home() {
               <Button
                 size="lg"
                 asChild
-                className="glow-effect-strong inline-flex items-center justify-center gap-2"
+                className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
                 <Link href="/auth/signup" className="flex items-center gap-2">
-                  <span>Get Started for Free</span>
+                  <span>Get Started</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
             </CardContent>
           </Card>
         </div>
-      </section>
+      </section >
 
       {/* Footer */}
-      <footer className="border-t border-border py-12 px-6">
-        <div className="container mx-auto">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center space-x-2">
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                <span className="text-lg font-bold text-primary-foreground" style={{ fontFamily: "var(--font-crimson)" }}>T</span>
-              </div>
-              <span className="text-xl font-bold">
-                <span className="text-primary">Track</span>
-                <span className="text-white">ly</span>
-              </span>
-            </div>
+      <footer className="bg-[#0a0a0a] border-t border-white/10 py-12 px-4 sm:px-6 lg:px-8">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
 
-            <div className="flex items-center gap-6">
-              <Link
-                href="/privacy"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                Privacy Policy
-              </Link>
-              <Link
-                href="/terms"
-                className="text-sm text-muted-foreground hover:text-primary transition-colors"
-              >
-                Terms of Service
-              </Link>
-            </div>
-
-            <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} Trackly. All rights reserved.
+          {/* Brand Section */}
+          <div>
+            <h2 className="font-mono font-bold text-xl mb-4 text-white">
+              <span className="text-primary">Apply</span>OS
+            </h2>
+            <p className="text-muted-foreground text-sm leading-relaxed max-w-sm font-sans">
+              ApplyOS is the definitive <strong>AI-powered application manager</strong> designed to streamline your career
+              growth. By leveraging advanced <strong>AI application autofill</strong> technology, we help
+              candidates <strong>automate job applications</strong>, extract complex scholarship questions, and
+              maintain a high-performance <strong>job search pipeline</strong>.
             </p>
           </div>
+
+          {/* Quick Links / SEO Keywords */}
+          <div className="grid grid-cols-2 gap-4 text-sm font-sans">
+            <div>
+              <h3 className="text-white font-semibold mb-3">System</h3>
+              <ul className="text-muted-foreground space-y-2">
+                <li><Link href="#features" className="hover:text-primary transition-colors">AI Answer Engine</Link></li>
+                <li><Link href="#tracking" className="hover:text-primary transition-colors">Pipeline Tracker</Link></li>
+                <li><Link href="/auth/signup" className="hover:text-primary transition-colors">Initialize Account</Link></li>
+              </ul>
+            </div>
+            <div>
+              <h3 className="text-white font-semibold mb-3">Resources</h3>
+              <ul className="text-muted-foreground space-y-2">
+                <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Protocol</Link></li>
+                <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+                <li className="text-muted-foreground/50">v1.0.4-stable</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-12 border-t border-white/5 pt-8 text-center">
+          <p className="text-muted-foreground text-xs">
+            &copy; {new Date().getFullYear()} ApplyOS. High-Performance Job Search Automation.
+          </p>
         </div>
       </footer>
-    </div>
+    </div >
   )
 }
