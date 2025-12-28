@@ -89,11 +89,11 @@ export default function Home() {
           </Link>
 
           <div className="flex items-center space-x-4">
-            <Button variant="outline" asChild className="text-white border-white/20 hover:border-primary hover:text-primary transition-all">
+            <Button variant="outline" asChild className="text-white border-white/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] transition-all">
               <Link href="/auth/login">Sign In</Link>
             </Button>
             <Button asChild className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90">
-              <Link href="/auth/signup">Initialize System</Link>
+              <Link href="/auth/signup">Get Started</Link>
             </Button>
           </div>
         </div>
@@ -139,17 +139,18 @@ export default function Home() {
                 asChild
                 className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
-                <Link href="/auth/signup">Initialize System</Link>
+                <Link href="/auth/signup">Get Started</Link>
               </Button>
 
               <Button
                 variant="outline"
                 size="lg"
                 asChild
-                className="text-white border-white/20 hover:border-primary hover:text-primary group transition-all"
+                className="text-white border-white/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] group transition-all"
               >
-                <Link href="#how-it-works">
-                  View Workflow <ArrowRight className="ml-2 h-4 w-4 transition-transform group-hover:translate-x-1 rotate-90" aria-hidden="true" />
+                <Link href="#how-it-works" className="flex items-center gap-2">
+                  <span>View Workflow</span>
+                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rotate-90" aria-hidden="true" />
                 </Link>
               </Button>
             </div>
@@ -248,7 +249,7 @@ export default function Home() {
                 className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
                 <Link href="/auth/signup" className="flex items-center gap-2">
-                  <span>Initialize System</span>
+                  <span>Get Started</span>
                   <ArrowRight className="h-4 w-4" />
                 </Link>
               </Button>
