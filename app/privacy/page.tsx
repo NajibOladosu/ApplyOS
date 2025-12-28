@@ -16,8 +16,8 @@ export default function PrivacyPolicy() {
               <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
             </div>
             <span className="text-xl font-bold font-mono">
-              <span className="text-primary">ApplyOS</span>
-              <span className="text-white">_</span>
+              <span className="text-primary">Apply</span>
+              <span className="text-white">OS</span>
             </span>
           </Link>
 
