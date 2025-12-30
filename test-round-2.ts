@@ -8,13 +8,13 @@ async function main() {
     const { sendEmailViaSMTP } = await import('./lib/email/transport');
 
     const recipient = 'najibaioladosu@gmail.com';
-    console.log(`Sending final DKIM-signed test email to: ${recipient}`);
+    console.log(`Sending Round 2 test email to: ${recipient}`);
 
     try {
         const result = await sendEmailViaSMTP(
             recipient,
-            '🧪 ApplyOS Final Delivery Verification',
-            '<h1>Final Verification Successful!</h1><p>This email confirms that <strong>ApplyOS</strong> is correctly delivering DKIM-signed emails to your second Gmail address.</p>'
+            '📩 ApplyOS: Deliverability Check (Round 2)',
+            '<h1>DMARC Setup Complete</h1><p>This is a final test email following the DMARC record update. If you receive this in your Inbox, the setup is officially perfect!</p>'
         );
 
         if (result && result.messageId) {
