@@ -24,7 +24,7 @@ export const getTransporter = () => {
     );
   }
 
-  transporter = nodemailer.createTransport({
+  const transportOptions: any = {
     host: emailConfig.smtp.host,
     port: emailConfig.smtp.port,
     secure: emailConfig.smtp.secure,
@@ -39,7 +39,22 @@ export const getTransporter = () => {
       rateDelta: 4000, // 4 seconds
       rateLimit: 14, // max 14 messages per rateDelta
     },
-  } as TransportOptions);
+  };
+
+  // Add DKIM signing if configured
+  if (
+    emailConfig.dkim.domainName &&
+    emailConfig.dkim.keySelector &&
+    emailConfig.dkim.privateKey
+  ) {
+    transportOptions.dkim = {
+      domainName: emailConfig.dkim.domainName,
+      keySelector: emailConfig.dkim.keySelector,
+      privateKey: emailConfig.dkim.privateKey.replace(/\\n/g, '\n'),
+    };
+  }
+
+  transporter = nodemailer.createTransport(transportOptions as TransportOptions);
 
   return transporter;
 };
