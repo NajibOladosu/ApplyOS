@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
 
             <p>
               This is a test email from <strong>ApplyOS</strong>. If you're seeing this,
-              it means your Gmail SMTP configuration is set up correctly.
+              it means your SMTP configuration is set up correctly.
             </p>
 
             <p>

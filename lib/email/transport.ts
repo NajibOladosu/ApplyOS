@@ -18,19 +18,19 @@ export const getTransporter = () => {
     return transporter;
   }
 
-  if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+  if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SMTP_HOST) {
     throw new Error(
-      'Gmail credentials not configured. Set GMAIL_USER and GMAIL_APP_PASSWORD in .env.local'
+      'SMTP credentials not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env.local'
     );
   }
 
   transporter = nodemailer.createTransport({
-    host: emailConfig.gmail.host,
-    port: emailConfig.gmail.port,
-    secure: emailConfig.gmail.secure,
+    host: emailConfig.smtp.host,
+    port: emailConfig.smtp.port,
+    secure: emailConfig.smtp.secure,
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      user: emailConfig.smtp.auth.user,
+      pass: emailConfig.smtp.auth.pass,
     },
     // Connection pooling
     pool: {

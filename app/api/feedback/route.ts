@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Send email notification to admin
     try {
-      const adminEmail = process.env.GMAIL_USER
+      const adminEmail = process.env.ADMIN_EMAIL || process.env.SMTP_USER
       if (adminEmail) {
         const emailData = {
           userEmail: user.email || 'Unknown',
