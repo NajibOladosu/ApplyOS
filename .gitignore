@@ -25,6 +25,7 @@
 # markdown: ignore all .md files except README.md
 *.md
 !README.md
+!DELIVERABILITY.md
 
 # debug
 npm-debug.log*
