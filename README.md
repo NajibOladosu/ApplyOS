@@ -1,7 +1,7 @@
 # <img src="public/favicon.svg" width="32" height="32" align="center" /> ApplyOS - AI-Powered Application & Interview Manager
 
 <div align="center">
-  <img src="https://img.shields.io/badge/Next.js-16.0.7-black?style=for-the-badge" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Next.js-16.1.1-black?style=for-the-badge" alt="Next.js" />
   <img src="https://img.shields.io/badge/TypeScript-5.4.0-blue?style=for-the-badge" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Supabase-Enabled-green?style=for-the-badge" alt="Supabase" />
   <img src="https://img.shields.io/badge/Tailwind-3.4.3-38bdf8?style=for-the-badge" alt="Tailwind" />
@@ -179,6 +179,16 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Link support
   - Placeholder text
   - Auto-save capabilities
+
+### Marketing & Growth (Beta)
+
+- **Marketing Content Calendar** - System for planning social media posts (LinkedIn, Twitter)
+- **AI-Powered Screenshot Analysis** - Automatic feature extraction and analysis from screenshots
+- **n8n Automation Workflows** - Integrated workflows for:
+  - Automated social content generation using Gemini AI
+  - Image generation for marketing posts
+  - Multi-platform publishing triggers
+- **Dynamic Asset Management** - Marketing bucket for screenshots and promotional assets
 
 ### Additional Features
 
@@ -364,6 +374,14 @@ In your Supabase project's SQL Editor, run the following migrations **in order**
     -   Creates marketing content calendar
     -   Enables social media content planning
     -   Tracks content status and copy
+
+22. **Screenshot Metadata** (`020_create_screenshot_metadata.sql`)
+    -   Adds storage for AI-analyzed screenshot metadata
+    -   Tracks features and categories for marketing assets
+
+23. **Screenshot Trigger** (`021_create_screenshot_trigger.sql`)
+    -   Enables automated analysis when screenshots are uploaded
+    -   Integrates Supabase Storage with Edge Functions
 
 ### Step 2: Create Storage Bucket
 
@@ -653,7 +671,9 @@ ApplyOS/
 │   ├── pdf-utils.ts             # PDF text extraction
 │   └── utils.ts                 # Utility functions
 ├── supabase/
-│   └── migrations/              # SQL migration files (001-018)
+│   ├── functions/               # Supabase Edge Functions
+│   │   └── analyze-screenshot/  # AI screenshot analysis logic
+│   └── migrations/              # SQL migration files (001-021)
 ├── types/
 │   └── database.ts              # TypeScript type definitions
 ├── contexts/
