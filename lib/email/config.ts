@@ -15,6 +15,13 @@ export const emailConfig = {
     },
   },
 
+  // DKIM Configuration for better deliverability
+  dkim: {
+    domainName: process.env.DKIM_DOMAIN,
+    keySelector: process.env.DKIM_SELECTOR,
+    privateKey: process.env.DKIM_PRIVATE_KEY,
+  },
+
   // Future: SendGrid configuration
   // sendgrid: {
   //   host: 'smtp.sendgrid.net',
