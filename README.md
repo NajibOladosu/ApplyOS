@@ -133,7 +133,7 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Status update notifications
 
 - **Email Queue System** - Reliable delivery with retry mechanism
-- **SMTP Integration** - Gmail SMTP support with app passwords
+- **SMTP Integration** - Standard SMTP support for private domains and providers
 
 ### Authentication & Security
 
@@ -243,8 +243,14 @@ Before you begin, ensure you have the following installed:
    GEMINI_API_KEY=your-google-gemini-api-key
 
    # Email Configuration (Optional - for email notifications)
-   GMAIL_USER=your-email@gmail.com
-   GMAIL_APP_PASSWORD=your-16-char-app-password
+   SMTP_HOST=mail.yourdomain.com
+   SMTP_PORT=587
+   SMTP_USER=noreply@yourdomain.com
+   SMTP_PASS=your-private-email-password
+   SMTP_SECURE=false
+   SMTP_FROM_NAME=ApplyOS
+   SMTP_FROM_EMAIL=noreply@yourdomain.com
+   ADMIN_EMAIL=admin@yourdomain.com
    NEXT_PUBLIC_APP_URL=http://localhost:3000
 
    # Cron Jobs (Optional - for scheduled tasks)
@@ -268,14 +274,11 @@ Before you begin, ensure you have the following installed:
    - Copy and add to `.env.local`
    - Note: Gemini 2.0 Flash is used for all AI features
 
-4. **Set up Gmail SMTP** (optional - for email notifications)
+4. **Set up SMTP Email** (optional - for email notifications)
 
    To enable email notifications:
-   - Enable 2-Factor Authentication on your Gmail account
-   - Generate an App Password for ApplyOS
-   - Add `GMAIL_USER` and `GMAIL_APP_PASSWORD` to `.env.local`
-
-   **For detailed instructions, see [EMAIL_SETUP.md](./EMAIL_SETUP.md)**
+   - Obtain SMTP settings from your email provider (host, port, user, password)
+   - Add the `SMTP_*` variables to `.env.local`
 
 ## Database Setup
 
@@ -517,7 +520,7 @@ npm run lint
 ApplyOS includes a comprehensive email system:
 
 -   **Queue-based delivery** - Emails queued in database, processed reliably
--   **SMTP via Gmail** - Uses app passwords for secure delivery
+-   **SMTP Support** - Generic SMTP integration for any email service
 -   **Retry mechanism** - Failed emails automatically retried
 -   **Status tracking** - Monitor delivery status per email
 -   **Templates**:
@@ -583,8 +586,14 @@ ApplyOS includes internal tools for marketing content generation:
     -   `NEXT_PUBLIC_SUPABASE_URL`
     -   `NEXT_PUBLIC_SUPABASE_ANON_KEY`
     -   `GEMINI_API_KEY`
-    -   `GMAIL_USER` (if using email)
-    -   `GMAIL_APP_PASSWORD` (if using email)
+    -   `SMTP_HOST`
+    -   `SMTP_PORT`
+    -   `SMTP_USER`
+    -   `SMTP_PASS`
+    -   `SMTP_SECURE`
+    -   `SMTP_FROM_NAME`
+    -   `SMTP_FROM_EMAIL`
+    -   `ADMIN_EMAIL` (optional)
     -   `CRON_SECRET` (if using cron jobs)
     -   `SUPABASE_SERVICE_ROLE_KEY` (optional)
     -   `NEXT_PUBLIC_APP_URL` (your production URL)

@@ -4,14 +4,14 @@
  */
 
 export const emailConfig = {
-  // Gmail SMTP Configuration
-  gmail: {
-    host: 'smtp.gmail.com',
-    port: 587,
-    secure: false, // Use TLS (not SSL)
+  // SMTP Configuration (Private Domain or other providers)
+  smtp: {
+    host: process.env.SMTP_HOST || 'localhost',
+    port: parseInt(process.env.SMTP_PORT || '587', 10),
+    secure: process.env.SMTP_SECURE === 'true', // Use TLS if true
     auth: {
-      user: process.env.GMAIL_USER,
-      pass: process.env.GMAIL_APP_PASSWORD,
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
     },
   },
 
@@ -27,8 +27,8 @@ export const emailConfig = {
 
   // Email sender settings
   from: {
-    name: 'ApplyOS',
-    email: process.env.GMAIL_USER || 'noreply@applyos.io',
+    name: process.env.SMTP_FROM_NAME || 'ApplyOS',
+    email: process.env.SMTP_FROM_EMAIL || process.env.SMTP_USER || 'noreply@applyos.io',
   },
 
   // Application settings
@@ -41,9 +41,9 @@ export const emailConfig = {
 };
 
 // Validate required environment variables
-if (!process.env.GMAIL_USER || !process.env.GMAIL_APP_PASSWORD) {
+if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SMTP_HOST) {
   console.warn(
-    'Warning: GMAIL_USER or GMAIL_APP_PASSWORD not set. Email functionality will not work.'
+    'Warning: SMTP_USER, SMTP_PASS, or SMTP_HOST not set. Email functionality will not work.'
   );
 }
 
