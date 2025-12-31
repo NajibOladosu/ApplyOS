@@ -45,6 +45,7 @@ import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
 import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
 import type { InterviewSession } from "@/types/database"
+import { AnalysisTab } from "@/components/applications/analysis-tab"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -854,7 +855,7 @@ export default function ApplicationDetailPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-4 w-full sm:w-auto">
+            <TabsList className="grid grid-cols-5 w-full sm:w-auto">
               <TabsTrigger
                 value="questions"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
@@ -878,6 +879,12 @@ export default function ApplicationDetailPage() {
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
               >
                 Notes
+              </TabsTrigger>
+              <TabsTrigger
+                value="analysis"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+              >
+                Analysis
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1453,6 +1460,11 @@ export default function ApplicationDetailPage() {
               })()}
             </div>
           </TabsContent>
+
+          {/* Analysis Tab */}
+          <TabsContent value="analysis" className="space-y-6 mt-0">
+            {application && <AnalysisTab application={application} documents={documents} />}
+          </TabsContent>
         </Tabs>
 
       </div>
@@ -1602,6 +1614,6 @@ export default function ApplicationDetailPage() {
         isLoading={!!deletingSessionId}
         variant="destructive"
       />
-    </DashboardLayout>
+    </DashboardLayout >
   )
 }
