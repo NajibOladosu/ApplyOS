@@ -5,7 +5,7 @@
 
 import nodemailer from 'nodemailer';
 import type { Transporter, TransportOptions } from 'nodemailer';
-import { emailConfig } from './config';
+import { getEmailConfig } from './config';
 
 let transporter: Transporter | null = null;
 
@@ -24,6 +24,7 @@ export const getTransporter = () => {
     );
   }
 
+  const emailConfig = getEmailConfig();
   const transportOptions: any = {
     host: emailConfig.smtp.host,
     port: emailConfig.smtp.port,
@@ -40,19 +41,6 @@ export const getTransporter = () => {
       rateLimit: 14, // max 14 messages per rateDelta
     },
   };
-
-  // Add DKIM signing if configured
-  if (
-    emailConfig.dkim.domainName &&
-    emailConfig.dkim.keySelector &&
-    emailConfig.dkim.privateKey
-  ) {
-    transportOptions.dkim = {
-      domainName: emailConfig.dkim.domainName,
-      keySelector: emailConfig.dkim.keySelector,
-      privateKey: emailConfig.dkim.privateKey.replace(/\\n/g, '\n'),
-    };
-  }
 
   transporter = nodemailer.createTransport(transportOptions as TransportOptions);
 
@@ -85,6 +73,7 @@ export const sendEmailViaSMTP = async (
   textBody?: string
 ) => {
   const transporter = getTransporter();
+  const emailConfig = getEmailConfig();
 
   const mailOptions = {
     from: `${emailConfig.from.name} <${emailConfig.from.email}>`,

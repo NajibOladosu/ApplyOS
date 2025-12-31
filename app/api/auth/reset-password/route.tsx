@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import { render } from '@react-email/render'
 import ResetPasswordTemplate from '@/emails/reset-password'
 import { sendEmailViaSMTP } from '@/lib/email/transport'
-import { emailConfig } from '@/lib/email/config'
+import { getEmailConfig } from '@/lib/email/config'
 import type { Database } from '@/types/supabase'
 
 export async function POST(request: Request) {
@@ -32,10 +32,11 @@ export async function POST(request: Request) {
             .eq('email', email)
             .limit(1)
 
-        const userName = (users && users.length > 0 && users[0].name) || email.split('@')[0]
+        const userName = (users as any[] && (users as any[]).length > 0 && (users as any[])[0].name) || email.split('@')[0]
 
         // 2. Generate recovery link
         // We use process.env.NEXT_PUBLIC_APP_URL for the redirect
+        const emailConfig = getEmailConfig()
         const redirectTo = `${emailConfig.appUrl}/auth/update-password`
 
         const { data, error: linkError } = await adminClient.auth.admin.generateLink({
@@ -59,17 +60,17 @@ export async function POST(request: Request) {
 
         // 3. Render and send email
         const htmlBody = await render(
-            ResetPasswordTemplate({
-                userName,
-                resetUrl,
-            })
+            <ResetPasswordTemplate
+                userName={ userName }
+                resetUrl = { resetUrl }
+            />
         )
 
         const textBody = await render(
-            ResetPasswordTemplate({
-                userName,
-                resetUrl,
-            }),
+            <ResetPasswordTemplate
+                userName={ userName }
+                resetUrl = { resetUrl }
+            />,
             { plainText: true }
         )
 
