@@ -79,9 +79,7 @@ export default function Home() {
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1.5">
-              <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-            </div>
+            <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
             <span className="text-xl font-bold font-mono">
               <span className="text-primary">Apply</span>
               <span className="text-white">OS</span>
@@ -264,9 +262,12 @@ export default function Home() {
 
           {/* Brand Section */}
           <div>
-            <h2 className="font-mono font-bold text-xl mb-4 text-white">
-              <span className="text-primary">Apply</span>OS
-            </h2>
+            <div className="flex items-center space-x-2 mb-4">
+              <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
+              <span className="text-xl font-bold font-mono text-white">
+                <span className="text-primary">Apply</span>OS
+              </span>
+            </div>
             <p className="text-muted-foreground text-sm leading-relaxed max-w-sm font-sans">
               ApplyOS is the definitive <strong>AI-powered application manager</strong> designed to streamline your career
               growth. By leveraging advanced <strong>AI application autofill</strong> technology, we help

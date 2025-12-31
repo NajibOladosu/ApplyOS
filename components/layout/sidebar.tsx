@@ -74,9 +74,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           {/* Logo */}
           <div className="flex h-16 flex-shrink-0 items-center border-b border-border px-6 justify-between">
             <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavClick}>
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 p-1.5">
-                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-              </div>
+              <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
               <span className="text-xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
                 <span className="text-white">OS</span>
