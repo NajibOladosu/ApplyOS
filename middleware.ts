@@ -83,7 +83,13 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to dashboard if accessing auth pages while logged in
-  if ((request.nextUrl.pathname.startsWith('/auth/login') || request.nextUrl.pathname.startsWith('/auth/signup')) && user) {
+  // NOTE: We don't redirect from /auth/update-password because users landing there via a recovery link 
+  // are already considered "authenticated" by Supabase in order to perform the update.
+  const isAuthPage = request.nextUrl.pathname.startsWith('/auth/login') ||
+    request.nextUrl.pathname.startsWith('/auth/signup') ||
+    request.nextUrl.pathname.startsWith('/auth/forgot-password')
+
+  if (isAuthPage && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
