@@ -1,18 +1,20 @@
-
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { analyzeResumeMatch } from '@/lib/ai'
-import { getApplication } from '@/lib/services/applications'
-import { getDocumentById, buildContextFromDocument } from '@/lib/services/documents'
+import { buildContextFromDocument } from '@/lib/services/documents' // Keep helper, it's pure logic
 
-export async function POST(req: Request) {
+export const dynamic = 'force-dynamic'
+
+export async function POST(req: NextRequest) {
     try {
-        const supabase = createRouteHandlerClient({ cookies })
-        const { data: { user } } = await supabase.auth.getUser()
+        const supabase = await createClient()
+        const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+        console.log('[API Debug] User:', user?.id)
+        console.log('[API Debug] Auth Error:', authError)
 
         if (!user) {
-            return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+            return NextResponse.json({ error: 'Unauthorized', details: authError }, { status: 401 })
         }
 
         const body = await req.json()
@@ -25,21 +27,34 @@ export async function POST(req: Request) {
             )
         }
 
-        // Parallel fetch for speed
-        const [application, document] = await Promise.all([
-            getApplication(applicationId),
-            getDocumentById(documentId)
+        // Parallel fetch using the authenticated supabase client
+        const [appResult, docResult] = await Promise.all([
+            supabase
+                .from('applications')
+                .select('*')
+                .eq('id', applicationId)
+                .single(),
+            supabase
+                .from('documents')
+                .select('*')
+                .eq('id', documentId)
+                .single()
         ])
 
-        if (!application) {
-            return NextResponse.json({ error: 'Application not found' }, { status: 404 })
+        const application = appResult.data
+        const document = docResult.data
+
+        if (appResult.error || !application) {
+            console.error("Application fetch error", appResult.error)
+            return NextResponse.json({ error: 'Application not found or access denied' }, { status: 404 })
         }
 
-        if (!document) {
-            return NextResponse.json({ error: 'Document not found' }, { status: 404 })
+        if (docResult.error || !document) {
+            console.error("Document fetch error", docResult.error)
+            return NextResponse.json({ error: 'Document not found or access denied' }, { status: 404 })
         }
 
-        // Check ownership/permissions (implicit in service calls usually, but good to be safe)
+        // Ownership check is technically handled by RLS, but explicit check doesn't hurt
         if (application.user_id !== user.id || document.user_id !== user.id) {
             return NextResponse.json({ error: 'Unauthorized access to resources' }, { status: 403 })
         }
