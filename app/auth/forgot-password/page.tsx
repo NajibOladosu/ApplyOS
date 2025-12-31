@@ -22,20 +22,25 @@ export default function ForgotPasswordPage() {
         setError("")
         setSuccess(false)
 
-        // Use process.env.NEXT_PUBLIC_APP_URL or fall back to origin
-        const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
-        const redirectTo = `${origin}/auth/update-password`
+        try {
+            const response = await fetch('/api/auth/reset-password', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email }),
+            })
 
-        const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            redirectTo,
-        })
+            const data = await response.json()
 
-        if (error) {
-            setError(error.message)
-        } else {
-            setSuccess(true)
+            if (response.ok) {
+                setSuccess(true)
+            } else {
+                setError(data.error || 'Failed to send reset link')
+            }
+        } catch (err) {
+            setError('An error occurred. Please try again.')
+        } finally {
+            setLoading(false)
         }
-        setLoading(false)
     }
 
     return (
