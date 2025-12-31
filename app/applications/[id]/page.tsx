@@ -759,31 +759,30 @@ export default function ApplicationDetailPage() {
                   No documents selected yet. Click "Add Document" to select documents.
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {selectedDocumentIds.map((docId) => {
                     const doc = documents.find((d) => d.id === docId)
                     if (!doc) return null
                     return (
                       <div
                         key={doc.id}
-                        className="flex items-center justify-between p-2 rounded bg-muted/50 border border-input"
+                        className="rounded-lg border p-3 flex items-center gap-3 transition-all hover:bg-muted relative group border-input bg-card"
                       >
-                        <div className="flex-1 min-w-0">
+                        <div className="p-2 rounded bg-background border flex items-center justify-center">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="overflow-hidden flex-1">
                           <p className="text-sm font-medium truncate">{doc.file_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.analysis_status === "success"
-                              ? "✓ Analyzed"
-                              : doc.analysis_status === "pending"
-                                ? "⏳ Analyzing..."
-                                : "✗ Not analyzed"}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {((doc.file_size || 0) / 1024).toFixed(0)} KB • {doc.analysis_status === "success" ? "Analyzed" : "Pending"}
                           </p>
                         </div>
                         <button
                           onClick={() => removeDocument(doc.id)}
-                          className="ml-2 p-1 hover:bg-muted rounded transition-colors"
-                          aria-label="Remove document"
+                          className="p-1 hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 absolute top-1 right-1"
+                          title="Remove document"
                         >
-                          <X className="h-4 w-4 text-muted-foreground" />
+                          <X className="h-3 w-3" />
                         </button>
                       </div>
                     )
