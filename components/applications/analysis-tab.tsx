@@ -93,6 +93,17 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
         return "bg-red-500"
     }
 
+    // Helper to render text with markdown bold support
+    const renderMarkdown = (text: string) => {
+        const parts = text.split(/(\*\*.*?\*\*)/g)
+        return parts.map((part, i) => {
+            if (part.startsWith('**') && part.endsWith('**')) {
+                return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
+            }
+            return <span key={i}>{part}</span>
+        })
+    }
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Section */}
@@ -135,7 +146,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                                             <div className="overflow-hidden">
                                                 <p className="text-sm font-medium truncate">{doc.file_name}</p>
                                                 <p className="text-xs text-muted-foreground truncate">
-                                                    {(doc.file_size / 1024).toFixed(0)} KB
+                                                    {((doc.file_size || 0) / 1024).toFixed(0)} KB
                                                 </p>
                                             </div>
                                             {selectedDocumentId === doc.id && (
@@ -266,7 +277,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                                         {analysis.strengths.map((str, i) => (
                                             <li key={i} className="flex items-start gap-2">
                                                 <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                                                <span className="text-sm">{str}</span>
+                                                <span className="text-sm">{renderMarkdown(str)}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -285,7 +296,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                                         {analysis.weaknesses.map((weak, i) => (
                                             <li key={i} className="flex items-start gap-2">
                                                 <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                                                <span className="text-sm">{weak}</span>
+                                                <span className="text-sm">{renderMarkdown(weak)}</span>
                                             </li>
                                         ))}
                                     </ul>
@@ -311,7 +322,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                                             <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
                                                 <span className="text-primary font-bold text-sm">{i + 1}</span>
                                             </div>
-                                            <p className="text-sm pt-1">{rec}</p>
+                                            <p className="text-sm pt-1">{renderMarkdown(rec)}</p>
                                         </div>
                                     ))}
                                 </div>
