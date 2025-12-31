@@ -19,29 +19,51 @@ export default function UpdatePasswordPage() {
     const supabase = createClient()
 
     useEffect(() => {
-        // Check if the user is arrived via a reset link (has a session or code)
+        // We use onAuthStateChange to detect when the session is established,
+        // which handles both PKCE (code exchange) and Implicit (hash parsing)
+        const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+            console.log("🔐 Auth state change:", event, session ? "Session exists" : "No session")
+
+            if (event === "PASSWORD_RECOVERY" || session) {
+                // Clear any "invalid link" error if we have a session or recovery event
+                setError("")
+            }
+        })
+
         const checkAuth = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
+            // Give the Supabase client a moment to parse the hash if it's an implicit flow
+            // Sometimes it's not ready immediately on mount
+            const { data: { session: initialSession } } = await supabase.auth.getSession()
 
-            // If no session, check for code in URL (PKCE)
-            if (!session) {
-                const url = new URL(window.location.href)
-                const code = url.searchParams.get('code')
+            if (initialSession) {
+                return
+            }
 
-                if (code) {
-                    const { error } = await supabase.auth.exchangeCodeForSession(code)
-                    if (error) {
-                        setError("The recovery link has expired or is invalid.")
-                    }
-                } else {
-                    // No session and no code? They shouldn't be here.
-                    // However, we can let them see the error message below.
-                    setError("You must use a valid recovery link to access this page.")
+            // If no session, check for code (PKCE)
+            const url = new URL(window.location.href)
+            const code = url.searchParams.get('code')
+
+            // Check for access_token in hash (Implicit Flow) - 
+            // Supabase client handles this, but we can check it to avoid showing the error too soon
+            const hasHash = window.location.hash && window.location.hash.includes('access_token=')
+
+            if (code) {
+                const { error } = await supabase.auth.exchangeCodeForSession(code)
+                if (error) {
+                    setError("The recovery link has expired or is invalid.")
                 }
+            } else if (!hasHash) {
+                // No session, no code, and NO hash? They shouldn't be here.
+                // We show the error, but we'll re-verify if a session appears later
+                setError("You must use a valid recovery link to access this page.")
             }
         }
 
         checkAuth()
+
+        return () => {
+            subscription.unsubscribe()
+        }
     }, [supabase.auth])
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
