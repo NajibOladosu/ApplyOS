@@ -13,6 +13,7 @@ import {
   Link,
 } from '@react-email/components';
 import { ApplyOSButton } from './components/button';
+import { ApplyOSLogo } from './components/logo';
 
 interface VerifyEmailProps {
   userName: string;
@@ -52,12 +53,13 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
               textAlign: 'center',
             }}
           >
+            <ApplyOSLogo width={40} height={40} />
             <Text
               style={{
                 fontSize: '28px',
                 fontWeight: '700',
                 color: '#000000',
-                margin: '0 0 10px 0',
+                margin: '10px 0 10px 0',
               }}
             >
               Verify Your Email
