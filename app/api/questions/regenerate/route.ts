@@ -32,9 +32,9 @@ export async function POST(req: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse
 
     const body = await req.json()
-    const { applicationId, questionId } = body
+    const { applicationId, questionId, extraContext } = body
 
-    console.log("Regenerate request:", { applicationId, questionId, hasBody: !!body })
+    console.log("Regenerate request:", { applicationId, questionId, hasBody: !!body, hasExtraContext: !!extraContext })
 
     if (!applicationId) {
       return NextResponse.json(
@@ -83,11 +83,13 @@ export async function POST(req: NextRequest) {
       experience?: string
       education?: string
       jobDescription?: string
+      extraInstructions?: string
     } = {
       resume: undefined,
       experience: undefined,
       education: undefined,
       jobDescription: app.job_description || undefined,
+      extraInstructions: extraContext || undefined,
     }
 
     // Get the documents associated with this application (using server client)
@@ -143,12 +145,15 @@ export async function POST(req: NextRequest) {
       const analyzedDocs = await getAnalyzedDocuments()
       console.log("Analyzed documents available:", analyzedDocs.length)
       if (analyzedDocs.length > 0) {
-        context = buildContextFromDocument(analyzedDocs[0])
+        const fallbackContext = buildContextFromDocument(analyzedDocs[0])
         console.log("Built context from fallback document:", {
-          hasResume: !!context.resume,
-          hasExperience: !!context.experience,
-          hasEducation: !!context.education
+          hasResume: !!fallbackContext.resume,
+          hasExperience: !!fallbackContext.experience,
+          hasEducation: !!fallbackContext.education
         })
+        if (fallbackContext.resume) context.resume = fallbackContext.resume
+        if (fallbackContext.experience) context.experience = fallbackContext.experience
+        if (fallbackContext.education) context.education = fallbackContext.education
       }
     }
 
@@ -156,7 +161,8 @@ export async function POST(req: NextRequest) {
       hasJobDescription: !!context.jobDescription,
       hasResume: !!context.resume,
       hasExperience: !!context.experience,
-      hasEducation: !!context.education
+      hasEducation: !!context.education,
+      hasExtraInstructions: !!context.extraInstructions
     })
 
     const updatedQuestions: Question[] = []
