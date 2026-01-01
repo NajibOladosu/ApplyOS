@@ -83,7 +83,7 @@ export async function callGeminiWithFallback(
       // Optimize for conversation: faster, more focused responses
       const generationConfig = complexity === 'SIMPLE' ? {
         temperature: 0.7,        // Lower = faster, more deterministic
-        maxOutputTokens: 150,    // Limit for brief conversation responses
+        maxOutputTokens: 1000,   // Increased from 150 to ensure full answers (100-200 words) aren't cut off
         topP: 0.8,
         topK: 20,
       } : undefined
