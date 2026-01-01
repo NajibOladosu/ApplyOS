@@ -2,6 +2,35 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || ''
+  const pathname = request.nextUrl.pathname
+
+  // ============================================================
+  // SUBDOMAIN ROUTING FOR BLOG
+  // ============================================================
+  // Detect if request is coming from blog.applyos.io subdomain
+  // Also support blog.localhost for local development
+  const isBlogSubdomain =
+    hostname.startsWith('blog.applyos.io') ||
+    hostname.startsWith('blog.localhost')
+
+  if (isBlogSubdomain) {
+    // Rewrite blog subdomain requests to internal /blog routes
+    // blog.applyos.io/ -> /blog
+    // blog.applyos.io/post-slug -> /blog/post-slug
+    const blogPath = pathname === '/' ? '/blog' : `/blog${pathname}`
+
+    // Create a new URL with the rewritten path
+    const url = request.nextUrl.clone()
+    url.pathname = blogPath
+
+    // Rewrite (not redirect) to keep the subdomain URL in the browser
+    return NextResponse.rewrite(url)
+  }
+
+  // ============================================================
+  // MAIN APP ROUTING (existing logic)
+  // ============================================================
   let response = NextResponse.next({
     request: {
       headers: request.headers,
