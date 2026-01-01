@@ -2,6 +2,7 @@ import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Metadata } from "next"
 import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime } from "@/lib/blog"
+import { MDXRemote } from 'next-mdx-remote/rsc'
 import { ArrowLeft, Calendar, Clock, Share2, Twitter, Linkedin } from "lucide-react"
 import { Button } from "@/components/ui/button"
 
@@ -59,52 +60,21 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         notFound()
     }
 
-    // Parse MDX content to HTML (simple conversion for now)
-    // For a full MDX solution, you'd use next-mdx-remote or similar
-    const contentHtml = post.content
-        .split('\n\n')
-        .map((paragraph, index) => {
-            // Handle headers
-            if (paragraph.startsWith('# ')) {
-                return `<h1 class="text-3xl font-bold mt-8 mb-4">${paragraph.slice(2)}</h1>`
-            }
-            if (paragraph.startsWith('## ')) {
-                return `<h2 class="text-2xl font-bold mt-8 mb-4">${paragraph.slice(3)}</h2>`
-            }
-            if (paragraph.startsWith('### ')) {
-                return `<h3 class="text-xl font-bold mt-6 mb-3">${paragraph.slice(4)}</h3>`
-            }
-
-            // Handle code blocks
-            if (paragraph.startsWith('```')) {
-                const lines = paragraph.split('\n')
-                const code = lines.slice(1, -1).join('\n')
-                return `<pre class="bg-secondary/50 p-4 rounded-lg overflow-x-auto my-4"><code>${code}</code></pre>`
-            }
-
-            // Handle lists
-            if (paragraph.startsWith('- ')) {
-                const items = paragraph.split('\n').map(item =>
-                    `<li class="ml-4">${item.slice(2)}</li>`
-                ).join('')
-                return `<ul class="list-disc list-inside my-4 space-y-2">${items}</ul>`
-            }
-
-            // Handle horizontal rules
-            if (paragraph.trim() === '---') {
-                return '<hr class="my-8 border-border" />'
-            }
-
-            // Handle emphasis and bold
-            let formatted = paragraph
-                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                .replace(/\*(.*?)\*/g, '<em>$1</em>')
-                .replace(/\[(.*?)\]\((.*?)\)/g, '<a href="$2" class="text-primary hover:underline">$1</a>')
-
-            // Regular paragraphs
-            return `<p class="text-muted-foreground leading-relaxed my-4">${formatted}</p>`
-        })
-        .join('')
+    // Define custom components for MDX
+    const components = {
+        h1: (props: any) => <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />,
+        h2: (props: any) => <h2 className="text-2xl font-bold mt-8 mb-4" {...props} />,
+        h3: (props: any) => <h3 className="text-xl font-bold mt-6 mb-3" {...props} />,
+        p: (props: any) => <p className="text-muted-foreground leading-relaxed my-4" {...props} />,
+        a: (props: any) => <a className="text-primary hover:underline" {...props} />,
+        ul: (props: any) => <ul className="list-disc list-inside my-4 space-y-2" {...props} />,
+        ol: (props: any) => <ol className="list-decimal list-inside my-4 space-y-2" {...props} />,
+        li: (props: any) => <li className="ml-4 text-muted-foreground" {...props} />,
+        blockquote: (props: any) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4 text-muted-foreground" {...props} />,
+        hr: (props: any) => <hr className="my-8 border-border" {...props} />,
+        pre: (props: any) => <pre className="bg-secondary/50 p-4 rounded-lg overflow-x-auto my-4 text-sm" {...props} />,
+        code: (props: any) => <code className="bg-secondary/50 px-1 py-0.5 rounded text-sm font-mono" {...props} />,
+    }
 
     const shareUrl = `https://blog.applyos.io/${slug}`
     const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}`
@@ -167,10 +137,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </header>
 
             {/* Article Content */}
-            <div
-                className="prose prose-invert max-w-none"
-                dangerouslySetInnerHTML={{ __html: contentHtml }}
-            />
+            <div className="prose prose-invert max-w-none">
+                <MDXRemote source={post.content} components={components} />
+            </div>
 
             {/* Share Section */}
             <div className="mt-12 pt-8 border-t border-border">
