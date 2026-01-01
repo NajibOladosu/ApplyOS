@@ -29,6 +29,16 @@ export async function middleware(request: NextRequest) {
   }
 
   // ============================================================
+  // MAIN DOMAIN REGULAR APP -> BLOG SUBDOMAIN REDIRECT
+  // ============================================================
+  // If user visits www.applyos.io/blog/..., redirect to blog.applyos.io/...
+  // This is a 301 Permanent Redirect, good for SEO
+  if (!isBlogSubdomain && pathname.startsWith('/blog')) {
+    const newPath = pathname.replace(/^\/blog/, '') || '/'
+    return NextResponse.redirect(new URL(newPath, 'https://blog.applyos.io'), 301)
+  }
+
+  // ============================================================
   // MAIN APP ROUTING (existing logic)
   // ============================================================
   let response = NextResponse.next({
