@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
 import { getNotifications } from "@/lib/services/notifications"
+import { ThemeToggle } from "@/components/theme-toggle"
 
 interface TopBarProps {
   onMenuClick?: () => void
@@ -78,6 +79,8 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
       {/* Right Side Actions */}
       <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
+        <ThemeToggle />
+
         {/* Notifications Bell */}
         <Button
           variant="ghost"

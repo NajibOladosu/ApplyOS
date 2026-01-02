@@ -17,44 +17,44 @@ const config: Config = {
     },
     extend: {
       colors: {
-        border: "#1A1A1A",
-        input: "#1A1A1A",
-        ring: "#00FF88",
-        background: "#0A0A0A",
-        foreground: "#EDEDED",
+        border: "hsl(var(--border))",
+        input: "hsl(var(--input))",
+        ring: "hsl(var(--ring))",
+        background: "hsl(var(--background))",
+        foreground: "hsl(var(--foreground))",
         primary: {
-          DEFAULT: "#00FF88",
-          foreground: "#0A0A0A",
+          DEFAULT: "hsl(var(--primary))",
+          foreground: "hsl(var(--primary-foreground))",
         },
         secondary: {
-          DEFAULT: "#101010",
-          foreground: "#B5B5B5",
+          DEFAULT: "hsl(var(--secondary))",
+          foreground: "hsl(var(--secondary-foreground))",
         },
         destructive: {
-          DEFAULT: "#FF4444",
-          foreground: "#EDEDED",
+          DEFAULT: "hsl(var(--destructive))",
+          foreground: "hsl(var(--destructive-foreground))",
         },
         muted: {
-          DEFAULT: "#101010",
-          foreground: "#B5B5B5",
+          DEFAULT: "hsl(var(--muted))",
+          foreground: "hsl(var(--muted-foreground))",
         },
         accent: {
-          DEFAULT: "#00FF88",
-          foreground: "#0A0A0A",
+          DEFAULT: "hsl(var(--accent))",
+          foreground: "hsl(var(--accent-foreground))",
         },
         popover: {
-          DEFAULT: "#101010",
-          foreground: "#EDEDED",
+          DEFAULT: "hsl(var(--popover))",
+          foreground: "hsl(var(--popover-foreground))",
         },
         card: {
-          DEFAULT: "#101010",
-          foreground: "#EDEDED",
+          DEFAULT: "hsl(var(--card))",
+          foreground: "hsl(var(--card-foreground))",
         },
       },
       borderRadius: {
-        lg: "1rem",
-        md: "0.75rem",
-        sm: "0.5rem",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
       },
       fontFamily: {
         sans: ["Manrope", "system-ui", "sans-serif"],
@@ -81,61 +81,61 @@ const config: Config = {
       typography: {
         DEFAULT: {
           css: {
-            color: "#EDEDED",
+            color: "hsl(var(--foreground))",
             a: {
-              color: "#00FF88",
+              color: "hsl(var(--primary))",
               "&:hover": {
-                color: "#00FF88",
+                color: "hsl(var(--primary))",
               },
             },
             strong: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               fontWeight: "700",
             },
             em: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
             },
             h1: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               fontWeight: "700",
             },
             h2: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               fontWeight: "700",
             },
             h3: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               fontWeight: "700",
             },
             h4: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               fontWeight: "700",
             },
             h5: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               fontWeight: "700",
             },
             h6: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               fontWeight: "700",
             },
             ul: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
             },
             ol: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
             },
             li: {
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
             },
             blockquote: {
-              color: "#EDEDED",
-              borderLeftColor: "#00FF88",
+              color: "hsl(var(--foreground))",
+              borderLeftColor: "hsl(var(--primary))",
               fontStyle: "italic",
             },
             code: {
-              color: "#00FF88",
-              backgroundColor: "#1A1A1A",
+              color: "hsl(var(--primary))",
+              backgroundColor: "hsl(var(--secondary))",
               padding: "0.25rem 0.5rem",
               borderRadius: "0.25rem",
               fontFamily: "monospace",
@@ -147,24 +147,24 @@ const config: Config = {
               content: '""',
             },
             pre: {
-              backgroundColor: "#1A1A1A",
-              color: "#EDEDED",
-              border: "1px solid #2A2A2A",
+              backgroundColor: "hsl(var(--card))",
+              color: "hsl(var(--foreground))",
+              border: "1px solid hsl(var(--border))",
               borderRadius: "0.5rem",
             },
             "pre code": {
               backgroundColor: "transparent",
-              color: "#EDEDED",
+              color: "hsl(var(--foreground))",
               padding: "0",
             },
             hr: {
-              borderColor: "#2A2A2A",
+              borderColor: "hsl(var(--border))",
             },
             "ul > li::marker": {
-              color: "#00FF88",
+              color: "hsl(var(--primary))",
             },
             "ol > li::marker": {
-              color: "#00FF88",
+              color: "hsl(var(--primary))",
             },
           },
         },

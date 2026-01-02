@@ -5,9 +5,83 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+
+    --primary: 152 100% 38%;
+    /* Slightly darker green for visibility on light */
+    --primary-foreground: 355.7 100% 97.3%;
+
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+
+    --accent: 152 100% 50%;
+    /* Keep bright green for accents */
+    --accent-foreground: 240 5.9% 10%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 152 100% 50%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 0 0% 3.9%;
+    /* #0A0A0A */
+    --foreground: 0 0% 93%;
+    /* #EDEDED */
+
+    --card: 0 0% 6.3%;
+    /* #101010 */
+    --card-foreground: 0 0% 93%;
+    /* #EDEDED */
+
+    --popover: 0 0% 6.3%;
+    --popover-foreground: 0 0% 93%;
+
+    --primary: 152 100% 50%;
+    /* #00FF88 */
+    --primary-foreground: 0 0% 3.9%;
+
+    --secondary: 0 0% 6.3%;
+    /* #101010 */
+    --secondary-foreground: 0 0% 71%;
+    /* #B5B5B5 */
+
+    --muted: 0 0% 6.3%;
+    --muted-foreground: 0 0% 71%;
+
+    --accent: 152 100% 50%;
+    --accent-foreground: 0 0% 3.9%;
+
+    --destructive: 0 100% 63%;
+    /* #FF4444 */
+    --destructive-foreground: 0 0% 93%;
+
+    --border: 0 0% 10.2%;
+    /* #1A1A1A */
+    --input: 0 0% 10.2%;
+    --ring: 152 100% 50%;
+  }
+
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -24,13 +98,11 @@
   }
 
   .glass-effect {
-    background: rgba(16, 16, 16, 0.7);
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(26, 26, 26, 0.5);
+    @apply bg-background/70 backdrop-blur-md border border-border/50;
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #00FF88 0%, #00CC6A 100%);
+    background: linear-gradient(135deg, hsl(var(--primary)) 0%, hsl(var(--accent)) 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
@@ -44,6 +116,7 @@
     0% {
       transform: translateX(-100%);
     }
+
     100% {
       transform: translateX(100%);
     }
@@ -52,7 +125,7 @@
 
 /* Tiptap Editor Placeholder */
 .tiptap p.is-editor-empty:first-child::before {
-  color: #6b7280;
+  @apply text-muted-foreground;
   content: attr(data-placeholder);
   float: left;
   height: 0;
@@ -66,14 +139,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0A0A0A;
+  @apply bg-background;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1A1A1A;
+  @apply bg-secondary;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00FF88;
+  @apply bg-primary;
 }
