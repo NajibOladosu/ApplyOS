@@ -83,7 +83,7 @@ export async function callGeminiWithFallback(
       // Optimize for conversation: faster, more focused responses
       const generationConfig = complexity === 'SIMPLE' ? {
         temperature: 0.7,        // Lower = faster, more deterministic
-        maxOutputTokens: 150,    // Limit for brief conversation responses
+        maxOutputTokens: 1000,   // Increased from 150 to ensure full answers (100-200 words) aren't cut off
         topP: 0.8,
         topK: 20,
       } : undefined
@@ -131,6 +131,7 @@ export async function generateAnswer(
     experience?: string
     education?: string
     jobDescription?: string
+    extraInstructions?: string
   }
 ): Promise<string> {
   if (!genAI) {
@@ -144,6 +145,8 @@ Question: ${question}
 ${context.jobDescription ? `Position/Opportunity Description:\n${context.jobDescription}\n\n` : ''}Candidate's Background:
 ${context.resume ? `Resume/Profile:\n${context.resume}` : '(No resume provided)'}
 
+${context.extraInstructions ? `Additional Instructions from User:\n${context.extraInstructions}\n` : ''}
+
 Important Instructions:
 - Write the answer in first person (as the candidate responding)
 - Do NOT provide templates, disclaimers, or bracketed placeholders
@@ -154,6 +157,7 @@ Important Instructions:
 - Make it specific to the candidate's actual experience
 - Between 100-200 words
 - Professional and compelling
+- If specific instructions were provided above, PRIORITIZE them while maintaining a professional tone
 
 Answer (write as if you are the candidate):`
 
