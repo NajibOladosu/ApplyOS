@@ -35,7 +35,7 @@ yarn-error.log*
 # local env files
 .env*.local
 .env
-/Trackly
+/archive
 
 # vercel
 .vercel
@@ -44,7 +44,6 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .git-filter-repo.py
-trackly-weekday-auto-publisher.json
 applyos-weekday-auto-publisher.json
 backfill-screenshots.js
 analyze-screenshots.js
