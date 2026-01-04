@@ -41,6 +41,39 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<ResumeAnalysisResult | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [analysisCache, setAnalysisCache] = useState<Record<string, ResumeAnalysisResult>>({})
+
+    // Initialize cache from documents
+    useEffect(() => {
+        const initialCache: Record<string, ResumeAnalysisResult> = {}
+        documents.forEach(doc => {
+            if (doc.analysis_result) {
+                initialCache[doc.id] = doc.analysis_result
+            }
+        })
+        setAnalysisCache(prev => ({ ...prev, ...initialCache }))
+    }, [documents])
+
+    // Update displayed analysis when selection changes
+    useEffect(() => {
+        if (!selectedDocumentId) {
+            setAnalysis(null)
+            return
+        }
+
+        const cached = analysisCache[selectedDocumentId]
+        if (cached) {
+            setAnalysis(cached)
+        } else {
+            // Check if the document has it (could be newer references)
+            const doc = documents.find(d => d.id === selectedDocumentId)
+            if (doc?.analysis_result) {
+                setAnalysis(doc.analysis_result)
+            } else {
+                setAnalysis(null)
+            }
+        }
+    }, [selectedDocumentId, analysisCache, documents])
 
     const handleAnalyze = async () => {
         if (!selectedDocumentId) return
@@ -72,6 +105,10 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             }
 
             setAnalysis(data.analysis)
+            setAnalysisCache(prev => ({
+                ...prev,
+                [selectedDocumentId]: data.analysis
+            }))
         } catch (err: any) {
             console.error('Analysis error:', err)
             setError(err.message || 'An unexpected error occurred during analysis.')

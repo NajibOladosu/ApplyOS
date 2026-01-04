@@ -89,6 +89,20 @@ export async function POST(req: NextRequest) {
         // Perform Analysis
         const analysis = await analyzeResumeMatch(resumeText, application.job_description)
 
+        // Save analysis to document
+        const { error: updateError } = await supabase
+            .from('documents')
+            .update({
+                analysis_result: analysis,
+                analysis_status: 'success',
+                summary_generated_at: new Date().toISOString()
+            })
+            .eq('id', documentId)
+
+        if (updateError) {
+            console.error('Failed to save analysis:', updateError)
+        }
+
         return NextResponse.json({ analysis })
 
     } catch (error: any) {
