@@ -1,39 +1,28 @@
-"use client"
-
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import type { Application, Document } from "@/types/database"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
 import {
     Loader2,
     Sparkles,
     AlertTriangle,
     CheckCircle,
     FileText,
-    ArrowRight,
     Target,
     XCircle,
     Lightbulb,
-    Search,
-    ScanSearch
+    ScanSearch,
+    Edit
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
+import { ResumeFeedback, type ResumeAnalysisResult } from "./resume-feedback"
+import { ResumeEditor } from "./resume-editor"
 
 interface AnalysisTabProps {
     application: Application
     documents: Document[]
-}
-
-type ResumeAnalysisResult = {
-    score: number           // 0-100
-    matchingKeywords: string[]
-    missingKeywords: string[]
-    strengths: string[]
-    weaknesses: string[]
-    recommendations: string[]
 }
 
 export function AnalysisTab({ application, documents }: AnalysisTabProps) {
@@ -41,6 +30,12 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<ResumeAnalysisResult | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [viewMode, setViewMode] = useState<"analysis" | "editor">("analysis")
+
+    const selectedDocument = useMemo(() =>
+        documents.find(d => d.id === selectedDocumentId),
+        [documents, selectedDocumentId]
+    )
 
     const handleAnalyze = async () => {
         if (!selectedDocumentId) return
@@ -80,28 +75,15 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
         }
     }
 
-    // Helper to format score color
-    const getScoreColor = (score: number) => {
-        if (score >= 80) return "text-green-500"
-        if (score >= 60) return "text-yellow-500"
-        return "text-red-500"
-    }
-
-    const getScoreBg = (score: number) => {
-        if (score >= 80) return "bg-green-500"
-        if (score >= 60) return "bg-yellow-500"
-        return "bg-red-500"
-    }
-
-    // Helper to render text with markdown bold support
-    const renderMarkdown = (text: string) => {
-        const parts = text.split(/(\*\*.*?\*\*)/g)
-        return parts.map((part, i) => {
-            if (part.startsWith('**') && part.endsWith('**')) {
-                return <strong key={i} className="font-semibold">{part.slice(2, -2)}</strong>
-            }
-            return <span key={i}>{part}</span>
-        })
+    if (viewMode === "editor" && analysis && selectedDocument) {
+        return (
+            <ResumeEditor
+                initialText={selectedDocument.extracted_text || ""}
+                analysis={analysis}
+                onBack={() => setViewMode("analysis")}
+                fileName={selectedDocument.file_name}
+            />
+        )
     }
 
     return (
@@ -163,24 +145,38 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                             )}
                         </div>
 
-                        <Button
-                            size="lg"
-                            onClick={handleAnalyze}
-                            disabled={!selectedDocumentId || isAnalyzing || !application.job_description}
-                            className="w-full md:w-auto min-w-[160px] glow-effect relative overflow-hidden group"
-                        >
-                            {isAnalyzing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Analyzing...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
-                                    Run Analysis
-                                </>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                            {analysis && selectedDocumentId && (
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    onClick={() => setViewMode("editor")}
+                                    className="w-full md:w-auto min-w-[140px]"
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Resume
+                                </Button>
                             )}
-                        </Button>
+
+                            <Button
+                                size="lg"
+                                onClick={handleAnalyze}
+                                disabled={!selectedDocumentId || isAnalyzing || !application.job_description}
+                                className="w-full md:w-auto min-w-[160px] glow-effect relative overflow-hidden group"
+                            >
+                                {isAnalyzing ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Analyzing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
+                                        {analysis ? "Re-Analyze" : "Run Analysis"}
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
 
                     {error && (
@@ -195,141 +191,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             {/* Analysis Result */}
             <AnimatePresence mode="wait">
                 {analysis && !isAnalyzing && (
-                    <motion.div
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="space-y-6"
-                    >
-                        {/* Score Overview */}
-                        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Card className="md:col-span-1 overflow-hidden relative">
-                                <div className={cn("absolute inset-0 opacity-5", getScoreBg(analysis.score))} />
-                                <CardHeader className="pb-2">
-                                    <CardTitle>Match Score</CardTitle>
-                                    <CardDescription>Compatibility with Job Description</CardDescription>
-                                </CardHeader>
-                                <CardContent className="flex flex-col items-center justify-center py-6">
-                                    <div className="relative flex items-center justify-center h-32 w-32">
-                                        <svg className="h-full w-full -rotate-90 text-muted/20" viewBox="0 0 100 100">
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" />
-                                        </svg>
-                                        <motion.svg
-                                            initial={{ pathLength: 0 }}
-                                            animate={{ pathLength: analysis.score / 100 }}
-                                            transition={{ duration: 1.5, ease: "easeOut" }}
-                                            className={cn("h-full w-full -rotate-90 absolute inset-0", getScoreColor(analysis.score))}
-                                            viewBox="0 0 100 100"
-                                        >
-                                            <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray="251.2" strokeLinecap="round" />
-                                        </motion.svg>
-                                        <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className={cn("text-4xl font-bold", getScoreColor(analysis.score))}>
-                                                {analysis.score}
-                                            </span>
-                                            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">/ 100</span>
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-
-                            <Card className="md:col-span-2">
-                                <CardHeader>
-                                    <CardTitle className="text-red-500 flex items-center gap-2">
-                                        <AlertTriangle className="h-5 w-5" />
-                                        Critical ATS Missing Keywords
-                                    </CardTitle>
-                                    <CardDescription>
-                                        These keywords appear frequently in the job description but are missing from your resume.
-                                    </CardDescription>
-                                </CardHeader>
-                                <CardContent>
-                                    {analysis.missingKeywords.length > 0 ? (
-                                        <div className="flex flex-wrap gap-2">
-                                            {analysis.missingKeywords.map((keyword, i) => (
-                                                <Badge key={i} variant="outline" className="border-red-500/40 text-red-500 bg-red-500/5 px-3 py-1 text-sm font-medium">
-                                                    {keyword}
-                                                </Badge>
-                                            ))}
-                                        </div>
-                                    ) : (
-                                        <div className="flex items-center gap-2 text-green-500 bg-green-500/10 p-4 rounded-lg">
-                                            <CheckCircle className="h-5 w-5" />
-                                            <span className="font-medium">Great job! No critical keywords missing.</span>
-                                        </div>
-                                    )}
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Strengths & Weaknesses Grid */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-green-600 dark:text-green-400">
-                                        <Target className="h-5 w-5" />
-                                        Strengths
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <ul className="space-y-3">
-                                        {analysis.strengths.map((str, i) => (
-                                            <li key={i} className="flex items-start gap-2">
-                                                <CheckCircle className="h-5 w-5 text-green-500 shrink-0 mt-0.5" />
-                                                <span className="text-sm">{renderMarkdown(str)}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-
-                            <Card>
-                                <CardHeader>
-                                    <CardTitle className="flex items-center gap-2 text-red-600 dark:text-red-400">
-                                        <XCircle className="h-5 w-5" />
-                                        Weaknesses & Gaps
-                                    </CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <ul className="space-y-3">
-                                        {analysis.weaknesses.map((weak, i) => (
-                                            <li key={i} className="flex items-start gap-2">
-                                                <AlertTriangle className="h-5 w-5 text-red-500 shrink-0 mt-0.5" />
-                                                <span className="text-sm">{renderMarkdown(weak)}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
-                                </CardContent>
-                            </Card>
-                        </div>
-
-                        {/* Recommendations */}
-                        <Card className="border-primary/20 bg-primary/5">
-                            <CardHeader>
-                                <CardTitle className="flex items-center gap-2">
-                                    <Lightbulb className="h-5 w-5 text-primary" />
-                                    Actionable Recommendations
-                                </CardTitle>
-                                <CardDescription>
-                                    Specific steps to improve your resume for this application.
-                                </CardDescription>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="space-y-4">
-                                    {analysis.recommendations.map((rec, i) => (
-                                        <div key={i} className="flex gap-4 p-4 bg-background rounded-lg border shadow-sm">
-                                            <div className="h-8 w-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 border border-primary/20">
-                                                <span className="text-primary font-bold text-sm">{i + 1}</span>
-                                            </div>
-                                            <p className="text-sm pt-1">{renderMarkdown(rec)}</p>
-                                        </div>
-                                    ))}
-                                </div>
-                            </CardContent>
-                        </Card>
-
-                    </motion.div>
+                    <ResumeFeedback analysis={analysis} />
                 )}
             </AnimatePresence>
         </div>
