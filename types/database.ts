@@ -77,6 +77,7 @@ export interface Document {
   parsed_at: string | null
   application_id: string | null
   extracted_text: string | null
+  analysis_result: any | null // Using any for now to avoid circular deps or complexity, or define ResumeAnalysisResult here
 }
 
 export interface Notification {
