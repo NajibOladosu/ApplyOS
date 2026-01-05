@@ -103,6 +103,18 @@ export async function POST(req: NextRequest) {
             console.error('Failed to save analysis:', updateError)
         }
 
+        // Update application with last used document
+        const { error: appUpdateError } = await supabase
+            .from('applications')
+            .update({
+                last_analyzed_document_id: documentId
+            })
+            .eq('id', applicationId)
+
+        if (appUpdateError) {
+            console.error('Failed to update application last analyzed document:', appUpdateError)
+        }
+
         return NextResponse.json({ analysis })
 
     } catch (error: any) {

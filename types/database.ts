@@ -45,6 +45,7 @@ export interface Application {
   job_description: string | null
   ai_cover_letter: string | null
   manual_cover_letter: string | null
+  last_analyzed_document_id: string | null
   created_at: string
   updated_at: string
 }
