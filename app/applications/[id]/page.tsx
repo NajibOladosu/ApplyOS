@@ -1461,8 +1461,11 @@ export default function ApplicationDetailPage() {
           </TabsContent>
 
           {/* Analysis Tab */}
-          <TabsContent value="analysis" className="space-y-6 mt-0">
-            {application && <AnalysisTab application={application} documents={documents} />}
+          <TabsContent value="analysis" className="mt-6">
+            <AnalysisTab
+              application={application}
+              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
+            />
           </TabsContent>
         </Tabs>
 
