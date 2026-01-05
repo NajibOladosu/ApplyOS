@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
-import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments } from "@/lib/services/applications"
+import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/lib/services/applications"
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
@@ -103,17 +103,33 @@ export default function ApplicationDetailPage() {
       setError(null)
 
       try {
-        const [app, qs, docs, relatedDocIds, appNotes, sessions] = await Promise.all([
+        const [app, qs, docs, relatedDocIds, appNotes, sessions, appDocDetails] = await Promise.all([
           getApplication(id),
           getQuestionsByApplicationId(id),
           getDocuments(),
           getApplicationDocuments(id),
           getNotesByApplicationId(id),
           getInterviewSessions(id),
+          getApplicationDocumentDetails(id),
         ])
+
+        // Merge application-specific analysis into documents
+        const docsWithAnalysis = docs.map(doc => {
+          const details = appDocDetails.find((d: any) => d.document_id === doc.id)
+          // Always return a new object to avoid mutating 'doc' if it is reused
+          // Strictly use the application-specific details. If they don't exist,
+          // explicitly set analysis fields to null/default to avoid showing legacy global analysis.
+          return {
+            ...doc,
+            analysis_result: details?.analysis_result || null,
+            analysis_status: details?.analysis_status || 'not_analyzed',
+            summary_generated_at: details?.summary_generated_at || null
+          }
+        })
+
         setApplication(app)
         setQuestions(qs)
-        setDocuments(docs)
+        setDocuments(docsWithAnalysis)
         setNotes(appNotes)
         setInterviewSessions(sessions)
         setPendingStatus(app.status)
@@ -1461,8 +1477,11 @@ export default function ApplicationDetailPage() {
           </TabsContent>
 
           {/* Analysis Tab */}
-          <TabsContent value="analysis" className="space-y-6 mt-0">
-            {application && <AnalysisTab application={application} documents={documents} />}
+          <TabsContent value="analysis" className="mt-6">
+            <AnalysisTab
+              application={application}
+              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
+            />
           </TabsContent>
         </Tabs>
 

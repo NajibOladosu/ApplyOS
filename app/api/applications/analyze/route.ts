@@ -89,6 +89,36 @@ export async function POST(req: NextRequest) {
         // Perform Analysis
         const analysis = await analyzeResumeMatch(resumeText, application.job_description)
 
+        // Save analysis to document_analyses (dedicated table)
+        const { error: updateError } = await supabase
+            .from('document_analyses')
+            .upsert({
+                application_id: applicationId,
+                document_id: documentId,
+                analysis_result: analysis,
+                analysis_status: 'success',
+                summary_generated_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'application_id, document_id'
+            })
+
+        if (updateError) {
+            console.error('Failed to save analysis to document_analyses:', updateError)
+        }
+
+        // Update application with last used document
+        const { error: appUpdateError } = await supabase
+            .from('applications')
+            .update({
+                last_analyzed_document_id: documentId
+            })
+            .eq('id', applicationId)
+
+        if (appUpdateError) {
+            console.error('Failed to update application last analyzed document:', appUpdateError)
+        }
+
         return NextResponse.json({ analysis })
 
     } catch (error: any) {

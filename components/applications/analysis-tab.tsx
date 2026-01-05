@@ -1,4 +1,6 @@
-import { useState, useMemo } from "react"
+"use client"
+
+import { useState, useEffect, useMemo } from "react"
 import type { Application, Document } from "@/types/database"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -26,16 +28,51 @@ interface AnalysisTabProps {
 }
 
 export function AnalysisTab({ application, documents }: AnalysisTabProps) {
-    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
+    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+        application.last_analyzed_document_id || null
+    )
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<ResumeAnalysisResult | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [viewMode, setViewMode] = useState<"analysis" | "editor">("analysis")
+    const [analysisCache, setAnalysisCache] = useState<Record<string, ResumeAnalysisResult>>({})
 
     const selectedDocument = useMemo(() =>
         documents.find(d => d.id === selectedDocumentId),
         [documents, selectedDocumentId]
     )
+
+    // Initialize cache from documents
+    useEffect(() => {
+        const initialCache: Record<string, ResumeAnalysisResult> = {}
+        documents.forEach(doc => {
+            if (doc.analysis_result) {
+                initialCache[doc.id] = doc.analysis_result
+            }
+        })
+        setAnalysisCache(prev => ({ ...prev, ...initialCache }))
+    }, [documents])
+
+    // Update displayed analysis when selection changes
+    useEffect(() => {
+        if (!selectedDocumentId) {
+            setAnalysis(null)
+            return
+        }
+
+        const cached = analysisCache[selectedDocumentId]
+        if (cached) {
+            setAnalysis(cached)
+        } else {
+            // Check if the document has it (could be newer references)
+            const doc = documents.find(d => d.id === selectedDocumentId)
+            if (doc?.analysis_result) {
+                setAnalysis(doc.analysis_result)
+            } else {
+                setAnalysis(null)
+            }
+        }
+    }, [selectedDocumentId, analysisCache, documents])
 
     const handleAnalyze = async () => {
         if (!selectedDocumentId) return
@@ -67,6 +104,10 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             }
 
             setAnalysis(data.analysis)
+            setAnalysisCache(prev => ({
+                ...prev,
+                [selectedDocumentId]: data.analysis
+            }))
         } catch (err: any) {
             console.error('Analysis error:', err)
             setError(err.message || 'An unexpected error occurred during analysis.')
