@@ -116,15 +116,15 @@ export default function ApplicationDetailPage() {
         // Merge application-specific analysis into documents
         const docsWithAnalysis = docs.map(doc => {
           const details = appDocDetails.find((d: any) => d.document_id === doc.id)
-          if (details) {
-            return {
-              ...doc,
-              analysis_result: details.analysis_result,
-              analysis_status: details.analysis_status,
-              summary_generated_at: details.summary_generated_at
-            }
+          // Always return a new object to avoid mutating 'doc' if it is reused
+          // Strictly use the application-specific details. If they don't exist,
+          // explicitly set analysis fields to null/default to avoid showing legacy global analysis.
+          return {
+            ...doc,
+            analysis_result: details?.analysis_result || null,
+            analysis_status: details?.analysis_status || 'not_analyzed',
+            summary_generated_at: details?.summary_generated_at || null
           }
-          return doc
         })
 
         setApplication(app)
