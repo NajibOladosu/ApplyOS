@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
-import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments } from "@/lib/services/applications"
+import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/lib/services/applications"
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
@@ -103,17 +103,33 @@ export default function ApplicationDetailPage() {
       setError(null)
 
       try {
-        const [app, qs, docs, relatedDocIds, appNotes, sessions] = await Promise.all([
+        const [app, qs, docs, relatedDocIds, appNotes, sessions, appDocDetails] = await Promise.all([
           getApplication(id),
           getQuestionsByApplicationId(id),
           getDocuments(),
           getApplicationDocuments(id),
           getNotesByApplicationId(id),
           getInterviewSessions(id),
+          getApplicationDocumentDetails(id),
         ])
+
+        // Merge application-specific analysis into documents
+        const docsWithAnalysis = docs.map(doc => {
+          const details = appDocDetails.find((d: any) => d.document_id === doc.id)
+          if (details) {
+            return {
+              ...doc,
+              analysis_result: details.analysis_result,
+              analysis_status: details.analysis_status,
+              summary_generated_at: details.summary_generated_at
+            }
+          }
+          return doc
+        })
+
         setApplication(app)
         setQuestions(qs)
-        setDocuments(docs)
+        setDocuments(docsWithAnalysis)
         setNotes(appNotes)
         setInterviewSessions(sessions)
         setPendingStatus(app.status)
