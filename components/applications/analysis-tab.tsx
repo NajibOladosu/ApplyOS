@@ -37,7 +37,9 @@ type ResumeAnalysisResult = {
 }
 
 export function AnalysisTab({ application, documents }: AnalysisTabProps) {
-    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
+    const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(
+        application.last_analyzed_document_id || null
+    )
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<ResumeAnalysisResult | null>(null)
     const [error, setError] = useState<string | null>(null)
