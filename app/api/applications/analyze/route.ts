@@ -89,19 +89,22 @@ export async function POST(req: NextRequest) {
         // Perform Analysis
         const analysis = await analyzeResumeMatch(resumeText, application.job_description)
 
-        // Save analysis to application_documents (scoped to this application)
+        // Save analysis to document_analyses (dedicated table)
         const { error: updateError } = await supabase
-            .from('application_documents')
-            .update({
+            .from('document_analyses')
+            .upsert({
+                application_id: applicationId,
+                document_id: documentId,
                 analysis_result: analysis,
                 analysis_status: 'success',
-                summary_generated_at: new Date().toISOString()
+                summary_generated_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+            }, {
+                onConflict: 'application_id, document_id'
             })
-            .eq('application_id', applicationId)
-            .eq('document_id', documentId)
 
         if (updateError) {
-            console.error('Failed to save analysis to application_documents:', updateError)
+            console.error('Failed to save analysis to document_analyses:', updateError)
         }
 
         // Update application with last used document

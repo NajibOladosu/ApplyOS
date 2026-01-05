@@ -117,7 +117,7 @@ export async function getApplicationDocuments(applicationId: string) {
 export async function getApplicationDocumentDetails(applicationId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
-    .from('application_documents')
+    .from('document_analyses')
     .select('document_id, analysis_result, analysis_status, summary_generated_at')
     .eq('application_id', applicationId)
 
