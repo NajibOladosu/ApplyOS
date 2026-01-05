@@ -119,7 +119,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
     if (viewMode === "editor" && analysis && selectedDocument) {
         return (
             <ResumeEditor
-                initialText={selectedDocument.extracted_text || ""}
+                documentUrl={selectedDocument.file_url}
                 analysis={analysis}
                 onBack={() => setViewMode("analysis")}
                 fileName={selectedDocument.file_name}
