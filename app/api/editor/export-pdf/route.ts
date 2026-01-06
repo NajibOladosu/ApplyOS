@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from "next/server"
-import chromium from "@sparticuz/chromium"
-import puppeteer from "puppeteer-core"
+
+// Check if we're in development or if Chromium is available
+const isDevelopment = process.env.NODE_ENV === 'development'
+
+export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
     try {
@@ -10,45 +13,123 @@ export async function POST(req: NextRequest) {
             return new NextResponse("Invalid blocks", { status: 400 })
         }
 
-        // 1. Generate HTML
+        console.log("[PDF Export] Starting export for", blocks.length, "blocks")
+
+        // Try to use Puppeteer, but handle gracefully if it fails
+        let puppeteer: any
+        let chromium: any
+
+        try {
+            chromium = await import("@sparticuz/chromium")
+            puppeteer = await import("puppeteer-core")
+        } catch (importError) {
+            console.error("[PDF Export] Puppeteer not available:", importError)
+            return new NextResponse(
+                "PDF export is not available in this environment. Please ensure Puppeteer is properly installed.",
+                { status: 503 }
+            )
+        }
+
+        // Generate HTML with multi-page support
         const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
+                <meta charset="UTF-8">
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+                    
+                    @page {
+                        size: A4;
+                        margin: 20mm;
+                    }
+                    
+                    * {
+                        box-sizing: border-box;
+                    }
+                    
                     body { 
-                        font-family: 'Inter', -apple-system, sans-serif; 
+                        font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; 
                         margin: 0; 
-                        padding: 20mm; 
+                        padding: 0;
                         color: #111;
                         line-height: 1.5;
+                        font-size: 11pt;
                     }
-                    h1 { font-size: 28pt; margin: 0 0 4mm 0; text-align: center; font-weight: 700; color: #000; }
-                    .contact-line { font-size: 10pt; margin-bottom: 8mm; text-align: center; color: #444; }
+                    
+                    .page-content {
+                        max-width: 170mm;
+                        margin: 0 auto;
+                    }
+                    
+                    h1 { 
+                        font-size: 32px; 
+                        margin: 0 0 8px 0; 
+                        font-weight: 700; 
+                        color: #000;
+                        line-height: 1.2;
+                    }
+                    
+                    .contact-line { 
+                        font-size: 11pt; 
+                        margin-bottom: 16px; 
+                        color: #444; 
+                    }
+                    
                     h2 { 
-                        font-size: 14pt; 
-                        margin: 8mm 0 3mm 0; 
-                        border-bottom: 1.5pt solid #eee; 
-                        padding-bottom: 1mm;
+                        font-size: 18px; 
+                        margin: 24px 0 8px 0; 
+                        border-bottom: 2px solid #ddd; 
+                        padding-bottom: 4px;
                         font-weight: 700;
                         text-transform: uppercase;
-                        letter-spacing: 0.5pt;
+                        letter-spacing: 0.5px;
+                        color: #000;
+                        page-break-after: avoid;
                     }
-                    h3 { font-size: 11pt; margin: 5mm 0 1mm 0; font-weight: 600; color: #222; }
-                    p { font-size: 10pt; margin: 0 0 2mm 0; color: #333; }
-                    ul { margin: 0 0 4mm 0; padding-left: 5mm; }
-                    li { font-size: 10pt; margin-bottom: 1.5mm; color: #333; list-style-type: disc; }
+                    
+                    h3 { 
+                        font-size: 14px; 
+                        margin: 16px 0 4px 0; 
+                        font-weight: 600; 
+                        color: #222;
+                        page-break-after: avoid;
+                    }
+                    
+                    p { 
+                        font-size: 11pt; 
+                        margin: 0 0 6px 0; 
+                        color: #333;
+                        orphans: 3;
+                        widows: 3;
+                    }
+                    
+                    ul { 
+                        margin: 0 0 12px 0; 
+                        padding-left: 20px;
+                        page-break-inside: avoid;
+                    }
+                    
+                    li { 
+                        font-size: 11pt; 
+                        margin-bottom: 4px; 
+                        color: #333; 
+                        list-style-type: disc;
+                        orphans: 2;
+                        widows: 2;
+                    }
                     
                     .text-center { text-align: center; }
                     .text-right { text-align: right; }
+                    .text-left { text-align: left; }
                     .font-bold { font-weight: 700; }
                     .italic { font-style: italic; }
                     .underline { text-decoration: underline; }
                 </style>
             </head>
             <body>
-                ${blocks.map(block => {
+                <div class="page-content">
+                    ${blocks.map((block: any) => {
             const styleClass = [
                 block.styles?.align ? `text-${block.styles.align}` : '',
                 block.styles?.bold ? 'font-bold' : '',
@@ -56,16 +137,17 @@ export async function POST(req: NextRequest) {
                 block.styles?.underline ? 'underline' : ''
             ].filter(Boolean).join(' ')
 
-            if (block.type === 'h1') return `<h1 class="${styleClass}">${block.content}</h1>`
-            if (block.type === 'h2') return `<h2 class="${styleClass}">${block.content}</h2>`
-            if (block.type === 'h3') return `<h3 class="${styleClass}">${block.content}</h3>`
-            if (block.type === 'bullet') return `<li class="${styleClass}">${block.content}</li>`
-            if (block.type === 'paragraph' && block.styles?.align === 'center' && block.content.includes('|')) {
-                return `<div class="contact-line ${styleClass}">${block.content}</div>`
+            const content = String(block.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+            if (block.type === 'h1') return `<h1 class="${styleClass}">${content}</h1>`
+            if (block.type === 'h2') return `<h2 class="${styleClass}">${content}</h2>`
+            if (block.type === 'h3') return `<h3 class="${styleClass}">${content}</h3>`
+            if (block.type === 'bullet') return `<li class="${styleClass}">${content}</li>`
+            if (block.type === 'paragraph' && block.styles?.align === 'center' && content.includes('|')) {
+                return `<div class="contact-line ${styleClass}">${content}</div>`
             }
-            return `<p class="${styleClass}">${block.content}</p>`
-        }).reduce((acc, curr, idx, arr) => {
-            // Group bullets into <ul>
+            return `<p class="${styleClass}">${content}</p>`
+        }).reduce((acc: string, curr: string, idx: number, arr: string[]) => {
             if (curr.startsWith('<li')) {
                 if (idx === 0 || !arr[idx - 1].startsWith('<li')) {
                     return acc + '<ul>' + curr
@@ -77,38 +159,61 @@ export async function POST(req: NextRequest) {
             }
             return acc + curr
         }, "")}
+                </div>
             </body>
             </html>
         `
 
-        // 2. Launch Puppeteer
-        const browser = await puppeteer.launch({
-            args: chromium.args,
-            defaultViewport: { width: 794, height: 1123, deviceScaleFactor: 2 }, // A4 at 96 DPI
-            executablePath: await chromium.executablePath(),
-            headless: true, // Chromium.headless is recommended if available, but true is safe
-        })
+        console.log("[PDF Export] Launching Puppeteer...")
+
+        let browser
+        try {
+            browser = await puppeteer.default.launch({
+                args: [...chromium.default.args, '--no-sandbox', '--disable-setuid-sandbox'],
+                defaultViewport: { width: 794, height: 1123, deviceScaleFactor: 2 },
+                executablePath: await chromium.default.executablePath(),
+                headless: true,
+            })
+        } catch (launchError: any) {
+            console.error("[PDF Export] Failed to launch browser:", launchError)
+            return new NextResponse(
+                `Failed to launch PDF generator: ${launchError.message}`,
+                { status: 500 }
+            )
+        }
+
+        console.log("[PDF Export] Browser launched, creating page...")
 
         const page = await browser.newPage()
         await page.setContent(htmlContent, { waitUntil: 'networkidle0' })
 
+        console.log("[PDF Export] Generating PDF...")
+
         const pdf = await page.pdf({
             format: 'A4',
             printBackground: true,
-            margin: { top: '10mm', bottom: '10mm', left: '10mm', right: '10mm' }
+            margin: { top: '20mm', bottom: '20mm', left: '20mm', right: '20mm' },
+            preferCSSPageSize: true
         })
 
         await browser.close()
 
+        console.log("[PDF Export] PDF generated successfully,", pdf.length, "bytes")
+
         return new Response(pdf, {
             headers: {
                 "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename="${fileName || 'resume'}.pdf"`
+                "Content-Disposition": `attachment; filename="${fileName || 'resume'}.pdf"`,
+                "Content-Length": pdf.length.toString()
             }
         })
 
     } catch (error: any) {
-        console.error("PDF Export Error:", error)
-        return new NextResponse(error.message || "Internal Server Error", { status: 500 })
+        console.error("[PDF Export] Error:", error)
+        console.error("[PDF Export] Stack:", error.stack)
+        return new NextResponse(
+            `PDF Export Error: ${error.message}`,
+            { status: 500 }
+        )
     }
 }
