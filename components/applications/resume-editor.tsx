@@ -1,356 +1,373 @@
 "use client"
 
-import { useState, useRef, useEffect } from "react"
+import { useState, useRef, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { ArrowLeft, Download, FileText, Loader2, Save, Undo, ZoomIn, ZoomOut } from "lucide-react"
-import { ResumeFeedback, type ResumeAnalysisResult } from "./resume-feedback"
-import { Document, Page, pdfjs } from "react-pdf"
-import { useResizeObserver } from "usehooks-ts"
-import "react-pdf/dist/Page/AnnotationLayer.css"
-import "react-pdf/dist/Page/TextLayer.css"
+import { ArrowLeft, Download, Plus, Type, AlignLeft, AlignCenter, AlignRight, Bold, Italic, List, Trash2 } from "lucide-react"
+import { type ResumeAnalysisResult } from "./resume-feedback"
+import { cn } from "@/lib/utils"
 
-// Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
+// --- Types ---
+
+export type BlockType = 'h1' | 'h2' | 'h3' | 'paragraph' | 'bullet'
+
+export interface BlockStyles {
+    bold?: boolean
+    italic?: boolean
+    underline?: boolean
+    align?: 'left' | 'center' | 'right' | 'justify'
+}
+
+export interface EditorBlock {
+    id: string
+    type: BlockType
+    content: string
+    styles?: BlockStyles
+}
 
 interface ResumeEditorProps {
     documentUrl: string
-    analysis: ResumeAnalysisResult
+    analysis: ResumeAnalysisResult | null
+    parsedData: any
     onBack: () => void
     fileName: string
 }
 
-interface Replacement {
-    id: string
-    page: number
-    rect: { x: number; y: number; w: number; h: number }
-    originalText: string
-    newText: string
-    style: {
-        fontSize: number
-        fontFamily: string
-        color: string
+// --- Constants ---
+
+const A4_WIDTH_MM = 210
+const A4_HEIGHT_MM = 297
+
+// --- Initial Data Conversion ---
+
+const createBlock = (type: BlockType, content: string, styles: BlockStyles = {}): EditorBlock => ({
+    id: Math.random().toString(36).substr(2, 9),
+    type,
+    content,
+    styles
+})
+
+// Convert the analysis/parsed data into initial blocks
+const getInitialBlocks = (analysis: ResumeAnalysisResult | null, parsedData: any): EditorBlock[] => {
+    const blocks: EditorBlock[] = []
+
+    // 1. Header (Name & Contact)
+    // parsedData usually has: name, email, phone, location, links
+    const name = parsedData?.name || "Your Name"
+    const contactParts = []
+    if (parsedData?.email) contactParts.push(parsedData.email)
+    if (parsedData?.phone) contactParts.push(parsedData.phone)
+    if (parsedData?.location) contactParts.push(parsedData.location)
+    if (parsedData?.links && Array.isArray(parsedData.links)) {
+        parsedData.links.forEach((l: string) => contactParts.push(l))
     }
-}
+    const contactLine = contactParts.join(" | ") || "email@example.com | (555) 123-4567 | City, State"
 
-export function ResumeEditor({ documentUrl, analysis, onBack, fileName }: ResumeEditorProps) {
-    const [numPages, setNumPages] = useState<number>(0)
-    const [scale, setScale] = useState(1.0)
-    const containerRef = useRef<HTMLDivElement>(null)
-    const [containerWidth, setContainerWidth] = useState<number>(0)
+    blocks.push(createBlock('h1', name, { align: 'center', bold: true }))
+    blocks.push(createBlock('paragraph', contactLine, { align: 'center' }))
 
-    // Editing State
-    const [replacements, setReplacements] = useState<Replacement[]>([])
-    const [activeEdit, setActiveEdit] = useState<{
-        rect: { top: number; left: number; width: number; height: number }
-        pageIndex: number
-        originalText: string
-        originalStyle: any
-    } | null>(null)
-    const [editText, setEditText] = useState("")
-
-    // API State
-    const [isSaving, setIsSaving] = useState(false)
-    const [loadError, setLoadError] = useState<Error | null>(null)
-
-    const onDocumentLoadError = (error: Error) => {
-        console.error("PDF Load Error:", error)
-        setLoadError(error)
-    }
-
-    // Handle container resize to fit PDF width
-    useResizeObserver({
-        ref: containerRef,
-        onResize: ({ width }: { width: number }) => {
-            setContainerWidth(width)
-        },
-    })
-
-    // Compute scale to fit width with some padding
-    useEffect(() => {
-        if (containerWidth) {
-            // A4 is roughly 595pt width. 
-            // If container is 800px, scale ~ 1.3
-            // but we'll let user control scale or auto-fit.
-            // For now default to 1 or basic responsiveness
-            if (containerWidth < 600) {
-                setScale(containerWidth / 620)
-            } else {
-                setScale(1.0)
-            }
-        }
-    }, [containerWidth])
-
-    const onDocumentLoadSuccess = ({ numPages }: { numPages: number }) => {
-        setNumPages(numPages)
+    // 2. Summary
+    // Parsing might have 'summary' or 'professional_summary'
+    const summary = parsedData?.summary || parsedData?.professional_summary
+    if (summary) {
+        blocks.push(createBlock('h2', "Professional Summary", { bold: true }))
+        blocks.push(createBlock('paragraph', summary))
+    } else if (analysis?.strengths && analysis.strengths.length > 0) {
+        // Fallback to analysis strengths if no summary parsed
+        blocks.push(createBlock('h2', "Professional Summary", { bold: true }))
+        blocks.push(createBlock('paragraph', "Driven professional with a focus on delivering high-quality results."))
     }
 
-    const handleTextLayerClick = (e: any, pageIndex: number) => {
-        // Only allow clicking if target is a span (text item)
-        if (e.target.tagName !== 'SPAN') return
+    // 3. Experience
+    if (parsedData?.experience && Array.isArray(parsedData.experience) && parsedData.experience.length > 0) {
+        blocks.push(createBlock('h2', "Experience", { bold: true }))
 
-        const span = e.target as HTMLSpanElement
-        const rect = span.getBoundingClientRect()
-        const parentRect = span.closest('.react-pdf__Page')?.getBoundingClientRect()
+        parsedData.experience.forEach((exp: any) => {
+            const title = exp.role || exp.title || "Job Title"
+            const company = exp.company || "Company"
+            const date = `${exp.start_date || ""} - ${exp.end_date || "Present"}`
+            const location = exp.location || ""
 
-        if (!parentRect) return
+            blocks.push(createBlock('h3', `${title} at ${company}`, { bold: true }))
+            blocks.push(createBlock('paragraph', `${date} ${location ? "| " + location : ""}`, { italic: true }))
 
-        // Calculate relative position to the Page
-        const relativeRect = {
-            top: rect.top - parentRect.top,
-            left: rect.left - parentRect.left,
-            width: rect.width,
-            height: rect.height
-        }
-
-        // Get computed style for font inference
-        const computedStyle = window.getComputedStyle(span)
-
-        setActiveEdit({
-            rect: relativeRect,
-            pageIndex: pageIndex + 1, // 1-based for API
-            originalText: span.textContent || "",
-            originalStyle: {
-                fontSize: parseFloat(computedStyle.fontSize),
-                fontFamily: computedStyle.fontFamily,
-                color: computedStyle.color
+            if (exp.description) {
+                // Try to split description into bullets if it looks like a list or has newlines
+                const lines = exp.description.split('\n').filter((l: string) => l.trim().length > 0)
+                if (lines.length > 1) {
+                    lines.forEach((line: string) => {
+                        const cleanLine = line.replace(/^[-•*]\s*/, "") // Remove existing bullet chars
+                        blocks.push(createBlock('bullet', cleanLine))
+                    })
+                } else {
+                    blocks.push(createBlock('paragraph', exp.description))
+                }
             }
         })
-        setEditText(span.textContent || "")
+    } else {
+        // Fallback template if absolutely no data
+        if (blocks.length === 2 && !summary) { // Only name/contact so far
+            blocks.push(createBlock('h2', "Experience", { bold: true }))
+            blocks.push(createBlock('h3', "Job Title at Company", { bold: true }))
+            blocks.push(createBlock('paragraph', "Date - Date | Location", { italic: true }))
+            blocks.push(createBlock('bullet', "Accomplished X using Y."))
+        }
     }
 
-    const commitEdit = () => {
-        if (!activeEdit) return
+    // 4. Education
+    if (parsedData?.education && Array.isArray(parsedData.education) && parsedData.education.length > 0) {
+        blocks.push(createBlock('h2', "Education", { bold: true }))
+        parsedData.education.forEach((edu: any) => {
+            const degree = edu.degree || "Degree"
+            const field = edu.field ? ` in ${edu.field}` : ""
+            const school = edu.institution || "University"
+            const date = `${edu.start_date || ""} - ${edu.end_date || ""}`
 
-        const id = Math.random().toString(36).substr(2, 9)
+            blocks.push(createBlock('paragraph', `${degree}${field} - ${school}`))
+            if (date.length > 3) blocks.push(createBlock('paragraph', date, { italic: true }))
+        })
+    }
 
-        // Convert CSS coordinates (scaled) to PDF coordinates (points)
-        // We assume React-PDF rendered at 'scale'. 
-        // PDF Points = CSS Pixels / scale
-        const pdfRect = {
-            x: activeEdit.rect.left / scale,
-            y: activeEdit.rect.top / scale,
-            w: activeEdit.rect.width / scale,
-            h: activeEdit.rect.height / scale
+    // 5. Skills
+    if (parsedData?.skills) {
+        blocks.push(createBlock('h2', "Skills", { bold: true }))
+
+        const allSkills = []
+        if (Array.isArray(parsedData.skills)) {
+            allSkills.push(...parsedData.skills)
+        } else {
+            // Structure might be { technical: [], soft: [] }
+            if (parsedData.skills.technical) allSkills.push(...parsedData.skills.technical)
+            if (parsedData.skills.soft) allSkills.push(...parsedData.skills.soft)
+            if (parsedData.skills.languages) allSkills.push(...parsedData.skills.languages)
+            if (parsedData.skills.tools) allSkills.push(...parsedData.skills.tools)
         }
 
-        // NOTE: iLovePDF/PDF coordinate system is usually Bottom-Left for Y.
-        // But many high-level "Edit" APIs usually abstract this or expect Top-Left if specifying "top/left".
-        // HOWEVER, standard PDF structure is Y-up.
-        // Ideally iLovePDF API documentation clarifies this.
-        // Typically, HTML-to-PDF APIs might use Top-Left. 
-        // For 'editpdf' tool with explicit coordinates, it often respects the standard PDF system (0,0 is bottom-left).
-        // Let's assume Top-Left for now as it's common in "Draw" overlays, 
-        // BUT we might need to invert Y: y_pdf = page_height - y_css.
-        // Since we don't have page height easily without querying, 
-        // and 'editpdf' usually allows placing relative to expected visual placement.
-        // Let's rely on standard Top-Left if possible or check output.
-        // Given we are sending this to our proxy, we can adjust there if needed.
-        // For now, we will send Top-Left coordinates.
-        // *Correction*: We need valid PDF coordinates.
-        // For simplicity in this iteration, we send the rect as is and let the backend/service handle coordinate checks if needed.
+        if (allSkills.length > 0) {
+            blocks.push(createBlock('paragraph', allSkills.join(" • ")))
+        }
+    }
 
-        setReplacements(prev => [
-            ...prev,
-            {
-                id,
-                page: activeEdit.pageIndex,
-                rect: pdfRect,
-                originalText: activeEdit.originalText,
-                newText: editText,
-                style: activeEdit.originalStyle
+    return blocks
+}
+
+
+// --- Components ---
+
+const BlockRenderer = ({ block, onUpdate, onFocus, isActive }: {
+    block: EditorBlock,
+    onUpdate: (content: string) => void,
+    onFocus: () => void,
+    isActive: boolean
+}) => {
+    const Component =
+        block.type === 'h1' ? 'h1' :
+            block.type === 'h2' ? 'h2' :
+                block.type === 'h3' ? 'h3' :
+                    block.type === 'bullet' ? 'li' :
+                        'p'
+
+    const className = cn(
+        "outline-none min-h-[1.5em] transition-colors duration-200",
+        // Empty state
+        "empty:before:content-['Type...'] empty:before:text-gray-300",
+
+        // Typography - Improved Contrast
+        block.type === 'h1' && "text-4xl font-bold mb-4 text-foreground",
+        block.type === 'h2' && "text-2xl font-bold mt-6 mb-2 border-b-2 border-primary/20 pb-1 text-foreground",
+        block.type === 'h3' && "text-lg font-semibold mt-4 mb-1 text-foreground",
+        block.type === 'paragraph' && "text-base leading-relaxed mb-2 text-foreground/90",
+        block.type === 'bullet' && "text-base leading-relaxed ml-4 relative list-disc my-1 text-foreground/90",
+
+        // Styles
+        block.styles?.align === 'center' && "text-center",
+        block.styles?.align === 'right' && "text-right",
+        block.styles?.bold && "font-bold",
+        block.styles?.italic && "italic",
+        block.styles?.underline && "underline ml-1",
+
+        // Active State Indicator
+        isActive && "bg-blue-50/50 rounded -mx-2 px-2 ring-1 ring-blue-100"
+    )
+
+    return (
+        <Component
+            contentEditable
+            suppressContentEditableWarning
+            className={className}
+            onInput={(e: React.FormEvent<HTMLElement>) => onUpdate(e.currentTarget.innerText)}
+            onFocus={onFocus}
+            style={{
+                textAlign: block.styles?.align
+            }}
+        >
+            {block.content}
+        </Component>
+    )
+}
+
+
+export function ResumeEditor({ documentUrl, analysis, parsedData, onBack, fileName }: ResumeEditorProps) {
+    const [blocks, setBlocks] = useState<EditorBlock[]>([])
+    const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
+    const [isExporting, setIsExporting] = useState(false)
+
+    useEffect(() => {
+        // Initialize only if empty
+        if (blocks.length === 0) {
+            setBlocks(getInitialBlocks(analysis, parsedData))
+        }
+    }, [analysis, parsedData]) // Re-run if parsedData changes
+
+    const updateBlockContent = (id: string, content: string) => {
+        setBlocks(prev => prev.map(b => b.id === id ? { ...b, content } : b))
+    }
+
+    const addBlock = (type: BlockType = 'paragraph') => {
+        const newBlock = createBlock(type, "")
+        // Insert after active block or at end
+        if (activeBlockId) {
+            const index = blocks.findIndex(b => b.id === activeBlockId)
+            const newBlocks = [...blocks]
+            newBlocks.splice(index + 1, 0, newBlock)
+            setBlocks(newBlocks)
+            setActiveBlockId(newBlock.id)
+        } else {
+            setBlocks(prev => [...prev, newBlock])
+            setActiveBlockId(newBlock.id)
+        }
+    }
+
+    const deleteBlock = (id: string) => {
+        setBlocks(prev => prev.filter(b => b.id !== id))
+        if (activeBlockId === id) setActiveBlockId(null)
+    }
+
+    // --- Styles API ---
+    const toggleStyle = (style: keyof BlockStyles, value?: any) => {
+        if (!activeBlockId) return
+        setBlocks(prev => prev.map(b => {
+            if (b.id !== activeBlockId) return b
+            const currentStyles = b.styles || {}
+            return {
+                ...b,
+                styles: {
+                    ...currentStyles,
+                    // Toggle boolean if no value provided, else set value
+                    [style]: value !== undefined ? value : !currentStyles[style as keyof BlockStyles]
+                }
             }
-        ])
-
-        setActiveEdit(null)
-        setEditText("")
+        }))
     }
 
-    const cancelEdit = () => {
-        setActiveEdit(null)
-        setEditText("")
-    }
-
-    const removeReplacement = (id: string) => {
-        setReplacements(prev => prev.filter(r => r.id !== id))
-    }
-
-    const handleSaveDownload = async () => {
-        setIsSaving(true)
-        try {
-            const response = await fetch('/api/applications/edit-pdf', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    documentUrl,
-                    replacements
-                })
-            })
-
-            if (!response.ok) throw new Error("Failed to generate PDF")
-
-            const blob = await response.blob()
-            const url = window.URL.createObjectURL(blob)
-            const a = document.createElement('a')
-            a.href = url
-            a.download = `edited_${fileName}`
-            document.body.appendChild(a)
-            a.click()
-            window.URL.revokeObjectURL(url)
-            document.body.removeChild(a)
-        } catch (error) {
-            console.error(error)
-            alert("Failed to save/download PDF. Please try again.")
-        } finally {
-            setIsSaving(false)
-        }
+    const handleExport = async () => {
+        setIsExporting(true)
+        // TODO: Implement actual PDF export via Puppeteer API
+        await new Promise(r => setTimeout(r, 2000)) // Mock delay
+        alert("Export to PDF coming in Phase 2!")
+        setIsExporting(false)
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)] animate-in slide-in-from-right duration-300">
+        <div className="flex flex-col h-[calc(100vh-140px)] bg-gray-50/50 animate-in slide-in-from-right duration-300">
             {/* Toolbar */}
-            <div className="flex items-center justify-between mb-4 pb-4 border-b bg-background z-10">
+            <div className="h-16 border-b bg-background flex items-center justify-between px-6 z-10 shadow-sm shrink-0">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={onBack}>
+                    <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground">
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Back
                     </Button>
-                    <div>
-                        <h2 className="text-lg font-semibold flex items-center gap-2">
-                            <FileText className="h-5 w-5 text-primary" />
-                            Resume Editor
-                        </h2>
-                        <p className="text-xs text-muted-foreground hidden sm:block">
-                            Correct typos directly on the PDF
-                        </p>
+                    <div className="h-6 w-px bg-border mx-2" />
+
+                    {/* Formatting Tools */}
+                    <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('bold')}>
+                            <Bold className="h-4 w-4 text-foreground/70" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('italic')}>
+                            <Italic className="h-4 w-4 text-foreground/70" />
+                        </Button>
+                        <div className="h-4 w-px bg-border mx-1" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('align', 'left')}>
+                            <AlignLeft className="h-4 w-4 text-foreground/70" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('align', 'center')}>
+                            <AlignCenter className="h-4 w-4 text-foreground/70" />
+                        </Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('align', 'right')}>
+                            <AlignRight className="h-4 w-4 text-foreground/70" />
+                        </Button>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" size="sm" onClick={() => setScale(s => Math.max(0.5, s - 0.1))}>
-                        <ZoomOut className="h-4 w-4" />
-                    </Button>
-                    <span className="text-xs w-12 text-center">{Math.round(scale * 100)}%</span>
-                    <Button variant="outline" size="sm" onClick={() => setScale(s => Math.min(2.0, s + 0.1))}>
-                        <ZoomIn className="h-4 w-4" />
-                    </Button>
+                <div className="flex items-center gap-3">
+                    <div className="flex items-center gap-1 mr-4">
+                        <Button variant="outline" size="sm" onClick={() => addBlock('paragraph')} className="border-dashed">
+                            <Plus className="h-3 w-3 mr-1" /> Text
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => addBlock('h2')} className="border-dashed">
+                            <Type className="h-3 w-3 mr-1" /> Heading
+                        </Button>
+                        <Button variant="outline" size="sm" onClick={() => addBlock('bullet')} className="border-dashed">
+                            <List className="h-3 w-3 mr-1" /> List
+                        </Button>
+                    </div>
 
-                    <Button onClick={handleSaveDownload} disabled={isSaving || replacements.length === 0} className="glow-effect ml-2">
-                        {isSaving ? (
-                            <>
-                                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                Processing...
-                            </>
-                        ) : (
-                            <>
-                                <Download className="mr-2 h-4 w-4" />
-                                Download Edited PDF
-                            </>
-                        )}
+                    <Button onClick={handleExport} disabled={isExporting} className="glow-effect shadow-lg shadow-primary/20">
+                        <Download className="h-4 w-4 mr-2" />
+                        Download PDF
                     </Button>
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-6 h-full overflow-hidden">
-                {/* Left: Feedback */}
-                <div className="w-full lg:w-1/3 overflow-y-auto pr-2 custom-scrollbar border-r border-border/50 hidden lg:block">
-                    <div className="mb-4">
-                        <h3 className="font-medium text-sm text-muted-foreground mb-2">Analysis Suggestions</h3>
-                        <ResumeFeedback analysis={analysis} compact={true} />
-                    </div>
-                </div>
-
-                {/* Main: PDF Canvas */}
-                <div className="flex-1 bg-muted/20 relative overflow-auto rounded-lg border flex justify-center p-4 custom-scrollbar" ref={containerRef}>
-                    <div className="relative shadow-xl">
-
-
-                        <Document
-                            file={`/api/proxy-pdf?url=${encodeURIComponent(documentUrl)}`}
-                            onLoadSuccess={onDocumentLoadSuccess}
-                            onLoadError={onDocumentLoadError}
-                            loading={
-                                <div className="flex items-center justify-center p-20">
-                                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+            {/* Editor Surface */}
+            <div className="flex-1 overflow-auto p-8 flex justify-center custom-scrollbar bg-gray-100/50">
+                <div
+                    className="bg-white shadow-[0_0_50px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 transform-gpu ring-1 ring-black/5"
+                    style={{
+                        width: `${A4_WIDTH_MM}mm`,
+                        minHeight: `${A4_HEIGHT_MM}mm`,
+                        padding: '20mm', // Standard print margin
+                        // Scale could go here
+                    }}
+                    onClick={() => {
+                        // Deselect if clicking outside any block
+                        // setActiveBlockId(null) 
+                    }}
+                >
+                    <div className="flex flex-col h-full w-full">
+                        {blocks.map(block => (
+                            <div key={block.id} className="group relative -ml-12 pl-12">
+                                {/* Hover Actions Block - Floating left gutter */}
+                                <div className="absolute left-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center w-8">
+                                    <button
+                                        onClick={() => deleteBlock(block.id)}
+                                        className="text-muted-foreground hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors"
+                                        title="Delete block"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
                                 </div>
-                            }
-                            error={
-                                <div className="flex flex-col items-center justify-center p-20 text-red-500 max-w-sm text-center mx-auto">
-                                    <p className="font-semibold mb-2">Failed to load PDF</p>
-                                    <p className="text-xs font-mono bg-red-50 p-2 rounded text-red-700">
-                                        {loadError?.message || "Unknown error"}
-                                    </p>
-                                    <p className="text-xs text-muted-foreground mt-4">
-                                        URL: {documentUrl ? "Present" : "Missing"}
-                                    </p>
+
+                                <BlockRenderer
+                                    block={block}
+                                    isActive={activeBlockId === block.id}
+                                    onUpdate={(content) => updateBlockContent(block.id, content)}
+                                    onFocus={() => setActiveBlockId(block.id)}
+                                />
+                            </div>
+                        ))}
+
+                        {blocks.length === 0 && (
+                            <div className="flex flex-col items-center justify-center text-center text-muted-foreground mt-32 space-y-4">
+                                <div className="p-4 bg-muted/50 rounded-full">
+                                    <Type className="h-8 w-8 text-muted-foreground/50" />
                                 </div>
-                            }
-                        >
-                            {Array.from(new Array(numPages), (el, index) => (
-                                <div key={`page_${index + 1}`} className="mb-4 relative group">
-                                    <Page
-                                        pageNumber={index + 1}
-                                        scale={scale}
-                                        onClick={(e) => handleTextLayerClick(e, index)}
-                                        className="cursor-text"
-                                    />
-
-                                    {/* Render Replacements Overlays */}
-                                    {replacements.filter(r => r.page === index + 1).map(rep => (
-                                        <div
-                                            key={rep.id}
-                                            className="absolute bg-yellow-100/80 border border-yellow-400 text-black flex items-center justify-center cursor-pointer hover:bg-red-100/80 hover:border-red-400 group-hover/rep:block"
-                                            style={{
-                                                top: rep.rect.y * scale,
-                                                left: rep.rect.x * scale,
-                                                width: rep.rect.w * scale,
-                                                height: rep.rect.h * scale,
-                                                fontSize: Math.max(10, rep.rect.h * scale * 0.8) + 'px', // approximate font size
-                                                lineHeight: 1
-                                            }}
-                                            title="Click to remove this edit"
-                                            onClick={(e) => {
-                                                e.stopPropagation()
-                                                removeReplacement(rep.id)
-                                            }}
-                                        >
-                                            {rep.newText}
-                                        </div>
-                                    ))}
-
-                                    {/* Active Edit Input Overlay */}
-                                    {activeEdit && activeEdit.pageIndex === index + 1 && (
-                                        <div
-                                            className="absolute z-50 bg-background shadow-lg border border-primary rounded p-1 flex items-center gap-2"
-                                            style={{
-                                                top: activeEdit.rect.top - 40, // Floating above
-                                                left: activeEdit.rect.left,
-                                            }}
-                                        >
-                                            <input
-                                                autoFocus
-                                                value={editText}
-                                                onChange={e => setEditText(e.target.value)}
-                                                className="h-8 px-2 rounded border border-input text-sm min-w-[200px]"
-                                                onKeyDown={e => {
-                                                    if (e.key === 'Enter') commitEdit()
-                                                    if (e.key === 'Escape') cancelEdit()
-                                                }}
-                                            />
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-green-600" onClick={commitEdit}>
-                                                <Save className="h-4 w-4" />
-                                            </Button>
-                                            <Button size="icon" variant="ghost" className="h-8 w-8 text-red-500" onClick={cancelEdit}>
-                                                <Undo className="h-4 w-4" />
-                                            </Button>
-                                        </div>
-                                    )}
-
+                                <div>
+                                    <p className="font-medium">Page is empty</p>
+                                    <p className="text-sm">Add a block from the toolbar to start writing.</p>
                                 </div>
-                            ))}
-                        </Document>
+                            </div>
+                        )}
                     </div>
                 </div>
             </div>
