@@ -233,6 +233,8 @@ const BlockRenderer = ({ block, onUpdate, onFocus, isActive, onAIRewrite }: {
 
     const className = cn(
         "outline-none min-h-[1.2em] relative group/block py-1 px-2 -mx-2 rounded transition-all duration-200",
+        // Prevent text overflow
+        "break-words max-w-full overflow-hidden",
         // IMPROVED CONTRAST - Much darker text
         block.type === 'h1' && "text-[32px] font-bold mb-3 text-black leading-tight",
         block.type === 'h2' && "text-[18px] font-bold mt-6 mb-2 border-b-2 border-gray-300 pb-1 text-black uppercase tracking-wide",
@@ -580,14 +582,15 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                 )}
 
                 <div
-                    className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200"
+                    className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 mb-8 overflow-hidden"
                     style={{
                         width: `${A4_WIDTH_MM}mm`,
                         minHeight: `${A4_HEIGHT_MM}mm`,
                         padding: '20mm',
+                        boxSizing: 'border-box'
                     }}
                 >
-                    <div className="flex flex-col h-full w-full max-w-full">
+                    <div className="flex flex-col h-full w-full max-w-full overflow-hidden">
                         {blocks.map(block => (
                             <div key={block.id} className="relative group/line">
                                 <div className="absolute -left-10 top-2 opacity-0 group-hover/line:opacity-100 transition-opacity flex flex-col items-center">
