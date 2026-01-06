@@ -20,7 +20,12 @@ import {
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/lib/utils"
 import { ResumeFeedback, type ResumeAnalysisResult } from "./resume-feedback"
-import { ResumeEditor } from "./resume-editor"
+import dynamic from "next/dynamic"
+
+const ResumeEditor = dynamic(
+    () => import("./resume-editor").then((mod) => mod.ResumeEditor),
+    { ssr: false }
+)
 
 interface AnalysisTabProps {
     application: Application
