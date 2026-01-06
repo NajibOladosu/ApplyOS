@@ -11,7 +11,7 @@ import "react-pdf/dist/Page/AnnotationLayer.css"
 import "react-pdf/dist/Page/TextLayer.css"
 
 // Configure PDF.js worker
-pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.js`
+pdfjs.GlobalWorkerOptions.workerSrc = '/pdf.worker.min.mjs'
 
 interface ResumeEditorProps {
     documentUrl: string
@@ -51,6 +51,12 @@ export function ResumeEditor({ documentUrl, analysis, onBack, fileName }: Resume
 
     // API State
     const [isSaving, setIsSaving] = useState(false)
+    const [loadError, setLoadError] = useState<Error | null>(null)
+
+    const onDocumentLoadError = (error: Error) => {
+        console.error("PDF Load Error:", error)
+        setLoadError(error)
+    }
 
     // Handle container resize to fit PDF width
     useResizeObserver({
@@ -259,18 +265,26 @@ export function ResumeEditor({ documentUrl, analysis, onBack, fileName }: Resume
                 {/* Main: PDF Canvas */}
                 <div className="flex-1 bg-muted/20 relative overflow-auto rounded-lg border flex justify-center p-4 custom-scrollbar" ref={containerRef}>
                     <div className="relative shadow-xl">
+
+
                         <Document
-                            file={documentUrl}
+                            file={`/api/proxy-pdf?url=${encodeURIComponent(documentUrl)}`}
                             onLoadSuccess={onDocumentLoadSuccess}
+                            onLoadError={onDocumentLoadError}
                             loading={
                                 <div className="flex items-center justify-center p-20">
                                     <Loader2 className="h-8 w-8 animate-spin text-primary" />
                                 </div>
                             }
                             error={
-                                <div className="flex flex-col items-center justify-center p-20 text-red-500">
-                                    <p>Failed to load PDF.</p>
-                                    <p className="text-xs">The file might not be accessible or CORS policy blocked it.</p>
+                                <div className="flex flex-col items-center justify-center p-20 text-red-500 max-w-sm text-center mx-auto">
+                                    <p className="font-semibold mb-2">Failed to load PDF</p>
+                                    <p className="text-xs font-mono bg-red-50 p-2 rounded text-red-700">
+                                        {loadError?.message || "Unknown error"}
+                                    </p>
+                                    <p className="text-xs text-muted-foreground mt-4">
+                                        URL: {documentUrl ? "Present" : "Missing"}
+                                    </p>
                                 </div>
                             }
                         >

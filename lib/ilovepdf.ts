@@ -24,8 +24,8 @@ export class ILovePDFService {
     private token: string | null = null
 
     constructor() {
-        this.publicKey = process.env.ILovePDF_PUBLIC_KEY || ""
-        this.secretKey = process.env.ILovePDF_SECRET_KEY || ""
+        this.publicKey = process.env.ILOVEPDF_PUBLIC_KEY || ""
+        this.secretKey = process.env.ILOVEPDF_SECRET_KEY || ""
 
         if (!this.publicKey || !this.secretKey) {
             console.error("ILovePDF API Keys missing!")
