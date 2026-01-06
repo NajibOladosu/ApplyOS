@@ -65,6 +65,10 @@ interface ResumeEditorProps {
 
 const A4_WIDTH_MM = 210
 const A4_HEIGHT_MM = 297
+const A4_CONTENT_HEIGHT_MM = 247 // 297 - 50mm (20mm top + 30mm bottom padding for better margin)
+
+// Convert mm to pixels (96 DPI standard)
+const MM_TO_PX = 3.7795275591
 
 // --- Initial Data Conversion ---
 
@@ -82,24 +86,20 @@ const getInitialBlocksFromText = (extractedText: string, parsedData: any): Edito
     const blocks: EditorBlock[] = []
     const lines = extractedText.split('\n').map(l => l.trim()).filter(l => l.length > 0)
 
-    // Try to identify name (usually first non-empty line or from parsed data)
     const name = parsedData?.name || lines[0] || "Your Name"
     blocks.push(createBlock('h1', name, { align: 'center', bold: true }))
 
-    // Try to find contact info (email, phone patterns)
     const contactLine = lines.find(l => l.includes('@') || l.match(/\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/))
     if (contactLine) {
         blocks.push(createBlock('paragraph', contactLine, { align: 'center' }))
     }
 
-    // Parse the rest of the text
     let currentSection: 'experience' | 'education' | 'skills' | 'other' | null = null
 
     for (let i = 1; i < lines.length; i++) {
         const line = lines[i]
         const upperLine = line.toUpperCase()
 
-        // Detect section headers
         if (upperLine.includes('EXPERIENCE') || upperLine.includes('WORK HISTORY')) {
             blocks.push(createBlock('h2', 'Experience', { bold: true }))
             currentSection = 'experience'
@@ -121,26 +121,22 @@ const getInitialBlocksFromText = (extractedText: string, parsedData: any): Edito
             continue
         }
 
-        // Detect job titles / company names (usually bold or ALL CAPS)
         if (line === line.toUpperCase() && line.length > 3 && line.length < 60) {
             blocks.push(createBlock('h3', line, { bold: true }))
             continue
         }
 
-        // Detect bullet points
         if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*') || line.match(/^[\d]+\./)) {
             const cleanLine = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '')
             blocks.push(createBlock('bullet', cleanLine))
             continue
         }
 
-        // Detect dates (e.g., "Jan 2020 - Present")
         if (line.match(/\d{4}/) && (line.includes('-') || line.includes('to') || line.includes('Present'))) {
             blocks.push(createBlock('paragraph', line, { italic: true }))
             continue
         }
 
-        // Default to paragraph
         blocks.push(createBlock('paragraph', line))
     }
 
@@ -148,12 +144,10 @@ const getInitialBlocksFromText = (extractedText: string, parsedData: any): Edito
 }
 
 const getInitialBlocks = (analysis: ResumeAnalysisResult | null, parsedData: any, extractedText: string | null): EditorBlock[] => {
-    // Prefer extracted text for more complete data
     if (extractedText && extractedText.trim().length > 50) {
         return getInitialBlocksFromText(extractedText, parsedData)
     }
 
-    // Fallback to parsed data
     const blocks: EditorBlock[] = []
 
     const name = parsedData?.name || "Your Name"
@@ -277,6 +271,117 @@ const BlockRenderer = ({ block, onUpdate, onFocus, isActive, onAIRewrite }: {
     )
 }
 
+// Multi-page container component
+const MultiPageEditor = ({
+    blocks,
+    activeBlockId,
+    setActiveBlockId,
+    updateBlockContent,
+    deleteBlock,
+    handleAIRewrite
+}: {
+    blocks: EditorBlock[]
+    activeBlockId: string | null
+    setActiveBlockId: (id: string | null) => void
+    updateBlockContent: (id: string, content: string) => void
+    deleteBlock: (id: string) => void
+    handleAIRewrite: (block: EditorBlock) => void
+}) => {
+    const [pages, setPages] = useState<EditorBlock[][]>([[]])
+    const contentRefs = useRef<Map<string, HTMLDivElement>>(new Map())
+
+    // Distribute blocks across pages based on estimated heights
+    useEffect(() => {
+        const estimateBlockHeight = (block: EditorBlock): number => {
+            // Slightly conservative height estimates in pixels (increased by 10% for safety margin)
+            const baseHeights = {
+                h1: 66,      // was 60
+                h2: 55,      // was 50
+                h3: 38,      // was 35
+                paragraph: 33, // was 30
+                bullet: 28    // was 25
+            }
+
+            const baseHeight = baseHeights[block.type]
+            const contentLength = block.content.length
+            const linesEstimate = Math.ceil(contentLength / 80) // ~80 chars per line
+
+            return baseHeight * Math.max(1, linesEstimate)
+        }
+
+        const maxPageHeight = A4_CONTENT_HEIGHT_MM * MM_TO_PX
+        const newPages: EditorBlock[][] = []
+        let currentPage: EditorBlock[] = []
+        let currentHeight = 0
+
+        blocks.forEach(block => {
+            const blockHeight = estimateBlockHeight(block)
+
+            // Use 98% of max height to fill more of the page while maintaining bottom margin
+            if (currentHeight + blockHeight > maxPageHeight * 0.98 && currentPage.length > 0) {
+                // Start new page
+                newPages.push(currentPage)
+                currentPage = [block]
+                currentHeight = blockHeight
+            } else {
+                currentPage.push(block)
+                currentHeight += blockHeight
+            }
+        })
+
+        if (currentPage.length > 0) {
+            newPages.push(currentPage)
+        }
+
+        setPages(newPages.length > 0 ? newPages : [[]])
+    }, [blocks])
+
+    return (
+        <>
+            {pages.map((pageBlocks, pageIndex) => (
+                <div
+                    key={pageIndex}
+                    className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 overflow-hidden relative"
+                    style={{
+                        width: `${A4_WIDTH_MM}mm`,
+                        minHeight: `${A4_HEIGHT_MM}mm`,
+                        padding: '20mm',
+                        boxSizing: 'border-box'
+                    }}
+                >
+                    {/* Page number */}
+                    <div className="absolute top-2 right-4 text-xs text-gray-400 font-medium">
+                        Page {pageIndex + 1} of {pages.length}
+                    </div>
+
+                    <div className="flex flex-col w-full max-w-full overflow-hidden">
+                        {pageBlocks.map(block => (
+                            <div key={block.id} className="relative group/line">
+                                <div className="absolute -left-10 top-2 opacity-0 group-hover/line:opacity-100 transition-opacity flex flex-col items-center">
+                                    <button
+                                        onClick={() => deleteBlock(block.id)}
+                                        className="text-gray-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
+                                    >
+                                        <Trash2 className="h-4 w-4" />
+                                    </button>
+                                </div>
+
+                                <BlockRenderer
+                                    block={block}
+                                    isActive={activeBlockId === block.id}
+                                    onUpdate={(content) => updateBlockContent(block.id, content)}
+                                    onFocus={() => setActiveBlockId(block.id)}
+                                    onAIRewrite={() => handleAIRewrite(block)}
+                                />
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            ))}
+        </>
+    )
+}
+
 export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText, applicationId, documentId, onBack, fileName }: ResumeEditorProps) {
     const { toast } = useToast()
     const [blocks, setBlocks] = useState<EditorBlock[]>([])
@@ -295,12 +400,10 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                 setVersions(fetchedVersions)
 
                 if (fetchedVersions.length > 0) {
-                    // Use existing version
                     const latest = fetchedVersions[0]
                     setBlocks(latest.blocks)
                     setCurrentVersionId(latest.id)
                 } else {
-                    // First-time import: Try AI parsing for better quality
                     let initial: EditorBlock[] = []
 
                     if (extractedText && extractedText.trim().length > 50) {
@@ -319,7 +422,6 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                             if (parseResponse.ok) {
                                 const data = await parseResponse.json()
                                 if (data.blocks && Array.isArray(data.blocks)) {
-                                    // Add IDs to AI-generated blocks
                                     initial = data.blocks.map((b: any) => ({
                                         ...b,
                                         id: Math.random().toString(36).substr(2, 9)
@@ -333,11 +435,9 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                             }
                         } catch (aiError) {
                             console.warn("AI parsing failed, using fallback:", aiError)
-                            // Fallback to manual parsing
                             initial = getInitialBlocks(analysis, parsedData, extractedText)
                         }
                     } else {
-                        // No extracted text, use parsed data
                         initial = getInitialBlocks(analysis, parsedData, extractedText)
                     }
 
@@ -511,19 +611,19 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)] bg-gray-50">
+        <div className="flex flex-col h-[calc(100vh-140px)] bg-[#0A0A0A]">
             {/* Toolbar */}
-            <div className="h-16 border-b bg-white flex items-center justify-between px-6 z-20 shadow-sm sticky top-0">
+            <div className="h-16 border-b border-[#1A1A1A] bg-[#0A0A0A] flex items-center justify-between px-6 z-20 shadow-sm sticky top-0">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={onBack} className="font-medium">
+                    <Button variant="ghost" size="sm" onClick={onBack} className="font-medium text-gray-400 hover:text-[#00FF88] hover:bg-[#1A1A1A]">
                         <ArrowLeft className="h-4 w-4 mr-2" /> Back
                     </Button>
-                    <div className="h-6 w-px bg-gray-300" />
+                    <div className="h-6 w-px bg-[#1A1A1A]" />
 
                     <div className="flex items-center gap-2">
-                        <History className="h-4 w-4 text-gray-600" />
+                        <History className="h-4 w-4 text-gray-400" />
                         <Select value={currentVersionId || "initial"} onValueChange={switchVersion}>
-                            <SelectTrigger className="w-[180px] h-9 font-medium">
+                            <SelectTrigger className="w-[180px] h-9 font-medium bg-[#1A1A1A] border-[#1A1A1A] text-gray-300 hover:border-[#00FF88]">
                                 <SelectValue placeholder="Current Draft" />
                             </SelectTrigger>
                             <SelectContent>
@@ -538,7 +638,7 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                             size="sm"
                             onClick={handleNewVersion}
                             disabled={isSaving}
-                            className="h-9 px-3 border-dashed font-medium"
+                            className="h-9 px-3 border-dashed font-medium bg-[#1A1A1A] border-[#00FF88]/30 text-gray-300 hover:bg-[#1A1A1A] hover:border-[#00FF88]"
                         >
                             {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
                             Capture New
@@ -547,18 +647,18 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                 </div>
 
                 <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('bold')}><Bold className="h-4 w-4 text-gray-700" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('italic')}><Italic className="h-4 w-4 text-gray-700" /></Button>
-                        <div className="h-4 w-px bg-gray-300 mx-1" />
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('align', 'left')}><AlignLeft className="h-4 w-4 text-gray-700" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('align', 'center')}><AlignCenter className="h-4 w-4 text-gray-700" /></Button>
+                    <div className="flex items-center gap-1 bg-[#1A1A1A] p-1 rounded-lg border border-[#1A1A1A]">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('bold')}><Bold className="h-4 w-4 text-gray-400" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('italic')}><Italic className="h-4 w-4 text-gray-400" /></Button>
+                        <div className="h-4 w-px bg-[#1A1A1A] mx-1" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('align', 'left')}><AlignLeft className="h-4 w-4 text-gray-400" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('align', 'center')}><AlignCenter className="h-4 w-4 text-gray-400" /></Button>
                     </div>
 
                     <div className="flex items-center gap-1">
-                        <Button variant="outline" size="sm" onClick={() => addBlock('paragraph')} className="font-medium"><Plus className="h-3 w-3 mr-1" /> Text</Button>
-                        <Button variant="outline" size="sm" onClick={() => addBlock('h2')} className="font-medium"><Type className="h-3 w-3 mr-1" /> Heading</Button>
-                        <Button variant="outline" size="sm" onClick={() => addBlock('bullet')} className="font-medium"><List className="h-3 w-3 mr-1" /> Bullet</Button>
+                        <Button variant="outline" size="sm" onClick={() => addBlock('paragraph')} className="font-medium bg-[#1A1A1A] border-[#1A1A1A] text-gray-300 hover:bg-[#00FF88]/10 hover:border-[#00FF88] hover:text-[#00FF88]"><Plus className="h-3 w-3 mr-1" /> Text</Button>
+                        <Button variant="outline" size="sm" onClick={() => addBlock('h2')} className="font-medium bg-[#1A1A1A] border-[#1A1A1A] text-gray-300 hover:bg-[#00FF88]/10 hover:border-[#00FF88] hover:text-[#00FF88]"><Type className="h-3 w-3 mr-1" /> Heading</Button>
+                        <Button variant="outline" size="sm" onClick={() => addBlock('bullet')} className="font-medium bg-[#1A1A1A] border-[#1A1A1A] text-gray-300 hover:bg-[#00FF88]/10 hover:border-[#00FF88] hover:text-[#00FF88]"><List className="h-3 w-3 mr-1" /> Bullet</Button>
                     </div>
 
                     <Button onClick={handleExport} disabled={isExporting} className="glow-effect font-semibold">
@@ -567,8 +667,8 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                 </div>
             </div>
 
-            {/* Editor Canvas */}
-            <div className="flex-1 overflow-auto p-12 flex justify-center custom-scrollbar bg-gradient-to-b from-gray-50 to-gray-100">
+            {/* Editor Canvas - Multi-page layout */}
+            <div className="flex-1 overflow-auto p-12 flex flex-col items-center gap-8 custom-scrollbar bg-[#0A0A0A]">
                 {isRewriting && (
                     <div className="fixed inset-0 bg-white/30 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
                         <div className="bg-white p-5 rounded-2xl shadow-2xl flex items-center gap-4 border-2 border-purple-100 animate-in zoom-in duration-300">
@@ -581,42 +681,18 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                     </div>
                 )}
 
-                <div
-                    className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 mb-8 overflow-hidden"
-                    style={{
-                        width: `${A4_WIDTH_MM}mm`,
-                        minHeight: `${A4_HEIGHT_MM}mm`,
-                        padding: '20mm',
-                        boxSizing: 'border-box'
-                    }}
-                >
-                    <div className="flex flex-col h-full w-full max-w-full overflow-hidden">
-                        {blocks.map(block => (
-                            <div key={block.id} className="relative group/line">
-                                <div className="absolute -left-10 top-2 opacity-0 group-hover/line:opacity-100 transition-opacity flex flex-col items-center">
-                                    <button
-                                        onClick={() => deleteBlock(block.id)}
-                                        className="text-gray-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
-                                    >
-                                        <Trash2 className="h-4 w-4" />
-                                    </button>
-                                </div>
-
-                                <BlockRenderer
-                                    block={block}
-                                    isActive={activeBlockId === block.id}
-                                    onUpdate={(content) => updateBlockContent(block.id, content)}
-                                    onFocus={() => setActiveBlockId(block.id)}
-                                    onAIRewrite={() => handleAIRewrite(block)}
-                                />
-                            </div>
-                        ))}
-                    </div>
-                </div>
+                <MultiPageEditor
+                    blocks={blocks}
+                    activeBlockId={activeBlockId}
+                    setActiveBlockId={setActiveBlockId}
+                    updateBlockContent={updateBlockContent}
+                    deleteBlock={deleteBlock}
+                    handleAIRewrite={handleAIRewrite}
+                />
             </div>
 
             {/* Status Footer */}
-            <div className="h-8 border-t bg-white px-4 flex items-center justify-between text-[11px] text-gray-600 uppercase tracking-widest font-medium">
+            <div className="h-8 border-t border-[#1A1A1A] bg-[#0A0A0A] px-4 flex items-center justify-between text-[11px] text-gray-500 uppercase tracking-widest font-medium">
                 <div className="flex items-center gap-4">
                     <span>Document: {fileName}</span>
                     <span>Version: {currentVersionId ? versions.find(v => v.id === currentVersionId)?.version_name : 'Unsaved Draft'}</span>
