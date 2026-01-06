@@ -127,6 +127,9 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                 documentUrl={selectedDocument.file_url}
                 analysis={analysis}
                 parsedData={selectedDocument.parsed_data}
+                extractedText={selectedDocument.extracted_text}
+                applicationId={application.id}
+                documentId={selectedDocument.id}
                 onBack={() => setViewMode("analysis")}
                 fileName={selectedDocument.file_name}
             />
