@@ -293,11 +293,52 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                 setVersions(fetchedVersions)
 
                 if (fetchedVersions.length > 0) {
+                    // Use existing version
                     const latest = fetchedVersions[0]
                     setBlocks(latest.blocks)
                     setCurrentVersionId(latest.id)
                 } else {
-                    const initial = getInitialBlocks(analysis, parsedData, extractedText)
+                    // First-time import: Try AI parsing for better quality
+                    let initial: EditorBlock[] = []
+
+                    if (extractedText && extractedText.trim().length > 50) {
+                        try {
+                            toast({
+                                title: "🤖 AI is analyzing your resume...",
+                                description: "This will take a few seconds for better formatting."
+                            })
+
+                            const parseResponse = await fetch('/api/editor/parse-text', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ extractedText })
+                            })
+
+                            if (parseResponse.ok) {
+                                const data = await parseResponse.json()
+                                if (data.blocks && Array.isArray(data.blocks)) {
+                                    // Add IDs to AI-generated blocks
+                                    initial = data.blocks.map((b: any) => ({
+                                        ...b,
+                                        id: Math.random().toString(36).substr(2, 9)
+                                    }))
+                                    toast({ title: "✨ Resume imported successfully!" })
+                                } else {
+                                    throw new Error("Invalid AI response")
+                                }
+                            } else {
+                                throw new Error("AI parsing failed")
+                            }
+                        } catch (aiError) {
+                            console.warn("AI parsing failed, using fallback:", aiError)
+                            // Fallback to manual parsing
+                            initial = getInitialBlocks(analysis, parsedData, extractedText)
+                        }
+                    } else {
+                        // No extracted text, use parsed data
+                        initial = getInitialBlocks(analysis, parsedData, extractedText)
+                    }
+
                     setBlocks(initial)
                 }
             } catch (err) {
