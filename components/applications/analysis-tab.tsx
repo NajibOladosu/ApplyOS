@@ -126,6 +126,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             <ResumeEditor
                 documentUrl={selectedDocument.file_url}
                 analysis={analysis}
+                parsedData={selectedDocument.parsed_data}
                 onBack={() => setViewMode("analysis")}
                 fileName={selectedDocument.file_name}
             />
