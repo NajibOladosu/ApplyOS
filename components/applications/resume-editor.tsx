@@ -304,8 +304,8 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                     if (extractedText && extractedText.trim().length > 50) {
                         try {
                             toast({
-                                title: "🤖 AI is analyzing your resume...",
-                                description: "This will take a few seconds for better formatting."
+                                title: "Parsing document structure...",
+                                description: "Analyzing your resume for optimal formatting."
                             })
 
                             const parseResponse = await fetch('/api/editor/parse-text', {
@@ -322,7 +322,7 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                                         ...b,
                                         id: Math.random().toString(36).substr(2, 9)
                                     }))
-                                    toast({ title: "✨ Resume imported successfully!" })
+                                    toast({ title: "Resume imported successfully" })
                                 } else {
                                     throw new Error("Invalid AI response")
                                 }
@@ -456,7 +456,7 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
             const data = await response.json()
             if (data.rewritten) {
                 updateBlockContent(block.id, data.rewritten)
-                toast({ title: "✨ Block improved by AI", description: "Your text has been enhanced for impact and clarity." })
+                toast({ title: "Block improved successfully", description: "Your text has been enhanced for impact and clarity." })
             }
         } catch (err) {
             toast({ title: "AI rewrite failed", variant: "destructive" })
