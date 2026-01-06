@@ -1,10 +1,36 @@
 "use client"
 
-import { useState, useRef, useEffect, useCallback } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, Download, Plus, Type, AlignLeft, AlignCenter, AlignRight, Bold, Italic, List, Trash2 } from "lucide-react"
+import {
+    ArrowLeft,
+    Download,
+    Plus,
+    Type,
+    AlignLeft,
+    AlignCenter,
+    AlignRight,
+    Bold,
+    Italic,
+    List,
+    Trash2,
+    Save,
+    History,
+    Sparkles,
+    Loader2
+} from "lucide-react"
 import { type ResumeAnalysisResult } from "./resume-feedback"
 import { cn } from "@/lib/utils"
+import { useDebounceCallback } from "usehooks-ts"
+import { resumeVersionsService, type ResumeVersion } from "@/lib/services/resume-versions"
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select"
+import { useToast } from "@/components/ui/use-toast"
 
 // --- Types ---
 
@@ -28,6 +54,9 @@ interface ResumeEditorProps {
     documentUrl: string
     analysis: ResumeAnalysisResult | null
     parsedData: any
+    extractedText: string | null
+    applicationId: string
+    documentId: string
     onBack: () => void
     fileName: string
 }
@@ -46,118 +75,154 @@ const createBlock = (type: BlockType, content: string, styles: BlockStyles = {})
     styles
 })
 
-// Convert the analysis/parsed data into initial blocks
-const getInitialBlocks = (analysis: ResumeAnalysisResult | null, parsedData: any): EditorBlock[] => {
+/**
+ * Convert extracted text into blocks by intelligently parsing the structure
+ */
+const getInitialBlocksFromText = (extractedText: string, parsedData: any): EditorBlock[] => {
     const blocks: EditorBlock[] = []
+    const lines = extractedText.split('\n').map(l => l.trim()).filter(l => l.length > 0)
 
-    // 1. Header (Name & Contact)
-    // parsedData usually has: name, email, phone, location, links
-    const name = parsedData?.name || "Your Name"
-    const contactParts = []
-    if (parsedData?.email) contactParts.push(parsedData.email)
-    if (parsedData?.phone) contactParts.push(parsedData.phone)
-    if (parsedData?.location) contactParts.push(parsedData.location)
-    if (parsedData?.links && Array.isArray(parsedData.links)) {
-        parsedData.links.forEach((l: string) => contactParts.push(l))
-    }
-    const contactLine = contactParts.join(" | ") || "email@example.com | (555) 123-4567 | City, State"
-
+    // Try to identify name (usually first non-empty line or from parsed data)
+    const name = parsedData?.name || lines[0] || "Your Name"
     blocks.push(createBlock('h1', name, { align: 'center', bold: true }))
-    blocks.push(createBlock('paragraph', contactLine, { align: 'center' }))
 
-    // 2. Summary
-    // Parsing might have 'summary' or 'professional_summary'
-    const summary = parsedData?.summary || parsedData?.professional_summary
-    if (summary) {
-        blocks.push(createBlock('h2', "Professional Summary", { bold: true }))
-        blocks.push(createBlock('paragraph', summary))
-    } else if (analysis?.strengths && analysis.strengths.length > 0) {
-        // Fallback to analysis strengths if no summary parsed
-        blocks.push(createBlock('h2', "Professional Summary", { bold: true }))
-        blocks.push(createBlock('paragraph', "Driven professional with a focus on delivering high-quality results."))
+    // Try to find contact info (email, phone patterns)
+    const contactLine = lines.find(l => l.includes('@') || l.match(/\d{3}[-.\s]?\d{3}[-.\s]?\d{4}/))
+    if (contactLine) {
+        blocks.push(createBlock('paragraph', contactLine, { align: 'center' }))
     }
 
-    // 3. Experience
-    if (parsedData?.experience && Array.isArray(parsedData.experience) && parsedData.experience.length > 0) {
-        blocks.push(createBlock('h2', "Experience", { bold: true }))
+    // Parse the rest of the text
+    let currentSection: 'experience' | 'education' | 'skills' | 'other' | null = null
 
-        parsedData.experience.forEach((exp: any) => {
-            const title = exp.role || exp.title || "Job Title"
-            const company = exp.company || "Company"
-            const date = `${exp.start_date || ""} - ${exp.end_date || "Present"}`
-            const location = exp.location || ""
+    for (let i = 1; i < lines.length; i++) {
+        const line = lines[i]
+        const upperLine = line.toUpperCase()
 
-            blocks.push(createBlock('h3', `${title} at ${company}`, { bold: true }))
-            blocks.push(createBlock('paragraph', `${date} ${location ? "| " + location : ""}`, { italic: true }))
-
-            if (exp.description) {
-                // Try to split description into bullets if it looks like a list or has newlines
-                const lines = exp.description.split('\n').filter((l: string) => l.trim().length > 0)
-                if (lines.length > 1) {
-                    lines.forEach((line: string) => {
-                        const cleanLine = line.replace(/^[-•*]\s*/, "") // Remove existing bullet chars
-                        blocks.push(createBlock('bullet', cleanLine))
-                    })
-                } else {
-                    blocks.push(createBlock('paragraph', exp.description))
-                }
-            }
-        })
-    } else {
-        // Fallback template if absolutely no data
-        if (blocks.length === 2 && !summary) { // Only name/contact so far
-            blocks.push(createBlock('h2', "Experience", { bold: true }))
-            blocks.push(createBlock('h3', "Job Title at Company", { bold: true }))
-            blocks.push(createBlock('paragraph', "Date - Date | Location", { italic: true }))
-            blocks.push(createBlock('bullet', "Accomplished X using Y."))
+        // Detect section headers
+        if (upperLine.includes('EXPERIENCE') || upperLine.includes('WORK HISTORY')) {
+            blocks.push(createBlock('h2', 'Experience', { bold: true }))
+            currentSection = 'experience'
+            continue
         }
-    }
-
-    // 4. Education
-    if (parsedData?.education && Array.isArray(parsedData.education) && parsedData.education.length > 0) {
-        blocks.push(createBlock('h2', "Education", { bold: true }))
-        parsedData.education.forEach((edu: any) => {
-            const degree = edu.degree || "Degree"
-            const field = edu.field ? ` in ${edu.field}` : ""
-            const school = edu.institution || "University"
-            const date = `${edu.start_date || ""} - ${edu.end_date || ""}`
-
-            blocks.push(createBlock('paragraph', `${degree}${field} - ${school}`))
-            if (date.length > 3) blocks.push(createBlock('paragraph', date, { italic: true }))
-        })
-    }
-
-    // 5. Skills
-    if (parsedData?.skills) {
-        blocks.push(createBlock('h2', "Skills", { bold: true }))
-
-        const allSkills = []
-        if (Array.isArray(parsedData.skills)) {
-            allSkills.push(...parsedData.skills)
-        } else {
-            // Structure might be { technical: [], soft: [] }
-            if (parsedData.skills.technical) allSkills.push(...parsedData.skills.technical)
-            if (parsedData.skills.soft) allSkills.push(...parsedData.skills.soft)
-            if (parsedData.skills.languages) allSkills.push(...parsedData.skills.languages)
-            if (parsedData.skills.tools) allSkills.push(...parsedData.skills.tools)
+        if (upperLine.includes('EDUCATION')) {
+            blocks.push(createBlock('h2', 'Education', { bold: true }))
+            currentSection = 'education'
+            continue
+        }
+        if (upperLine.includes('SKILL')) {
+            blocks.push(createBlock('h2', 'Skills', { bold: true }))
+            currentSection = 'skills'
+            continue
+        }
+        if (upperLine.includes('SUMMARY') || upperLine.includes('PROFILE') || upperLine.includes('OBJECTIVE')) {
+            blocks.push(createBlock('h2', 'Professional Summary', { bold: true }))
+            currentSection = 'other'
+            continue
         }
 
-        if (allSkills.length > 0) {
-            blocks.push(createBlock('paragraph', allSkills.join(" • ")))
+        // Detect job titles / company names (usually bold or ALL CAPS)
+        if (line === line.toUpperCase() && line.length > 3 && line.length < 60) {
+            blocks.push(createBlock('h3', line, { bold: true }))
+            continue
         }
+
+        // Detect bullet points
+        if (line.startsWith('•') || line.startsWith('-') || line.startsWith('*') || line.match(/^[\d]+\./)) {
+            const cleanLine = line.replace(/^[•\-*]\s*/, '').replace(/^\d+\.\s*/, '')
+            blocks.push(createBlock('bullet', cleanLine))
+            continue
+        }
+
+        // Detect dates (e.g., "Jan 2020 - Present")
+        if (line.match(/\d{4}/) && (line.includes('-') || line.includes('to') || line.includes('Present'))) {
+            blocks.push(createBlock('paragraph', line, { italic: true }))
+            continue
+        }
+
+        // Default to paragraph
+        blocks.push(createBlock('paragraph', line))
     }
 
     return blocks
 }
 
+const getInitialBlocks = (analysis: ResumeAnalysisResult | null, parsedData: any, extractedText: string | null): EditorBlock[] => {
+    // Prefer extracted text for more complete data
+    if (extractedText && extractedText.trim().length > 50) {
+        return getInitialBlocksFromText(extractedText, parsedData)
+    }
+
+    // Fallback to parsed data
+    const blocks: EditorBlock[] = []
+
+    const name = parsedData?.name || "Your Name"
+    const contactParts = []
+    if (parsedData?.email) contactParts.push(parsedData.email)
+    if (parsedData?.phone) contactParts.push(parsedData.phone)
+    if (parsedData?.location) contactParts.push(parsedData.location)
+    const contactLine = contactParts.join(" | ") || "email@example.com"
+
+    blocks.push(createBlock('h1', name, { align: 'center', bold: true }))
+    blocks.push(createBlock('paragraph', contactLine, { align: 'center' }))
+
+    const summary = parsedData?.summary || parsedData?.professional_summary
+    if (summary) {
+        blocks.push(createBlock('h2', "Professional Summary", { bold: true }))
+        blocks.push(createBlock('paragraph', summary))
+    }
+
+    if (parsedData?.experience && Array.isArray(parsedData.experience) && parsedData.experience.length > 0) {
+        blocks.push(createBlock('h2', "Experience", { bold: true }))
+        parsedData.experience.forEach((exp: any) => {
+            const title = exp.role || exp.title || "Job Title"
+            const company = exp.company || "Company"
+            const date = `${exp.start_date || ""} - ${exp.end_date || "Present"}`
+            blocks.push(createBlock('h3', `${title} at ${company}`, { bold: true }))
+            blocks.push(createBlock('paragraph', date, { italic: true }))
+            if (exp.description) {
+                const lines = String(exp.description).split('\n').filter(l => l.trim().length > 0)
+                lines.forEach(line => {
+                    blocks.push(createBlock('bullet', line.replace(/^[-•*]\s*/, "")))
+                })
+            }
+        })
+    }
+
+    if (parsedData?.education && Array.isArray(parsedData.education) && parsedData.education.length > 0) {
+        blocks.push(createBlock('h2', "Education", { bold: true }))
+        parsedData.education.forEach((edu: any) => {
+            const degree = edu.degree || "Degree"
+            const school = edu.institution || "University"
+            blocks.push(createBlock('paragraph', `${degree} - ${school}`, { bold: true }))
+        })
+    }
+
+    if (parsedData?.skills) {
+        blocks.push(createBlock('h2', "Skills", { bold: true }))
+        let skillText = ""
+        if (Array.isArray(parsedData.skills)) {
+            skillText = parsedData.skills.join(" • ")
+        } else if (typeof parsedData.skills === 'object') {
+            const parts = []
+            if (parsedData.skills.technical) parts.push(parsedData.skills.technical.join(", "))
+            if (parsedData.skills.soft) parts.push(parsedData.skills.soft.join(", "))
+            skillText = parts.join(" | ")
+        }
+        if (skillText) blocks.push(createBlock('paragraph', skillText))
+    }
+
+    return blocks
+}
 
 // --- Components ---
 
-const BlockRenderer = ({ block, onUpdate, onFocus, isActive }: {
+const BlockRenderer = ({ block, onUpdate, onFocus, isActive, onAIRewrite }: {
     block: EditorBlock,
     onUpdate: (content: string) => void,
     onFocus: () => void,
-    isActive: boolean
+    isActive: boolean,
+    onAIRewrite: () => void
 }) => {
     const Component =
         block.type === 'h1' ? 'h1' :
@@ -167,56 +232,139 @@ const BlockRenderer = ({ block, onUpdate, onFocus, isActive }: {
                         'p'
 
     const className = cn(
-        "outline-none min-h-[1.5em] transition-colors duration-200",
-        // Empty state
-        "empty:before:content-['Type...'] empty:before:text-gray-300",
+        "outline-none min-h-[1.2em] relative group/block py-1 px-2 -mx-2 rounded transition-all duration-200",
+        // IMPROVED CONTRAST - Much darker text
+        block.type === 'h1' && "text-[32px] font-bold mb-3 text-black leading-tight",
+        block.type === 'h2' && "text-[18px] font-bold mt-6 mb-2 border-b-2 border-gray-300 pb-1 text-black uppercase tracking-wide",
+        block.type === 'h3' && "text-[14px] font-semibold mt-4 mb-1 text-gray-900",
+        block.type === 'paragraph' && "text-[11pt] leading-relaxed mb-1.5 text-gray-900",
+        block.type === 'bullet' && "text-[11pt] leading-relaxed ml-6 relative list-disc my-0.5 text-gray-900",
 
-        // Typography - Improved Contrast
-        block.type === 'h1' && "text-4xl font-bold mb-4 text-foreground",
-        block.type === 'h2' && "text-2xl font-bold mt-6 mb-2 border-b-2 border-primary/20 pb-1 text-foreground",
-        block.type === 'h3' && "text-lg font-semibold mt-4 mb-1 text-foreground",
-        block.type === 'paragraph' && "text-base leading-relaxed mb-2 text-foreground/90",
-        block.type === 'bullet' && "text-base leading-relaxed ml-4 relative list-disc my-1 text-foreground/90",
-
-        // Styles
         block.styles?.align === 'center' && "text-center",
         block.styles?.align === 'right' && "text-right",
         block.styles?.bold && "font-bold",
         block.styles?.italic && "italic",
-        block.styles?.underline && "underline ml-1",
+        block.styles?.underline && "underline decoration-gray-600 underline-offset-2",
 
-        // Active State Indicator
-        isActive && "bg-blue-50/50 rounded -mx-2 px-2 ring-1 ring-blue-100"
+        isActive && "bg-blue-50 ring-2 ring-blue-200 shadow-sm"
     )
 
     return (
-        <Component
-            contentEditable
-            suppressContentEditableWarning
-            className={className}
-            onInput={(e: React.FormEvent<HTMLElement>) => onUpdate(e.currentTarget.innerText)}
-            onFocus={onFocus}
-            style={{
-                textAlign: block.styles?.align
-            }}
-        >
-            {block.content}
-        </Component>
+        <div className="relative group/wrapper">
+            {isActive && (block.type === 'paragraph' || block.type === 'bullet') && (
+                <button
+                    onClick={onAIRewrite}
+                    className="absolute -right-14 top-1/2 -translate-y-1/2 p-2.5 bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg border border-white/20 rounded-full text-white hover:from-purple-600 hover:to-pink-600 transition-all scale-0 group-hover/wrapper:scale-100 animate-in zoom-in duration-200 z-50"
+                    title="AI Rewrite with Gemini"
+                >
+                    <Sparkles className="h-4 w-4" />
+                </button>
+            )}
+
+            <Component
+                contentEditable
+                suppressContentEditableWarning
+                className={className}
+                onInput={(e: React.FormEvent<HTMLElement>) => onUpdate(e.currentTarget.innerText)}
+                onFocus={onFocus}
+                style={{ textAlign: block.styles?.align }}
+            >
+                {block.content}
+            </Component>
+        </div>
     )
 }
 
-
-export function ResumeEditor({ documentUrl, analysis, parsedData, onBack, fileName }: ResumeEditorProps) {
+export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText, applicationId, documentId, onBack, fileName }: ResumeEditorProps) {
+    const { toast } = useToast()
     const [blocks, setBlocks] = useState<EditorBlock[]>([])
     const [activeBlockId, setActiveBlockId] = useState<string | null>(null)
+    const [versions, setVersions] = useState<ResumeVersion[]>([])
+    const [currentVersionId, setCurrentVersionId] = useState<string | null>(null)
+    const [isSaving, setIsSaving] = useState(false)
+    const [isLoading, setIsLoading] = useState(true)
     const [isExporting, setIsExporting] = useState(false)
+    const [isRewriting, setIsRewriting] = useState(false)
 
     useEffect(() => {
-        // Initialize only if empty
-        if (blocks.length === 0) {
-            setBlocks(getInitialBlocks(analysis, parsedData))
+        const load = async () => {
+            try {
+                const fetchedVersions = await resumeVersionsService.getVersions(documentId)
+                setVersions(fetchedVersions)
+
+                if (fetchedVersions.length > 0) {
+                    const latest = fetchedVersions[0]
+                    setBlocks(latest.blocks)
+                    setCurrentVersionId(latest.id)
+                } else {
+                    const initial = getInitialBlocks(analysis, parsedData, extractedText)
+                    setBlocks(initial)
+                }
+            } catch (err) {
+                console.error("Load error:", err)
+                toast({ title: "Failed to load resume", variant: "destructive" })
+            } finally {
+                setIsLoading(false)
+            }
         }
-    }, [analysis, parsedData]) // Re-run if parsedData changes
+        load()
+    }, [documentId, analysis, parsedData, extractedText])
+
+    const debouncedSave = useDebounceCallback(async (updatedBlocks: EditorBlock[]) => {
+        if (!currentVersionId) return
+
+        setIsSaving(true)
+        try {
+            const version = versions.find(v => v.id === currentVersionId)
+            if (version) {
+                await resumeVersionsService.saveVersion({
+                    id: version.id,
+                    document_id: documentId,
+                    application_id: applicationId,
+                    version_name: version.version_name,
+                    blocks: updatedBlocks
+                })
+            }
+        } catch (err) {
+            console.error("Auto-save error:", err)
+        } finally {
+            setIsSaving(false)
+        }
+    }, 2000)
+
+    useEffect(() => {
+        if (!isLoading && currentVersionId) {
+            debouncedSave(blocks)
+        }
+    }, [blocks, currentVersionId, isLoading, debouncedSave])
+
+    const handleNewVersion = async () => {
+        setIsSaving(true)
+        try {
+            const newName = `Version ${versions.length + 1}`
+            const newVersion = await resumeVersionsService.saveVersion({
+                document_id: documentId,
+                application_id: applicationId,
+                version_name: newName,
+                blocks: blocks
+            })
+            setVersions([newVersion, ...versions])
+            setCurrentVersionId(newVersion.id)
+            toast({ title: "Saved as new version" })
+        } catch (err) {
+            toast({ title: "Failed to save", variant: "destructive" })
+        } finally {
+            setIsSaving(false)
+        }
+    }
+
+    const switchVersion = (id: string) => {
+        const version = versions.find(v => v.id === id)
+        if (version) {
+            setBlocks(version.blocks)
+            setCurrentVersionId(id)
+        }
+    }
 
     const updateBlockContent = (id: string, content: string) => {
         setBlocks(prev => prev.map(b => b.id === id ? { ...b, content } : b))
@@ -224,17 +372,15 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, onBack, fileNa
 
     const addBlock = (type: BlockType = 'paragraph') => {
         const newBlock = createBlock(type, "")
-        // Insert after active block or at end
         if (activeBlockId) {
             const index = blocks.findIndex(b => b.id === activeBlockId)
-            const newBlocks = [...blocks]
-            newBlocks.splice(index + 1, 0, newBlock)
-            setBlocks(newBlocks)
-            setActiveBlockId(newBlock.id)
+            const next = [...blocks]
+            next.splice(index + 1, 0, newBlock)
+            setBlocks(next)
         } else {
             setBlocks(prev => [...prev, newBlock])
-            setActiveBlockId(newBlock.id)
         }
+        setActiveBlockId(newBlock.id)
     }
 
     const deleteBlock = (id: string) => {
@@ -242,107 +388,171 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, onBack, fileNa
         if (activeBlockId === id) setActiveBlockId(null)
     }
 
-    // --- Styles API ---
     const toggleStyle = (style: keyof BlockStyles, value?: any) => {
         if (!activeBlockId) return
         setBlocks(prev => prev.map(b => {
             if (b.id !== activeBlockId) return b
-            const currentStyles = b.styles || {}
+            const s = b.styles || {}
             return {
                 ...b,
-                styles: {
-                    ...currentStyles,
-                    // Toggle boolean if no value provided, else set value
-                    [style]: value !== undefined ? value : !currentStyles[style as keyof BlockStyles]
-                }
+                styles: { ...s, [style]: value !== undefined ? value : !s[style as keyof BlockStyles] }
             }
         }))
     }
 
+    const handleAIRewrite = async (block: EditorBlock) => {
+        setIsRewriting(true)
+        try {
+            const response = await fetch('/api/editor/ai-rewrite', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    content: block.content,
+                    type: block.type,
+                    analysisFeedback: analysis?.recommendations?.join("\n") || ""
+                })
+            })
+            const data = await response.json()
+            if (data.rewritten) {
+                updateBlockContent(block.id, data.rewritten)
+                toast({ title: "✨ Block improved by AI", description: "Your text has been enhanced for impact and clarity." })
+            }
+        } catch (err) {
+            toast({ title: "AI rewrite failed", variant: "destructive" })
+        } finally {
+            setIsRewriting(false)
+        }
+    }
+
     const handleExport = async () => {
         setIsExporting(true)
-        // TODO: Implement actual PDF export via Puppeteer API
-        await new Promise(r => setTimeout(r, 2000)) // Mock delay
-        alert("Export to PDF coming in Phase 2!")
-        setIsExporting(false)
+        try {
+            const response = await fetch('/api/editor/export-pdf', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    blocks,
+                    fileName: fileName.replace(/\.pdf$/i, "") + "_edited"
+                })
+            })
+
+            if (!response.ok) throw new Error("Failed to export PDF")
+
+            const blob = await response.blob()
+            const url = window.URL.createObjectURL(blob)
+            const link = document.createElement('a')
+            link.href = url
+            link.setAttribute('download', `${fileName.replace(/\.pdf$/i, "")}_edited.pdf`)
+            document.body.appendChild(link)
+            link.click()
+            link.remove()
+            window.URL.revokeObjectURL(url)
+            toast({ title: "PDF downloaded successfully!" })
+        } catch (err) {
+            console.error("Export error:", err)
+            toast({ title: "Failed to export PDF", variant: "destructive" })
+        } finally {
+            setIsExporting(false)
+        }
+    }
+
+    if (isLoading) {
+        return (
+            <div className="flex h-full items-center justify-center bg-gray-50">
+                <div className="flex flex-col items-center gap-4">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                    <p className="text-gray-600 animate-pulse font-medium">Reconstructing your resume...</p>
+                </div>
+            </div>
+        )
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)] bg-gray-50/50 animate-in slide-in-from-right duration-300">
+        <div className="flex flex-col h-[calc(100vh-140px)] bg-gray-50">
             {/* Toolbar */}
-            <div className="h-16 border-b bg-background flex items-center justify-between px-6 z-10 shadow-sm shrink-0">
+            <div className="h-16 border-b bg-white flex items-center justify-between px-6 z-20 shadow-sm sticky top-0">
                 <div className="flex items-center gap-4">
-                    <Button variant="ghost" size="sm" onClick={onBack} className="text-muted-foreground hover:text-foreground">
-                        <ArrowLeft className="h-4 w-4 mr-2" />
-                        Back
+                    <Button variant="ghost" size="sm" onClick={onBack} className="font-medium">
+                        <ArrowLeft className="h-4 w-4 mr-2" /> Back
                     </Button>
-                    <div className="h-6 w-px bg-border mx-2" />
+                    <div className="h-6 w-px bg-gray-300" />
 
-                    {/* Formatting Tools */}
-                    <div className="flex items-center gap-1 bg-muted/30 p-1 rounded-lg border">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('bold')}>
-                            <Bold className="h-4 w-4 text-foreground/70" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('italic')}>
-                            <Italic className="h-4 w-4 text-foreground/70" />
-                        </Button>
-                        <div className="h-4 w-px bg-border mx-1" />
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('align', 'left')}>
-                            <AlignLeft className="h-4 w-4 text-foreground/70" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('align', 'center')}>
-                            <AlignCenter className="h-4 w-4 text-foreground/70" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-background hover:shadow-sm transition-all" onClick={() => toggleStyle('align', 'right')}>
-                            <AlignRight className="h-4 w-4 text-foreground/70" />
+                    <div className="flex items-center gap-2">
+                        <History className="h-4 w-4 text-gray-600" />
+                        <Select value={currentVersionId || "initial"} onValueChange={switchVersion}>
+                            <SelectTrigger className="w-[180px] h-9 font-medium">
+                                <SelectValue placeholder="Current Draft" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {versions.length === 0 && <SelectItem value="initial">Initial Import</SelectItem>}
+                                {versions.map(v => (
+                                    <SelectItem key={v.id} value={v.id}>{v.version_name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleNewVersion}
+                            disabled={isSaving}
+                            className="h-9 px-3 border-dashed font-medium"
+                        >
+                            {isSaving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4 mr-2" />}
+                            Capture New
                         </Button>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-3">
-                    <div className="flex items-center gap-1 mr-4">
-                        <Button variant="outline" size="sm" onClick={() => addBlock('paragraph')} className="border-dashed">
-                            <Plus className="h-3 w-3 mr-1" /> Text
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => addBlock('h2')} className="border-dashed">
-                            <Type className="h-3 w-3 mr-1" /> Heading
-                        </Button>
-                        <Button variant="outline" size="sm" onClick={() => addBlock('bullet')} className="border-dashed">
-                            <List className="h-3 w-3 mr-1" /> List
-                        </Button>
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1 bg-gray-100 p-1 rounded-lg border border-gray-200">
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('bold')}><Bold className="h-4 w-4 text-gray-700" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('italic')}><Italic className="h-4 w-4 text-gray-700" /></Button>
+                        <div className="h-4 w-px bg-gray-300 mx-1" />
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('align', 'left')}><AlignLeft className="h-4 w-4 text-gray-700" /></Button>
+                        <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => toggleStyle('align', 'center')}><AlignCenter className="h-4 w-4 text-gray-700" /></Button>
                     </div>
 
-                    <Button onClick={handleExport} disabled={isExporting} className="glow-effect shadow-lg shadow-primary/20">
-                        <Download className="h-4 w-4 mr-2" />
-                        Download PDF
+                    <div className="flex items-center gap-1">
+                        <Button variant="outline" size="sm" onClick={() => addBlock('paragraph')} className="font-medium"><Plus className="h-3 w-3 mr-1" /> Text</Button>
+                        <Button variant="outline" size="sm" onClick={() => addBlock('h2')} className="font-medium"><Type className="h-3 w-3 mr-1" /> Heading</Button>
+                        <Button variant="outline" size="sm" onClick={() => addBlock('bullet')} className="font-medium"><List className="h-3 w-3 mr-1" /> Bullet</Button>
+                    </div>
+
+                    <Button onClick={handleExport} disabled={isExporting} className="glow-effect font-semibold">
+                        <Download className="h-4 w-4 mr-2" /> Download PDF
                     </Button>
                 </div>
             </div>
 
-            {/* Editor Surface */}
-            <div className="flex-1 overflow-auto p-8 flex justify-center custom-scrollbar bg-gray-100/50">
+            {/* Editor Canvas */}
+            <div className="flex-1 overflow-auto p-12 flex justify-center custom-scrollbar bg-gradient-to-b from-gray-50 to-gray-100">
+                {isRewriting && (
+                    <div className="fixed inset-0 bg-white/30 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
+                        <div className="bg-white p-5 rounded-2xl shadow-2xl flex items-center gap-4 border-2 border-purple-100 animate-in zoom-in duration-300">
+                            <div className="relative">
+                                <Sparkles className="h-6 w-6 text-purple-500 animate-pulse" />
+                                <div className="absolute inset-0 bg-purple-400 blur-xl opacity-50 animate-pulse" />
+                            </div>
+                            <span className="font-bold text-gray-800 text-lg">AI is polishing your words...</span>
+                        </div>
+                    </div>
+                )}
+
                 <div
-                    className="bg-white shadow-[0_0_50px_-12px_rgba(0,0,0,0.25)] transition-all duration-300 transform-gpu ring-1 ring-black/5"
+                    className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200"
                     style={{
                         width: `${A4_WIDTH_MM}mm`,
                         minHeight: `${A4_HEIGHT_MM}mm`,
-                        padding: '20mm', // Standard print margin
-                        // Scale could go here
-                    }}
-                    onClick={() => {
-                        // Deselect if clicking outside any block
-                        // setActiveBlockId(null) 
+                        padding: '20mm',
                     }}
                 >
-                    <div className="flex flex-col h-full w-full">
+                    <div className="flex flex-col h-full w-full max-w-full">
                         {blocks.map(block => (
-                            <div key={block.id} className="group relative -ml-12 pl-12">
-                                {/* Hover Actions Block - Floating left gutter */}
-                                <div className="absolute left-0 top-1 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center w-8">
+                            <div key={block.id} className="relative group/line">
+                                <div className="absolute -left-10 top-2 opacity-0 group-hover/line:opacity-100 transition-opacity flex flex-col items-center">
                                     <button
                                         onClick={() => deleteBlock(block.id)}
-                                        className="text-muted-foreground hover:text-red-500 p-1.5 rounded-md hover:bg-red-50 transition-colors"
-                                        title="Delete block"
+                                        className="text-gray-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
@@ -353,22 +563,29 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, onBack, fileNa
                                     isActive={activeBlockId === block.id}
                                     onUpdate={(content) => updateBlockContent(block.id, content)}
                                     onFocus={() => setActiveBlockId(block.id)}
+                                    onAIRewrite={() => handleAIRewrite(block)}
                                 />
                             </div>
                         ))}
-
-                        {blocks.length === 0 && (
-                            <div className="flex flex-col items-center justify-center text-center text-muted-foreground mt-32 space-y-4">
-                                <div className="p-4 bg-muted/50 rounded-full">
-                                    <Type className="h-8 w-8 text-muted-foreground/50" />
-                                </div>
-                                <div>
-                                    <p className="font-medium">Page is empty</p>
-                                    <p className="text-sm">Add a block from the toolbar to start writing.</p>
-                                </div>
-                            </div>
-                        )}
                     </div>
+                </div>
+            </div>
+
+            {/* Status Footer */}
+            <div className="h-8 border-t bg-white px-4 flex items-center justify-between text-[11px] text-gray-600 uppercase tracking-widest font-medium">
+                <div className="flex items-center gap-4">
+                    <span>Document: {fileName}</span>
+                    <span>Version: {currentVersionId ? versions.find(v => v.id === currentVersionId)?.version_name : 'Unsaved Draft'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                    {isSaving ? (
+                        <>
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <span>Saving changes...</span>
+                        </>
+                    ) : (
+                        <span className="text-green-600">✓ Changes saved</span>
+                    )}
                 </div>
             </div>
         </div>
