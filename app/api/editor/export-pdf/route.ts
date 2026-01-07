@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 
-// Check if we're in development or if Chromium is available
-const isDevelopment = process.env.NODE_ENV === 'development'
-
 export const maxDuration = 60
 
 export async function POST(req: NextRequest) {
@@ -13,29 +10,15 @@ export async function POST(req: NextRequest) {
             return new NextResponse("Invalid blocks", { status: 400 })
         }
 
-        console.log("[PDF Export] Starting export for", blocks.length, "blocks")
+        console.log("[PDF Export] Generating HTML for", blocks.length, "blocks")
 
-        // Try to use Puppeteer, but handle gracefully if it fails
-        let puppeteer: any
-        let chromium: any
-
-        try {
-            chromium = await import("@sparticuz/chromium")
-            puppeteer = await import("puppeteer-core")
-        } catch (importError) {
-            console.error("[PDF Export] Puppeteer not available:", importError)
-            return new NextResponse(
-                "PDF export is not available in this environment. Please ensure Puppeteer is properly installed.",
-                { status: 503 }
-            )
-        }
-
-        // Generate HTML with multi-page support
+        // Generate print-ready HTML
         const htmlContent = `
             <!DOCTYPE html>
             <html>
             <head>
                 <meta charset="UTF-8">
+                <title>${fileName || 'resume'}</title>
                 <style>
                     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
                     
@@ -125,6 +108,12 @@ export async function POST(req: NextRequest) {
                     .font-bold { font-weight: 700; }
                     .italic { font-style: italic; }
                     .underline { text-decoration: underline; }
+                    
+                    @media print {
+                        body {
+                            background: white;
+                        }
+                    }
                 </style>
             </head>
             <body>
@@ -137,7 +126,7 @@ export async function POST(req: NextRequest) {
                 block.styles?.underline ? 'underline' : ''
             ].filter(Boolean).join(' ')
 
-            const content = String(block.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            const content = String(block.content || '').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>')
 
             if (block.type === 'h1') return `<h1 class="${styleClass}">${content}</h1>`
             if (block.type === 'h2') return `<h2 class="${styleClass}">${content}</h2>`
@@ -164,53 +153,16 @@ export async function POST(req: NextRequest) {
             </html>
         `
 
-        console.log("[PDF Export] Launching Puppeteer...")
-
-        let browser
-        try {
-            browser = await puppeteer.default.launch({
-                args: [...chromium.default.args, '--no-sandbox', '--disable-setuid-sandbox'],
-                defaultViewport: { width: 794, height: 1123, deviceScaleFactor: 2 },
-                executablePath: await chromium.default.executablePath(),
-                headless: true,
-            })
-        } catch (launchError: any) {
-            console.error("[PDF Export] Failed to launch browser:", launchError)
-            return new NextResponse(
-                `Failed to launch PDF generator: ${launchError.message}`,
-                { status: 500 }
-            )
-        }
-
-        console.log("[PDF Export] Browser launched, creating page...")
-
-        const page = await browser.newPage()
-        await page.setContent(htmlContent, { waitUntil: 'networkidle0' })
-
-        console.log("[PDF Export] Generating PDF...")
-
-        const pdf = await page.pdf({
-            format: 'A4',
-            printBackground: true,
-            margin: { top: '20mm', bottom: '20mm', left: '20mm', right: '20mm' },
-            preferCSSPageSize: true
-        })
-
-        await browser.close()
-
-        console.log("[PDF Export] PDF generated successfully,", pdf.length, "bytes")
-
-        return new Response(pdf, {
+        // Return HTML for client-side printing
+        return new NextResponse(htmlContent, {
             headers: {
-                "Content-Type": "application/pdf",
-                "Content-Disposition": `attachment; filename="${fileName || 'resume'}.pdf"`,
-                "Content-Length": pdf.length.toString()
+                "Content-Type": "text/html",
+                "Content-Disposition": `inline; filename="${fileName || 'resume'}.html"`
             }
         })
 
     } catch (error: any) {
         console.error("[PDF Export] Error:", error)
-        console.error("[PDF Export] Stack:", error.stack)
         return new NextResponse(
             `PDF Export Error: ${error.message}`,
             { status: 500 }

@@ -570,30 +570,124 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
     const handleExport = async () => {
         setIsExporting(true)
         try {
-            const response = await fetch('/api/editor/export-pdf', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    blocks,
-                    fileName: fileName.replace(/\.pdf$/i, "") + "_edited"
-                })
+            // Dynamically import html2pdf.js
+            const html2pdf = (await import('html2pdf.js')).default
+
+            // Create a temporary container with the resume content
+            const element = document.createElement('div')
+            element.style.width = '170mm' // A4 width minus margins (210mm - 2*20mm)
+            element.style.fontFamily = 'Inter, -apple-system, sans-serif'
+            element.style.fontSize = '11pt'
+            element.style.lineHeight = '1.5'
+            element.style.color = '#111'
+            element.style.backgroundColor = 'white'
+
+            // Generate HTML from blocks
+            blocks.forEach(block => {
+                const blockEl = document.createElement(
+                    block.type === 'h1' ? 'h1' :
+                        block.type === 'h2' ? 'h2' :
+                            block.type === 'h3' ? 'h3' :
+                                block.type === 'bullet' ? 'li' : 'p'
+                )
+
+                blockEl.textContent = block.content
+
+                // Apply styles
+                if (block.type === 'h1') {
+                    blockEl.style.fontSize = '32px'
+                    blockEl.style.fontWeight = '700'
+                    blockEl.style.margin = '0 0 8px 0'
+                    blockEl.style.color = '#000'
+                    blockEl.style.lineHeight = '1.2'
+                }
+                if (block.type === 'h2') {
+                    blockEl.style.fontSize = '18px'
+                    blockEl.style.fontWeight = '700'
+                    blockEl.style.margin = '24px 0 8px 0'
+                    blockEl.style.borderBottom = '2px solid #ddd'
+                    blockEl.style.paddingBottom = '4px'
+                    blockEl.style.textTransform = 'uppercase'
+                    blockEl.style.letterSpacing = '0.5px'
+                    blockEl.style.color = '#000'
+                }
+                if (block.type === 'h3') {
+                    blockEl.style.fontSize = '14px'
+                    blockEl.style.fontWeight = '600'
+                    blockEl.style.margin = '16px 0 4px 0'
+                    blockEl.style.color = '#222'
+                }
+                if (block.type === 'paragraph') {
+                    blockEl.style.fontSize = '11pt'
+                    blockEl.style.margin = '0 0 6px 0'
+                    blockEl.style.color = '#333'
+                }
+                if (block.type === 'bullet') {
+                    blockEl.style.fontSize = '11pt'
+                    blockEl.style.margin = '0 0 4px 0'
+                    blockEl.style.color = '#333'
+                }
+
+                // Apply alignment
+                if (block.styles?.align) {
+                    blockEl.style.textAlign = block.styles.align
+                }
+                if (block.styles?.bold) {
+                    blockEl.style.fontWeight = '700'
+                }
+                if (block.styles?.italic) {
+                    blockEl.style.fontStyle = 'italic'
+                }
+                if (block.styles?.underline) {
+                    blockEl.style.textDecoration = 'underline'
+                }
+
+                // Group bullets into ul
+                if (block.type === 'bullet') {
+                    let ul = element.querySelector('ul:last-child') as HTMLUListElement | null
+                    if (!ul || ul.nextSibling) {
+                        ul = document.createElement('ul')
+                        ul.style.margin = '0 0 12px 0'
+                        ul.style.padding = '0 0 0 20px'
+                        ul.style.listStyleType = 'disc'
+                        element.appendChild(ul)
+                    }
+                    ul.appendChild(blockEl)
+                } else {
+                    element.appendChild(blockEl)
+                }
             })
 
-            if (!response.ok) throw new Error("Failed to export PDF")
+            // Generate PDF with proper margins
+            const opt = {
+                margin: [20, 20, 20, 20] as [number, number, number, number], // top, right, bottom, left in mm
+                filename: `${fileName.replace(/\.pdf$/i, "")}_edited.pdf`,
+                image: { type: 'jpeg' as const, quality: 0.98 },
+                html2canvas: {
+                    scale: 2,
+                    useCORS: true,
+                    letterRendering: true,
+                    backgroundColor: '#ffffff'
+                },
+                jsPDF: {
+                    unit: 'mm' as const,
+                    format: 'a4' as const,
+                    orientation: 'portrait' as const,
+                    compress: true
+                },
+                pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
+            }
 
-            const blob = await response.blob()
-            const url = window.URL.createObjectURL(blob)
-            const link = document.createElement('a')
-            link.href = url
-            link.setAttribute('download', `${fileName.replace(/\.pdf$/i, "")}_edited.pdf`)
-            document.body.appendChild(link)
-            link.click()
-            link.remove()
-            window.URL.revokeObjectURL(url)
+            await html2pdf().set(opt).from(element).save()
+
             toast({ title: "PDF downloaded successfully!" })
-        } catch (err) {
+        } catch (err: any) {
             console.error("Export error:", err)
-            toast({ title: "Failed to export PDF", variant: "destructive" })
+            toast({
+                title: "Failed to export PDF",
+                description: err.message || "An error occurred",
+                variant: "destructive"
+            })
         } finally {
             setIsExporting(false)
         }
