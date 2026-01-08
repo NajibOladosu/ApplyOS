@@ -12,6 +12,7 @@ import {
     AlignRight,
     Bold,
     Italic,
+    Underline,
     List,
     Trash2,
     Save,
@@ -247,10 +248,10 @@ const BlockRenderer = ({ block, onUpdate, onFocus, isActive, onAIRewrite }: {
 
     return (
         <div className="relative group/wrapper">
-            {isActive && (block.type === 'paragraph' || block.type === 'bullet') && (
+            {isActive && (
                 <button
                     onClick={onAIRewrite}
-                    className="absolute -right-14 top-1/2 -translate-y-1/2 p-2.5 bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg border border-white/20 rounded-full text-white hover:from-purple-600 hover:to-pink-600 transition-all scale-0 group-hover/wrapper:scale-100 animate-in zoom-in duration-200 z-50"
+                    className="absolute -right-14 top-1/2 -translate-y-1/2 p-2.5 bg-[#00FF88] shadow-lg border border-[#00FF88]/20 rounded-full text-black hover:bg-[#00CC6A] transition-all scale-0 group-hover/wrapper:scale-100 animate-in zoom-in duration-200 z-50 font-semibold"
                     title="AI Rewrite with Gemini"
                 >
                     <Sparkles className="h-4 w-4" />
@@ -357,10 +358,11 @@ const MultiPageEditor = ({
                     <div className="flex flex-col w-full max-w-full overflow-hidden">
                         {pageBlocks.map(block => (
                             <div key={block.id} className="relative group/line">
-                                <div className="absolute -left-10 top-2 opacity-0 group-hover/line:opacity-100 transition-opacity flex flex-col items-center">
+                                <div className="absolute -left-10 top-2 opacity-0 group-hover/line:opacity-100 transition-opacity flex flex-col items-center gap-2">
                                     <button
                                         onClick={() => deleteBlock(block.id)}
-                                        className="text-gray-400 hover:text-red-600 p-1.5 hover:bg-red-50 rounded transition-colors"
+                                        className="text-gray-500 hover:text-white hover:bg-red-600 p-2 rounded-lg transition-all shadow-sm border border-gray-200 bg-white hover:border-red-600"
+                                        title="Delete block"
                                     >
                                         <Trash2 className="h-4 w-4" />
                                     </button>
@@ -741,14 +743,91 @@ export function ResumeEditor({ documentUrl, analysis, parsedData, extractedText,
                 </div>
 
                 <div className="flex items-center gap-4">
+                    {/* Formatting Tools */}
                     <div className="flex items-center gap-1 bg-[#1A1A1A] p-1 rounded-lg border border-[#1A1A1A]">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('bold')}><Bold className="h-4 w-4 text-gray-400" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('italic')}><Italic className="h-4 w-4 text-gray-400" /></Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]"
+                            onClick={() => toggleStyle('bold')}
+                            disabled={!activeBlockId}
+                        >
+                            <Bold className="h-4 w-4 text-gray-400" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]"
+                            onClick={() => toggleStyle('italic')}
+                            disabled={!activeBlockId}
+                        >
+                            <Italic className="h-4 w-4 text-gray-400" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]"
+                            onClick={() => toggleStyle('underline')}
+                            disabled={!activeBlockId}
+                            title="Underline"
+                        >
+                            <Underline className="h-4 w-4 text-gray-400" />
+                        </Button>
                         <div className="h-4 w-px bg-[#1A1A1A] mx-1" />
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('align', 'left')}><AlignLeft className="h-4 w-4 text-gray-400" /></Button>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]" onClick={() => toggleStyle('align', 'center')}><AlignCenter className="h-4 w-4 text-gray-400" /></Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]"
+                            onClick={() => toggleStyle('align', 'left')}
+                            disabled={!activeBlockId}
+                        >
+                            <AlignLeft className="h-4 w-4 text-gray-400" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]"
+                            onClick={() => toggleStyle('align', 'center')}
+                            disabled={!activeBlockId}
+                        >
+                            <AlignCenter className="h-4 w-4 text-gray-400" />
+                        </Button>
+                        <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 hover:bg-[#00FF88]/10 hover:text-[#00FF88]"
+                            onClick={() => toggleStyle('align', 'right')}
+                            disabled={!activeBlockId}
+                        >
+                            <AlignRight className="h-4 w-4 text-gray-400" />
+                        </Button>
                     </div>
 
+                    {/* Block Actions */}
+                    <div className="flex items-center gap-1">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => activeBlockId && handleAIRewrite(blocks.find(b => b.id === activeBlockId)!)}
+                            disabled={!activeBlockId}
+                            className="font-medium bg-[#00FF88] border-[#00FF88] text-black hover:bg-[#00CC6A] hover:border-[#00CC6A] disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Sparkles className="h-3 w-3 mr-1" /> Ask AI
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => activeBlockId && deleteBlock(activeBlockId)}
+                            disabled={!activeBlockId}
+                            className="font-medium bg-[#1A1A1A] border-[#1A1A1A] text-gray-300 hover:bg-red-600 hover:border-red-600 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                            <Trash2 className="h-3 w-3 mr-1" /> Delete
+                        </Button>
+                    </div>
+
+                    <div className="h-6 w-px bg-[#1A1A1A]" />
+
+                    {/* Add Block Buttons */}
                     <div className="flex items-center gap-1">
                         <Button variant="outline" size="sm" onClick={() => addBlock('paragraph')} className="font-medium bg-[#1A1A1A] border-[#1A1A1A] text-gray-300 hover:bg-[#00FF88]/10 hover:border-[#00FF88] hover:text-[#00FF88]"><Plus className="h-3 w-3 mr-1" /> Text</Button>
                         <Button variant="outline" size="sm" onClick={() => addBlock('h2')} className="font-medium bg-[#1A1A1A] border-[#1A1A1A] text-gray-300 hover:bg-[#00FF88]/10 hover:border-[#00FF88] hover:text-[#00FF88]"><Type className="h-3 w-3 mr-1" /> Heading</Button>
