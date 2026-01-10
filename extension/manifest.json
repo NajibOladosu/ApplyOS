@@ -10,12 +10,7 @@
         "scripting"
     ],
     "host_permissions": [
-        "*://*.linkedin.com/*",
-        "*://*.indeed.com/*",
-        "*://*.myworkdayjobs.com/*",
-        "*://boards.greenhouse.io/*",
-        "*://jobs.lever.co/*",
-        "*://*.glassdoor.com/*"
+        "<all_urls>"
     ],
     "background": {
         "service_worker": "background.js",

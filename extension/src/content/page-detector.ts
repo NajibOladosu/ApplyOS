@@ -36,7 +36,7 @@ export class PageDetector {
         const hostname = window.location.hostname
 
         // LinkedIn
-        if (hostname.includes('linkedin.com') && url.includes('/jobs/')) {
+        if (hostname.includes('linkedin.com') && (url.includes('/jobs/') || url.includes('currentJobId'))) {
             return {
                 isApplicationPage: true,
                 platform: 'linkedin',

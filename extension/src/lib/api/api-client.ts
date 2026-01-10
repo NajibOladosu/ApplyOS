@@ -8,7 +8,7 @@ export interface Application {
     company: string | null
     url: string | null
     job_description: string | null
-    status: 'draft' | 'applied' | 'interviewing' | 'offer' | 'rejected'
+    status: 'draft' | 'submitted' | 'in_review' | 'interview' | 'offer' | 'rejected'
     created_at?: string
 }
 
