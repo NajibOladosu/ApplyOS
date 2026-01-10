@@ -1,5 +1,6 @@
 const path = require('path');
 const CopyPlugin = require('copy-webpack-plugin');
+const Dotenv = require('dotenv-webpack');
 
 module.exports = (env) => {
     const browser = env.browser || 'chrome';
@@ -34,6 +35,9 @@ module.exports = (env) => {
             extensions: ['.tsx', '.ts', '.js'],
             alias: {
                 '@': path.resolve(__dirname, 'src')
+            },
+            fallback: {
+                "process": false
             }
         },
         plugins: [
@@ -43,7 +47,6 @@ module.exports = (env) => {
                         from: 'manifest.json',
                         to: 'manifest.json',
                         transform(content) {
-                            // Can modify manifest per browser if needed
                             return content;
                         }
                     },
@@ -51,6 +54,11 @@ module.exports = (env) => {
                     { from: 'src/popup/index.html', to: 'popup.html' },
                     { from: 'src/options/index.html', to: 'options.html' }
                 ]
+            }),
+            new Dotenv({
+                path: path.resolve(__dirname, '../.env.local'), // Path to .env file
+                systemvars: true, // load system variables as well
+                safe: false
             })
         ],
         optimization: {
