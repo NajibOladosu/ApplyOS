@@ -166,66 +166,28 @@ export function QuickAddTab() {
                     />
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Company</label>
-                        <div className="relative">
-                            <Building className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                            <input
-                                value={data.company || ''}
-                                onChange={e => setData({ ...data, company: e.target.value })}
-                                className="input-field pl-8 text-sm"
-                                placeholder="Company"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Location</label>
-                        <div className="relative">
-                            <MapPin className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                            <input
-                                value={data.location || ''}
-                                onChange={e => setData({ ...data, location: e.target.value })}
-                                className="input-field pl-8 text-sm"
-                                placeholder="Remote"
-                            />
-                        </div>
+                <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Company</label>
+                    <div className="relative">
+                        <Building className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
+                        <input
+                            value={data.company || ''}
+                            onChange={e => setData({ ...data, company: e.target.value })}
+                            className="input-field pl-8 text-sm"
+                            placeholder="Company"
+                        />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-3">
-                    <div>
-                        <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Salary</label>
-                        <div className="relative">
-                            <DollarSign className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                            <input
-                                value={data.salary || ''}
-                                onChange={e => setData({ ...data, salary: e.target.value })}
-                                className="input-field pl-8 text-sm"
-                                placeholder="N/A"
-                            />
-                        </div>
-                    </div>
-                    <div>
-                        <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Type</label>
-                        <div className="relative">
-                            <Briefcase className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                            <input
-                                value={data.employmentType || ''}
-                                onChange={e => setData({ ...data, employmentType: e.target.value })}
-                                className="input-field pl-8 text-sm"
-                                placeholder="Full-time"
-                            />
-                        </div>
-                    </div>
+                <div>
+                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Job Description</label>
+                    <textarea
+                        value={data.description || ''}
+                        onChange={e => setData({ ...data, description: e.target.value })}
+                        className="input-field text-xs h-32 py-2 leading-relaxed resize-none"
+                        placeholder="Paste job description here..."
+                    />
                 </div>
-
-                {data.description && (
-                    <div className="text-[10px] text-muted-foreground bg-secondary/50 p-2 rounded flex items-center gap-2">
-                        <Check className="w-3 h-3 text-primary" />
-                        Description extracted successfully ({data.description.length} chars)
-                    </div>
-                )}
             </div>
 
             {/* Footer Action */}
