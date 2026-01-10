@@ -8,8 +8,13 @@ export function QuickAddTab() {
     const [data, setData] = useState<any>({})
     const [errorMsg, setErrorMsg] = useState<string | null>(null)
 
+    const hasAnalyzed = React.useRef(false)
+
     useEffect(() => {
-        analyzePage()
+        if (!hasAnalyzed.current) {
+            hasAnalyzed.current = true
+            analyzePage()
+        }
     }, [])
 
     const analyzePage = async () => {
@@ -17,47 +22,70 @@ export function QuickAddTab() {
         setErrorMsg(null)
 
         try {
-            // Get current tab
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
 
             if (!tab?.id) {
                 throw new Error('No active tab found')
             }
 
-            // Inject content script if needed (handled by manifest, but ensure it's ready)
-            // Send message
-            chrome.tabs.sendMessage(tab.id, { type: 'EXTRACT_PAGE' }, (response) => {
-                if (chrome.runtime.lastError) {
-                    // Content script might not be injected (e.g. on chrome:// pages or restricted domains)
-                    console.error(chrome.runtime.lastError)
-                    setData({
-                        title: tab.title || '',
-                        url: tab.url || '',
-                        platform: 'unknown',
-                        manual_entry: true
+            const sendMessage = () => {
+                return new Promise((resolve, reject) => {
+                    chrome.tabs.sendMessage(tab.id!, { type: 'EXTRACT_PAGE' }, (response) => {
+                        if (chrome.runtime.lastError) {
+                            // Failed? Try injecting script
+                            reject(chrome.runtime.lastError)
+                        } else {
+                            resolve(response)
+                        }
                     })
-                    setStep('review')
-                    return
-                }
+                })
+            }
 
-                if (response && response.success) {
-                    setData(response.data)
-                    setStep('review')
-                } else {
-                    setData({
-                        title: tab.title || '',
-                        url: tab.url || '',
-                        platform: 'unknown',
-                        manual_entry: true
-                    })
-                    setStep('review')
-                }
-            })
+            try {
+                // Try contacting existing script
+                const response: any = await sendMessage()
+                handleResponse(response, tab)
+            } catch (e) {
+                console.log('Script likely missing, injecting...', e)
+                // Inject script
+                await chrome.scripting.executeScript({
+                    target: { tabId: tab.id },
+                    files: ['content.js']
+                })
+
+                // Wait a small delay for script to parse
+                await new Promise(r => setTimeout(r, 100))
+
+                // Retry message
+                const response: any = await sendMessage()
+                handleResponse(response, tab)
+            }
 
         } catch (e: any) {
             console.error(e)
-            setErrorMsg(e.message)
-            setStep('error')
+            // If still failing, fallback to manual
+            setData({
+                title: '',
+                url: '',
+                platform: 'unknown',
+                manual_entry: true
+            })
+            setStep('review')
+        }
+    }
+
+    const handleResponse = (response: any, tab: chrome.tabs.Tab) => {
+        if (response && response.success) {
+            setData(response.data)
+            setStep('review')
+        } else {
+            setData({
+                title: tab.title || '',
+                url: tab.url || '',
+                platform: 'unknown',
+                manual_entry: true
+            })
+            setStep('review')
         }
     }
 
@@ -73,12 +101,12 @@ export function QuickAddTab() {
                 company: data.company || null,
                 url: data.url,
                 job_description: data.description || null,
-                status: 'applied'
+                status: 'submitted'
             })
             setStep('success')
-        } catch (e) {
+        } catch (e: any) {
             console.error(e)
-            alert('Failed to save application')
+            alert(`Error saving: ${e.message || JSON.stringify(e)}`)
             setStep('review')
         }
     }
@@ -106,22 +134,6 @@ export function QuickAddTab() {
                     className="mt-4 text-xs text-primary hover:underline"
                 >
                     Add another
-                </button>
-            </div>
-        )
-    }
-
-    if (step === 'error') {
-        return (
-            <div className="flex flex-col items-center justify-center h-64 text-center p-6 bg-card m-4 rounded-xl border border-destructive/30">
-                <AlertCircle className="w-8 h-8 text-destructive mb-3" />
-                <h3 className="font-bold text-foreground">Error</h3>
-                <p className="text-xs text-muted-foreground mt-1">{errorMsg || 'Failed to analyze page'}</p>
-                <button
-                    onClick={analyzePage}
-                    className="mt-4 px-4 py-2 bg-secondary text-foreground text-xs rounded-lg hover:bg-secondary/80"
-                >
-                    Try Again
                 </button>
             </div>
         )
