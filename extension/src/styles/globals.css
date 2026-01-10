@@ -1,33 +1,67 @@
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Extension-specific base styles */
-body {
-    margin: 0;
-    padding: 0;
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-        'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-        sans-serif;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+@layer base {
+    body {
+        @apply bg-background text-foreground;
+    }
 }
 
-/* Custom utility classes */
 @layer components {
     .btn-primary {
-        @apply px-4 py-2 bg-primary text-white rounded-lg hover:bg-primary-hover transition-colors;
+        @apply px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center;
     }
 
     .btn-secondary {
-        @apply px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors;
+        @apply px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all flex items-center justify-center border border-border;
     }
 
     .input-field {
-        @apply w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary;
+        @apply w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all;
     }
 
     .card {
-        @apply bg-white rounded-lg shadow-sm border border-gray-200 p-4;
+        @apply bg-card border border-border rounded-lg p-4;
     }
+}
+
+@layer utilities {
+    .glass-effect {
+        background: rgba(16, 16, 16, 0.7);
+        backdrop-filter: blur(10px);
+        border: 1px solid rgba(26, 26, 26, 0.5);
+    }
+
+    .text-gradient {
+        background: linear-gradient(135deg, #00FF88 0%, #00CC6A 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+    }
+
+    .glow-effect {
+        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+    }
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #0A0A0A;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #1A1A1A;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #00FF88;
 }
