@@ -53,9 +53,10 @@ export function QuickAddTab() {
                     files: ['content.js']
                 })
 
-                // Wait a small delay for script to parse
-                await new Promise(r => setTimeout(r, 100))
+                // Wait for script to initialize (increased for reliability)
+                await new Promise(r => setTimeout(r, 500))
 
+                console.log('Retrying extraction message...')
                 // Retry message
                 const response: any = await sendMessage()
                 handleResponse(response, tab)
