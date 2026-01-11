@@ -9,6 +9,7 @@ export interface Application {
     url: string | null
     job_description: string | null
     status: 'draft' | 'submitted' | 'in_review' | 'interview' | 'offer' | 'rejected'
+    notes?: string | null
     created_at?: string
 }
 
@@ -55,6 +56,16 @@ export class APIClient {
 
         if (error) throw error
         return data
+    }
+
+    static async deleteApplication(id: string) {
+        const { error } = await supabase
+            .from('applications')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+        return true
     }
 
     // Documents
