@@ -68,6 +68,83 @@ export class APIClient {
         return true
     }
 
+    // AI Features
+    static async checkCompatibility(jobDescription: string, resumeText: string) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const { data: { session } } = await supabase.auth.getSession()
+
+        const response = await fetch(`${baseUrl}/api/ai/compatibility`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({ jobDescription, resumeText })
+        })
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}))
+            throw new Error(err.error || `API error: ${response.statusText}`)
+        }
+
+        return await response.json()
+    }
+
+    static async saveQuestions(applicationId: string, questions: any[]) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Not authenticated')
+
+        const records = questions.map(q => ({
+            application_id: applicationId,
+            user_id: user.id,
+            question_text: q.text,
+            type: q.type,
+            required: q.required,
+            // Add default status/empty answer
+            ai_answer: null
+        }))
+
+        const { data, error } = await supabase
+            .from('questions')
+            .insert(records)
+            .select()
+
+        if (error) throw error
+        return data
+    }
+
+    static async generateAnswers(applicationId: string) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const { data: { session } } = await supabase.auth.getSession()
+
+        const response = await fetch(`${baseUrl}/api/questions/regenerate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({ applicationId })
+        })
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}))
+            throw new Error(err.error || `API error: ${response.statusText}`)
+        }
+
+        return await response.json()
+    }
+
+    static async getQuestions(applicationId: string) {
+        const { data, error } = await supabase
+            .from('questions')
+            .select('*')
+            .eq('application_id', applicationId)
+            .order('created_at', { ascending: true })
+
+        if (error) throw error
+        return data
+    }
+
     // Documents
     static async uploadDocument(file: File, userId: string) {
         // Upload to storage
