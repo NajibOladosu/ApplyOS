@@ -19,12 +19,7 @@
     "content_scripts": [
         {
             "matches": [
-                "*://*.linkedin.com/jobs/*",
-                "*://*.indeed.com/*",
-                "*://*.myworkdayjobs.com/*",
-                "*://boards.greenhouse.io/*",
-                "*://jobs.lever.co/*",
-                "*://*.glassdoor.com/*"
+                "<all_urls>"
             ],
             "js": [
                 "content.js"

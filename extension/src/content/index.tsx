@@ -1,5 +1,6 @@
 import { PageDetector } from './page-detector'
 import { DataExtractor } from './data-extractor'
+import { QuestionExtractor } from './question-extractor'
 
 // Listen for messages from the popup
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -8,11 +9,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
         return true
     }
     if (request.type === 'EXTRACT_QUESTIONS') {
-        import('./question-extractor').then(({ QuestionExtractor }) => {
+        try {
             const questions = QuestionExtractor.extract()
             sendResponse({ success: true, questions })
-        })
-        return true
+        } catch (e: any) {
+            sendResponse({ success: false, error: e.message })
+        }
+        return false // Synchronous response (or fully handled)
     }
 })
 
