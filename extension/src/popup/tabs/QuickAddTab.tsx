@@ -102,7 +102,7 @@ export function QuickAddTab() {
                 company: data.company || null,
                 url: data.url,
                 job_description: data.description || null,
-                status: 'submitted'
+                status: 'draft'
             })
             setStep('success')
         } catch (e: any) {

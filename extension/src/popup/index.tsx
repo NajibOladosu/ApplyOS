@@ -50,10 +50,11 @@ function Popup() {
       {/* Header */}
       <div className="flex items-center justify-between p-4 border-b border-border bg-card/50 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center gap-2">
-          <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-black font-bold text-sm shadow-[0_0_10px_rgba(0,255,136,0.3)]">
-            A
-          </div>
-          <span className="font-bold text-sm">ApplyOS</span>
+          <img src="icons/icon-48.png" alt="ApplyOS" className="w-7 h-7" />
+          <span className="font-bold text-lg font-mono tracking-tight">
+            <span className="text-primary">Apply</span>
+            <span className="text-foreground">OS</span>
+          </span>
         </div>
         <div className="flex gap-1">
           <button
@@ -76,8 +77,8 @@ function Popup() {
         <button
           onClick={() => setActiveTab('quick-add')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-medium transition-all ${activeTab === 'quick-add'
-              ? 'bg-primary text-black shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/20'
+            ? 'bg-primary text-black shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-background/20'
             }`}
         >
           <PlusCircle className="w-3.5 h-3.5" />
@@ -86,8 +87,8 @@ function Popup() {
         <button
           onClick={() => setActiveTab('applications')}
           className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-md text-xs font-medium transition-all ${activeTab === 'applications'
-              ? 'bg-primary text-black shadow-sm'
-              : 'text-muted-foreground hover:text-foreground hover:bg-background/20'
+            ? 'bg-primary text-black shadow-sm'
+            : 'text-muted-foreground hover:text-foreground hover:bg-background/20'
             }`}
         >
           <LayoutGrid className="w-3.5 h-3.5" />
