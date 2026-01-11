@@ -5,7 +5,14 @@ import { DataExtractor } from './data-extractor'
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     if (request.type === 'EXTRACT_PAGE') {
         handleExtraction().then(sendResponse)
-        return true // Indicates async response
+        return true
+    }
+    if (request.type === 'EXTRACT_QUESTIONS') {
+        import('./question-extractor').then(({ QuestionExtractor }) => {
+            const questions = QuestionExtractor.extract()
+            sendResponse({ success: true, questions })
+        })
+        return true
     }
 })
 
