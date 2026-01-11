@@ -2,10 +2,13 @@ import React, { useState, useEffect } from 'react'
 import { APIClient, type Application } from '../../lib/api/api-client'
 import { Loader2, Search, Building, Calendar, ExternalLink } from 'lucide-react'
 
+import { ApplicationDetail } from '../components/ApplicationDetail'
+
 export function ApplicationsTab() {
     const [apps, setApps] = useState<Application[]>([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
+    const [selectedApp, setSelectedApp] = useState<Application | null>(null)
 
     useEffect(() => {
         loadApps()
@@ -20,6 +23,27 @@ export function ApplicationsTab() {
         } finally {
             setLoading(false)
         }
+    }
+
+    const handleUpdate = (updatedApp: Application) => {
+        setApps(apps.map(app => app.id === updatedApp.id ? updatedApp : app))
+        setSelectedApp(updatedApp)
+    }
+
+    const handleDelete = (id: string) => {
+        setApps(apps.filter(app => app.id !== id))
+        setSelectedApp(null)
+    }
+
+    if (selectedApp) {
+        return (
+            <ApplicationDetail
+                application={selectedApp}
+                onBack={() => setSelectedApp(null)}
+                onUpdate={handleUpdate}
+                onDelete={handleDelete}
+            />
+        )
     }
 
     const filteredApps = apps.filter(app =>
@@ -67,11 +91,15 @@ export function ApplicationsTab() {
                     </div>
                 ) : (
                     filteredApps.map(app => (
-                        <div key={app.id} className="bg-card border border-border rounded-lg p-3 hover:border-primary/30 transition-colors group cursor-pointer relative">
+                        <div
+                            key={app.id}
+                            onClick={() => setSelectedApp(app)}
+                            className="bg-card border border-border rounded-lg p-3 hover:border-primary/30 transition-colors group cursor-pointer relative"
+                        >
                             <div className="flex justify-between items-start mb-2">
                                 <h3 className="font-semibold text-sm truncate pr-6">{app.title}</h3>
                                 <span className={`text-[10px] uppercase font-bold px-1.5 py-0.5 rounded border ${getStatusColor(app.status)}`}>
-                                    {app.status}
+                                    {app.status.replace('_', ' ')}
                                 </span>
                             </div>
 
@@ -86,7 +114,7 @@ export function ApplicationsTab() {
                                 </div>
                             </div>
 
-                            {/* Hover Actions (Mockup for detail view trigger) */}
+                            {/* Hover Actions */}
                             <div className="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity">
                                 <ExternalLink className="w-4 h-4 text-primary" />
                             </div>
