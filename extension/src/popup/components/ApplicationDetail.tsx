@@ -23,6 +23,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const [generating, setGenerating] = useState(false)
     const [compatibility, setCompatibility] = useState<any>(null)
     const [checkingComp, setCheckingComp] = useState(false)
+    const [aiContext, setAiContext] = useState('')
 
     useEffect(() => {
         if (activeTab === 'questions') {
@@ -99,7 +100,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const handleGenerateAnswers = async () => {
         setGenerating(true)
         try {
-            await APIClient.generateAnswers(application.id!)
+            await APIClient.generateAnswers(application.id!, aiContext || undefined)
             loadQuestions()
         } catch (e) {
             console.error(e)
@@ -181,8 +182,8 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                         key={s}
                                         onClick={() => setStatus(s as any)}
                                         className={`text-[10px] py-1.5 px-2 rounded border capitalize transition-all ${status === s
-                                                ? 'border-primary bg-primary/10 text-primary font-semibold shadow-[0_0_10px_rgba(0,255,136,0.1)]'
-                                                : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
+                                            ? 'border-primary bg-primary/10 text-primary font-semibold shadow-[0_0_10px_rgba(0,255,136,0.1)]'
+                                            : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
                                             }`}
                                     >
                                         {s.replace('_', ' ')}
@@ -248,6 +249,17 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     Generate
                                 </button>
                             </div>
+                        </div>
+
+                        {/* Context Input */}
+                        <div className="space-y-1">
+                            <label className="text-[10px] uppercase font-bold text-muted-foreground">AI Context / Instructions (Optional)</label>
+                            <textarea
+                                value={aiContext}
+                                onChange={e => setAiContext(e.target.value)}
+                                className="w-full h-20 p-2 text-xs bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                                placeholder="E.g., 'Focus on my leadership experience' or 'Keep answers concise under 100 words'"
+                            />
                         </div>
 
                         {questions.length === 0 ? (

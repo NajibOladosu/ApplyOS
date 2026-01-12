@@ -113,7 +113,7 @@ export class APIClient {
         return data
     }
 
-    static async generateAnswers(applicationId: string) {
+    static async generateAnswers(applicationId: string, extraContext?: string) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
         const { data: { session } } = await supabase.auth.getSession()
 
@@ -123,7 +123,7 @@ export class APIClient {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session?.access_token}`
             },
-            body: JSON.stringify({ applicationId })
+            body: JSON.stringify({ applicationId, extraContext })
         })
 
         if (!response.ok) {
