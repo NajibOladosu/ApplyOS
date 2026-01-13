@@ -1337,3 +1337,92 @@ export async function summarizeDocument(input: {
   const report = await generateDocumentReport(input)
   return report.overallAssessment
 }
+
+export type ResumeAnalysisResult = {
+  score: number           // 0-100
+  matchingKeywords: string[]
+  missingKeywords: string[] // Critical missing keywords for ATS
+  strengths: string[]
+  weaknesses: string[]
+  recommendations: string[] // Actionable advice
+}
+
+/**
+ * Analyze the match between a resume and a job description.
+ * Focuses on weaknesses, ATS keyword gaps, and actionable improvements.
+ */
+export async function analyzeResumeMatch(
+  resumeText: string,
+  jobDescription: string
+): Promise<ResumeAnalysisResult> {
+  if (!genAI) {
+    throw new Error('AI is not configured. Please add your Gemini API key.')
+  }
+
+  const prompt = `You are an expert Resume Analyst and ATS (Applicant Tracking System) Specialist.
+Analyze the following RESUME against the JOB DESCRIPTION.
+
+JOB DESCRIPTION:
+${jobDescription.slice(0, 8000)}
+
+RESUME CONTENT:
+${resumeText.slice(0, 8000)}
+
+YOUR TASK:
+Provide a critical, no-nonsense analysis of how well the resume matches the job description.
+Focus HEAVILY on finding gaps, weaknesses, and missing keywords that would cause an ATS rejection.
+
+REQUIREMENTS:
+1. **Score**: Give a strict match score (0-100). Be realistic.
+2. **Weaknesses**: Identify at least 3-5 specific weaknesses or gaps. Be crucial.
+3. **ATS Keywords**: Identify CRITICAL keywords from the JD that are MISSING in the resume. High importance.
+4. **Actionable Advice**: Provide specific, concrete steps to improve the resume for THIS specific job.
+5. **Strengths**: Briefly list key strengths (but prioritize finding gaps).
+
+Return ONLY valid JSON (no markdown, no code fences):
+{
+  "score": <number 0-100>,
+  "matchingKeywords": ["<keyword found in both>"],
+  "missingKeywords": ["<CRITICAL keyword in JD but NOT in resume>"],
+  "strengths": ["<strength 1>", "<strength 2>"],
+  "weaknesses": ["<detailed weakness 1>", "<detailed weakness 2>"],
+  "recommendations": ["<specific action 1>", "<specific action 2>"]
+}
+  `
+
+  try {
+    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
+
+    // Handle markdown code fences
+    let jsonText = text
+    const codeBlockMatch = text.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (codeBlockMatch) {
+      jsonText = codeBlockMatch[1].trim()
+    }
+
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
+    if (!jsonMatch) {
+      throw new Error('No JSON object found in analysis response')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0])
+
+    const normalizeArray = (arr: any) => Array.isArray(arr) ? arr.map(String) : []
+
+    return {
+      score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, parsed.score)) : 0,
+      matchingKeywords: normalizeArray(parsed.matchingKeywords),
+      missingKeywords: normalizeArray(parsed.missingKeywords),
+      strengths: normalizeArray(parsed.strengths),
+      weaknesses: normalizeArray(parsed.weaknesses),
+      recommendations: normalizeArray(parsed.recommendations),
+    }
+
+  } catch (error) {
+    if (error instanceof AIRateLimitError) {
+      throw error
+    }
+    console.error('Error analyzing resume match:', error)
+    throw new Error('Failed to analyze resume match. Please try again.')
+  }
+}
