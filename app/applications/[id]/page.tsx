@@ -29,7 +29,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
-import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments } from "@/lib/services/applications"
+import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/lib/services/applications"
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
@@ -46,6 +46,7 @@ import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
 import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
 import { RegenerateContextModal } from "@/components/modals/regenerate-context-modal"
 import type { InterviewSession } from "@/types/database"
+import { AnalysisTab } from "@/components/applications/analysis-tab"
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -105,17 +106,33 @@ export default function ApplicationDetailPage() {
       setError(null)
 
       try {
-        const [app, qs, docs, relatedDocIds, appNotes, sessions] = await Promise.all([
+        const [app, qs, docs, relatedDocIds, appNotes, sessions, appDocDetails] = await Promise.all([
           getApplication(id),
           getQuestionsByApplicationId(id),
           getDocuments(),
           getApplicationDocuments(id),
           getNotesByApplicationId(id),
           getInterviewSessions(id),
+          getApplicationDocumentDetails(id),
         ])
+
+        // Merge application-specific analysis into documents
+        const docsWithAnalysis = docs.map(doc => {
+          const details = appDocDetails.find((d: any) => d.document_id === doc.id)
+          // Always return a new object to avoid mutating 'doc' if it is reused
+          // Strictly use the application-specific details. If they don't exist,
+          // explicitly set analysis fields to null/default to avoid showing legacy global analysis.
+          return {
+            ...doc,
+            analysis_result: details?.analysis_result || null,
+            analysis_status: details?.analysis_status || 'not_analyzed',
+            summary_generated_at: details?.summary_generated_at || null
+          }
+        })
+
         setApplication(app)
         setQuestions(qs)
-        setDocuments(docs)
+        setDocuments(docsWithAnalysis)
         setNotes(appNotes)
         setInterviewSessions(sessions)
         setPendingStatus(app.status)
@@ -769,31 +786,30 @@ export default function ApplicationDetailPage() {
                   No documents selected yet. Click "Add Document" to select documents.
                 </p>
               ) : (
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
                   {selectedDocumentIds.map((docId) => {
                     const doc = documents.find((d) => d.id === docId)
                     if (!doc) return null
                     return (
                       <div
                         key={doc.id}
-                        className="flex items-center justify-between p-2 rounded bg-muted/50 border border-input"
+                        className="rounded-lg border p-3 flex items-center gap-3 transition-all hover:bg-muted relative group border-input bg-card"
                       >
-                        <div className="flex-1 min-w-0">
+                        <div className="p-2 rounded bg-background border flex items-center justify-center">
+                          <FileText className="h-4 w-4 text-primary" />
+                        </div>
+                        <div className="overflow-hidden flex-1">
                           <p className="text-sm font-medium truncate">{doc.file_name}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {doc.analysis_status === "success"
-                              ? "✓ Analyzed"
-                              : doc.analysis_status === "pending"
-                                ? "⏳ Analyzing..."
-                                : "✗ Not analyzed"}
+                          <p className="text-xs text-muted-foreground truncate">
+                            {((doc.file_size || 0) / 1024).toFixed(0)} KB • {doc.analysis_status === "success" ? "Analyzed" : "Pending"}
                           </p>
                         </div>
                         <button
                           onClick={() => removeDocument(doc.id)}
-                          className="ml-2 p-1 hover:bg-muted rounded transition-colors"
-                          aria-label="Remove document"
+                          className="p-1 hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 absolute top-1 right-1"
+                          title="Remove document"
                         >
-                          <X className="h-4 w-4 text-muted-foreground" />
+                          <X className="h-3 w-3" />
                         </button>
                       </div>
                     )
@@ -865,7 +881,7 @@ export default function ApplicationDetailPage() {
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-4 w-full sm:w-auto">
+            <TabsList className="grid grid-cols-5 w-full sm:w-auto">
               <TabsTrigger
                 value="questions"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
@@ -889,6 +905,12 @@ export default function ApplicationDetailPage() {
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
               >
                 Notes
+              </TabsTrigger>
+              <TabsTrigger
+                value="analysis"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+              >
+                Analysis
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1464,6 +1486,14 @@ export default function ApplicationDetailPage() {
               })()}
             </div>
           </TabsContent>
+
+          {/* Analysis Tab */}
+          <TabsContent value="analysis" className="mt-6">
+            <AnalysisTab
+              application={application}
+              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
+            />
+          </TabsContent>
         </Tabs>
 
       </div>
@@ -1624,6 +1654,6 @@ export default function ApplicationDetailPage() {
         isRegeneratingAll={pendingRegenerationTarget === "all"}
         isLoading={regenerating !== null} // Wait, actually we close modal before regenerating, so this might not be needed for loading state HERE, but good for safety
       />
-    </DashboardLayout>
+    </DashboardLayout >
   )
 }
