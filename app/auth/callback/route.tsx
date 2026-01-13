@@ -5,7 +5,7 @@ import crypto from 'crypto'
 import { render } from '@react-email/render'
 import VerifyEmailTemplate from '@/emails/verify-email'
 import { sendEmailViaSMTP } from '@/lib/email/transport'
-import { emailConfig } from '@/lib/email/config'
+import { getEmailConfig } from '@/lib/email/config'
 import type { Database } from '@/types/supabase'
 
 // Rate limit: 5 minutes between verification email sends
@@ -51,19 +51,20 @@ async function sendVerificationEmail(
     }
 
     // Send verification email
+    const emailConfig = getEmailConfig()
     const verificationUrl = `${emailConfig.appUrl}/api/auth/verify-email?token=${verificationToken}`
     const htmlBody = await render(
-      VerifyEmailTemplate({
-        userName,
-        verificationUrl,
-      })
+      <VerifyEmailTemplate
+        userName={ userName }
+        verificationUrl = { verificationUrl }
+      />
     )
 
     const textBody = await render(
-      VerifyEmailTemplate({
-        userName,
-        verificationUrl,
-      }),
+      <VerifyEmailTemplate
+        userName={ userName }
+        verificationUrl = { verificationUrl }
+      />,
       { plainText: true }
     )
 

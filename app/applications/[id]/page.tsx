@@ -44,6 +44,7 @@ import { InterviewReportModal } from "@/components/modals/interview-report-modal
 import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
 import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
+import { RegenerateContextModal } from "@/components/modals/regenerate-context-modal"
 import type { InterviewSession } from "@/types/database"
 import { AnalysisTab } from "@/components/applications/analysis-tab"
 
@@ -92,6 +93,8 @@ export default function ApplicationDetailPage() {
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const [viewingReportSessionId, setViewingReportSessionId] = useState<string | null>(null)
   const [reportData, setReportData] = useState<any | null>(null)
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false)
+  const [pendingRegenerationTarget, setPendingRegenerationTarget] = useState<string | "all" | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -173,13 +176,19 @@ export default function ApplicationDetailPage() {
 
   const handleRegenerate = async (questionId?: string) => {
     if (!application) return
+    setPendingRegenerationTarget(questionId || "all")
+    setShowRegenerateModal(true)
+  }
+
+  const handleConfirmRegeneration = async (extraContext?: string) => {
+    if (!application || !pendingRegenerationTarget) return
+
+    const questionId = pendingRegenerationTarget === "all" ? undefined : pendingRegenerationTarget
 
     try {
-      if (!questionId) {
-        setRegenerating("all")
-      } else {
-        setRegenerating(questionId)
-      }
+      setRegenerating(pendingRegenerationTarget)
+      // Close modal immediately so we show the loading state on buttons
+      setShowRegenerateModal(false)
 
       const response = await fetch("/api/questions/regenerate", {
         method: "POST",
@@ -188,7 +197,8 @@ export default function ApplicationDetailPage() {
         },
         body: JSON.stringify({
           applicationId: application.id,
-          ...(questionId && { questionId }), // Only include questionId if provided (for single question)
+          questionId,
+          extraContext,
         }),
       })
 
@@ -221,6 +231,7 @@ export default function ApplicationDetailPage() {
       setError("Failed to regenerate answers. Please try again.")
     } finally {
       setRegenerating(null)
+      setPendingRegenerationTarget(null)
     }
   }
 
@@ -1630,7 +1641,18 @@ export default function ApplicationDetailPage() {
         onConfirm={handleDeleteInterview}
         onCancel={() => setSessionToDelete(null)}
         isLoading={!!deletingSessionId}
-        variant="destructive"
+      />
+
+      {/* Regenerate Context Modal */}
+      <RegenerateContextModal
+        isOpen={showRegenerateModal}
+        onClose={() => {
+          setShowRegenerateModal(false)
+          setPendingRegenerationTarget(null)
+        }}
+        onConfirm={handleConfirmRegeneration}
+        isRegeneratingAll={pendingRegenerationTarget === "all"}
+        isLoading={regenerating !== null} // Wait, actually we close modal before regenerating, so this might not be needed for loading state HERE, but good for safety
       />
     </DashboardLayout >
   )

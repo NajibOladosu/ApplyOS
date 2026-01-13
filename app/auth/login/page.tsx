@@ -150,9 +150,7 @@ function LoginContent() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect p-2">
-                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-              </div>
+              <img src="/logo.svg" alt="ApplyOS" className="h-12 w-auto" />
               <span className="text-3xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
                 <span className="text-white">OS</span>
@@ -193,9 +191,17 @@ function LoginContent() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"

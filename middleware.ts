@@ -2,6 +2,45 @@ import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function middleware(request: NextRequest) {
+  const hostname = request.headers.get('host') || ''
+  const pathname = request.nextUrl.pathname
+
+  // ============================================================
+  // SUBDOMAIN ROUTING FOR BLOG
+  // ============================================================
+  // Detect if request is coming from blog.applyos.io subdomain
+  // Also support blog.localhost for local development
+  const isBlogSubdomain =
+    hostname.startsWith('blog.applyos.io') ||
+    hostname.startsWith('blog.localhost')
+
+  if (isBlogSubdomain) {
+    // Rewrite blog subdomain requests to internal /blog routes
+    // blog.applyos.io/ -> /blog
+    // blog.applyos.io/post-slug -> /blog/post-slug
+    const blogPath = pathname === '/' ? '/blog' : `/blog${pathname}`
+
+    // Create a new URL with the rewritten path
+    const url = request.nextUrl.clone()
+    url.pathname = blogPath
+
+    // Rewrite (not redirect) to keep the subdomain URL in the browser
+    return NextResponse.rewrite(url)
+  }
+
+  // ============================================================
+  // MAIN DOMAIN REGULAR APP -> BLOG SUBDOMAIN REDIRECT
+  // ============================================================
+  // If user visits www.applyos.io/blog/..., redirect to blog.applyos.io/...
+  // This is a 301 Permanent Redirect, good for SEO
+  if (!isBlogSubdomain && pathname.startsWith('/blog')) {
+    const newPath = pathname.replace(/^\/blog/, '') || '/'
+    return NextResponse.redirect(new URL(newPath, 'https://blog.applyos.io'), 301)
+  }
+
+  // ============================================================
+  // MAIN APP ROUTING (existing logic)
+  // ============================================================
   let response = NextResponse.next({
     request: {
       headers: request.headers,
@@ -83,7 +122,13 @@ export async function middleware(request: NextRequest) {
   }
 
   // Redirect to dashboard if accessing auth pages while logged in
-  if ((request.nextUrl.pathname.startsWith('/auth/login') || request.nextUrl.pathname.startsWith('/auth/signup')) && user) {
+  // NOTE: We don't redirect from /auth/update-password because users landing there via a recovery link 
+  // are already considered "authenticated" by Supabase in order to perform the update.
+  const isAuthPage = request.nextUrl.pathname.startsWith('/auth/login') ||
+    request.nextUrl.pathname.startsWith('/auth/signup') ||
+    request.nextUrl.pathname.startsWith('/auth/forgot-password')
+
+  if (isAuthPage && user) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
