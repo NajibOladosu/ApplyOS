@@ -45,6 +45,7 @@ export interface Application {
   job_description: string | null
   ai_cover_letter: string | null
   manual_cover_letter: string | null
+  last_analyzed_document_id: string | null
   created_at: string
   updated_at: string
 }
@@ -77,6 +78,7 @@ export interface Document {
   parsed_at: string | null
   application_id: string | null
   extracted_text: string | null
+  analysis_result: any | null // Using any for now to avoid circular deps or complexity, or define ResumeAnalysisResult here
 }
 
 export interface Notification {
