@@ -1,4 +1,4 @@
-# <img src="public/favicon.svg" width="32" height="32" align="center" /> ApplyOS - AI-Powered Application & Interview Manager
+# <img src="public/logo.svg" width="32" height="32" align="center" /> ApplyOS - AI-Powered Application & Interview Manager
 
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js-16.1.1-black?style=for-the-badge" alt="Next.js" />
@@ -141,6 +141,11 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Email/password with verification
   - Google OAuth with seamless integration
 
+- **Secure Blog Platform**:
+  - **MDX-Powered Blog** - Rich content authoring with React components
+  - **SEO Optimized** - Automatic metadata, sitemaps, and canonical tags
+  - **Subdomain Routing** - `blog.applyos.io` integration via middleware
+
 - **Email Verification** - Required for all signup methods with:
   - Automatic verification email sending
   - Beautiful verification check pages
@@ -166,9 +171,12 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
 - **Modern Design**:
   - Clean, intuitive interface built with shadcn/ui
   - Responsive design for desktop, tablet, and mobile
-  - Dark mode support with green accent (#00FF88)
+  - **Theme Support** - Seamless Light and Dark mode toggle with persisted preference
+  - **Premium Aesthetics** - Glassmorphism, tailored HSL color palettes, and polished typography
 
-- **Smooth Interactions**:
+- **Advanced Interactions**:
+  - **AI Orb Interface** - Dynamic, reactive 3D orb visualizing AI voice activity and user speech
+  - **Voice-First Design** - Hands-free interview practice with real-time feedback
   - Framer Motion-powered animations
   - Real-time toast notifications
   - Loading states and progress indicators
@@ -183,6 +191,7 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
 ### Marketing & Growth (Beta)
 
 - **Marketing Content Calendar** - System for planning social media posts (LinkedIn, Twitter)
+- **ApplyOS Social Media Manager** - n8n workflow for automated content curation and scheduling
 - **AI-Powered Screenshot Analysis** - Automatic feature extraction and analysis from screenshots
 - **n8n Automation Workflows** - Integrated workflows for:
   - Automated social content generation using Gemini AI
@@ -693,7 +702,8 @@ ApplyOS/
 ├── tsconfig.json                # TypeScript configuration
 ├── vercel.json                  # Vercel deployment config
 ├── Call_Gemini_Image_Generation_API.json # n8n workflow for images
-└── applyos-weekday-auto-publisher.json   # n8n workflow for social publishing
+├── applyos-weekday-auto-publisher.json   # n8n workflow for social publishing
+└── applyos_social_media_manager.json     # n8n workflow for content curation
 ```
 
 ## API Endpoints
