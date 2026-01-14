@@ -889,16 +889,16 @@ export default function ApplicationDetailPage() {
                 Questions
               </TabsTrigger>
               <TabsTrigger
-                value="interview"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
-              >
-                Interview
-              </TabsTrigger>
-              <TabsTrigger
                 value="cover-letter"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
               >
                 Cover Letter
+              </TabsTrigger>
+              <TabsTrigger
+                value="analysis"
+                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+              >
+                Analysis
               </TabsTrigger>
               <TabsTrigger
                 value="notes"
@@ -907,10 +907,10 @@ export default function ApplicationDetailPage() {
                 Notes
               </TabsTrigger>
               <TabsTrigger
-                value="analysis"
+                value="interview"
                 className="data-[state=active]:bg-primary data-[state=active]:text-black"
               >
-                Analysis
+                Interview
               </TabsTrigger>
             </TabsList>
           </div>
@@ -1073,6 +1073,200 @@ export default function ApplicationDetailPage() {
                   </motion.div>
                 ))
               )}
+            </div>
+          </TabsContent>
+
+          {/* Cover Letter Tab */}
+          <TabsContent value="cover-letter" className="space-y-6 mt-0">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateCoverLetter}
+                  disabled={generatingCoverLetter}
+                >
+                  {generatingCoverLetter ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate Cover Letter
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {application?.ai_cover_letter && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                        {/* AI-Generated Cover Letter */}
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+                          </div>
+                          <Textarea
+                            value={application.ai_cover_letter || ""}
+                            className="resize-none flex-1 min-h-[400px]"
+                            readOnly
+                            placeholder="No AI-generated cover letter yet."
+                          />
+                        </div>
+
+                        {/* Copy Button */}
+                        <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
+                            disabled={savingCoverLetter}
+                            className="glow-effect hover:bg-primary group"
+                            title="Copy AI cover letter to your edited cover letter"
+                          >
+                            <Copy className="h-4 w-4 text-primary group-hover:text-background" />
+                          </Button>
+                        </div>
+
+                        {/* Your Edited Cover Letter */}
+                        <div className="flex-1 flex flex-col">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Your edited cover letter (saved privately for this application)
+                          </p>
+                          <Textarea
+                            ref={coverLetterTextareaRef}
+                            defaultValue={application.manual_cover_letter || ""}
+                            className="resize-none flex-1 min-h-[400px]"
+                            onBlur={(e) =>
+                              e.target.value !== (application.manual_cover_letter || "")
+                                ? handleSaveManualCoverLetter(e.target.value)
+                                : undefined
+                            }
+                            disabled={savingCoverLetter}
+                          />
+                          {savingCoverLetter && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Saving...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Analysis Tab */}
+          <TabsContent value="analysis" className="mt-6">
+            <AnalysisTab
+              application={application}
+              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
+            />
+          </TabsContent>
+
+          {/* Notes Tab */}
+          <TabsContent value="notes" className="space-y-6 mt-0">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <StickyNote className="h-6 w-6" />
+                  Notes
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-1 border border-input rounded-lg p-1">
+                    <Button
+                      variant={notesViewType === "card" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => {
+                        setNotesViewType("card")
+                        localStorage.setItem(`notes-view-${id}`, "card")
+                      }}
+                      className="text-xs"
+                    >
+                      Card View
+                    </Button>
+                    <Button
+                      variant={notesViewType === "timeline" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => {
+                        setNotesViewType("timeline")
+                        localStorage.setItem(`notes-view-${id}`, "timeline")
+                      }}
+                      className="text-xs"
+                    >
+                      Timeline
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
+                      setNotesSortOrder(newOrder)
+                      localStorage.setItem(`notes-sort-${id}`, newOrder)
+                    }}
+                    title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
+                  >
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    {notesSortOrder === "newest" ? "Newest" : "Oldest"}
+                  </Button>
+                  <Button
+                    onClick={handleNewNote}
+                    className="glow-effect flex-1 sm:flex-none"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
+              </div>
+
+              {notesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (() => {
+                // Sort notes based on notesSortOrder
+                const sortedNotes = [...notes].sort((a, b) => {
+                  // Keep pinned notes first
+                  if (a.is_pinned !== b.is_pinned) {
+                    return a.is_pinned ? -1 : 1
+                  }
+                  // Then sort by date
+                  const dateA = new Date(a.created_at).getTime()
+                  const dateB = new Date(b.created_at).getTime()
+                  return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
+                })
+
+                return notesViewType === "card" ? (
+                  <NotesCardView
+                    notes={sortedNotes}
+                    onEdit={handleEditNote}
+                    onDelete={handleDeleteNote}
+                    onTogglePin={handleTogglePinNote}
+                  />
+                ) : (
+                  <NotesTimelineView
+                    notes={sortedNotes}
+                    onEdit={handleEditNote}
+                    onDelete={handleDeleteNote}
+                    onTogglePin={handleTogglePinNote}
+                  />
+                )
+              })()}
             </div>
           </TabsContent>
 
@@ -1299,200 +1493,6 @@ export default function ApplicationDetailPage() {
                 </>
               )}
             </div>
-          </TabsContent>
-
-          {/* Cover Letter Tab */}
-          <TabsContent value="cover-letter" className="space-y-6 mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateCoverLetter}
-                  disabled={generatingCoverLetter}
-                >
-                  {generatingCoverLetter ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Cover Letter
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {application?.ai_cover_letter && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-                        {/* AI-Generated Cover Letter */}
-                        <div className="flex-1 flex flex-col">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            <p className="text-sm font-medium">AI-Generated Cover Letter</p>
-                          </div>
-                          <Textarea
-                            value={application.ai_cover_letter || ""}
-                            className="resize-none flex-1 min-h-[400px]"
-                            readOnly
-                            placeholder="No AI-generated cover letter yet."
-                          />
-                        </div>
-
-                        {/* Copy Button */}
-                        <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
-                            disabled={savingCoverLetter}
-                            className="glow-effect hover:bg-primary group"
-                            title="Copy AI cover letter to your edited cover letter"
-                          >
-                            <Copy className="h-4 w-4 text-primary group-hover:text-background" />
-                          </Button>
-                        </div>
-
-                        {/* Your Edited Cover Letter */}
-                        <div className="flex-1 flex flex-col">
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Your edited cover letter (saved privately for this application)
-                          </p>
-                          <Textarea
-                            ref={coverLetterTextareaRef}
-                            defaultValue={application.manual_cover_letter || ""}
-                            className="resize-none flex-1 min-h-[400px]"
-                            onBlur={(e) =>
-                              e.target.value !== (application.manual_cover_letter || "")
-                                ? handleSaveManualCoverLetter(e.target.value)
-                                : undefined
-                            }
-                            disabled={savingCoverLetter}
-                          />
-                          {savingCoverLetter && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Saving...
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Notes Tab */}
-          <TabsContent value="notes" className="space-y-6 mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  <StickyNote className="h-6 w-6" />
-                  Notes
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <div className="flex items-center gap-1 border border-input rounded-lg p-1">
-                    <Button
-                      variant={notesViewType === "card" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => {
-                        setNotesViewType("card")
-                        localStorage.setItem(`notes-view-${id}`, "card")
-                      }}
-                      className="text-xs"
-                    >
-                      Card View
-                    </Button>
-                    <Button
-                      variant={notesViewType === "timeline" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => {
-                        setNotesViewType("timeline")
-                        localStorage.setItem(`notes-view-${id}`, "timeline")
-                      }}
-                      className="text-xs"
-                    >
-                      Timeline
-                    </Button>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
-                      setNotesSortOrder(newOrder)
-                      localStorage.setItem(`notes-sort-${id}`, newOrder)
-                    }}
-                    title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
-                  >
-                    <ArrowUpDown className="h-4 w-4 mr-2" />
-                    {notesSortOrder === "newest" ? "Newest" : "Oldest"}
-                  </Button>
-                  <Button
-                    onClick={handleNewNote}
-                    className="glow-effect flex-1 sm:flex-none"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Note
-                  </Button>
-                </div>
-              </div>
-
-              {notesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (() => {
-                // Sort notes based on notesSortOrder
-                const sortedNotes = [...notes].sort((a, b) => {
-                  // Keep pinned notes first
-                  if (a.is_pinned !== b.is_pinned) {
-                    return a.is_pinned ? -1 : 1
-                  }
-                  // Then sort by date
-                  const dateA = new Date(a.created_at).getTime()
-                  const dateB = new Date(b.created_at).getTime()
-                  return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
-                })
-
-                return notesViewType === "card" ? (
-                  <NotesCardView
-                    notes={sortedNotes}
-                    onEdit={handleEditNote}
-                    onDelete={handleDeleteNote}
-                    onTogglePin={handleTogglePinNote}
-                  />
-                ) : (
-                  <NotesTimelineView
-                    notes={sortedNotes}
-                    onEdit={handleEditNote}
-                    onDelete={handleDeleteNote}
-                    onTogglePin={handleTogglePinNote}
-                  />
-                )
-              })()}
-            </div>
-          </TabsContent>
-
-          {/* Analysis Tab */}
-          <TabsContent value="analysis" className="mt-6">
-            <AnalysisTab
-              application={application}
-              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
-            />
           </TabsContent>
         </Tabs>
 
