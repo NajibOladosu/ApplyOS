@@ -37,6 +37,7 @@ yarn-error.log*
 .env
 /Trackly
 /archive
+/extension
 
 # vercel
 .vercel
