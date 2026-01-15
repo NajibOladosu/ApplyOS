@@ -43,10 +43,18 @@ import { NewInterviewModal } from "@/components/modals/new-interview-modal"
 import { InterviewReportModal } from "@/components/modals/interview-report-modal"
 import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
-import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
+import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
 import { RegenerateContextModal } from "@/components/modals/regenerate-context-modal"
 import type { InterviewSession } from "@/types/database"
-import { AnalysisTab } from "@/components/applications/analysis-tab"
+import dynamic from "next/dynamic"
+
+const InterviewModeWrapper = dynamic(() => import("@/components/interview/interview-mode-wrapper").then(mod => mod.InterviewModeWrapper), {
+  loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+})
+
+const AnalysisTab = dynamic(() => import("@/components/applications/analysis-tab").then(mod => mod.AnalysisTab), {
+  loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+})
 
 export default function ApplicationDetailPage() {
   const params = useParams()
