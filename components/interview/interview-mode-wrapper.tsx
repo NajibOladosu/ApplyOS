@@ -7,7 +7,6 @@ import { Badge } from '@/components/ui/badge'
 import { MessageSquare, Mic, ArrowLeft } from 'lucide-react'
 import { InterviewSessionDetail } from './interview-session-detail'
 import dynamic from 'next/dynamic'
-import { InterviewSessionDetail } from './interview-session-detail'
 import { ConversationTranscript } from './conversation-transcript'
 
 const LiveInterview = dynamic(() => import('./live-interview-v2').then(mod => mod.LiveInterview), {
