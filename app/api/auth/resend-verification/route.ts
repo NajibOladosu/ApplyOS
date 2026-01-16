@@ -8,8 +8,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { render } from '@react-email/render';
 import VerifyEmailTemplate from '@/emails/verify-email';
-import { sendEmailViaSMTP } from '@/lib/email/transport';
-import { emailConfig } from '@/lib/email/config';
+import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport';
+import { emailConfig } from '@/shared/infrastructure/email/config';
 import crypto from 'crypto';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
 

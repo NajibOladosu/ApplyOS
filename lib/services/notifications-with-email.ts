@@ -3,9 +3,9 @@
  * Server-side only - handles creating notifications with optional email sending
  */
 
-import { createClient } from '@/lib/supabase/server';
-import { sendEmailDirectly } from '@/lib/email';
-import { emailConfig } from '@/lib/email/config';
+import { createClient } from '@/shared/db/supabase/server';
+import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { emailConfig } from '@/shared/infrastructure/email/config';
 
 interface NotificationOptions {
   type: 'info' | 'success' | 'warning' | 'error' | 'deadline' | 'status_update';

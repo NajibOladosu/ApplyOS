@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
+import { Button } from "@/shared/ui/button"
 import { Loader2, ArrowLeft, ExternalLink, RefreshCw, FileText, ChevronDown } from "lucide-react"
 import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast"
-import { cn } from "@/lib/utils"
+import { useToast } from "@/shared/ui/use-toast"
+import { cn } from "@/shared/lib/utils"
 import type { DocumentReport } from "@/types/database"
 
 type ParsedEducation = {

@@ -3,10 +3,10 @@
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Badge } from "@/shared/ui/badge"
 import {
   Bell,
   Download,
@@ -16,7 +16,7 @@ import {
   Loader2,
   X,
 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import {
   Dialog,
@@ -25,7 +25,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
+} from "@/shared/ui/dialog"
 
 type NotificationPrefs = {
   email_notifications: boolean

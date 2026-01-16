@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/shared/db/supabase/client'
 import type { Notification } from '@/types/database'
 
 export async function getNotifications() {

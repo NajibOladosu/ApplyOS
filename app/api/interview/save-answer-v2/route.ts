@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/shared/db/supabase/server'
 import { getQuestionsForSession } from '@/lib/services/interviews'
 
 export async function POST(request: NextRequest) {

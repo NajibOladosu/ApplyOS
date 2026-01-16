@@ -5,10 +5,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { sendEmailDirectly } from '@/lib/email';
-import { welcomeEmailTemplate, welcomeEmailSubject } from '@/lib/email/templates/welcome';
-import { emailConfig } from '@/lib/email/config';
+import { createClient } from '@/shared/db/supabase/server';
+import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { welcomeEmailTemplate, welcomeEmailSubject } from '@/shared/infrastructure/email/templates/welcome';
+import { emailConfig } from '@/shared/infrastructure/email/config';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
 
 export const dynamic = 'force-dynamic'

@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
 import { motion } from "framer-motion"
 import {
   Bell,

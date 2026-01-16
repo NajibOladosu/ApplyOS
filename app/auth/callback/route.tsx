@@ -1,11 +1,11 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/shared/db/supabase/server'
 import { createClient as createAdminClient, SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { render } from '@react-email/render'
 import VerifyEmailTemplate from '@/emails/verify-email'
-import { sendEmailViaSMTP } from '@/lib/email/transport'
-import { getEmailConfig } from '@/lib/email/config'
+import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport'
+import { getEmailConfig } from '@/shared/infrastructure/email/config'
 import type { Database } from '@/types/supabase'
 
 // Rate limit: 5 minutes between verification email sends
