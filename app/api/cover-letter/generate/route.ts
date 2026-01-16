@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { generateCoverLetter } from "@/lib/ai"
+import { createClient } from "@/shared/db/supabase/server"
+import { generateCoverLetter } from "@/shared/infrastructure/ai"
 import { buildContextFromDocument } from "@/lib/services/documents"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 

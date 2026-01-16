@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseServerClient } from '@/shared/db/supabase/server'
 import {
   getApplicationMetrics,
   getTimelineTrends,

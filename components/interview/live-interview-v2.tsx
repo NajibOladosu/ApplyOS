@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect, useCallback } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { AIOrb } from './ai-orb'
 import type { OrbMode } from './ai-orb'
 import { AlertCircle } from 'lucide-react'

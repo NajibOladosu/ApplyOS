@@ -1,6 +1,6 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { DocumentReport } from '@/types/database'
-import ModelManager, { AIRateLimitError } from '@/lib/ai/model-manager'
+import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)

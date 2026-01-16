@@ -3,16 +3,16 @@
 import { useEffect, useState, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Bell, Search, Menu, FileText, Briefcase, X, Loader2 } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Input } from "@/shared/ui/input"
+import { Button } from "@/shared/ui/button"
+import { Badge } from "@/shared/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
 import { getNotifications } from "@/lib/services/notifications"
 import { getApplications } from "@/lib/services/applications"
 import { getDocuments } from "@/lib/services/documents"
 import type { Application, Document } from "@/types/database"
 import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/lib/utils"
 
 interface TopBarProps {
   onMenuClick?: () => void

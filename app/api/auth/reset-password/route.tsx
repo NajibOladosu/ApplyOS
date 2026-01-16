@@ -1,10 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/shared/db/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { render } from '@react-email/render'
 import ResetPasswordTemplate from '@/emails/reset-password'
-import { sendEmailViaSMTP } from '@/lib/email/transport'
-import { getEmailConfig } from '@/lib/email/config'
+import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport'
+import { getEmailConfig } from '@/shared/infrastructure/email/config'
 import type { Database } from '@/types/supabase'
 
 export async function POST(request: Request) {
