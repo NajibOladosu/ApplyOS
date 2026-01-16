@@ -8,7 +8,7 @@ import {
   ToastTitle,
   ToastDescription,
   ToastClose,
-} from "@/components/ui/toast"
+} from "@/shared/ui/toast"
 
 export type ToastVariant = "default" | "destructive"
 

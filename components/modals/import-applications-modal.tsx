@@ -1,9 +1,9 @@
 "use client"
 
 import { useState, useRef } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Button } from "@/shared/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
 import { X, Loader2, Download, AlertCircle, CheckCircle2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { AlertModal } from "@/components/modals/alert-modal"

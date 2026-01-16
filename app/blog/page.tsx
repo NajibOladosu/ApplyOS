@@ -1,6 +1,6 @@
 import Link from "next/link"
 import { getAllPosts, formatDate, getReadingTime } from "@/lib/blog"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
 import { ArrowRight, Clock, Calendar } from "lucide-react"
 
 export default async function BlogHomePage() {

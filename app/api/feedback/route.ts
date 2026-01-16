@@ -5,9 +5,9 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
-import { sendEmailDirectly } from '@/lib/email'
-import { feedbackNotificationTemplate, feedbackNotificationSubject } from '@/lib/email/templates/feedback-notification'
+import { createClient as createSupabaseServerClient } from '@/shared/db/supabase/server'
+import { sendEmailDirectly } from '@/shared/infrastructure/email'
+import { feedbackNotificationTemplate, feedbackNotificationSubject } from '@/shared/infrastructure/email/templates/feedback-notification'
 import type { FeedbackType } from '@/types/database'
 
 export const dynamic = 'force-dynamic'

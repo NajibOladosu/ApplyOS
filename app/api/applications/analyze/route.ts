@@ -1,6 +1,6 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/shared/db/supabase/server'
 import { NextRequest, NextResponse } from 'next/server'
-import { analyzeResumeMatch } from '@/lib/ai'
+import { analyzeResumeMatch } from '@/shared/infrastructure/ai'
 import { buildContextFromDocument } from '@/lib/services/documents' // Keep helper, it's pure logic
 
 export const dynamic = 'force-dynamic'

@@ -1,6 +1,6 @@
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/shared/db/supabase/client"
 import type { Document } from "@/types/database"
-import type { ParsedDocument } from "@/lib/ai"
+import type { ParsedDocument } from "@/shared/infrastructure/ai"
 
 export async function getDocuments() {
   const supabase = createClient()

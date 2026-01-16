@@ -4,10 +4,10 @@ import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { createClient } from "@/shared/db/supabase/client"
 
 export default function UpdatePasswordPage() {
     const [password, setPassword] = useState("")

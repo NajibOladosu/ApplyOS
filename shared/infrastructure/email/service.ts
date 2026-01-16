@@ -5,7 +5,7 @@
 
 import { sendEmailViaSMTP } from './transport';
 import { emailConfig } from './config';
-import { createClient } from '@/lib/supabase/server';
+import { createClient } from '@/shared/db/supabase/server';
 import {
   WelcomeEmailData,
   VerificationEmailData,
@@ -19,7 +19,7 @@ import { render } from '@react-email/render';
 
 // Import templates
 import { welcomeEmailTemplate, welcomeEmailSubject } from './templates/welcome';
-import VerifyEmailTemplate from '../../emails/verify-email';
+import VerifyEmailTemplate from '@/emails/verify-email';
 import {
   statusUpdateEmailTemplate,
   statusUpdateEmailSubject,

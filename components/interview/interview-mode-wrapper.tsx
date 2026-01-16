@@ -1,9 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
+import { Button } from '@/shared/ui/button'
+import { Card } from '@/shared/ui/card'
+import { Badge } from '@/shared/ui/badge'
 import { MessageSquare, Mic, ArrowLeft } from 'lucide-react'
 import { InterviewSessionDetail } from './interview-session-detail'
 import dynamic from 'next/dynamic'

@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/client'
+import { createClient } from '@/shared/db/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { ConversationTurn, InterviewSession, InterviewQuestion } from '@/types/database'
 

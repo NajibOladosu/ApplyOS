@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
-import { parseDocument } from "@/lib/ai"
+import { createClient as createSupabaseServerClient } from "@/shared/db/supabase/server"
+import { parseDocument } from "@/shared/infrastructure/ai"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
 import { extractTextFromDOCX } from "@/lib/docx-utils"
 import type { Document } from "@/types/database"

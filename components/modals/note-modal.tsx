@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { RichTextEditor } from "@/components/ui/rich-text-editor"
-import { ToggleSwitch } from "@/components/ui/toggle-switch"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { RichTextEditor } from "@/shared/ui/rich-text-editor"
+import { ToggleSwitch } from "@/shared/ui/toggle-switch"
 import { X, Loader2, Pin } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 

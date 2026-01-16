@@ -1,6 +1,6 @@
-import { Skeleton } from "@/components/ui/skeleton"
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
-import { Separator } from "@/components/ui/separator"
+import { Skeleton } from "@/shared/ui/skeleton"
+import { Card, CardContent, CardHeader } from "@/shared/ui/card"
+import { Separator } from "@/shared/ui/separator"
 
 export default function ApplicationLoading() {
     return (

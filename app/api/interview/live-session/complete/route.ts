@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@/shared/db/supabase/server'
 import { createConversationTurn, saveFullTranscript } from '@/lib/services/conversation'
 import type { BufferedTurn } from '@/lib/gemini-live/types'
 

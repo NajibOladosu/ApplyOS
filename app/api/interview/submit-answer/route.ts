@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { evaluateInterviewAnswer } from '@/lib/ai'
+import { createClient } from '@/shared/db/supabase/server'
+import { evaluateInterviewAnswer } from '@/shared/infrastructure/ai'
 import { createAnswer, getInterviewQuestion } from '@/lib/services/interviews'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 

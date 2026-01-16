@@ -7,8 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@supabase/supabase-js';
-import { sendEmailDirectly } from '@/lib/email';
-import { emailConfig } from '@/lib/email/config';
+import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { emailConfig } from '@/shared/infrastructure/email/config';
 
 export const dynamic = 'force-dynamic'
 

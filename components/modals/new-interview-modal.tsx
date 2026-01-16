@@ -1,11 +1,11 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Label } from "@/components/ui/label"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Label } from "@/shared/ui/label"
+import { RadioGroup, RadioGroupItem } from "@/shared/ui/radio-group"
 import {
   Select,
   SelectContent,
@@ -14,7 +14,7 @@ import {
   SelectLabel,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select"
+} from "@/shared/ui/select"
 import { X, Mic, Loader2, Sparkles, FileText, Building2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { AlertModal } from "@/components/modals/alert-modal"

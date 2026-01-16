@@ -2,8 +2,8 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { AIOrb, type OrbMode } from './ai-orb'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/shared/ui/button'
+import { Card } from '@/shared/ui/card'
 import { Mic, MicOff, Square } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
 

@@ -1,12 +1,12 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Textarea } from "@/components/ui/textarea"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
-import { useToast } from "@/components/ui/use-toast"
+import { Button } from "@/shared/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Textarea } from "@/shared/ui/textarea"
+import { Badge } from "@/shared/ui/badge"
+import { Progress } from "@/shared/ui/progress"
+import { useToast } from "@/shared/ui/use-toast"
 import {
   Mic,
   Loader2,
@@ -26,7 +26,7 @@ import type { InterviewSession, InterviewQuestion, InterviewAnswer, InterviewFee
 import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
 import { VoiceRecorder } from "@/components/interview/VoiceRecorder"
 import { Keyboard } from "lucide-react"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog"
 
 interface InterviewSessionDetailProps {
   sessionId: string

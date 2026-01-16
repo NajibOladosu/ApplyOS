@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { sendEmailDirectly } from '@/lib/email';
+import { createClient } from '@/shared/db/supabase/server';
+import { sendEmailDirectly } from '@/shared/infrastructure/email';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
 
 export const dynamic = 'force-dynamic'

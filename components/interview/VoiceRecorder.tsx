@@ -1,8 +1,8 @@
 "use client"
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Button } from '@/shared/ui/button'
+import { Card } from '@/shared/ui/card'
 import { useVoiceRecorder, formatDuration, MicrophonePermissionState } from '@/hooks/useVoiceRecorder'
 import { type AudioChunk } from '@/lib/audio/recorder'
 import { Mic, MicOff, Pause, Play, Square } from 'lucide-react'

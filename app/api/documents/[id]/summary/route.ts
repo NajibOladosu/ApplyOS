@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient as createSupabaseServerClient } from "@/lib/supabase/server"
-import { summarizeDocument } from "@/lib/ai"
+import { createClient as createSupabaseServerClient } from "@/shared/db/supabase/server"
+import { summarizeDocument } from "@/shared/infrastructure/ai"
 import { extractTextFromPDF } from "@/lib/pdf-utils"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 

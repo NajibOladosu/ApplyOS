@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Badge } from "@/shared/ui/badge"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -18,15 +18,15 @@ import {
 import Link from "next/link"
 import type { Document, DocumentReport } from "@/types/database"
 import { getDocuments, deleteDocument } from "@/lib/services/documents"
-import { cn } from "@/lib/utils"
-import { useToast } from "@/components/ui/use-toast"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { cn } from "@/shared/lib/utils"
+import { useToast } from "@/shared/ui/use-toast"
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+} from "@/shared/ui/dropdown-menu"
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B"

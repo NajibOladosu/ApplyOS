@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/ui/button"
 import { ArrowLeft, FileText } from "lucide-react"
 
 export default function TermsOfService() {

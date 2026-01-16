@@ -4,7 +4,7 @@ import { Metadata } from "next"
 import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime } from "@/lib/blog"
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { ArrowLeft, Calendar, Clock, Share2, Twitter, Linkedin } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/ui/button"
 
 interface BlogPostPageProps {
     params: Promise<{ slug: string }>

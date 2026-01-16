@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from 'react'
 import { sankey, sankeyLinkHorizontal, SankeyGraph, SankeyNode, SankeyLink } from 'd3-sankey'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 
 interface SankeyData {
   nodes: Array<{ name: string; value?: number }>

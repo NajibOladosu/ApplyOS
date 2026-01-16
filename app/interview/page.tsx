@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
 import { motion } from "framer-motion"
 import {
   Mic,
@@ -18,10 +18,10 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { InterviewSession, Application } from "@/types/database"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { createClient } from "@/shared/db/supabase/client"
+import { Button } from "@/shared/ui/button"
+import { useToast } from "@/shared/ui/use-toast"
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog"
 
 interface SessionWithApplication extends InterviewSession {
   application: Application | null

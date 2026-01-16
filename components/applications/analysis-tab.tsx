@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import type { Application, Document } from "@/types/database"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Progress } from "@/components/ui/progress"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Badge } from "@/shared/ui/badge"
+import { Progress } from "@/shared/ui/progress"
 import {
     Loader2,
     Sparkles,
@@ -20,7 +20,7 @@ import {
     ScanSearch
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/lib/utils"
 
 interface AnalysisTabProps {
     application: Application

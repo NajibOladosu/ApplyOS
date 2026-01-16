@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef, useEffect } from 'react'
-import { Button } from '@/components/ui/button'
+import { Button } from '@/shared/ui/button'
 import { AIOrb, type OrbMode } from './ai-orb'
 import { Mic, MicOff, Square, AlertCircle } from 'lucide-react'
 import { GeminiLiveClient } from '@/lib/gemini-live/client'
