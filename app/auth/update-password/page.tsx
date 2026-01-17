@@ -35,7 +35,35 @@ export default function UpdatePasswordPage() {
                 return
             }
 
-            // 2. If no session, listen for the implicit flow to complete
+            // 2. Manual Hash Parsing Fallback (Robustness for Implicit Flow)
+            // Sometimes `supabase-js` doesn't auto-detect the hash if the client was already initialized.
+            const hash = window.location.hash
+            if (hash && hash.includes('access_token') && hash.includes('type=recovery')) {
+                console.log("🔄 Manual hash detection triggered")
+                try {
+                    // Extract tokens manually
+                    const params = new URLSearchParams(hash.substring(1)) // remove #
+                    const accessToken = params.get('access_token')
+                    const refreshToken = params.get('refresh_token')
+
+                    if (accessToken && refreshToken) {
+                        const { data, error } = await supabase.auth.setSession({
+                            access_token: accessToken,
+                            refresh_token: refreshToken,
+                        })
+
+                        if (!error && data.session) {
+                            console.log("✅ Session manually established from hash")
+                            setLoading(false)
+                            return
+                        }
+                    }
+                } catch (e) {
+                    console.error("Manual hash parsing failed", e)
+                }
+            }
+
+            // 3. If no session yet, listen for the implicit flow to complete
             // processing the #access_token from the URL
             const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
                 console.log("🔐 Auth state change:", event)
@@ -51,7 +79,7 @@ export default function UpdatePasswordPage() {
             })
             authListener = data
 
-            // 3. Set a timeout - if supabase-js hasn't found a session by now, 
+            // 4. Set a timeout - if supabase-js hasn't found a session by now,
             // the link is probably invalid or expired.
             timeoutTimer = setTimeout(() => {
                 // Double check one last time
@@ -61,7 +89,7 @@ export default function UpdatePasswordPage() {
                         setError("Valid verification link required. If your link has expired, please request a new one.")
                     }
                 })
-            }, 4000) // Give it 4 seconds to parse the hash
+            }, 5000) // Give it 5 seconds to parse the hash
         }
 
         setupAuth()
