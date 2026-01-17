@@ -13,7 +13,7 @@ const LiveInterview = dynamic(() => import('./live-interview-v2').then(mod => mo
     loading: () => <div className="flex items-center justify-center h-96"><div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600" /></div>,
     ssr: false
 })
-import { getInterviewSession, getConversationTurns } from '@/lib/services/interviews'
+import { getInterviewSession, getConversationTurns } from '@/modules/interviews/services/interview.service'
 import type { InterviewSession, ConversationTurn } from '@/types/database'
 
 interface InterviewModeWrapperProps {

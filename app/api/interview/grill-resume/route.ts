@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { generateResumeGrillQuestions } from '@/shared/infrastructure/ai'
-import { createInterviewSession, createQuestionsForSession } from '@/lib/services/interviews'
+import { createInterviewSession, createQuestionsForSession } from '@/modules/interviews/services/interview.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { QuestionCategory } from '@/types/database'
 
