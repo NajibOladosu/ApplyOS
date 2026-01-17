@@ -8,6 +8,8 @@ import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
 import { createClient } from "@/shared/db/supabase/client"
+import { Shield, AlertTriangle } from "lucide-react"
+import { validatePassword, getPasswordStrength } from "@/lib/password-security"
 
 export default function UpdatePasswordPage() {
     const [password, setPassword] = useState("")
@@ -15,6 +17,12 @@ export default function UpdatePasswordPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState(false)
+    const [passwordStrength, setPasswordStrength] = useState<{
+        score: 0 | 1 | 2 | 3 | 4
+        label: string
+    } | null>(null)
+    const [checkingPassword, setCheckingPassword] = useState(false)
+
     const router = useRouter()
     const supabase = createClient()
 
@@ -100,6 +108,16 @@ export default function UpdatePasswordPage() {
         }
     }, [supabase.auth])
 
+    // Update password strength indicator as user types
+    useEffect(() => {
+        if (password.length > 0) {
+            const strength = getPasswordStrength(password)
+            setPasswordStrength(strength)
+        } else {
+            setPasswordStrength(null)
+        }
+    }, [password])
+
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault()
 
@@ -108,28 +126,42 @@ export default function UpdatePasswordPage() {
             return
         }
 
-        if (password.length < 6) {
-            setError("Password must be at least 6 characters")
-            return
-        }
-
         setLoading(true)
+        setCheckingPassword(true)
         setError("")
 
-        const { error } = await supabase.auth.updateUser({
-            password: password,
-        })
+        try {
+            // Validate password strength and check for breaches
+            const passwordValidation = await validatePassword(password)
 
-        if (error) {
-            setError(error.message)
-        } else {
-            setSuccess(true)
-            // Redirect to login after a delay
-            setTimeout(() => {
-                router.push("/auth/login")
-            }, 2000)
+            if (!passwordValidation.valid) {
+                setError(passwordValidation.message || 'Invalid password')
+                setLoading(false)
+                setCheckingPassword(false)
+                return
+            }
+
+            setCheckingPassword(false)
+
+            const { error } = await supabase.auth.updateUser({
+                password: password,
+            })
+
+            if (error) {
+                setError(error.message)
+            } else {
+                setSuccess(true)
+                // Redirect to login after a delay
+                setTimeout(() => {
+                    router.push("/auth/login")
+                }, 2000)
+            }
+            setLoading(false)
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'An error occurred')
+            setLoading(false)
+            setCheckingPassword(false)
         }
-        setLoading(false)
     }
 
     return (
@@ -162,7 +194,7 @@ export default function UpdatePasswordPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {loading && !success ? (
+                        {loading && !success && !checkingPassword ? (
                             <div className="flex flex-col items-center justify-center py-8 space-y-4">
                                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
                                 <p className="text-sm text-muted-foreground">Verifying your link...</p>
@@ -193,7 +225,54 @@ export default function UpdatePasswordPage() {
                                         value={password}
                                         onChange={(e) => setPassword(e.target.value)}
                                         required
+                                        minLength={8}
                                     />
+
+                                    {/* Password strength indicator */}
+                                    {passwordStrength && (
+                                        <div className="space-y-1">
+                                            <div className="flex items-center justify-between text-xs">
+                                                <span className="text-muted-foreground">Password strength:</span>
+                                                <span className={`font-medium ${passwordStrength.score >= 3 ? 'text-green-500' :
+                                                        passwordStrength.score >= 2 ? 'text-yellow-500' :
+                                                            'text-red-500'
+                                                    }`}>
+                                                    {passwordStrength.label}
+                                                </span>
+                                            </div>
+                                            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                                                <div
+                                                    className={`h-full transition-all duration-300 ${passwordStrength.score >= 4 ? 'bg-green-500 w-full' :
+                                                            passwordStrength.score >= 3 ? 'bg-green-500 w-3/4' :
+                                                                passwordStrength.score >= 2 ? 'bg-yellow-500 w-1/2' :
+                                                                    passwordStrength.score >= 1 ? 'bg-red-500 w-1/4' :
+                                                                        'bg-red-500 w-1/4'
+                                                        }`}
+                                                />
+                                            </div>
+                                        </div>
+                                    )}
+
+                                    {/* Password requirements */}
+                                    <div className="p-3 bg-muted/50 rounded-lg border border-border text-xs space-y-1">
+                                        <div className="flex items-start gap-2">
+                                            <Shield className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
+                                            <div className="space-y-0.5">
+                                                <p className="font-medium text-muted-foreground">Password must contain:</p>
+                                                <ul className="text-muted-foreground space-y-0.5">
+                                                    <li>• At least 8 characters</li>
+                                                    <li>• Uppercase and lowercase letters</li>
+                                                    <li>• Numbers and special characters</li>
+                                                </ul>
+                                                {checkingPassword && (
+                                                    <p className="text-primary flex items-center gap-1 mt-1">
+                                                        <AlertTriangle className="h-3 w-3" />
+                                                        Checking password security...
+                                                    </p>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
 
                                 <div className="space-y-2">
@@ -210,8 +289,8 @@ export default function UpdatePasswordPage() {
                                     />
                                 </div>
 
-                                <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading}>
-                                    {loading ? "Updating password..." : "Update Password"}
+                                <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading || checkingPassword}>
+                                    {checkingPassword ? "Checking password..." : loading ? "Updating password..." : "Update Password"}
                                 </Button>
                             </form>
                         )}
