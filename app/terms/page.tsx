@@ -282,7 +282,7 @@ export default function TermsOfService() {
 
             {/* Footer CTA */}
             <div className="mt-12 text-center">
-              <Button asChild size="lg" className="glow-effect">
+              <Button asChild className="glow-effect">
                 <Link href="/">Return to Home</Link>
               </Button>
             </div>
