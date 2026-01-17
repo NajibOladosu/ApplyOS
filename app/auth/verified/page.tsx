@@ -65,7 +65,7 @@ export default function VerifiedPage() {
             </div>
 
             <div className="space-y-3">
-              <Button asChild className="w-full" size="lg">
+              <Button asChild className="w-full">
                 <Link href="/auth/login">
                   Sign In to Your Account
                 </Link>

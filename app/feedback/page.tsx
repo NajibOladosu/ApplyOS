@@ -178,8 +178,8 @@ export default function FeedbackPage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className={`p-4 rounded-lg border-2 transition-all text-left ${feedbackType === type.value
-                            ? "border-primary bg-primary/5 shadow-md"
-                            : "border-border hover:border-border/75 bg-background"
+                          ? "border-primary bg-primary/5 shadow-md"
+                          : "border-border hover:border-border/75 bg-background"
                           }`}
                       >
                         <div className="font-medium">{type.label}</div>
@@ -230,7 +230,7 @@ export default function FeedbackPage() {
                     type="submit"
                     disabled={isSubmitting}
                     className="w-full"
-                    size="lg"
+                    size="default"
                   >
                     {isSubmitting ? (
                       <>
