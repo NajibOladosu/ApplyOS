@@ -123,18 +123,17 @@ export async function GET(request: Request) {
     const adminClient = createAdminClient<Database>(supabaseUrl, supabaseServiceKey)
 
     // Exchange code for session
-    const { error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
+    const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
 
     if (exchangeError) {
       console.error('❌ Exchange error:', exchangeError)
       return NextResponse.redirect(new URL('/auth/login?error=exchange', requestUrl.origin + '/'))
     }
 
-    // Get authenticated user
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    const user = data.session?.user
 
-    if (userError || !user) {
-      console.error('❌ User fetch error:', userError)
+    if (!user) {
+      console.error('❌ No user in session')
       return NextResponse.redirect(new URL('/auth/login?error=user', requestUrl.origin + '/'))
     }
 
