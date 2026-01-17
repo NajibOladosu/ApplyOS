@@ -15,10 +15,10 @@ import type {
   InterviewFeedback,
   ConversationTurn,
 } from '@/types/database'
-import { getConversationTurns as getConversationTurnsFromService } from './conversation'
+import { getConversationTurns as getConversationTurnsFromService } from './conversation.service'
 
 // Re-export conversation functions
-export { getConversationTurns } from './conversation'
+export { getConversationTurns } from './conversation.service'
 
 
 // ============================================================================

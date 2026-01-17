@@ -9,7 +9,7 @@ import { Badge } from "@/shared/ui/badge"
 import { X, Sparkles, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { createApplication } from "@/modules/applications/services/application.service"
-import { createQuestion } from "@/lib/services/questions"
+import { createQuestion } from "@/modules/interviews/services/question.service"
 import { AlertModal } from "@/components/modals/alert-modal"
 
 interface AddApplicationModalProps {

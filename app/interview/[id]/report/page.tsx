@@ -10,7 +10,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { ArrowLeft, Mic, Calendar, Clock, Target, Loader2, CheckCircle, XCircle, Lightbulb } from "lucide-react"
 import Link from "next/link"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, Application } from "@/types/database"
-import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
+import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/modules/interviews/services/interview.service"
 import { getApplication } from "@/modules/applications/services/application.service"
 
 // Session type labels

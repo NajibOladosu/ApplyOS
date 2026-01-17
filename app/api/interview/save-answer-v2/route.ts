@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { getQuestionsForSession } from '@/lib/services/interviews'
+import { getQuestionsForSession } from '@/modules/interviews/services/interview.service'
 
 export async function POST(request: NextRequest) {
     try {

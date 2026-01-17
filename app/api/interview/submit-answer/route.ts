@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { evaluateInterviewAnswer } from '@/shared/infrastructure/ai'
-import { createAnswer, getInterviewQuestion } from '@/lib/services/interviews'
+import { createAnswer, getInterviewQuestion } from '@/modules/interviews/services/interview.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'

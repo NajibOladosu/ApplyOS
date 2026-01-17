@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { createConversationTurn } from '@/lib/services/conversation'
+import { createConversationTurn } from '@/modules/interviews/services/conversation.service'
 import type { BufferedTurn } from '@/lib/gemini-live/types'
 
 export const dynamic = 'force-dynamic'

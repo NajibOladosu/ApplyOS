@@ -9,7 +9,7 @@ import { GeminiLiveClient } from '@/lib/gemini-live/client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
 import type { ConversationTurn } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
-import { InterviewReportModal } from '@/components/modals/interview-report-modal'
+import { InterviewReportModal } from '@/modules/interviews/components/modals/interview-report-modal'
 import { useRouter } from 'next/navigation'
 
 interface LiveInterviewProps {

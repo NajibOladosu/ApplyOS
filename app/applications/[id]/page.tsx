@@ -30,24 +30,24 @@ import {
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
 import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/modules/applications/services/application.service"
-import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
+import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/modules/interviews/services/question.service"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
-import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/lib/services/interviews"
+import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/modules/interviews/services/interview.service"
 import { EditApplicationModal } from "@/modules/applications/components/modals/edit-application-modal"
-import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
+import { EditQuestionsModal } from "@/modules/interviews/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { NoteModal } from "@/components/modals/note-modal"
-import { NewInterviewModal } from "@/components/modals/new-interview-modal"
-import { InterviewReportModal } from "@/components/modals/interview-report-modal"
+import { NewInterviewModal } from "@/modules/interviews/components/modals/new-interview-modal"
+import { InterviewReportModal } from "@/modules/interviews/components/modals/interview-report-modal"
 import { NotesCardView } from "@/components/notes/notes-card-view"
 import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
 import { RegenerateContextModal } from "@/components/modals/regenerate-context-modal"
 import type { InterviewSession } from "@/types/database"
 import dynamic from "next/dynamic"
 
-const InterviewModeWrapper = dynamic(() => import("@/components/interview/interview-mode-wrapper").then(mod => mod.InterviewModeWrapper), {
+const InterviewModeWrapper = dynamic(() => import("@/modules/interviews/components/interview-mode-wrapper").then(mod => mod.InterviewModeWrapper), {
   loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
 })
 

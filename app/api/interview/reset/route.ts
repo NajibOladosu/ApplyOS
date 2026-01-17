@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { resetInterviewSession, getInterviewSession } from '@/lib/services/interviews'
+import { resetInterviewSession, getInterviewSession } from '@/modules/interviews/services/interview.service'
 
 export const dynamic = 'force-dynamic'
 

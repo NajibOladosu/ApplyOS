@@ -3,7 +3,7 @@ import { createClient } from '@/shared/db/supabase/server'
 import {
   getInterviewSession,
   getQuestionsForSession,
-} from '@/lib/services/interviews'
+} from '@/modules/interviews/services/interview.service'
 import { generateSystemInstruction } from '@/lib/gemini-live/system-prompts'
 
 export const dynamic = 'force-dynamic'

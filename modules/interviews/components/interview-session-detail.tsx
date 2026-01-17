@@ -23,8 +23,8 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, InterviewFeedback } from "@/types/database"
-import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
-import { VoiceRecorder } from "@/components/interview/VoiceRecorder"
+import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/modules/interviews/services/interview.service"
+import { VoiceRecorder } from "@/modules/interviews/components/VoiceRecorder"
 import { Keyboard } from "lucide-react"
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog"
 

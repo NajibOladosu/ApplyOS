@@ -1,8 +1,8 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { GoogleGenerativeAI } from '@google/generative-ai'
-import { ConversationManager, generateIntroductionPrompt, generateQuestionPrompt, generateConclusionPrompt, shouldAskFollowUp } from '@/lib/services/conversation'
-import { getQuestionsForSession, getInterviewSession, updateInterviewSession, createQuestionsForSession } from '@/lib/services/interviews'
+import { ConversationManager, generateIntroductionPrompt, generateQuestionPrompt, generateConclusionPrompt, shouldAskFollowUp } from '@/modules/interviews/services/conversation.service'
+import { getQuestionsForSession, getInterviewSession, updateInterviewSession, createQuestionsForSession } from '@/modules/interviews/services/interview.service'
 import { generateInterviewQuestions, callGeminiWithFallback } from '@/shared/infrastructure/ai'
 import type { QuestionCategory } from '@/types/database'
 

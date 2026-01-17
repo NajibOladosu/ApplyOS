@@ -7,7 +7,7 @@ import { Textarea } from "@/shared/ui/textarea"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
 import { X, Loader2, Plus, Trash2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
+import { updateQuestion, deleteQuestion, createQuestion } from "@/modules/interviews/services/question.service"
 import type { Question } from "@/types/database"
 import { AlertModal } from "@/components/modals/alert-modal"
 
