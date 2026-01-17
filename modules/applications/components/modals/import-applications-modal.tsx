@@ -7,7 +7,7 @@ import { Badge } from "@/shared/ui/badge"
 import { X, Loader2, Download, AlertCircle, CheckCircle2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { AlertModal } from "@/components/modals/alert-modal"
-import type { ParsedApplication } from "@/lib/csv-utils"
+import type { ParsedApplication } from "@/modules/documents/lib/csv-utils"
 
 interface ImportApplicationsModalProps {
   isOpen: boolean
