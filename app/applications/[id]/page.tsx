@@ -1324,7 +1324,6 @@ export default function ApplicationDetailPage() {
                             Get real-time feedback and improve your responses.
                           </p>
                           <Button
-                            size="lg"
                             className="glow-effect"
                             onClick={() => setShowNewInterviewModal(true)}
                           >
