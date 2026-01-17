@@ -8,10 +8,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
-import { MetricsCard } from "@/components/analytics/MetricsCard"
-import { TimelineChart } from "@/components/analytics/TimelineChart"
-import { ConversionFunnel } from "@/components/analytics/ConversionFunnel"
-import { SankeyChart } from "@/components/analytics/SankeyChart"
+import { MetricsCard } from "@/modules/analytics/components/MetricsCard"
+import { TimelineChart } from "@/modules/analytics/components/TimelineChart"
+import { ConversionFunnel } from "@/modules/analytics/components/ConversionFunnel"
+import { SankeyChart } from "@/modules/analytics/components/SankeyChart"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -29,7 +29,7 @@ import { createClient } from "@/shared/db/supabase/client"
 import { getApplications, getApplicationStats } from "@/modules/applications/services/application.service"
 import { getDocuments } from "@/modules/documents/services/document.service"
 import type { Application } from "@/types/database"
-import type { TimeRange } from "@/lib/services/analytics"
+import type { TimeRange } from "@/modules/analytics/services/analytics.service"
 
 const statusConfig = {
   draft: { label: "Draft", variant: "outline" as const },
