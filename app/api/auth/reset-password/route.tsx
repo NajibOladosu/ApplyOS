@@ -61,15 +61,15 @@ export async function POST(request: Request) {
         // 3. Render and send email
         const htmlBody = await render(
             <ResetPasswordTemplate
-                userName={ userName }
-                resetUrl = { resetUrl }
+                userName={userName}
+                resetUrl={resetUrl}
             />
         )
 
         const textBody = await render(
             <ResetPasswordTemplate
-                userName={ userName }
-                resetUrl = { resetUrl }
+                userName={userName}
+                resetUrl={resetUrl}
             />,
             { plainText: true }
         )
@@ -85,6 +85,10 @@ export async function POST(request: Request) {
         return NextResponse.json({ message: 'Reset email sent successfully' })
     } catch (error) {
         console.error('❌ Reset password route error:', error)
+        // Check if it's an email error (generic check, can be refined)
+        if (error instanceof Error && (error.message.includes('SMTP') || error.message.includes('email'))) {
+            return NextResponse.json({ error: 'Failed to send reset email. Please check server logs.' }, { status: 500 })
+        }
         return NextResponse.json({ error: 'Internal server error' }, { status: 500 })
     }
 }
