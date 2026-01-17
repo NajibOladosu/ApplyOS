@@ -17,7 +17,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Document, DocumentReport } from "@/types/database"
-import { getDocuments, deleteDocument } from "@/lib/services/documents"
+import { getDocuments, deleteDocument } from "@/modules/documents/services/document.service"
 import { cn } from "@/shared/lib/utils"
 import { useToast } from "@/shared/ui/use-toast"
 import { ConfirmDialog } from "@/shared/ui/confirm-dialog"
