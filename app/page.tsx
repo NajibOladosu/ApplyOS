@@ -133,7 +133,6 @@ export default function Home() {
             {/* CTAs: Neon Button + Ghost Button */}
             <div className="flex items-center justify-center space-x-6">
               <Button
-                size="lg"
                 asChild
                 className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
@@ -142,7 +141,6 @@ export default function Home() {
 
               <Button
                 variant="outline"
-                size="lg"
                 asChild
                 className="text-white border-white/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] group transition-all"
               >
@@ -242,7 +240,6 @@ export default function Home() {
                 Join thousands of users who are applying smarter, not harder.
               </p>
               <Button
-                size="lg"
                 asChild
                 className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
