@@ -13,7 +13,7 @@ import {
   getApplicationsByPriority,
   getStatusFlowData,
   type TimeRange,
-} from '@/lib/services/analytics'
+} from '@/modules/analytics/services/analytics.service'
 
 export const dynamic = 'force-dynamic'
 
