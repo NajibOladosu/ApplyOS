@@ -27,7 +27,7 @@ import {
 } from "lucide-react"
 import { createClient } from "@/shared/db/supabase/client"
 import { getApplications, getApplicationStats } from "@/modules/applications/services/application.service"
-import { getDocuments } from "@/lib/services/documents"
+import { getDocuments } from "@/modules/documents/services/document.service"
 import type { Application } from "@/types/database"
 import type { TimeRange } from "@/lib/services/analytics"
 

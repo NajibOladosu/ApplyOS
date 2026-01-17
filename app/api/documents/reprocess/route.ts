@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/shared/db/supabase/server"
 import { parseDocument } from "@/shared/infrastructure/ai"
-import { extractTextFromPDF } from "@/lib/pdf-utils"
-import { extractTextFromDOCX } from "@/lib/docx-utils"
+import { extractTextFromPDF } from "@/modules/documents/lib/pdf-utils"
+import { extractTextFromDOCX } from "@/modules/documents/lib/docx-utils"
 import type { Document } from "@/types/database"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 

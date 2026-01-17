@@ -3,8 +3,8 @@ import { createClient } from "@/shared/db/supabase/server"
 import { parseDocument } from "@/shared/infrastructure/ai"
 import { AIRateLimitError } from "@/shared/infrastructure/ai/model-manager"
 import RetryQueueService from "@/shared/infrastructure/ai/retry-queue"
-import { extractTextFromPDF } from "@/lib/pdf-utils"
-import { extractTextFromDOCX } from "@/lib/docx-utils"
+import { extractTextFromPDF } from "@/modules/documents/lib/pdf-utils"
+import { extractTextFromDOCX } from "@/modules/documents/lib/docx-utils"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 /**

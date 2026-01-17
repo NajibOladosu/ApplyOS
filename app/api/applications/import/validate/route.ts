@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { validateCSV } from '@/lib/csv-utils'
+import { validateCSV } from '@/modules/documents/lib/csv-utils'
 
 export const dynamic = 'force-dynamic'
 
