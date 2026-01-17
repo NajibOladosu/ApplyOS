@@ -44,7 +44,8 @@ export async function POST(request: Request) {
         // 2. Generate recovery link
         // We use process.env.NEXT_PUBLIC_APP_URL for the redirect
         const emailConfig = getEmailConfig()
-        const redirectTo = `${emailConfig.appUrl}/auth/update-password`
+        // Use server-side callback to ensure session is established before showing update password form
+        const redirectTo = `${emailConfig.appUrl}/auth/callback?intent=recovery`
 
         const { data, error: linkError } = await adminClient.auth.admin.generateLink({
             type: 'recovery',
