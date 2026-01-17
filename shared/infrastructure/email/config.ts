@@ -7,12 +7,12 @@ export const getEmailConfig = () => {
   const config = {
     // SMTP Configuration (Private Domain or other providers)
     smtp: {
-      host: process.env.SMTP_HOST || 'localhost',
+      host: process.env.SMTP_HOST || 'smtp.gmail.com', // Default to gmail if not specified, common fallback
       port: parseInt(process.env.SMTP_PORT || '587', 10),
       secure: process.env.SMTP_SECURE === 'true', // Use TLS if true
       auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
+        user: process.env.SMTP_USER || process.env.GMAIL_USER,
+        pass: process.env.SMTP_PASS || process.env.GMAIL_APP_PASSWORD,
       },
     },
 
