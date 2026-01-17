@@ -201,97 +201,93 @@ export async function GET(request: Request) {
           new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
         )
       }
-      return NextResponse.redirect(
-        new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
-      )
     }
-  }
 
     // ===== INTENT: RECOVERY =====
     if (intent === 'recovery') {
-    console.log(`✨ Processing password recovery for ${user.email}`)
-    // Session is already established by exchangeCodeForSession above
-    // Just redirect to the update password page
-    return NextResponse.redirect(new URL('/auth/update-password', requestUrl.origin + '/'))
-  }
-
-  // ===== INTENT: LOGIN =====
-  if (intent === 'login') {
-    if (!profileExists) {
-      // No account found - delete the auth.users record created by trigger
-      console.log(`❌ Login failed: No profile found for ${user.email}`)
-
-      try {
-        await adminClient.auth.admin.deleteUser(user.id)
-        console.log('✓ Auth user deleted')
-      } catch (deleteError) {
-        console.error('⚠️ Failed to delete auth user:', deleteError)
-        // Continue anyway, just let them see the error message
-      }
-
-      await supabase.auth.signOut()
-      return NextResponse.redirect(
-        new URL('/auth/login?error=no_account', requestUrl.origin + '/')
-      )
+      console.log(`✨ Processing password recovery for ${user.email}`)
+      // Session is already established by exchangeCodeForSession above
+      // Just redirect to the update password page
+      return NextResponse.redirect(new URL('/auth/update-password', requestUrl.origin + '/'))
     }
 
-    if (!existingProfile.email_verified) {
-      // Profile exists but not verified - send verification email and redirect
-      console.log('ℹ️ Login with unverified account - sending verification email')
+    // ===== INTENT: LOGIN =====
+    if (intent === 'login') {
+      if (!profileExists) {
+        // No account found - delete the auth.users record created by trigger
+        console.log(`❌ Login failed: No profile found for ${user.email}`)
 
-      // Check rate limit
-      if (!isRateLimitOk(existingProfile.last_verification_email_sent)) {
-        console.log('⏱️ Rate limit: verification email sent too recently')
+        try {
+          await adminClient.auth.admin.deleteUser(user.id)
+          console.log('✓ Auth user deleted')
+        } catch (deleteError) {
+          console.error('⚠️ Failed to delete auth user:', deleteError)
+          // Continue anyway, just let them see the error message
+        }
+
+        await supabase.auth.signOut()
+        return NextResponse.redirect(
+          new URL('/auth/login?error=no_account', requestUrl.origin + '/')
+        )
+      }
+
+      if (!existingProfile.email_verified) {
+        // Profile exists but not verified - send verification email and redirect
+        console.log('ℹ️ Login with unverified account - sending verification email')
+
+        // Check rate limit
+        if (!isRateLimitOk(existingProfile.last_verification_email_sent)) {
+          console.log('⏱️ Rate limit: verification email sent too recently')
+          await supabase.auth.signOut()
+          return NextResponse.redirect(
+            new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
+          )
+        }
+
+        const userName = existingProfile.name || user.email!.split('@')[0]
+        await sendVerificationEmail(user.id, user.email!, userName, adminClient)
+
         await supabase.auth.signOut()
         return NextResponse.redirect(
           new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
         )
       }
 
-      const userName = existingProfile.name || user.email!.split('@')[0]
-      await sendVerificationEmail(user.id, user.email!, userName, adminClient)
+      // Profile exists and verified - keep signed in and redirect to original page or dashboard
+      const finalRedirectPath = returnTo || '/dashboard'
+      // Use the request origin to ensure we stay on the correct domain (Vercel, localhost, etc)
+      const finalRedirectUrl = new URL(finalRedirectPath, requestUrl.origin + '/')
+      console.log(`✅ Login successful - redirecting to ${finalRedirectUrl.toString()}`)
 
-      await supabase.auth.signOut()
-      return NextResponse.redirect(
-        new URL(`/auth/check-email?email=${encodeURIComponent(user.email!)}`, requestUrl.origin + '/')
-      )
+      // Create response with redirect
+      const response = NextResponse.redirect(finalRedirectUrl)
+
+      // Clear the auth cookies
+      response.cookies.delete('auth_intent')
+      response.cookies.delete('auth_returnTo')
+
+      return response
     }
 
-    // Profile exists and verified - keep signed in and redirect to original page or dashboard
-    const finalRedirectPath = returnTo || '/dashboard'
-    // Use the request origin to ensure we stay on the correct domain (Vercel, localhost, etc)
-    const finalRedirectUrl = new URL(finalRedirectPath, requestUrl.origin + '/')
-    console.log(`✅ Login successful - redirecting to ${finalRedirectUrl.toString()}`)
-
-    // Create response with redirect
-    const response = NextResponse.redirect(finalRedirectUrl)
-
-    // Clear the auth cookies
-    response.cookies.delete('auth_intent')
-    response.cookies.delete('auth_returnTo')
-
-    return response
+    // Fallback
+    console.log('⚠️ Unknown intent, redirecting to dashboard')
+    const fallbackResponse = NextResponse.redirect(new URL('/dashboard', requestUrl.origin + '/'))
+    fallbackResponse.cookies.delete('auth_intent')
+    fallbackResponse.cookies.delete('auth_returnTo')
+    return fallbackResponse
+  } catch (error) {
+    console.error('❌ Callback route error:', error)
+    // Try to extract origin from request URL, fallback to localhost
+    let origin = 'http://localhost:3000'
+    try {
+      const requestUrl = new URL(request.url)
+      origin = requestUrl.origin
+    } catch (e) {
+      // If URL parsing fails, use default
+    }
+    const errorResponse = NextResponse.redirect(new URL('/auth/login?error=callback', origin + '/'))
+    errorResponse.cookies.delete('auth_intent')
+    errorResponse.cookies.delete('auth_returnTo')
+    return errorResponse
   }
-
-  // Fallback
-  console.log('⚠️ Unknown intent, redirecting to dashboard')
-  const fallbackResponse = NextResponse.redirect(new URL('/dashboard', requestUrl.origin + '/'))
-  fallbackResponse.cookies.delete('auth_intent')
-  fallbackResponse.cookies.delete('auth_returnTo')
-  return fallbackResponse
-} catch (error) {
-  console.error('❌ Callback route error:', error)
-  // Try to extract origin from request URL, fallback to localhost
-  let origin = 'http://localhost:3000'
-  try {
-    const requestUrl = new URL(request.url)
-    origin = requestUrl.origin
-  } catch (e) {
-    // If URL parsing fails, use default
-  }
-  const errorResponse = NextResponse.redirect(new URL('/auth/login?error=callback', origin + '/'))
-  errorResponse.cookies.delete('auth_intent')
-  errorResponse.cookies.delete('auth_returnTo')
-  return errorResponse
-}
 }
