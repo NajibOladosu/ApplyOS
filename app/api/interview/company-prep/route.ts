@@ -6,7 +6,7 @@ import {
   createQuestionsForSession,
   getCompanyTemplate,
   incrementTemplateUsage,
-} from '@/lib/services/interviews'
+} from '@/modules/interviews/services/interview.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { QuestionCategory } from '@/types/database'
 
