@@ -1,6 +1,7 @@
 import Link from "next/link"
 import { getAllPosts, formatDate, getReadingTime } from "@/lib/blog"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
 import { ArrowRight, Clock, Calendar } from "lucide-react"
 
 export default async function BlogHomePage() {
@@ -95,13 +96,12 @@ export default async function BlogHomePage() {
                         <p className="text-muted-foreground mb-6">
                             Join thousands of users applying smarter with ApplyOS.
                         </p>
-                        <Link
-                            href="https://applyos.io/auth/signup"
-                            className="inline-flex items-center gap-2 bg-primary text-[#0a0a0a] font-bold px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
-                        >
-                            Get Started Free
-                            <ArrowRight className="h-4 w-4" />
-                        </Link>
+                        <Button asChild className="font-bold text-[#0a0a0a]">
+                            <Link href="https://applyos.io/auth/signup">
+                                Get Started Free
+                                <ArrowRight className="h-4 w-4 ml-2" />
+                            </Link>
+                        </Button>
                     </CardContent>
                 </Card>
             </div>
