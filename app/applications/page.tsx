@@ -18,9 +18,9 @@ import {
   Loader2,
 } from "lucide-react"
 import Link from "next/link"
-import { getApplications, deleteApplication } from "@/lib/services/applications"
+import { getApplications, deleteApplication } from "@/modules/applications/services/application.service"
 import type { Application } from "@/types/database"
-import { AddApplicationModal } from "@/components/modals/add-application-modal"
+import { AddApplicationModal } from "@/modules/applications/components/modals/add-application-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 

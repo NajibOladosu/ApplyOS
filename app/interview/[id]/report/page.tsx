@@ -11,7 +11,7 @@ import { ArrowLeft, Mic, Calendar, Clock, Target, Loader2, CheckCircle, XCircle,
 import Link from "next/link"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, Application } from "@/types/database"
 import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
-import { getApplication } from "@/lib/services/applications"
+import { getApplication } from "@/modules/applications/services/application.service"
 
 // Session type labels
 const sessionTypeLabels: Record<string, string> = {

@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Badge } from "@/shared/ui/badge"
 import { X, Sparkles, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { createApplication } from "@/lib/services/applications"
+import { createApplication } from "@/modules/applications/services/application.service"
 import { createQuestion } from "@/lib/services/questions"
 import { AlertModal } from "@/components/modals/alert-modal"
 

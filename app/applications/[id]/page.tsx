@@ -29,12 +29,12 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
-import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/lib/services/applications"
+import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/modules/applications/services/application.service"
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
 import { getDocuments } from "@/lib/services/documents"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
 import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/lib/services/interviews"
-import { EditApplicationModal } from "@/components/modals/edit-application-modal"
+import { EditApplicationModal } from "@/modules/applications/components/modals/edit-application-modal"
 import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -51,7 +51,7 @@ const InterviewModeWrapper = dynamic(() => import("@/components/interview/interv
   loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
 })
 
-const AnalysisTab = dynamic(() => import("@/components/applications/analysis-tab").then(mod => mod.AnalysisTab), {
+const AnalysisTab = dynamic(() => import("@/modules/applications/components/analysis-tab").then(mod => mod.AnalysisTab), {
   loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
 })
 

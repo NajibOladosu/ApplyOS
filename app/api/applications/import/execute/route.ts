@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { createApplication } from '@/lib/services/applications'
+import { createApplication } from '@/modules/applications/services/application.service'
 
 interface ApplicationToImport {
   title: string

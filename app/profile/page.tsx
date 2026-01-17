@@ -11,7 +11,7 @@ import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { PromptModal } from "@/components/modals/prompt-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
-import { ImportApplicationsModal } from "@/components/modals/import-applications-modal"
+import { ImportApplicationsModal } from "@/modules/applications/components/modals/import-applications-modal"
 
 interface Profile {
   id: string
