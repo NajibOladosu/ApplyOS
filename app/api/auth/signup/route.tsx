@@ -157,17 +157,17 @@ export async function POST(request: NextRequest) {
 
       // Render React Email template (both HTML and plain text)
       const htmlBody = await render(
-        VerifyEmailTemplate({
-          userName,
-          verificationUrl,
-        })
+        <VerifyEmailTemplate
+          userName={userName}
+          verificationUrl={verificationUrl}
+        />
       );
 
       const textBody = await render(
-        VerifyEmailTemplate({
-          userName,
-          verificationUrl,
-        }),
+        <VerifyEmailTemplate
+          userName={userName}
+          verificationUrl={verificationUrl}
+        />,
         { plainText: true }
       );
 
@@ -182,7 +182,20 @@ export async function POST(request: NextRequest) {
       console.log(`✅ Verification email sent to ${email}`);
     } catch (emailError) {
       console.error('⚠️ Failed to send verification email:', emailError);
-      // Don't fail the signup if email fails
+
+      // Since we rely on this email for verification, we should probably fail the request
+      // or at least inform the user. For now, let's fail to ensure they know something went wrong.
+      // But first, let's clean up the user we just created/updated to avoid "zombie" accounts
+      // if we created it fresh.
+
+      if (!userExisted) {
+        await adminClient.auth.admin.deleteUser(data.user.id);
+      }
+
+      return NextResponse.json(
+        { error: 'Failed to send verification email. Please check your email settings or try again.' },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json(
