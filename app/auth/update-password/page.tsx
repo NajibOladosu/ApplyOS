@@ -19,17 +19,57 @@ export default function UpdatePasswordPage() {
     const supabase = createClient()
 
     useEffect(() => {
-        const checkAuth = async () => {
+        let authListener: { subscription: { unsubscribe: () => void } } | null = null;
+        let timeoutTimer: NodeJS.Timeout;
+
+        // Start with loading true
+        setLoading(true);
+
+        const setupAuth = async () => {
+            // 1. Check if we already have a session
             const { data: { session } } = await supabase.auth.getSession()
 
-            if (!session) {
-                // Since we now use the server-side callback to exchange the code,
-                // if there's no session here, something went wrong or the link is invalid.
-                setError("Your session has expired or the link is invalid. Please request a new password reset link.")
+            if (session) {
+                console.log("✅ Session found on mount")
+                setLoading(false)
+                return
             }
+
+            // 2. If no session, listen for the implicit flow to complete
+            // processing the #access_token from the URL
+            const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+                console.log("🔐 Auth state change:", event)
+
+                if (event === "PASSWORD_RECOVERY" || event === "SIGNED_IN") {
+                    if (session) {
+                        console.log("✅ Session established via event")
+                        setLoading(false)
+                        setError("")
+                        clearTimeout(timeoutTimer)
+                    }
+                }
+            })
+            authListener = data
+
+            // 3. Set a timeout - if supabase-js hasn't found a session by now, 
+            // the link is probably invalid or expired.
+            timeoutTimer = setTimeout(() => {
+                // Double check one last time
+                supabase.auth.getSession().then(({ data: { session } }) => {
+                    if (!session) {
+                        setLoading(false)
+                        setError("Valid verification link required. If your link has expired, please request a new one.")
+                    }
+                })
+            }, 4000) // Give it 4 seconds to parse the hash
         }
 
-        checkAuth()
+        setupAuth()
+
+        return () => {
+            if (authListener) authListener.subscription.unsubscribe()
+            clearTimeout(timeoutTimer)
+        }
     }, [supabase.auth])
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
@@ -94,7 +134,12 @@ export default function UpdatePasswordPage() {
                         </CardDescription>
                     </CardHeader>
                     <CardContent>
-                        {success ? (
+                        {loading && !success ? (
+                            <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+                                <p className="text-sm text-muted-foreground">Verifying your link...</p>
+                            </div>
+                        ) : success ? (
                             <div className="space-y-4">
                                 <div className="p-4 rounded-lg bg-green-500/10 border border-green-500/20 text-green-500 text-sm">
                                     <p className="font-medium mb-1">Success!</p>
