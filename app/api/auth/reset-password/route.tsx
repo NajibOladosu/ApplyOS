@@ -34,6 +34,13 @@ export async function POST(request: Request) {
 
         const userName = (users as any[] && (users as any[]).length > 0 && (users as any[])[0].name) || email.split('@')[0]
 
+        // If no user found, return success immediately to prevent enumeration
+        // and strictly ensure we DO NOT send an email
+        if (!users || users.length === 0) {
+            console.log(`ℹ️ Reset requested for non-existent email: ${email}`)
+            return NextResponse.json({ message: 'If an account exists, a reset link has been sent' })
+        }
+
         // 2. Generate recovery link
         // We use process.env.NEXT_PUBLIC_APP_URL for the redirect
         const emailConfig = getEmailConfig()
