@@ -28,15 +28,27 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
       background-color: #ffffff;
     }
     .header {
-      background: linear-gradient(135deg, #00FF88 0%, #00CC66 100%);
-      color: #000;
+      background-color: #151515;
+      background-image: linear-gradient(135deg, #151515 0%, #1A1A1A 100%);
+      color: #ffffff;
       padding: 40px 20px;
       text-align: center;
+      border-radius: 12px 12px 0 0;
+      border-bottom: 1px solid #333333;
     }
     .header h1 {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.5px;
+      margin: 10px 0 0 0;
+      color: #00FF88;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
     .content {
       padding: 40px 30px;
@@ -136,7 +148,10 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
 <body>
   <div class="container">
     <div class="header">
-      <h1>📊 ApplyOS</h1>
+      <div class="logo-container">
+        <img src="[[APP_URL]]/logo.svg" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+        <h1>ApplyOS</h1>
+      </div>
     </div>
     <div class="content">
       ${content}
