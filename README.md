@@ -537,6 +537,7 @@ ApplyOS includes a comprehensive email system:
     -   Deadline reminders (7/3/1 days before)
     -   Weekly digest of application activity
     -   Status update notifications
+-   **Premium Dark Theme** - Consistent, branded email templates with dark mode aesthetics (Neon Green on Dark Gray).
 
 ### Cron Jobs (Scheduled Tasks)
 
