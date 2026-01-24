@@ -81,61 +81,61 @@ const config: Config = {
       typography: {
         DEFAULT: {
           css: {
-            color: "#EDEDED",
+            color: "var(--foreground)",
             a: {
-              color: "#00FF88",
+              color: "var(--primary)",
               "&:hover": {
-                color: "#00FF88",
+                color: "var(--primary)",
               },
             },
             strong: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             em: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             h1: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h2: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h3: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h4: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h5: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h6: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             ul: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             ol: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             li: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             blockquote: {
-              color: "#EDEDED",
-              borderLeftColor: "#00FF88",
+              color: "var(--muted-foreground)",
+              borderLeftColor: "var(--primary)",
               fontStyle: "italic",
             },
             code: {
-              color: "#00FF88",
-              backgroundColor: "#1A1A1A",
+              color: "var(--primary)",
+              backgroundColor: "var(--muted)",
               padding: "0.25rem 0.5rem",
               borderRadius: "0.25rem",
               fontFamily: "monospace",
@@ -147,24 +147,24 @@ const config: Config = {
               content: '""',
             },
             pre: {
-              backgroundColor: "#1A1A1A",
-              color: "#EDEDED",
-              border: "1px solid #2A2A2A",
+              backgroundColor: "var(--secondary)",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
               borderRadius: "0.5rem",
             },
             "pre code": {
               backgroundColor: "transparent",
-              color: "#EDEDED",
+              color: "inherit",
               padding: "0",
             },
             hr: {
-              borderColor: "#2A2A2A",
+              borderColor: "var(--border)",
             },
             "ul > li::marker": {
-              color: "#00FF88",
+              color: "var(--primary)",
             },
             "ol > li::marker": {
-              color: "#00FF88",
+              color: "var(--primary)",
             },
           },
         },
