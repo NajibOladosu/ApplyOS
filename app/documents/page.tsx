@@ -133,10 +133,10 @@ export default function DocumentsPage() {
         prev.map((d) =>
           d.id === doc.id
             ? {
-                ...d,
-                parsed_data: payload.parsed_data ?? d.parsed_data,
-                // analysis_status / parsed_at are surfaced via refetch on detail page; here we optimistically mark analyzed.
-              }
+              ...d,
+              parsed_data: payload.parsed_data ?? d.parsed_data,
+              // analysis_status / parsed_at are surfaced via refetch on detail page; here we optimistically mark analyzed.
+            }
             : d
         )
       )
@@ -193,20 +193,20 @@ export default function DocumentsPage() {
         prev.map((d) =>
           d.id === doc.id
             ? {
-                ...d,
-                // Store report in-memory for display; detail page uses API for source of truth.
-                // We attach it under a synthetic field to avoid conflicting with typed Document.
-                parsed_data: {
-                  ...(d.parsed_data as any),
-                },
-                // store report metadata on the object for UI usage
-                ...(payload.report !== undefined && {
-                  // cast via any to avoid changing the generated types
-                  ...(d as any),
-                  report: payload.report,
-                  report_generated_at: payload.report_generated_at,
-                }),
-              }
+              ...d,
+              // Store report in-memory for display; detail page uses API for source of truth.
+              // We attach it under a synthetic field to avoid conflicting with typed Document.
+              parsed_data: {
+                ...(d.parsed_data as any),
+              },
+              // store report metadata on the object for UI usage
+              ...(payload.report !== undefined && {
+                // cast via any to avoid changing the generated types
+                ...(d as any),
+                report: payload.report,
+                report_generated_at: payload.report_generated_at,
+              }),
+            }
             : d
         )
       )
@@ -358,8 +358,8 @@ export default function DocumentsPage() {
                 <Card className="hover:border-primary/40 transition-all">
                   <CardHeader className="p-4 sm:p-6">
                     <div className="flex items-start justify-between gap-2 sm:gap-3">
-                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                        <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                        <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
                       </div>
                       <div className="flex-1 min-w-0">
                         <h3 className="text-sm sm:text-base font-semibold truncate">{doc.file_name}</h3>
@@ -384,22 +384,22 @@ export default function DocumentsPage() {
                         <DropdownMenuContent align="end" className="w-48 sm:w-52">
                           {/* Re-process flow (see handler for detailed behavior notes) */}
                           <DropdownMenuItem
-                             onClick={() => handleAnalyze(doc)}
-                             disabled={processingId === doc.id}
-                             className="cursor-pointer text-xs sm:text-sm"
-                           >
-                             {processingId === doc.id ? (
-                               <>
-                                 <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                 Analyzing...
-                               </>
-                             ) : (
-                               <>
-                                 <Upload className="mr-2 h-3 w-3" />
-                                 Analyze document
-                               </>
-                             )}
-                           </DropdownMenuItem>
+                            onClick={() => handleAnalyze(doc)}
+                            disabled={processingId === doc.id}
+                            className="cursor-pointer text-xs sm:text-sm"
+                          >
+                            {processingId === doc.id ? (
+                              <>
+                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                                Analyzing...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="mr-2 h-3 w-3" />
+                                Analyze document
+                              </>
+                            )}
+                          </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={() => handleGenerateReport(doc)}
                             disabled={reportingId === doc.id}
@@ -454,14 +454,14 @@ export default function DocumentsPage() {
                             ((doc.parsed_data as any).skills.soft?.length || 0) +
                             ((doc.parsed_data as any).skills.other?.length || 0) > 0
                           ) && (
-                            <Badge variant="secondary" className="text-xs">
-                              {(
-                                ((doc.parsed_data as any).skills.technical?.length || 0) +
-                                ((doc.parsed_data as any).skills.soft?.length || 0) +
-                                ((doc.parsed_data as any).skills.other?.length || 0)
-                              )} Skills
-                            </Badge>
-                          )}
+                              <Badge variant="secondary" className="text-xs">
+                                {(
+                                  ((doc.parsed_data as any).skills.technical?.length || 0) +
+                                  ((doc.parsed_data as any).skills.soft?.length || 0) +
+                                  ((doc.parsed_data as any).skills.other?.length || 0)
+                                )} Skills
+                              </Badge>
+                            )}
                         </div>
 
                         {/* Inline report display if available */}
