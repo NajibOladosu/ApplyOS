@@ -603,9 +603,9 @@ export default function ApplicationDetailPage() {
   }
 
   const priorityColor: Record<Application["priority"], string> = {
-    low: "bg-green-500",
+    low: "bg-primary",
     medium: "bg-yellow-500",
-    high: "bg-red-500",
+    high: "bg-destructive",
   }
 
   return (
