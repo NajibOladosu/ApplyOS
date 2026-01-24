@@ -173,7 +173,7 @@ export default function DashboardPage() {
       title: "Upcoming Deadlines",
       value: stats.upcomingDeadlines.toString(),
       icon: AlertCircle,
-      color: "text-primary",
+      color: "text-destructive",
     },
     {
       title: "Documents Uploaded",
@@ -239,7 +239,7 @@ export default function DashboardPage() {
                         <CardTitle className="text-xs sm:text-sm font-medium">
                           {stat.title}
                         </CardTitle>
-                        <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${stat.color}`} />
+                        <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${stat.color} opacity-90 stroke-[1.5]`} />
                       </CardHeader>
                       <CardContent className="p-4 sm:p-6 pt-0">
                         <div className="text-xl sm:text-2xl font-bold">{stat.value}</div>
@@ -309,8 +309,8 @@ export default function DashboardPage() {
                         <Link href={`/applications/${app.id}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-lg border border-border hover:border-primary/40 transition-all cursor-pointer">
                             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                                <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-sm sm:text-base font-medium truncate">{app.title}</h4>

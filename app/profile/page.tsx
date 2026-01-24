@@ -353,8 +353,8 @@ export default function ProfilePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                  <Calendar className="h-6 w-6 text-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Member Since</p>
@@ -367,8 +367,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                  <User className="h-6 w-6 text-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Plan</p>
@@ -377,8 +377,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                  <Mail className="h-6 w-6 text-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email Status</p>

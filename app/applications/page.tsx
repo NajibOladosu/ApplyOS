@@ -216,8 +216,8 @@ export default function ApplicationsPage() {
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                       <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                          <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
                         </div>
 
                         <div className="flex-1 min-w-0">

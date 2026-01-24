@@ -111,7 +111,7 @@ export function NotesCardView({
                     {pinningId === note.id ? (
                       <Loader2 className="h-4 w-4 animate-spin" />
                     ) : (
-                      <Pin className={`h-4 w-4 ${note.is_pinned ? "fill-current" : ""}`} />
+                      <Pin className={`h-4 w-4 ${note.is_pinned ? "text-primary fill-primary" : ""}`} />
                     )}
                   </Button>
                   <Button
