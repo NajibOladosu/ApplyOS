@@ -114,17 +114,8 @@
     /* Subtle tint by default, or 1 for pop? User said "fill of the green color" implying solid. */
   }
 
-  /* Let's stick to the user's "fill of the green color" - usually implies solid accent.
-     However, standard Lucide icons might look fully filled. Let's try opacity 1 first as interpreted,
-     but maybe the user effectively wants "Change stroke to black, fill to green".
-     Actually, "icon outline of the black color" -> Stroke = Black.
-     "fill of the green color" -> Fill = Green.
-     Let's allow the component classes to control opacity? No, user implies global rule.
-  */
-  :root:not(.dark) .lucide {
-    stroke: #0A0A0A;
-    fill: #00FF88;
-  }
+  /* No forced fill. Let icons behave naturally or use utility classes. */
+  /* No forced fill. Let icons behave naturally or use utility classes. */
 
   /* EXCEPTIONS: Some icons shouldn't fill broadly (like Menu, X, Chevron)
      but Lucide handles fill="none" on lines naturally.
