@@ -17,38 +17,38 @@ const config: Config = {
     },
     extend: {
       colors: {
-        border: "#1A1A1A",
-        input: "#1A1A1A",
-        ring: "#00FF88",
-        background: "#0A0A0A",
-        foreground: "#EDEDED",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "#00FF88",
-          foreground: "#0A0A0A",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "#101010",
-          foreground: "#B5B5B5",
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         destructive: {
-          DEFAULT: "#FF4444",
-          foreground: "#EDEDED",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         muted: {
-          DEFAULT: "#101010",
-          foreground: "#B5B5B5",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "#00FF88",
-          foreground: "#0A0A0A",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         popover: {
-          DEFAULT: "#101010",
-          foreground: "#EDEDED",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         card: {
-          DEFAULT: "#101010",
-          foreground: "#EDEDED",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
       },
       borderRadius: {
