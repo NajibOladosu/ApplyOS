@@ -25,12 +25,12 @@ import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 
 const statusConfig = {
-  draft: { label: "Draft", variant: "outline" as const, color: "bg-muted" },
-  submitted: { label: "Submitted", variant: "info" as const, color: "bg-blue-500" },
-  in_review: { label: "In Review", variant: "warning" as const, color: "bg-yellow-500" },
-  interview: { label: "Interview", variant: "success" as const, color: "bg-green-500" },
-  offer: { label: "Offer", variant: "default" as const, color: "bg-primary" },
-  rejected: { label: "Rejected", variant: "destructive" as const, color: "bg-destructive" },
+  draft: { label: "Draft", variant: "outline" as const, color: "bg-muted text-muted-foreground" },
+  submitted: { label: "Submitted", variant: "secondary" as const, color: "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" },
+  in_review: { label: "In Review", variant: "secondary" as const, color: "bg-zinc-100 text-zinc-900 border-zinc-200 dark:bg-zinc-800" },
+  interview: { label: "Interview", variant: "default" as const, color: "bg-primary text-primary-foreground" },
+  offer: { label: "Offer", variant: "default" as const, color: "bg-primary text-primary-foreground ring-2 ring-primary/20" },
+  rejected: { label: "Rejected", variant: "outline" as const, color: "text-muted-foreground line-through opacity-70" },
 }
 
 const priorityConfig = {
