@@ -161,25 +161,25 @@ export default function DashboardPage() {
       title: "Total Applications",
       value: stats.total.toString(),
       icon: FileText,
-      color: "text-blue-500",
+      color: "text-foreground",
     },
     {
       title: "In Review",
       value: stats.pending.toString(),
       icon: Clock,
-      color: "text-yellow-500",
+      color: "text-muted-foreground",
     },
     {
       title: "Upcoming Deadlines",
       value: stats.upcomingDeadlines.toString(),
       icon: AlertCircle,
-      color: "text-red-500",
+      color: "text-primary",
     },
     {
       title: "Documents Uploaded",
       value: documentsCount.toString(),
       icon: CheckCircle,
-      color: "text-primary",
+      color: "text-foreground",
     },
   ]
 
@@ -190,7 +190,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Dashboard</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">Dashboard</h1>
               <p className="text-sm sm:text-base text-muted-foreground">
                 Welcome back! Here's an overview of your applications.
               </p>
