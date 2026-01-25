@@ -25,12 +25,12 @@ import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 
 const statusConfig = {
-  draft: { label: "Draft", variant: "outline" as const, color: "bg-muted text-muted-foreground" },
-  submitted: { label: "Submitted", variant: "secondary" as const, color: "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100" },
-  in_review: { label: "In Review", variant: "secondary" as const, color: "bg-zinc-100 text-zinc-900 border-zinc-200 dark:bg-zinc-800" },
+  draft: { label: "Draft", variant: "secondary" as const, color: "bg-zinc-800/80 text-muted-foreground backdrop-blur-sm border-0" },
+  submitted: { label: "Submitted", variant: "secondary" as const, color: "bg-zinc-800/80 text-zinc-300 backdrop-blur-sm border-0" },
+  in_review: { label: "In Review", variant: "secondary" as const, color: "bg-zinc-800/80 text-sky-300 backdrop-blur-sm border-0" },
   interview: { label: "Interview", variant: "default" as const, color: "bg-primary text-primary-foreground" },
   offer: { label: "Offer", variant: "default" as const, color: "bg-primary text-primary-foreground ring-2 ring-primary/20" },
-  rejected: { label: "Rejected", variant: "outline" as const, color: "text-muted-foreground line-through opacity-70" },
+  rejected: { label: "Rejected", variant: "secondary" as const, color: "bg-zinc-800/80 text-destructive/80 line-through backdrop-blur-sm border-0" },
 }
 
 const priorityConfig = {
