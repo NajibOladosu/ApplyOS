@@ -410,8 +410,8 @@ export default function ProfilePage() {
                 Import from CSV
               </Button>
               {importSuccess && (
-                <div className="bg-green-500/10 border border-green-500/30 p-3 rounded-lg">
-                  <p className="text-sm text-green-600">{importSuccess}</p>
+                <div className="bg-primary/10 border border-primary/30 p-3 rounded-lg">
+                  <p className="text-sm text-primary font-medium">{importSuccess}</p>
                 </div>
               )}
             </div>

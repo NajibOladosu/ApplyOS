@@ -32,18 +32,18 @@ import type { Application } from "@/types/database"
 import type { TimeRange } from "@/modules/analytics/services/analytics.service"
 
 const statusConfig = {
-  draft: { label: "Draft", variant: "outline" as const },
-  submitted: { label: "Submitted", variant: "info" as const },
-  in_review: { label: "In Review", variant: "warning" as const },
+  draft: { label: "Draft", variant: "secondary" as const },
+  submitted: { label: "Submitted", variant: "secondary" as const },
+  in_review: { label: "In Review", variant: "info" as const },
   interview: { label: "Interview", variant: "success" as const },
   offer: { label: "Offer", variant: "default" as const },
   rejected: { label: "Rejected", variant: "destructive" as const },
 }
 
 const priorityConfig = {
-  low: { color: "bg-green-500" },
-  medium: { color: "bg-yellow-500" },
-  high: { color: "bg-red-500" },
+  low: { color: "bg-primary/60" },
+  medium: { color: "bg-yellow-500" }, // Keep yellow as warning, or make generic. Let's keep yellow for contrast.
+  high: { color: "bg-destructive" },
 }
 
 interface AnalyticsData {
@@ -504,10 +504,10 @@ export default function DashboardPage() {
                             {analyticsData.byPriority.map((item) => {
                               const priorityColor =
                                 item.priority === 'High'
-                                  ? 'bg-red-500'
+                                  ? 'bg-destructive'
                                   : item.priority === 'Medium'
                                     ? 'bg-yellow-500'
-                                    : 'bg-blue-500'
+                                    : 'bg-primary/60'
 
                               return (
                                 <div key={item.priority}>
