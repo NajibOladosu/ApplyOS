@@ -128,7 +128,7 @@ export function AIOrb({ mode, audioLevel = 0, className = '' }: AIOrbProps) {
 
   return (
     <div className={`w-full h-full ${className}`}>
-      <Canvas camera={{ position: [0, 0, 3], fov: 50 }}>
+      <Canvas camera={{ position: [0, 0, 2.4], fov: 50 }}>
         <ambientLight intensity={0.4} />
         <pointLight position={[5, 5, 5]} intensity={2} />
         <pointLight position={[-5, -5, -5]} intensity={1} />
