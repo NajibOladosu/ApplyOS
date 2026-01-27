@@ -1278,8 +1278,8 @@ export default function ApplicationDetailPage() {
           </TabsContent>
 
           {/* Interview Tab */}
-          <TabsContent value="interview" className="space-y-6 mt-0">
-            <div className="space-y-4">
+          <TabsContent value="interview" className="mt-0">
+            <div>
               {selectedSessionId ? (
                 // Show session detail when a session is selected
                 <InterviewModeWrapper
