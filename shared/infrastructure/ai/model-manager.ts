@@ -22,15 +22,15 @@ interface RateLimitTracker {
 const MODEL_TIERS: Record<TaskComplexity, ModelTier> = {
   SIMPLE: {
     complexity: 'SIMPLE',
-    models: ['models/gemini-2.5-flash-lite', 'models/gemini-2.0-flash-lite'],
+    models: ['models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash-lite'],
   },
   MEDIUM: {
     complexity: 'MEDIUM',
-    models: ['models/gemini-2.0-flash', 'models/gemini-2.5-flash', 'models/gemini-2.0-flash-exp'],
+    models: ['models/gemini-2.5-flash', 'models/gemini-2.5-flash', 'models/gemini-2.5-flash-lite'],
   },
   COMPLEX: {
     complexity: 'COMPLEX',
-    models: ['models/gemini-2.5-pro', 'models/gemini-2.0-flash', 'models/gemini-2.5-flash'],
+    models: ['models/gemini-2.5-pro', 'models/gemini-2.5-flash', 'models/gemini-2.5-flash'],
   },
 }
 
@@ -38,7 +38,7 @@ const MODEL_TIERS: Record<TaskComplexity, ModelTier> = {
 const rateLimitTracker: Map<string, RateLimitTracker> = new Map()
 
 // Initialize all models
-const allModels = ['models/gemini-2.5-pro', 'models/gemini-2.0-flash', 'models/gemini-2.0-flash-lite', 'models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash', 'models/gemini-2.0-flash-exp']
+const allModels = ['models/gemini-2.5-pro', 'models/gemini-2.5-flash', 'models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash']
 allModels.forEach((model) => {
   rateLimitTracker.set(model, {
     model,
