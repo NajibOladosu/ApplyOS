@@ -74,7 +74,7 @@ export function InterviewModeWrapper({ sessionId, onComplete, onBack }: Intervie
     // Mode selection screen
     if (mode === 'select' && session.status === 'in_progress') {
         return (
-            <div className="min-h-screen flex items-center justify-center p-6">
+            <div className="flex items-center justify-center p-6">
                 <div className="max-w-5xl w-full space-y-8">
                     {/* Header */}
                     <div className="text-center space-y-3">
