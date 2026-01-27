@@ -707,7 +707,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   }, [])
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-8">
+    <div className="bg-background flex flex-col items-center">
       {/* Error Toast */}
       <AnimatePresence>
         {error && (
@@ -736,11 +736,11 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         )}
       </AnimatePresence>
 
-      <div className="w-full flex flex-col items-center space-y-8">
-        {/* AI Orb - Responsive and Large */}
+      <div className="w-full flex flex-col items-center">
+        {/* AI Orb - Responsive and Large (behind other elements) */}
         <div
-          className="relative flex items-center justify-center shrink-0"
-          style={{ width: '50vw', height: '50vw' }}
+          className="relative flex items-center justify-center shrink-0 z-0"
+          style={{ width: '50vw', height: '50vw', maxWidth: '700px', maxHeight: '700px' }}
         >
           <AIOrb mode={orbMode} audioLevel={audioLevel} />
         </div>
@@ -752,7 +752,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
-              className="w-full max-w-2xl"
+              className="w-full max-w-2xl z-10"
             >
               <div className="bg-card/50 backdrop-blur-sm border border-primary/20 rounded-2xl p-6 text-center">
                 <p className="text-sm text-muted-foreground mb-1">AI is saying:</p>
@@ -765,12 +765,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         {/* User Transcription (Speech) */}
 
 
-        {/* Start/End Interview Button */}
-        <div className="flex flex-col items-center gap-4">
+        {/* Start/End Interview Button - overlaps onto orb area */}
+        <div className="flex flex-col items-center gap-4 z-10 -mt-32">
           {interviewState === 'idle' && (
             <Button
               onClick={startInterview}
-              className="bg-primary text-[#0a0a0a] font-bold h-14 px-10 text-lg rounded-xl shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_35px_rgba(0,255,136,0.5)] hover:scale-105 transition-all duration-300 mt-8"
+              className="bg-primary text-[#0a0a0a] font-bold h-14 px-10 text-lg rounded-xl shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_35px_rgba(0,255,136,0.5)] hover:scale-105 transition-all duration-300"
             >
               Start Interview
             </Button>
