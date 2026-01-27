@@ -736,10 +736,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         )}
       </AnimatePresence>
 
-      {/* Main Content */}
-      <div className="max-w-4xl w-full flex flex-col items-center space-y-12">
-        {/* AI Orb */}
-        <div className="w-full max-w-[450px] aspect-square">
+      <div className="w-full flex flex-col items-center space-y-8">
+        {/* AI Orb - Responsive and Large */}
+        <div
+          className="relative flex items-center justify-center shrink-0"
+          style={{ width: '50vw', height: '50vw' }}
+        >
           <AIOrb mode={orbMode} audioLevel={audioLevel} />
         </div>
 
@@ -767,8 +769,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         <div className="flex flex-col items-center gap-4">
           {interviewState === 'idle' && (
             <Button
-              size="lg"
               onClick={startInterview}
+              className="bg-primary text-[#0a0a0a] font-bold h-14 px-10 text-lg rounded-xl shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_35px_rgba(0,255,136,0.5)] hover:scale-105 transition-all duration-300 mt-8"
             >
               Start Interview
             </Button>
@@ -776,7 +778,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
           {interviewState === 'starting' && (
             <Button
-              size="lg"
               disabled
             >
               Starting...
@@ -785,7 +786,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
           {interviewState === 'active' && (
             <Button
-              size="lg"
               variant="destructive"
               onClick={endInterview}
             >
@@ -796,7 +796,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           {interviewState === 'ending' && (
             <div className="text-center space-y-2">
               <Button
-                size="lg"
                 disabled
                 variant="destructive"
                 className="px-12 py-6 text-lg rounded-full"
@@ -818,7 +817,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
           {interviewState === 'generating-report' && (
             <Button
-              size="lg"
               disabled
               className="px-12 py-6 text-lg rounded-full"
             >

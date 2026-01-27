@@ -43,7 +43,7 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   }
 
   useMemo(() => {
-    geometryRef.current = new THREE.SphereGeometry(1, 64, 64)
+    geometryRef.current = new THREE.SphereGeometry(1.5, 64, 64)
   }, [])
 
   useFrame(({ clock }) => {
@@ -127,8 +127,16 @@ export function AIOrb({ mode, audioLevel = 0, className = '' }: AIOrbProps) {
   }
 
   return (
-    <div className={`w-full h-full ${className}`}>
-      <Canvas camera={{ position: [0, 0, 2.4], fov: 50 }}>
+    <div className={`w-full h-full relative ${className}`}>
+      <Canvas
+        camera={{ position: [0, 0, 5], fov: 45 }}
+        style={{
+          width: '100%',
+          height: '100%',
+          display: 'block'
+        }}
+        resize={{ scroll: false, debounce: 0 }}
+      >
         <ambientLight intensity={0.4} />
         <pointLight position={[5, 5, 5]} intensity={2} />
         <pointLight position={[-5, -5, -5]} intensity={1} />
