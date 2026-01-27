@@ -163,7 +163,7 @@ function SignupContent() {
               <img src="/logo.svg" alt="ApplyOS" className="h-12 w-auto" />
               <span className="text-3xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+                <span className="text-foreground">OS</span>
               </span>
             </div>
           </Link>

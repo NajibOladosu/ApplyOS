@@ -15,7 +15,7 @@ export default function TermsOfService() {
             <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
             <span className="text-xl font-bold font-mono">
               <span className="text-primary">Apply</span>
-              <span className="text-white">OS</span>
+              <span className="text-foreground">OS</span>
             </span>
           </Link>
 
@@ -48,7 +48,7 @@ export default function TermsOfService() {
             </div>
 
             {/* Content Sections */}
-            <div className="prose prose-invert max-w-none">
+            <div className="prose dark:prose-invert max-w-none">
               <div className="space-y-8">
                 {/* Introduction */}
                 <section className="glass-effect rounded-lg p-8">
