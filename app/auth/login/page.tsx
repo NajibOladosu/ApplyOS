@@ -153,7 +153,7 @@ function LoginContent() {
               <img src="/logo.svg" alt="ApplyOS" className="h-12 w-auto" />
               <span className="text-3xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+                <span className="text-foreground">OS</span>
               </span>
             </div>
           </Link>
@@ -279,7 +279,7 @@ function LoginContent() {
                 </div>
 
                 {resendSuccess && (
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 text-sm">
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm">
                     ✓ Verification email resent successfully!
                   </div>
                 )}

@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
 
     // Initialize Gemini API
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.0-flash-exp' })
+    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
 
     // Extract user responses (filter for user turns only)
     const userTurns = turns.filter((t) => t.speaker === 'user')

@@ -68,7 +68,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         initial={{ x: -256 }}
         animate={{ x: isOpen ? 0 : -256 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-secondary/50 backdrop-blur-xl md:static md:transform-none md:translate-x-0 md:z-auto"
+        className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card backdrop-blur-xl md:static md:transform-none md:translate-x-0 md:z-auto"
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
@@ -77,13 +77,13 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
               <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
               <span className="text-xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+                <span className="text-foreground">OS</span>
               </span>
             </Link>
             {/* Close button for mobile */}
             <button
               onClick={onClose}
-              className="md:hidden p-2 hover:bg-accent/10 rounded-lg transition-colors"
+              className="md:hidden p-2 hover:bg-accent rounded-lg transition-colors"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -108,8 +108,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     className={cn(
                       "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
                       isActive
-                        ? "bg-primary/10 text-primary border border-primary/20 glow-effect"
-                        : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+                        ? "bg-[#0A0A0A] text-primary dark:bg-zinc-800 shadow-sm"
+                        : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >
                     <Icon className="h-5 w-5 flex-shrink-0" />

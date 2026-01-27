@@ -17,38 +17,38 @@ const config: Config = {
     },
     extend: {
       colors: {
-        border: "#1A1A1A",
-        input: "#1A1A1A",
-        ring: "#00FF88",
-        background: "#0A0A0A",
-        foreground: "#EDEDED",
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
         primary: {
-          DEFAULT: "#00FF88",
-          foreground: "#0A0A0A",
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
         },
         secondary: {
-          DEFAULT: "#101010",
-          foreground: "#B5B5B5",
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
         },
         destructive: {
-          DEFAULT: "#FF4444",
-          foreground: "#EDEDED",
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
         },
         muted: {
-          DEFAULT: "#101010",
-          foreground: "#B5B5B5",
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
         },
         accent: {
-          DEFAULT: "#00FF88",
-          foreground: "#0A0A0A",
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
         },
         popover: {
-          DEFAULT: "#101010",
-          foreground: "#EDEDED",
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
         },
         card: {
-          DEFAULT: "#101010",
-          foreground: "#EDEDED",
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
         },
       },
       borderRadius: {
@@ -81,61 +81,61 @@ const config: Config = {
       typography: {
         DEFAULT: {
           css: {
-            color: "#EDEDED",
+            color: "var(--foreground)",
             a: {
-              color: "#00FF88",
+              color: "var(--primary)",
               "&:hover": {
-                color: "#00FF88",
+                color: "var(--primary)",
               },
             },
             strong: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             em: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             h1: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h2: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h3: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h4: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h5: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             h6: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
               fontWeight: "700",
             },
             ul: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             ol: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             li: {
-              color: "#EDEDED",
+              color: "var(--foreground)",
             },
             blockquote: {
-              color: "#EDEDED",
-              borderLeftColor: "#00FF88",
+              color: "var(--muted-foreground)",
+              borderLeftColor: "var(--primary)",
               fontStyle: "italic",
             },
             code: {
-              color: "#00FF88",
-              backgroundColor: "#1A1A1A",
+              color: "var(--primary)",
+              backgroundColor: "var(--muted)",
               padding: "0.25rem 0.5rem",
               borderRadius: "0.25rem",
               fontFamily: "monospace",
@@ -147,24 +147,24 @@ const config: Config = {
               content: '""',
             },
             pre: {
-              backgroundColor: "#1A1A1A",
-              color: "#EDEDED",
-              border: "1px solid #2A2A2A",
+              backgroundColor: "var(--secondary)",
+              color: "var(--foreground)",
+              border: "1px solid var(--border)",
               borderRadius: "0.5rem",
             },
             "pre code": {
               backgroundColor: "transparent",
-              color: "#EDEDED",
+              color: "inherit",
               padding: "0",
             },
             hr: {
-              borderColor: "#2A2A2A",
+              borderColor: "var(--border)",
             },
             "ul > li::marker": {
-              color: "#00FF88",
+              color: "var(--primary)",
             },
             "ol > li::marker": {
-              color: "#00FF88",
+              color: "var(--primary)",
             },
           },
         },
