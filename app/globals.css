@@ -5,9 +5,71 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    /* "Daylight Mode" - Premium Light Theme */
+    --background: #F4F4F5;
+    /* Zinc-100: Soft off-white system surface */
+    --foreground: #0A0A0A;
+    /* Deep near-black for high contrast */
+    --card: #FFFFFF;
+    /* Pure white cards for subtle depth against off-white bg */
+    --card-foreground: #0A0A0A;
+    --popover: #FFFFFF;
+    --popover-foreground: #0A0A0A;
+    --primary: #00FF88;
+    /* Neon Green (Strictly preserved accent) */
+    --primary-foreground: #0A0A0A;
+    --secondary: #E4E4E7;
+    /* Zinc-200 */
+    --secondary-foreground: #18181B;
+    /* Zinc-900 */
+    --muted: #F4F4F5;
+    /* Zinc-100 */
+    --muted-foreground: #52525B;
+    /* Zinc-600 */
+    --accent: #E4E4E7;
+    /* Zinc-200 */
+    --accent-foreground: #18181B;
+    --destructive: #EF4444;
+    --destructive-foreground: #FAFAFA;
+    --border: #E4E4E7;
+    /* Zinc-200: Subtle border */
+    --input: #E4E4E7;
+    --ring: #00FF88;
+    /* Neon Green focus ring */
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    /* "Night Mode" - Existing Premium Dark Theme */
+    --background: #0A0A0A;
+    --foreground: #EDEDED;
+    --card: #101010;
+    --card-foreground: #EDEDED;
+    --popover: #101010;
+    --popover-foreground: #EDEDED;
+    --primary: #00FF88;
+    --primary-foreground: #0A0A0A;
+    --secondary: #101010;
+    --secondary-foreground: #B5B5B5;
+    --muted: #101010;
+    --muted-foreground: #B5B5B5;
+    --accent: #101010;
+    --accent-foreground: #00FF88;
+    --destructive: #FF4444;
+    /* Brighter red on dark */
+    --destructive-foreground: #EDEDED;
+    --border: #1A1A1A;
+    --input: #1A1A1A;
+    --ring: #00FF88;
+  }
+}
+
+@layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
@@ -29,6 +91,61 @@
     border: 1px solid rgba(26, 26, 26, 0.5);
   }
 
+  /* Light mode glass effect variant */
+  .dark .glass-effect {
+    background: rgba(16, 16, 16, 0.7);
+    border: 1px solid rgba(26, 26, 26, 0.5);
+  }
+
+  :root:not(.dark) .glass-effect {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(228, 228, 231, 0.5);
+  }
+
+  /* Premium Light Mode Icons: Green Fill, Black Outline */
+  :root:not(.dark) .lucide {
+    stroke: var(--foreground);
+    /* Black Outline */
+    fill: var(--primary);
+    /* Green Fill - Solid */
+  }
+
+  /* EXCEPTIONS: Line-based icons that should NOT be filled */
+  :root:not(.dark) .lucide.lucide-menu,
+  :root:not(.dark) .lucide.lucide-x,
+  :root:not(.dark) .lucide.lucide-chevron-down,
+  :root:not(.dark) .lucide.lucide-chevron-up,
+  :root:not(.dark) .lucide.lucide-chevron-left,
+  :root:not(.dark) .lucide.lucide-chevron-right,
+  :root:not(.dark) .lucide.lucide-check,
+  :root:not(.dark) .lucide.lucide-arrow-right,
+  :root:not(.dark) .lucide.lucide-arrow-left,
+  :root:not(.dark) .lucide.lucide-arrow-up,
+  :root:not(.dark) .lucide.lucide-arrow-down,
+  :root:not(.dark) .lucide.lucide-upload,
+  :root:not(.dark) .lucide.lucide-download,
+  :root:not(.dark) .lucide.lucide-external-link,
+  :root:not(.dark) .lucide.lucide-log-out,
+  :root:not(.dark) .lucide.lucide-plus,
+  :root:not(.dark) .lucide.lucide-minus,
+  :root:not(.dark) .lucide.lucide-loader-2,
+  :root:not(.dark) .lucide.lucide-undo-2,
+  :root:not(.dark) .lucide.lucide-redo-2,
+  :root:not(.dark) .lucide.lucide-rotate-ccw,
+  :root:not(.dark) .lucide.lucide-align-left,
+  :root:not(.dark) .lucide.lucide-align-center,
+  :root:not(.dark) .lucide.lucide-align-right,
+  :root:not(.dark) .lucide.lucide-list,
+  :root:not(.dark) .lucide.lucide-list-ordered,
+  :root:not(.dark) .lucide.lucide-strikethrough,
+  :root:not(.dark) .lucide.lucide-underline,
+  :root:not(.dark) .lucide.lucide-trending-up,
+  :root:not(.dark) .lucide.lucide-share,
+  :root:not(.dark) .lucide.lucide-share-2 {
+    fill: none;
+  }
+
   .text-gradient {
     background: linear-gradient(135deg, #00FF88 0%, #00CC6A 100%);
     -webkit-background-clip: text;
@@ -44,6 +161,7 @@
     0% {
       transform: translateX(-100%);
     }
+
     100% {
       transform: translateX(100%);
     }
@@ -66,14 +184,14 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #0A0A0A;
+  background: var(--background);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1A1A1A;
+  background: var(--border);
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #00FF88;
+  background: var(--primary);
 }

@@ -125,11 +125,10 @@ export default function UploadPage() {
           <CardContent className="p-4 sm:p-6 pt-0">
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center cursor-pointer transition-all ${
-                isDragActive
+              className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center cursor-pointer transition-all ${isDragActive
                   ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/40"
-              }`}
+                  : "border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-primary/40"
+                }`}
             >
               <input {...getInputProps()} />
               <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 sm:mb-4">

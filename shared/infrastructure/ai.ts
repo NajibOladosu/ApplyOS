@@ -451,7 +451,7 @@ Rules:
  * 6. Industry Keywords & Relevance
  *
  * Returns a structured DocumentReport with honest feedback (not forcing issues).
- * - Uses models/gemini-2.0-flash
+ * - Uses models/gemini-2.5-flash
  * - Scores are 1-10 for each category
  * - Improvements only suggested when genuinely needed
  * - Safe for unknown parsed_data shapes via runtime checks
