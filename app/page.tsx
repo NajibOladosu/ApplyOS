@@ -82,12 +82,12 @@ export default function Home() {
             <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
             <span className="text-xl font-bold font-mono">
               <span className="text-primary">Apply</span>
-              <span className="text-white">OS</span>
+              <span className="text-foreground">OS</span>
             </span>
           </Link>
 
           <div className="flex items-center space-x-4">
-            <Button variant="outline" asChild className="text-white border-white/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] transition-all">
+            <Button variant="outline" asChild className="text-foreground border-foreground/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] transition-all">
               <Link href="/auth/login">Sign In</Link>
             </Button>
             <Button asChild className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90">
@@ -116,7 +116,7 @@ export default function Home() {
             </div>
 
             {/* H1: High Contrast White + Neon */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight text-white">
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight text-foreground">
               The Operating System for
               <br />
               <span className="text-primary drop-shadow-[0_0_15px_rgba(0,255,136,0.25)]">
@@ -126,7 +126,7 @@ export default function Home() {
 
             {/* Subheadline: Light Gray for readability on Dark */}
             <p className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto leading-8">
-              Stop juggling spreadsheets. <span className="text-white font-semibold">ApplyOS</span> parses job URLs,
+              Stop juggling spreadsheets. <span className="text-foreground font-semibold">ApplyOS</span> parses job URLs,
               auto-generates targeted AI responses, and executes your application pipeline from one command center.
             </p>
 
@@ -142,7 +142,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 asChild
-                className="text-white border-white/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] group transition-all"
+                className="text-foreground border-foreground/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] group transition-all"
               >
                 <Link href="#how-it-works" className="flex items-center gap-2">
                   <span>View Workflow</span>
@@ -152,7 +152,7 @@ export default function Home() {
             </div>
 
             {/* Social Proof: Darker muted text */}
-            <div className="mt-16 pt-8 border-t border-white/5">
+            <div className="mt-16 pt-8 border-t border-border">
               <p className="text-xs tracking-[0.2em] text-muted-foreground uppercase font-mono">
                 Optimized for high-performance candidates
               </p>
@@ -254,14 +254,14 @@ export default function Home() {
       </section >
 
       {/* Footer */}
-      <footer className="bg-[#0a0a0a] border-t border-white/10 py-12 px-4 sm:px-6 lg:px-8">
+      <footer className="bg-card border-t border-border py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-2 gap-8">
 
           {/* Brand Section */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
               <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
-              <span className="text-xl font-bold font-mono text-white">
+              <span className="text-xl font-bold font-mono text-foreground">
                 <span className="text-primary">Apply</span>OS
               </span>
             </div>
@@ -276,7 +276,7 @@ export default function Home() {
           {/* Quick Links / SEO Keywords */}
           <div className="grid grid-cols-2 gap-4 text-sm font-sans">
             <div>
-              <h3 className="text-white font-semibold mb-3">System</h3>
+              <h3 className="text-foreground font-semibold mb-3">System</h3>
               <ul className="text-muted-foreground space-y-2">
                 <li><Link href="#features" className="hover:text-primary transition-colors">AI Answer Engine</Link></li>
                 <li><Link href="#tracking" className="hover:text-primary transition-colors">Pipeline Tracker</Link></li>
@@ -284,7 +284,7 @@ export default function Home() {
               </ul>
             </div>
             <div>
-              <h3 className="text-white font-semibold mb-3">Resources</h3>
+              <h3 className="text-foreground font-semibold mb-3">Resources</h3>
               <ul className="text-muted-foreground space-y-2">
                 <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Protocol</Link></li>
                 <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
@@ -295,7 +295,7 @@ export default function Home() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-white/5 pt-8 text-center">
+        <div className="mt-12 border-t border-border pt-8 text-center">
           <p className="text-muted-foreground text-xs">
             &copy; {new Date().getFullYear()} ApplyOS. High-Performance Job Search Automation.
           </p>
