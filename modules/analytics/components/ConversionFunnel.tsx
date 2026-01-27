@@ -61,7 +61,7 @@ export function ConversionFunnel({ data, title = 'Application Conversion Funnel'
               </div>
               <div className="relative h-12 bg-secondary/20 rounded-lg overflow-hidden">
                 <div
-                  className="absolute inset-y-0 left-0 rounded-lg flex items-center justify-center text-sm font-medium text-white transition-all duration-500"
+                  className="absolute inset-y-0 left-0 rounded-lg flex items-center justify-center text-sm font-medium text-slate-900 transition-all duration-500"
                   style={{
                     width: `${widthPercentage}%`,
                     backgroundColor: color,

@@ -108,19 +108,10 @@
     stroke: var(--foreground);
     /* Black Outline */
     fill: var(--primary);
-    /* Green Fill */
-    /* Ensure fill doesn't overwhelm open icons */
-    fill-opacity: 0.2;
-    /* Subtle tint by default, or 1 for pop? User said "fill of the green color" implying solid. */
+    /* Green Fill - Solid */
   }
 
-  /* No forced fill. Let icons behave naturally or use utility classes. */
-  /* No forced fill. Let icons behave naturally or use utility classes. */
-
-  /* EXCEPTIONS: Some icons shouldn't fill broadly (like Menu, X, Chevron)
-     but Lucide handles fill="none" on lines naturally.
-     Paths/Polygons/Circles/Rects will fill.
-  */
+  /* EXCEPTIONS: Line-based icons that should NOT be filled */
   :root:not(.dark) .lucide.lucide-menu,
   :root:not(.dark) .lucide.lucide-x,
   :root:not(.dark) .lucide.lucide-chevron-down,
@@ -130,7 +121,28 @@
   :root:not(.dark) .lucide.lucide-check,
   :root:not(.dark) .lucide.lucide-arrow-right,
   :root:not(.dark) .lucide.lucide-arrow-left,
-  :root:not(.dark) .lucide.lucide-loader-2 {
+  :root:not(.dark) .lucide.lucide-arrow-up,
+  :root:not(.dark) .lucide.lucide-arrow-down,
+  :root:not(.dark) .lucide.lucide-upload,
+  :root:not(.dark) .lucide.lucide-download,
+  :root:not(.dark) .lucide.lucide-external-link,
+  :root:not(.dark) .lucide.lucide-log-out,
+  :root:not(.dark) .lucide.lucide-plus,
+  :root:not(.dark) .lucide.lucide-minus,
+  :root:not(.dark) .lucide.lucide-loader-2,
+  :root:not(.dark) .lucide.lucide-undo-2,
+  :root:not(.dark) .lucide.lucide-redo-2,
+  :root:not(.dark) .lucide.lucide-rotate-ccw,
+  :root:not(.dark) .lucide.lucide-align-left,
+  :root:not(.dark) .lucide.lucide-align-center,
+  :root:not(.dark) .lucide.lucide-align-right,
+  :root:not(.dark) .lucide.lucide-list,
+  :root:not(.dark) .lucide.lucide-list-ordered,
+  :root:not(.dark) .lucide.lucide-strikethrough,
+  :root:not(.dark) .lucide.lucide-underline,
+  :root:not(.dark) .lucide.lucide-trending-up,
+  :root:not(.dark) .lucide.lucide-share,
+  :root:not(.dark) .lucide.lucide-share-2 {
     fill: none;
   }
 
