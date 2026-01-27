@@ -739,7 +739,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       {/* Main Content */}
       <div className="max-w-4xl w-full flex flex-col items-center space-y-12">
         {/* AI Orb */}
-        <div className="w-[450px] h-[450px]">
+        <div className="w-full max-w-[450px] aspect-square">
           <AIOrb mode={orbMode} audioLevel={audioLevel} />
         </div>
 
@@ -769,7 +769,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             <Button
               size="lg"
               onClick={startInterview}
-              className="px-12 py-6 text-lg rounded-full bg-primary hover:bg-primary/90 text-background font-semibold"
             >
               Start Interview
             </Button>
@@ -779,7 +778,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             <Button
               size="lg"
               disabled
-              className="px-12 py-6 text-lg rounded-full"
             >
               Starting...
             </Button>
@@ -790,7 +788,6 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
               size="lg"
               variant="destructive"
               onClick={endInterview}
-              className="px-12 py-6 text-lg rounded-full"
             >
               End Interview
             </Button>
