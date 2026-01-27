@@ -129,7 +129,7 @@ export function AIOrb({ mode, audioLevel = 0, className = '' }: AIOrbProps) {
   return (
     <div className={`w-full h-full relative ${className}`}>
       <Canvas
-        camera={{ position: [0, 0, 5], fov: 45 }}
+        camera={{ position: [0, 0, 3], fov: 45 }}
         style={{
           width: '100%',
           height: '100%',
