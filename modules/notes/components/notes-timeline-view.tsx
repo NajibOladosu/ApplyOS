@@ -95,11 +95,10 @@ export function NotesTimelineView({
                 {/* Timeline dot */}
                 <div className="flex flex-col items-center gap-2">
                   <div
-                    className={`h-3 w-3 rounded-full border-2 ${
-                      note.is_pinned
+                    className={`h-3 w-3 rounded-full border-2 ${note.is_pinned
                         ? "bg-primary border-primary"
                         : "bg-background border-border"
-                    }`}
+                      }`}
                   />
                 </div>
 
@@ -152,7 +151,7 @@ export function NotesTimelineView({
                       {pinningId === note.id ? (
                         <Loader2 className="h-4 w-4 animate-spin" />
                       ) : (
-                        <Pin className={`h-4 w-4 ${note.is_pinned ? "fill-current" : ""}`} />
+                        <Pin className={`h-4 w-4 ${note.is_pinned ? "text-primary fill-primary" : ""}`} />
                       )}
                     </Button>
                     <Button

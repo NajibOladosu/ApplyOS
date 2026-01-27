@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/TypeScript-5.4.0-blue?style=for-the-badge" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Supabase-Enabled-green?style=for-the-badge" alt="Supabase" />
   <img src="https://img.shields.io/badge/Tailwind-3.4.3-38bdf8?style=for-the-badge" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Gemini-2.0%20Flash-orange?style=for-the-badge" alt="Gemini AI" />
+  <img src="https://img.shields.io/badge/Gemini-3.0%20Flash-orange?style=for-the-badge" alt="Gemini AI" />
   <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel&style=for-the-badge" alt="Vercel" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License" />
 </div>

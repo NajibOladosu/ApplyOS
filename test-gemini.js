@@ -9,7 +9,7 @@ async function testParse() {
   }
 
   try {
-    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.0-flash' });
+    const model = genAI.getGenerativeModel({ model: 'models/gemini-2.5-flash' });
 
     const testText = `Najib Oladosu Ibadan, Nigeria | @najibaio | 07018135061
 
