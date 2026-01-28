@@ -131,7 +131,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <div className="flex-shrink-0 border-t border-border p-4">
             <button
               onClick={handleLogout}
-              className="flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
+              className="flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive hover:text-white"
             >
               <LogOut className="h-5 w-5 flex-shrink-0" />
               <span>Logout</span>
