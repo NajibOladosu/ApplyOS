@@ -32,55 +32,76 @@ export function ConversionFunnel({ data, title = 'Application Conversion Funnel'
   // Calculate max width for the first stage (100%)
   const maxCount = data[0]?.count || 1
 
-  // Color gradient from blue to green
-  const colors = [
-    '#3b82f6', // blue
-    '#06b6d4', // cyan
-    '#10b981', // emerald
-    '#84cc16', // lime
-    '#00FF88', // green (app accent)
-  ]
+
 
   return (
     <Card className="flex flex-col h-full">
       <CardHeader>
         <CardTitle>{title}</CardTitle>
       </CardHeader>
-      <CardContent className="flex-1 space-y-4">
+      <CardContent className="flex-1 space-y-3">
         {data.map((stage, index) => {
-          const widthPercentage = (stage.count / maxCount) * 100
-          const color = colors[index % colors.length]
+          // Only show bar if count > 0, no minimum width for empty stages
+          const widthPercentage = stage.count > 0
+            ? Math.max((stage.count / maxCount) * 100, 8)
+            : 0
+          const actualPercentage = (stage.count / maxCount) * 100
+
+          // Color palette for funnel stages
+          const colors = [
+            '#3b82f6', // blue
+            '#06b6d4', // cyan
+            '#10b981', // emerald
+            '#84cc16', // lime
+            '#00FF88', // primary green
+          ]
+          const barColor = colors[index % colors.length]
 
           return (
-            <div key={stage.stage} className="space-y-2">
+            <div key={stage.stage} className="space-y-1.5">
+              {/* Stage label and count */}
               <div className="flex items-center justify-between text-sm">
-                <span className="font-medium">{stage.stage}</span>
-                <span className="text-muted-foreground">
-                  {stage.count} ({stage.percentage}%)
-                </span>
-              </div>
-              <div className="relative h-12 bg-secondary/20 rounded-lg overflow-hidden">
-                <div
-                  className="absolute inset-y-0 left-0 rounded-lg flex items-center justify-center text-sm font-medium text-slate-900 transition-all duration-500"
-                  style={{
-                    width: `${widthPercentage}%`,
-                    backgroundColor: color,
-                  }}
-                >
-                  {widthPercentage > 15 && (
-                    <span className="px-2">{stage.count} applications</span>
-                  )}
+                <span className="font-medium text-foreground">{stage.stage}</span>
+                <div className="flex items-center gap-2">
+                  <span className="font-semibold text-foreground">{stage.count}</span>
+                  <span className="text-muted-foreground text-xs">
+                    ({stage.percentage}%)
+                  </span>
                 </div>
               </div>
-              {/* Drop-off indicator */}
-              {index < data.length - 1 && data[index + 1] && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <div className="h-px flex-1 bg-border" />
-                  <span>
-                    {stage.count - data[index + 1].count} dropped
-                    ({Math.round(((stage.count - data[index + 1].count) / stage.count) * 100)}% drop-off)
+
+              {/* Progress bar */}
+              <div className="relative h-8 bg-muted rounded-md overflow-hidden">
+                {/* Colored fill bar - only render if count > 0 */}
+                {stage.count > 0 && (
+                  <div
+                    className="h-full rounded-md"
+                    style={{
+                      width: `${widthPercentage}%`,
+                      backgroundColor: barColor,
+                      boxShadow: `0 2px 8px ${barColor}50`
+                    }}
+                  />
+                )}
+                {/* Bar label - only show if enough space */}
+                {actualPercentage > 20 && (
+                  <div className="absolute inset-0 flex items-center justify-end pr-3">
+                    <span className="text-xs font-bold text-white drop-shadow-md">
+                      {stage.count}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Drop-off indicator - styled more subtly */}
+              {index < data.length - 1 && data[index + 1] && stage.count > 0 && (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
+                  <div className="h-px flex-1 bg-border/50" />
+                  <span className="flex items-center gap-1 text-muted-foreground/70">
+                    <span className="text-destructive/70">↓</span>
+                    {Math.round(((stage.count - data[index + 1].count) / stage.count) * 100)}% drop
                   </span>
-                  <div className="h-px flex-1 bg-border" />
+                  <div className="h-px flex-1 bg-border/50" />
                 </div>
               )}
             </div>
