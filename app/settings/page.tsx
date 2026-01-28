@@ -432,6 +432,7 @@ export default function SettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowPasswordModal(true)}
+                className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
               >
                 Change
               </Button>
