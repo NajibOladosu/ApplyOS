@@ -495,25 +495,40 @@ export default function DocumentsPage() {
                           <span className="text-xs sm:text-sm">View</span>
                         </Link>
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 min-w-[100px]"
-                        onClick={() => {
-                          if (doc.file_url) {
-                            window.open(doc.file_url, "_blank", "noopener,noreferrer")
-                          }
-                        }}
-                      >
-                        <Download className="mr-1.5 h-3 w-3" />
-                        <span className="text-xs sm:text-sm">Download</span>
-                      </Button>
+                      {doc.file_url ? (
+                        <a
+                          href={doc.file_url}
+                          download={doc.file_name}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex-1 min-w-[100px]"
+                        >
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="w-full flex items-center justify-center gap-1.5"
+                          >
+                            <Download className="h-4 w-4 flex-shrink-0" />
+                            <span className="text-xs sm:text-sm">Download</span>
+                          </Button>
+                        </a>
+                      ) : (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5"
+                          disabled
+                        >
+                          <Download className="h-4 w-4 flex-shrink-0" />
+                          <span className="text-xs sm:text-sm">Download</span>
+                        </Button>
+                      )}
                       {/* Explicit, visible destructive delete button with confirm dialog */}
                       <Button
                         variant="ghost"
                         size="icon"
                         className={cn(
-                          "text-destructive hover:text-destructive h-9 w-9",
+                          "text-destructive hover:bg-destructive hover:text-white h-9 w-9",
                           deletingId === doc.id && "opacity-50 cursor-not-allowed"
                         )}
                         onClick={() => requestDelete(doc)}

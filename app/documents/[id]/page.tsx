@@ -724,8 +724,8 @@ export default function DocumentDetailPage() {
                             {p.technologies.map((tech, i) => (
                               <Badge
                                 key={i}
-                                variant="secondary"
-                                className="bg-zinc-800/80 text-amber-300 border-0 px-3 py-1 text-[10px] backdrop-blur-sm"
+                                variant="outline"
+                                className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
                               >
                                 {tech}
                               </Badge>
@@ -749,8 +749,8 @@ export default function DocumentDetailPage() {
                       {parsed.skills.technical.map((s, i) => (
                         <Badge
                           key={`t-${i}`}
-                          variant="secondary"
-                          className="bg-zinc-800/80 text-primary border-0 px-3 py-1 text-[10px] backdrop-blur-sm"
+                          variant="outline"
+                          className="bg-transparent text-primary border-primary/40 px-3 py-1 text-[10px]"
                         >
                           {s}
                         </Badge>
@@ -758,8 +758,8 @@ export default function DocumentDetailPage() {
                       {parsed.skills.soft.map((s, i) => (
                         <Badge
                           key={`s-${i}`}
-                          variant="secondary"
-                          className="bg-zinc-800/80 text-sky-300 border-0 px-3 py-1 text-[10px] backdrop-blur-sm"
+                          variant="outline"
+                          className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
                         >
                           {s}
                         </Badge>
@@ -767,8 +767,8 @@ export default function DocumentDetailPage() {
                       {parsed.skills.other.map((s, i) => (
                         <Badge
                           key={`o-${i}`}
-                          variant="secondary"
-                          className="bg-zinc-800/80 text-purple-300 border-0 px-3 py-1 text-[10px] backdrop-blur-sm"
+                          variant="outline"
+                          className="bg-transparent text-muted-foreground border-border px-3 py-1 text-[10px]"
                         >
                           {s}
                         </Badge>

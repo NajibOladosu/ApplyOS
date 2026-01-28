@@ -76,6 +76,7 @@ export function ConfirmDialog({
             variant={variant === "destructive" ? "destructive" : "default"}
             onClick={handleConfirm}
             disabled={submitting || loading}
+            className={variant === "destructive" ? "text-white" : ""}
           >
             {submitting || loading ? "Please wait..." : confirmLabel}
           </Button>
