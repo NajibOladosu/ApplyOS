@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
@@ -12,9 +13,9 @@ import {
   Download,
   Key,
   Palette,
-  Globe,
   Loader2,
-  X,
+  Sun,
+  Moon,
 } from "lucide-react"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -40,6 +41,7 @@ type AiSettings = {
 export default function SettingsPage() {
   const supabase = createClient()
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -434,21 +436,6 @@ export default function SettingsPage() {
                 Change
               </Button>
             </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Key className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-muted-foreground">
-                    Enable MFA in your Supabase auth settings or integrated IdP.
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                Configure via Auth Provider
-              </Button>
-            </div>
           </CardContent>
         </Card>
 
@@ -493,11 +480,30 @@ export default function SettingsPage() {
                 <div>
                   <p className="font-medium">Theme</p>
                   <p className="text-sm text-muted-foreground">
-                    Dark theme is enabled by default for this workspace.
+                    Choose between light and dark mode
                   </p>
                 </div>
               </div>
-              <Badge variant="default">Dark</Badge>
+              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+                <Button
+                  variant={theme === 'light' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTheme('light')}
+                  className="gap-2"
+                >
+                  <Sun className="h-4 w-4" />
+                  Light
+                </Button>
+                <Button
+                  variant={theme === 'dark' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTheme('dark')}
+                  className="gap-2"
+                >
+                  <Moon className="h-4 w-4" />
+                  Dark
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
