@@ -256,20 +256,25 @@ export default function ProfilePage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="relative h-32 w-32 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden glow-effect flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-50"
+                  className="relative h-32 w-32 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden shadow-lg shadow-primary/20 flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-50"
                   title="Click to change avatar"
                 >
-                  {avatarUrl ? (
+                  {/* Always show initials as fallback */}
+                  <span className="text-4xl font-bold text-primary-foreground select-none">
+                    {initials}
+                  </span>
+                  {/* Show image on top if available */}
+                  {avatarUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={avatarUrl}
-                      alt="User avatar"
-                      className="h-full w-full object-cover"
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover rounded-full"
+                      onError={(e) => {
+                        // Hide broken image to show initials beneath
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
                     />
-                  ) : (
-                    <span className="text-4xl font-bold text-primary-foreground select-none">
-                      {initials}
-                    </span>
                   )}
                   {/* Edit Icon Overlay */}
                   <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
