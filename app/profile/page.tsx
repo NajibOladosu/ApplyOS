@@ -267,7 +267,7 @@ export default function ProfilePage() {
                       className="h-full w-full object-cover"
                     />
                   ) : (
-                    <span className="text-4xl font-bold text-slate-700 select-none">
+                    <span className="text-4xl font-bold text-primary-foreground select-none">
                       {initials}
                     </span>
                   )}
@@ -382,7 +382,7 @@ export default function ProfilePage() {
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email Status</p>
-                  <Badge variant="success">Verified</Badge>
+                  <Badge variant="default">Verified</Badge>
                 </div>
               </div>
             </div>
@@ -468,8 +468,8 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
                 <p className="font-medium">Delete Account</p>
                 <p className="text-sm text-muted-foreground">
                   This will delete your ApplyOS profile, applications, questions,
@@ -480,6 +480,7 @@ export default function ProfilePage() {
               <Button
                 variant="destructive"
                 onClick={() => setShowDeletePrompt(true)}
+                className="flex-shrink-0 whitespace-nowrap"
               >
                 Delete Account
               </Button>
