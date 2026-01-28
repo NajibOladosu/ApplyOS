@@ -199,13 +199,13 @@ export default function DashboardPage() {
               <TabsList className="grid grid-cols-2 w-full sm:w-auto">
                 <TabsTrigger
                   value="overview"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   Overview
                 </TabsTrigger>
                 <TabsTrigger
                   value="analytics"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   Analytics
                 </TabsTrigger>
