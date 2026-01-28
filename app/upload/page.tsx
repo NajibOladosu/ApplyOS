@@ -126,8 +126,8 @@ export default function UploadPage() {
             <div
               {...getRootProps()}
               className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center cursor-pointer transition-all ${isDragActive
-                  ? "border-primary bg-primary/5"
-                  : "border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-primary/40"
+                ? "border-primary bg-primary/5"
+                : "border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-primary/40"
                 }`}
             >
               <input {...getInputProps()} />
@@ -214,7 +214,6 @@ export default function UploadPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6">
-              <div className="text-4xl mb-2">📄</div>
               <h3 className="font-semibold mb-1">Auto Analysis</h3>
               <p className="text-sm text-muted-foreground">
                 Our AI automatically extracts education, experience, and skills
@@ -223,7 +222,6 @@ export default function UploadPage() {
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <div className="text-4xl mb-2">🔒</div>
               <h3 className="font-semibold mb-1">Secure Storage</h3>
               <p className="text-sm text-muted-foreground">
                 All documents are encrypted and stored securely
@@ -232,7 +230,6 @@ export default function UploadPage() {
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <div className="text-4xl mb-2">⚡</div>
               <h3 className="font-semibold mb-1">Fast Processing</h3>
               <p className="text-sm text-muted-foreground">
                 Get AI-powered insights in seconds
