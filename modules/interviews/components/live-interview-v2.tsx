@@ -770,7 +770,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           {interviewState === 'idle' && (
             <Button
               onClick={startInterview}
-              className="bg-primary text-[#0a0a0a] font-bold h-14 px-10 text-lg rounded-xl shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_35px_rgba(0,255,136,0.5)] hover:scale-105 transition-all duration-300"
+              className="bg-primary text-primary-foreground font-bold h-14 px-10 text-lg rounded-xl shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_35px_rgba(0,255,136,0.5)] hover:scale-105 transition-all duration-300"
             >
               Start Interview
             </Button>

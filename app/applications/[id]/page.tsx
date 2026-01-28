@@ -891,31 +891,31 @@ export default function ApplicationDetailPage() {
             <TabsList className="grid grid-cols-5 w-full sm:w-auto">
               <TabsTrigger
                 value="questions"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Questions
               </TabsTrigger>
               <TabsTrigger
                 value="cover-letter"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Cover Letter
               </TabsTrigger>
               <TabsTrigger
                 value="analysis"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Analysis
               </TabsTrigger>
               <TabsTrigger
                 value="notes"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Notes
               </TabsTrigger>
               <TabsTrigger
                 value="interview"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Interview
               </TabsTrigger>
@@ -1455,7 +1455,7 @@ export default function ApplicationDetailPage() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-black glow-effect group/btn transition-all"
+                                      className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-primary-foreground glow-effect group/btn transition-all"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         handleViewReport(session.id)

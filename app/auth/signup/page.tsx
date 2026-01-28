@@ -275,7 +275,7 @@ function SignupContent() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading || checkingPassword}>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading || checkingPassword}>
                 {checkingPassword ? "Checking password..." : loading ? "Creating account..." : "Create Account"}
               </Button>
 

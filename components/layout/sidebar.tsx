@@ -108,7 +108,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     className={cn(
                       "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
                       isActive
-                        ? "bg-[#0A0A0A] text-primary dark:bg-zinc-800 shadow-sm"
+                        ? "bg-secondary text-primary shadow-sm"
                         : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     )}
                   >

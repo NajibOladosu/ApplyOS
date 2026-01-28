@@ -245,7 +245,7 @@ export default function InterviewReportPage() {
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Difficulty</p>
                 <Badge className={difficultyColors[session.difficulty]}>
-                  {session.difficulty}
+                  <span className="capitalize">{session.difficulty}</span>
                 </Badge>
               </div>
               <div>
@@ -456,7 +456,7 @@ export default function InterviewReportPage() {
                                   {question.question_category.replace(/_/g, ' ')}
                                 </Badge>
                                 <Badge className={difficultyColors[question.difficulty]} variant="outline">
-                                  {question.difficulty}
+                                  <span className="capitalize">{question.difficulty}</span>
                                 </Badge>
                               </div>
                               <p className="text-sm text-muted-foreground">
@@ -492,28 +492,28 @@ export default function InterviewReportPage() {
                               {(answer.clarity_score != null || answer.structure_score != null ||
                                 answer.relevance_score != null || answer.depth_score != null ||
                                 answer.confidence_score != null) && (
-                                <div>
-                                  <h4 className="text-xs font-semibold mb-2">Score Breakdown</h4>
-                                  <div className="grid grid-cols-5 gap-2">
-                                    {[
-                                      { label: 'Clarity', score: answer.clarity_score },
-                                      { label: 'Structure', score: answer.structure_score },
-                                      { label: 'Relevance', score: answer.relevance_score },
-                                      { label: 'Depth', score: answer.depth_score },
-                                      { label: 'Confidence', score: answer.confidence_score },
-                                    ].map(({ label, score }) => (
-                                      score != null && (
-                                        <div key={label} className="text-center p-2 bg-background rounded border">
-                                          <div className={`text-sm font-bold ${getScoreColor(score)}`}>
-                                            {score.toFixed(1)}
+                                  <div>
+                                    <h4 className="text-xs font-semibold mb-2">Score Breakdown</h4>
+                                    <div className="grid grid-cols-5 gap-2">
+                                      {[
+                                        { label: 'Clarity', score: answer.clarity_score },
+                                        { label: 'Structure', score: answer.structure_score },
+                                        { label: 'Relevance', score: answer.relevance_score },
+                                        { label: 'Depth', score: answer.depth_score },
+                                        { label: 'Confidence', score: answer.confidence_score },
+                                      ].map(({ label, score }) => (
+                                        score != null && (
+                                          <div key={label} className="text-center p-2 bg-background rounded border">
+                                            <div className={`text-sm font-bold ${getScoreColor(score)}`}>
+                                              {score.toFixed(1)}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
                                           </div>
-                                          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-                                        </div>
-                                      )
-                                    ))}
+                                        )
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
                               {/* Detailed Feedback */}
                               {answer.feedback ? (

@@ -173,7 +173,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                 </p>
                 <Link
                     href="https://applyos.io/auth/signup"
-                    className="inline-flex items-center gap-2 bg-primary text-[#0a0a0a] font-bold px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
+                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
                 >
                     Try ApplyOS Free
                 </Link>

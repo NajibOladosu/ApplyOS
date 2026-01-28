@@ -84,7 +84,7 @@ export default function ForgotPasswordPage() {
                                     <p className="font-medium mb-1">Check your email</p>
                                     <p>We've sent a password reset link to <strong>{email}</strong>.</p>
                                 </div>
-                                <Button asChild className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90">
+                                <Button asChild className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90">
                                     <Link href="/auth/login">Back to Sign In</Link>
                                 </Button>
                             </div>
@@ -110,7 +110,7 @@ export default function ForgotPasswordPage() {
                                     />
                                 </div>
 
-                                <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading}>
+                                <Button type="submit" className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading}>
                                     {loading ? "Sending link..." : "Send Reset Link"}
                                 </Button>
 

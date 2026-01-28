@@ -96,7 +96,7 @@ export default async function BlogHomePage() {
                         <p className="text-muted-foreground mb-6">
                             Join thousands of users applying smarter with ApplyOS.
                         </p>
-                        <Button asChild className="font-bold text-[#0a0a0a]">
+                        <Button asChild className="font-bold text-primary-foreground">
                             <Link href="https://applyos.io/auth/signup">
                                 Get Started Free
                                 <ArrowRight className="h-4 w-4 ml-2" />
