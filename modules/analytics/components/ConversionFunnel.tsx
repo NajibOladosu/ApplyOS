@@ -75,7 +75,7 @@ export function ConversionFunnel({ data, title = 'Application Conversion Funnel'
                 {/* Colored fill bar - only render if count > 0 */}
                 {stage.count > 0 && (
                   <div
-                    className="h-full rounded-md"
+                    className="absolute inset-y-0 left-0 h-full rounded-md"
                     style={{
                       width: `${widthPercentage}%`,
                       backgroundColor: barColor,
@@ -83,14 +83,17 @@ export function ConversionFunnel({ data, title = 'Application Conversion Funnel'
                     }}
                   />
                 )}
-                {/* Bar label - only show if enough space */}
-                {actualPercentage > 20 && (
-                  <div className="absolute inset-0 flex items-center justify-end pr-3">
-                    <span className="text-xs font-bold text-white drop-shadow-md">
-                      {stage.count}
-                    </span>
-                  </div>
-                )}
+                {/* Centered stats label */}
+                <div className="absolute inset-0 flex items-center justify-center">
+                  <span
+                    className={`text-sm font-bold drop-shadow-sm ${widthPercentage >= 50
+                      ? 'text-white'
+                      : 'text-foreground'
+                      }`}
+                  >
+                    {stage.count} ({stage.percentage}%)
+                  </span>
+                </div>
               </div>
 
               {/* Drop-off indicator - styled more subtly */}
