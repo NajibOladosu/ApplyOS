@@ -246,7 +246,7 @@ export default function FeedbackPage() {
                 {/* Info */}
                 <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                   <p className="text-xs text-muted-foreground">
-                    💡 <strong>Tip:</strong> Be specific about what you're reporting or suggesting. This helps us understand and address your feedback better.
+                    <strong>Tip:</strong> Be specific about what you're reporting or suggesting. This helps us understand and address your feedback better.
                   </p>
                 </div>
               </form>
