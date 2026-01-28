@@ -87,10 +87,10 @@ export default function Home() {
           </Link>
 
           <div className="flex items-center space-x-4">
-            <Button variant="outline" asChild className="text-foreground border-foreground/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] transition-all">
+            <Button variant="outline" asChild className="text-foreground border-foreground/20 hover:border-primary hover:bg-primary hover:text-primary-foreground transition-all">
               <Link href="/auth/login">Sign In</Link>
             </Button>
-            <Button asChild className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90">
+            <Button asChild className="bg-primary text-primary-foreground font-bold hover:bg-primary/90">
               <Link href="/auth/signup">Get Started</Link>
             </Button>
           </div>
@@ -134,7 +134,7 @@ export default function Home() {
             <div className="flex items-center justify-center space-x-6">
               <Button
                 asChild
-                className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
+                className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
                 <Link href="/auth/signup">Get Started</Link>
               </Button>
@@ -142,7 +142,7 @@ export default function Home() {
               <Button
                 variant="outline"
                 asChild
-                className="text-foreground border-foreground/20 hover:border-primary hover:bg-primary hover:text-[#0a0a0a] group transition-all"
+                className="text-foreground border-foreground/20 hover:border-primary hover:bg-primary hover:text-primary-foreground group transition-all"
               >
                 <Link href="#how-it-works" className="flex items-center gap-2">
                   <span>View Workflow</span>
@@ -241,7 +241,7 @@ export default function Home() {
               </p>
               <Button
                 asChild
-                className="bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
+                className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
               >
                 <Link href="/auth/signup" className="flex items-center gap-2">
                   <span>Get Started</span>

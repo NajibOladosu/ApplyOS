@@ -31,7 +31,7 @@ export default function BlogLayout({
                         <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
                         <span className="text-xl font-bold font-mono">
                             <span className="text-primary">Apply</span>
-                            <span className="text-white">OS</span>
+                            <span className="text-foreground">OS</span>
                             <span className="text-muted-foreground ml-2 text-sm font-normal">Blog</span>
                         </span>
                     </Link>
@@ -45,7 +45,7 @@ export default function BlogLayout({
                         </Link>
                         <Link
                             href="https://applyos.io/auth/signup"
-                            className="bg-primary text-[#0a0a0a] font-bold px-4 py-2 rounded-md text-sm hover:bg-primary/90 transition-colors"
+                            className="bg-primary text-primary-foreground font-bold px-4 py-2 rounded-md text-sm hover:bg-primary/90 transition-colors"
                         >
                             Get Started
                         </Link>
@@ -59,11 +59,11 @@ export default function BlogLayout({
             </main>
 
             {/* Blog Footer */}
-            <footer className="bg-[#0a0a0a] border-t border-white/10 py-12 px-4 sm:px-6 lg:px-8">
+            <footer className="bg-card border-t border-border py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto text-center">
                     <div className="flex items-center justify-center space-x-2 mb-4">
                         <img src="/logo.svg" alt="ApplyOS" className="h-6 w-auto" />
-                        <span className="text-lg font-bold font-mono text-white">
+                        <span className="text-lg font-bold font-mono text-foreground">
                             <span className="text-primary">Apply</span>OS
                         </span>
                     </div>

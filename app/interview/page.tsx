@@ -201,7 +201,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Total Sessions</CardDescription>
@@ -222,7 +222,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Questions Answered</CardDescription>
@@ -243,7 +243,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.2 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Average Score</CardDescription>
@@ -269,7 +269,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.3 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Time Spent</CardDescription>
@@ -292,7 +292,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.4 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Improvement</CardDescription>
