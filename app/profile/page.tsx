@@ -69,7 +69,13 @@ export default function ProfilePage() {
 
         const p = data as Profile
         setProfile(p)
-        setName(p.name || user.user_metadata?.name || user.email || "")
+        // Priority: Google full_name > database name > metadata name
+        const fullName =
+          user.user_metadata?.full_name ||
+          p.name ||
+          user.user_metadata?.name ||
+          ""
+        setName(fullName)
         setAvatarUrl(p.avatar_url || user.user_metadata?.avatar_url || "")
       } catch (err) {
         console.error("Error loading profile:", err)
@@ -300,7 +306,6 @@ export default function ProfilePage() {
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
                   />
                 </div>
 
