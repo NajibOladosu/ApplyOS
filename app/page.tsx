@@ -99,7 +99,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden min-h-[85vh] flex items-center justify-center px-6 text-center">
+      <section className="relative overflow-hidden min-h-[max(85vh,700px)] flex items-center justify-center px-6 text-center">
         {/* Background Glow Effect behind the text */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[300px] bg-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
 
