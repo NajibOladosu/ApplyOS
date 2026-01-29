@@ -48,7 +48,7 @@ export default async function BlogHomePage() {
                                             {post.tags.slice(0, 2).map((tag) => (
                                                 <span
                                                     key={tag}
-                                                    className="text-xs bg-primary/10 text-primary px-2 py-1 rounded-full"
+                                                    className="text-xs bg-transparent text-foreground dark:text-primary border border-border dark:border-primary/40 px-2 py-1 rounded-full"
                                                 >
                                                     {tag}
                                                 </span>

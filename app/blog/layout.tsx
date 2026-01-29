@@ -1,5 +1,6 @@
 import Link from "next/link"
 import { Metadata } from "next"
+import { BlogSettingsButton } from "@/components/blog-settings-button"
 
 export const metadata: Metadata = {
     title: {
@@ -57,6 +58,9 @@ export default function BlogLayout({
             <main className="pt-24 pb-16">
                 {children}
             </main>
+
+            {/* Floating Settings Button */}
+            <BlogSettingsButton />
 
             {/* Blog Footer */}
             <footer className="bg-card border-t border-border py-12 px-4 sm:px-6 lg:px-8">
