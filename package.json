@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "ESLINT_USE_FLAT_CONFIG=false next build",
     "start": "next start",
-    "lint": "ESLINT_USE_FLAT_CONFIG=false next lint ."
+    "lint": "ESLINT_USE_FLAT_CONFIG=false next lint .",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -63,6 +66,8 @@
   },
   "devDependencies": {
     "@tailwindcss/typography": "^0.5.19",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@tiptap/extension-link": "^3.11.0",
     "@tiptap/extension-strike": "^3.11.0",
     "@tiptap/extension-text-align": "^3.11.0",
@@ -74,9 +79,11 @@
     "autoprefixer": "^10.4.19",
     "eslint": "^9.0.0",
     "eslint-config-next": "^16.1.1",
+    "jsdom": "^27.4.0",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
-    "typescript": "^5.4.0"
+    "typescript": "^5.4.0",
+    "vitest": "^4.0.18"
   },
   "overrides": {
     "react": "$react",
