@@ -26,6 +26,8 @@ import {
   Mic,
   FileText,
   Trash2,
+  MessageSquareText,
+  Mail,
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
@@ -926,7 +928,10 @@ export default function ApplicationDetailPage() {
           <TabsContent value="questions" className="space-y-6 mt-0">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold">Application Questions</h2>
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <MessageSquareText className="h-6 w-6 text-foreground dark:text-primary" />
+                  Application Questions
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
@@ -1087,7 +1092,10 @@ export default function ApplicationDetailPage() {
           <TabsContent value="cover-letter" className="space-y-6 mt-0">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <Mail className="h-6 w-6 text-foreground dark:text-primary" />
+                  Cover Letter
+                </h2>
                 <Button
                   variant="outline"
                   size="sm"
