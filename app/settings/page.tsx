@@ -16,6 +16,7 @@ import {
   Loader2,
   Sun,
   Moon,
+  Monitor,
 } from "lucide-react"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -503,6 +504,15 @@ export default function SettingsPage() {
                 >
                   <Moon className="h-4 w-4" />
                   Dark
+                </Button>
+                <Button
+                  variant={theme === 'system' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTheme('system')}
+                  className="gap-2"
+                >
+                  <Monitor className="h-4 w-4" />
+                  System
                 </Button>
               </div>
             </div>
