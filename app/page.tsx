@@ -99,7 +99,7 @@ export default function Home() {
       </nav>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden pt-32 pb-20 px-6 text-center">
+      <section className="relative overflow-hidden min-h-[85vh] flex items-center justify-center px-6 text-center">
         {/* Background Glow Effect behind the text */}
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 h-[300px] w-[300px] bg-primary/20 blur-[120px] rounded-full pointer-events-none"></div>
 
@@ -110,9 +110,8 @@ export default function Home() {
             transition={{ duration: 0.6 }}
           >
             {/* H1: High Contrast White + Neon */}
-            <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight text-foreground">
-              The Operating System for
-              <br />
+            <h1 className="text-5xl md:text-7xl font-bold mb-6 tracking-tight text-foreground flex flex-col gap-4">
+              <span>The Operating System for</span>
               <span className="text-primary drop-shadow-[0_0_15px_rgba(0,255,136,0.25)]">
                 Your Job Search
               </span>
