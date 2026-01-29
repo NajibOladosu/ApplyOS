@@ -99,7 +99,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         {post.tags.map((tag) => (
                             <span
                                 key={tag}
-                                className="text-xs bg-primary/10 text-primary px-3 py-1 rounded-full"
+                                className="text-xs bg-transparent text-foreground dark:text-primary border border-border dark:border-primary/40 px-3 py-1 rounded-full"
                             >
                                 {tag}
                             </span>
@@ -137,7 +137,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </header>
 
             {/* Article Content */}
-            <div className="prose prose-invert max-w-none">
+            <div className="prose dark:prose-invert max-w-none">
                 <MDXRemote source={post.content} components={components} />
             </div>
 
