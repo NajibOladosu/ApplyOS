@@ -343,18 +343,18 @@ export default function DocumentDetailPage() {
   const renderAnalysisStatusBadge = () => {
     if (!doc) return null
     const status = doc.analysis_status
-    const base = "px-2 py-0.5 text-xs rounded-full border"
+    const base = "px-2 py-0.5 text-xs rounded-full border bg-transparent"
 
     if (status === "success") {
       return (
-        <span className={cn(base, "border-primary/40 text-primary")}>
+        <span className={cn(base, "border-border text-foreground")}>
           Analyzed
         </span>
       )
     }
     if (status === "pending") {
       return (
-        <span className={cn(base, "border-primary/40 text-primary flex items-center gap-1")}>
+        <span className={cn(base, "border-border text-foreground flex items-center gap-1")}>
           <Loader2 className="h-3 w-3 animate-spin" />
           Analyzing...
         </span>
@@ -362,13 +362,13 @@ export default function DocumentDetailPage() {
     }
     if (status === "failed") {
       return (
-        <span className={cn(base, "border-red-500/40 text-red-400")}>
+        <span className={cn(base, "border-destructive/40 text-destructive")}>
           Analysis failed
         </span>
       )
     }
     return (
-      <span className={cn(base, "border-muted-foreground/30 text-muted-foreground")}>
+      <span className={cn(base, "border-border text-muted-foreground")}>
         Not analyzed
       </span>
     )
@@ -396,7 +396,7 @@ export default function DocumentDetailPage() {
             <CardTitle className="text-base sm:text-lg">Document Report</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               {report && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs bg-transparent text-foreground border-border">
                   Updated {formatDate(doc.report_generated_at)}
                 </Badge>
               )}
@@ -431,7 +431,7 @@ export default function DocumentDetailPage() {
                   <h3 className="text-sm font-semibold text-foreground">
                     {report.documentType || "Document"}
                   </h3>
-                  <div className="text-sm font-bold text-primary">
+                  <div className="text-sm font-bold text-foreground">
                     {report.overallScore}/10
                   </div>
                 </div>
@@ -455,7 +455,7 @@ export default function DocumentDetailPage() {
                     const scorePercentage = (category.score / 10) * 100
                     const scoreColor =
                       category.score >= 8
-                        ? "text-primary"
+                        ? "text-foreground"
                         : category.score >= 6
                           ? "text-muted-foreground"
                           : "text-destructive"
@@ -750,7 +750,7 @@ export default function DocumentDetailPage() {
                         <Badge
                           key={`t-${i}`}
                           variant="outline"
-                          className="bg-transparent text-primary border-primary/40 px-3 py-1 text-[10px]"
+                          className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
                         >
                           {s}
                         </Badge>
@@ -819,7 +819,7 @@ export default function DocumentDetailPage() {
                       <Badge
                         key={i}
                         variant="outline"
-                        className="text-[10px]"
+                        className="text-[10px] bg-transparent text-foreground border-border"
                       >
                         {k}
                       </Badge>
@@ -943,7 +943,7 @@ export default function DocumentDetailPage() {
             {doc.report && (
               <Badge
                 variant="outline"
-                className="border-primary/40 text-primary text-xs"
+                className="bg-transparent border-border text-foreground text-xs"
               >
                 Report available
               </Badge>
