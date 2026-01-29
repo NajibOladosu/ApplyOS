@@ -149,7 +149,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h2 className="text-2xl font-bold flex items-center gap-2">
-                        <ScanSearch className="h-6 w-6 text-primary" />
+                        <ScanSearch className="h-6 w-6 text-foreground dark:text-primary" />
                         Resume Analysis
                     </h2>
                     <p className="text-muted-foreground mt-1">
