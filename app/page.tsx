@@ -109,13 +109,6 @@ export default function Home() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
           >
-            {/* The "Terminal Badge" */}
-            <div className="mb-8 flex justify-center">
-              <span className="rounded-full bg-primary/10 px-4 py-1 text-sm font-mono font-semibold text-primary ring-1 ring-inset ring-primary/30">
-                &gt; System_Online: v1.0
-              </span>
-            </div>
-
             {/* H1: High Contrast White + Neon */}
             <h1 className="text-5xl md:text-7xl font-bold mb-6 leading-tight tracking-tight text-foreground">
               The Operating System for
