@@ -119,17 +119,25 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
         }
     }
 
-    // Helper to format score color
+    // Helper to format score text color - for inside the circular ring
     const getScoreColor = (score: number) => {
-        if (score >= 80) return "text-green-500"
-        if (score >= 60) return "text-yellow-500"
-        return "text-red-500"
+        if (score >= 80) return "text-green-600"
+        if (score >= 60) return "text-orange-600"
+        return "text-red-600"
     }
 
+    // Helper to format score background
     const getScoreBg = (score: number) => {
-        if (score >= 80) return "bg-green-500"
-        if (score >= 60) return "bg-yellow-500"
+        if (score >= 80) return "bg-primary" // green
+        if (score >= 60) return "bg-orange-500"
         return "bg-red-500"
+    }
+
+    // Helper to format score text color for card
+    const getScoreCardTextColor = (score: number) => {
+        if (score >= 80) return "text-black" // black on green
+        if (score >= 60) return "text-black" // black on orange
+        return "text-white" // white on red
     }
 
     // Helper to render text with markdown bold support
@@ -243,39 +251,36 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                     >
                         {/* Score Overview */}
                         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                            <Card className="md:col-span-1 overflow-hidden relative">
-                                <div className={cn("absolute inset-0 opacity-5", getScoreBg(analysis.score))} />
-                                <CardHeader className="pb-2">
-                                    <CardTitle>Match Score</CardTitle>
-                                    <CardDescription>Compatibility with Job Description</CardDescription>
-                                </CardHeader>
+                            <Card className={cn("md:col-span-1 overflow-hidden relative flex flex-col items-center justify-center min-h-[280px]", getScoreBg(analysis.score))}>
                                 <CardContent className="flex flex-col items-center justify-center py-6">
+                                    <p className={cn("text-sm font-medium mb-1", getScoreCardTextColor(analysis.score))}>Match Score</p>
+                                    <p className={cn("text-xs mb-4", getScoreCardTextColor(analysis.score), "opacity-70")}>Compatibility with Job Description</p>
                                     <div className="relative flex items-center justify-center h-32 w-32">
-                                        <svg className="h-full w-full -rotate-90 text-muted/20" viewBox="0 0 100 100">
+                                        <svg className="h-full w-full -rotate-90 text-white/30" viewBox="0 0 100 100">
                                             <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" />
                                         </svg>
                                         <motion.svg
                                             initial={{ pathLength: 0 }}
                                             animate={{ pathLength: analysis.score / 100 }}
                                             transition={{ duration: 1.5, ease: "easeOut" }}
-                                            className={cn("h-full w-full -rotate-90 absolute inset-0", getScoreColor(analysis.score))}
+                                            className="h-full w-full -rotate-90 absolute inset-0 text-white"
                                             viewBox="0 0 100 100"
                                         >
                                             <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" strokeDasharray="251.2" strokeLinecap="round" />
                                         </motion.svg>
                                         <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                            <span className={cn("text-4xl font-bold", getScoreColor(analysis.score))}>
+                                            <span className={cn("text-4xl font-bold", getScoreCardTextColor(analysis.score))}>
                                                 {analysis.score}
                                             </span>
-                                            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wider">/ 100</span>
+                                            <span className={cn("text-xs font-medium uppercase tracking-wider", getScoreCardTextColor(analysis.score), "opacity-70")}>/ 100</span>
                                         </div>
                                     </div>
                                 </CardContent>
                             </Card>
 
-                            <Card className="md:col-span-2">
+                            <Card className={cn("md:col-span-2", analysis.score < 60 ? "border-red-500/50" : analysis.score < 80 ? "border-orange-500/50" : "border-border")}>
                                 <CardHeader>
-                                    <CardTitle className="text-red-500 flex items-center gap-2">
+                                    <CardTitle className={cn("flex items-center gap-2", analysis.score < 60 ? "text-red-500" : analysis.score < 80 ? "text-orange-600" : "text-foreground")}>
                                         <AlertTriangle className="h-5 w-5" />
                                         Critical ATS Missing Keywords
                                     </CardTitle>
@@ -287,7 +292,18 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                                     {analysis.missingKeywords.length > 0 ? (
                                         <div className="flex flex-wrap gap-2">
                                             {analysis.missingKeywords.map((keyword, i) => (
-                                                <Badge key={i} variant="outline" className="border-red-500/40 text-red-500 bg-red-500/5 px-3 py-1 text-sm font-medium">
+                                                <Badge
+                                                    key={i}
+                                                    variant="outline"
+                                                    className={cn(
+                                                        "px-3 py-1 text-sm font-medium",
+                                                        analysis.score < 60
+                                                            ? "border-red-500/40 text-red-500 bg-red-500/5"
+                                                            : analysis.score < 80
+                                                                ? "border-orange-500/40 text-orange-600 bg-orange-500/5"
+                                                                : "border-primary/40 text-primary bg-primary/5"
+                                                    )}
+                                                >
                                                     {keyword}
                                                 </Badge>
                                             ))}
