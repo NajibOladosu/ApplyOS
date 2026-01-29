@@ -161,8 +161,8 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             {/* Control Panel */}
             <Card className="border-primary/20 bg-muted/10">
                 <CardContent className="pt-6">
-                    <div className="flex flex-col md:flex-row gap-4 items-end md:items-center">
-                        <div className="flex-1 w-full space-y-2">
+                    <div className="flex flex-col gap-4">
+                        <div className="w-full space-y-2">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                 Select Resume
                             </label>
@@ -182,31 +182,31 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                                             <div className="p-2 rounded bg-background border flex items-center justify-center">
                                                 <FileText className="h-4 w-4 text-primary" />
                                             </div>
-                                            <div className="overflow-hidden">
+                                            <div className="overflow-hidden flex-1">
                                                 <p className="text-sm font-medium truncate">{doc.file_name}</p>
                                                 <p className="text-xs text-muted-foreground truncate">
                                                     {((doc.file_size || 0) / 1024).toFixed(0)} KB
                                                 </p>
                                             </div>
                                             {selectedDocumentId === doc.id && (
-                                                <CheckCircle className="h-4 w-4 text-primary ml-auto flex-shrink-0" />
+                                                <CheckCircle className="h-4 w-4 text-primary flex-shrink-0" />
                                             )}
                                         </div>
                                     ))}
                                 </div>
                             ) : (
-                                <div className="p-4 border border-dashed rounded-lg text-center text-muted-foreground bg-muted/20">
-                                    <p>No documents attached to this application.</p>
-                                    <p className="text-xs mt-1">Go to the Documents section to upload a resume.</p>
+                                <div className="p-6 border border-dashed rounded-lg text-center text-muted-foreground bg-muted/20">
+                                    <FileText className="h-8 w-8 mx-auto mb-2 text-muted-foreground/50" />
+                                    <p className="font-medium">No documents attached to this application.</p>
+                                    <p className="text-sm mt-1">Go to the Documents section to upload a resume.</p>
                                 </div>
                             )}
                         </div>
 
                         <Button
-                            size="lg"
                             onClick={handleAnalyze}
                             disabled={!selectedDocumentId || isAnalyzing || !application.job_description}
-                            className="w-full md:w-auto min-w-[160px] glow-effect relative overflow-hidden group"
+                            className="w-full glow-effect relative overflow-hidden group"
                         >
                             {isAnalyzing ? (
                                 <>
