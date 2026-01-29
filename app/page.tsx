@@ -15,6 +15,7 @@ import {
   Shield,
   Clock
 } from "lucide-react"
+import { BlogSettingsButton } from "@/components/blog-settings-button"
 
 const features = [
   {
@@ -301,6 +302,9 @@ export default function Home() {
           </p>
         </div>
       </footer>
+
+      {/* Floating Settings Button */}
+      <BlogSettingsButton />
     </div >
   )
 }
