@@ -3,6 +3,11 @@
  *
  * Manages multiple Gemini models with fallback logic, rate limit tracking,
  * and intelligent model selection based on task complexity.
+ *
+ * Updated: Expanded model pool to reduce rate limit impact
+ * - Added Gemini 3 preview models as fallbacks
+ * - Added "latest" aliases for automatic updates
+ * - Diversified fallback chains across model families
  */
 
 type TaskComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX'
@@ -18,27 +23,51 @@ interface RateLimitTracker {
   retryAfter: number | null
 }
 
-// Model tiers by complexity
+// Model tiers by complexity - Diversified to reduce rate limit impact
+// Each tier has multiple fallback options across different model families
 const MODEL_TIERS: Record<TaskComplexity, ModelTier> = {
   SIMPLE: {
     complexity: 'SIMPLE',
-    models: ['models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash-lite'],
+    models: [
+      'models/gemini-2.5-flash-lite',      // Primary: fast, cheap (30 RPM)
+      'models/gemini-flash-lite-latest',   // Latest alias fallback
+      'models/gemini-2.5-flash',           // Upgrade fallback if lite exhausted
+      'models/gemini-3-flash-preview',     // Gemini 3 fallback
+    ],
   },
   MEDIUM: {
     complexity: 'MEDIUM',
-    models: ['models/gemini-2.5-flash', 'models/gemini-2.5-flash', 'models/gemini-2.5-flash-lite'],
+    models: [
+      'models/gemini-2.5-flash',           // Primary (15 RPM)
+      'models/gemini-flash-latest',        // Latest alias
+      'models/gemini-3-flash-preview',     // Gemini 3 fallback
+      'models/gemini-2.5-flash-lite',      // Downgrade fallback
+      'models/gemini-flash-lite-latest',   // Latest lite fallback
+    ],
   },
   COMPLEX: {
     complexity: 'COMPLEX',
-    models: ['models/gemini-2.5-pro', 'models/gemini-2.5-flash', 'models/gemini-2.5-flash'],
+    models: [
+      'models/gemini-2.5-pro',             // Primary for quality (2 RPM)
+      'models/gemini-pro-latest',          // Latest alias
+      'models/gemini-3-pro-preview',       // Gemini 3 Pro fallback
+      'models/gemini-2.5-flash',           // Quality fallback (still good)
+      'models/gemini-3-flash-preview',     // Gemini 3 Flash fallback
+      'models/gemini-flash-latest',        // Last resort
+    ],
   },
 }
 
 // In-memory rate limit tracker
 const rateLimitTracker: Map<string, RateLimitTracker> = new Map()
 
-// Initialize all models
-const allModels = ['models/gemini-2.5-pro', 'models/gemini-2.5-flash', 'models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash-lite', 'models/gemini-2.5-flash']
+// Initialize all unique models from all tiers
+const allModels = [...new Set([
+  ...MODEL_TIERS.SIMPLE.models,
+  ...MODEL_TIERS.MEDIUM.models,
+  ...MODEL_TIERS.COMPLEX.models,
+])]
+
 allModels.forEach((model) => {
   rateLimitTracker.set(model, {
     model,

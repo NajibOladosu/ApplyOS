@@ -161,11 +161,60 @@ export async function POST(request: NextRequest) {
       console.log(`Extracting text for document ${id} (force=${force}, hasStored=${!!document.extracted_text})`)
 
       try {
-        const fileResponse = await fetch(document.file_url)
+        // Handle private buckets by creating a signed URL
+        // Extract path from public URL: .../storage/v1/object/public/documents/path/to/file
+        let downloadUrl = document.file_url;
 
-        if (!fileResponse.ok) {
-          const msg = `Failed to fetch document: ${fileResponse.status} ${fileResponse.statusText}`
-          console.error(msg)
+        if (document.file_url.includes('/storage/v1/object/public/')) {
+          try {
+            const pathParts = document.file_url.split('/documents/');
+            if (pathParts.length > 1) {
+              const filePath = pathParts[1];
+              console.log(`Generating signed URL for private document: ${filePath}`);
+
+              const { data: signedData, error: signedError } = await supabase
+                .storage
+                .from('documents')
+                .createSignedUrl(filePath, 60); // 60 seconds validity
+
+              if (!signedError && signedData) {
+                downloadUrl = signedData.signedUrl;
+                console.log('Successfully generated signed URL');
+              } else {
+                console.warn('Failed to generate signed URL, falling back to public URL:', signedError);
+              }
+            }
+          } catch (e) {
+            console.warn('Error parsing file URL for signing:', e);
+          }
+        }
+
+        // Add minimal retry logic for document fetch
+        let fileResponse = null;
+        let fetchAttempt = 0;
+        let lastFetchError = null;
+
+        while (fetchAttempt < 3 && (!fileResponse || !fileResponse.ok)) {
+          if (fetchAttempt > 0) {
+            console.log(`Retrying fetch for document ${id} (attempt ${fetchAttempt + 1})...`);
+            await new Promise(r => setTimeout(r, 1000 * fetchAttempt)); // exponential backoff
+          }
+
+          try {
+            fetchAttempt++;
+            fileResponse = await fetch(downloadUrl)
+          } catch (err) {
+            lastFetchError = err;
+            console.error(`Fetch attempt ${fetchAttempt} failed:`, err);
+          }
+        }
+
+        if (!fileResponse || !fileResponse.ok) {
+          const status = fileResponse?.status || 500;
+          const statusText = fileResponse?.statusText || lastFetchError || 'Unknown error';
+          const msg = `Failed to fetch document after ${fetchAttempt} attempts. Status: ${status} ${statusText}`;
+          console.error(msg, { url: document.file_url, downloadUrl: downloadUrl ? 'HIDDEN_SIGNED_URL' : 'PUBLIC' });
+
           await supabase
             .from("documents")
             .update({

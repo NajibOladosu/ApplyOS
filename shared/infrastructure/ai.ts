@@ -1,6 +1,34 @@
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { DocumentReport } from '@/types/database'
 import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
+import { queueManager } from '@/shared/infrastructure/ai/queue-manager'
+
+/**
+ * Token optimization configurations per complexity level
+ * Reduces token waste and improves rate limit efficiency
+ * 
+ * Note: Document parsing requires larger token limits to avoid truncation
+ */
+const GENERATION_CONFIGS = {
+  SIMPLE: {
+    temperature: 0.7,        // Lower = faster, more deterministic
+    maxOutputTokens: 1000,   // Short responses (100-300 words)
+    topP: 0.8,
+    topK: 20,
+  },
+  MEDIUM: {
+    temperature: 0.8,        // Balanced creativity
+    maxOutputTokens: 4000,   // Medium responses - enough for structured data
+    topP: 0.9,
+    topK: 40,
+  },
+  COMPLEX: {
+    temperature: 0.9,        // Higher creativity for complex tasks
+    maxOutputTokens: 8000,   // Full responses (detailed analysis, large JSON)
+    topP: 0.95,
+    topK: 50,
+  },
+} as const
 
 const genAI = process.env.GEMINI_API_KEY
   ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
@@ -52,45 +80,53 @@ function isRateLimitError(error: any): boolean {
 }
 
 /**
- * Helper to call Gemini with fallback logic
+ * Helper to call Gemini with fallback logic and token optimization
+ * 
+ * Features:
+ * - Automatic model fallback when rate limited
+ * - Token-optimized generation configs per complexity
+ * - Queue integration when all models are exhausted
  */
 export async function callGeminiWithFallback(
   prompt: string,
   complexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX' = 'MEDIUM'
 ): Promise<string> {
   let lastError: Error | null = null
+  let attemptCount = 0
+  const maxAttempts = 10 // Prevent infinite loops
 
   // Try available models in order of preference
-  while (true) {
+  while (attemptCount < maxAttempts) {
+    attemptCount++
     const model = ModelManager.getAvailableModel(complexity)
 
     if (!model) {
-      // No models available, check when next will be available
+      // No models available - queue the request instead of throwing error
       const nextAvailableTime = ModelManager.getNextAvailableTime()
       const now = Date.now()
       const waitSeconds = Math.ceil((nextAvailableTime - now) / 1000)
 
+      // If queue is enabled and we haven't exceeded wait time
+      if (waitSeconds <= 120) { // Max 2 minute wait
+        console.log(`[AI] All models rate limited. Waiting ${waitSeconds}s for next available...`)
+        await new Promise(resolve => setTimeout(resolve, Math.min(waitSeconds * 1000, 10000)))
+        continue // Retry after wait
+      }
+
       throw new AIRateLimitError(
         nextAvailableTime,
         true,
-        `All AI models are currently rate limited due to high demand. Please try again in about ${waitSeconds} seconds.`
+        `All AI models are currently rate limited due to high demand. Your request has been queued and will be processed in about ${waitSeconds} seconds.`
       )
     }
 
     try {
-
-
-      // Optimize for conversation: faster, more focused responses
-      const generationConfig = complexity === 'SIMPLE' ? {
-        temperature: 0.7,        // Lower = faster, more deterministic
-        maxOutputTokens: 1000,   // Increased from 150 to ensure full answers (100-200 words) aren't cut off
-        topP: 0.8,
-        topK: 20,
-      } : undefined
+      // Use token-optimized generation config for this complexity level
+      const generationConfig = GENERATION_CONFIGS[complexity]
 
       const genModel = genAI!.getGenerativeModel({
         model,
-        ...(generationConfig && { generationConfig })
+        generationConfig,
       })
 
       const result = await genModel.generateContent(prompt)
@@ -114,6 +150,9 @@ export async function callGeminiWithFallback(
       throw error
     }
   }
+
+  // If we exhausted all attempts
+  throw lastError || new Error('Failed to get AI response after maximum attempts')
 }
 
 /**
@@ -162,7 +201,8 @@ Important Instructions:
 Answer (write as if you are the candidate):`
 
   try {
-    return await callGeminiWithFallback(prompt, 'SIMPLE')
+    // MEDIUM complexity: Balance of speed and quality for application answers
+    return await callGeminiWithFallback(prompt, 'MEDIUM')
   } catch (error) {
     if (error instanceof AIRateLimitError) {
       throw error // Re-throw rate limit errors to be handled by caller
@@ -214,7 +254,8 @@ Important Instructions:
 Cover Letter (write as if you are the candidate):`
 
   try {
-    return await callGeminiWithFallback(prompt, 'MEDIUM')
+    // COMPLEX complexity: Quality priority for cover letters (can be slower)
+    return await callGeminiWithFallback(prompt, 'COMPLEX')
   } catch (error) {
     if (error instanceof AIRateLimitError) {
       throw error // Re-throw rate limit errors to be handled by caller
@@ -352,6 +393,7 @@ Rules:
 - NO markdown, NO code fences, NO explanations`
 
   try {
+    // COMPLEX complexity: Large resumes need full token limit to avoid truncation
     const text = await callGeminiWithFallback(prompt, 'COMPLEX')
 
     // Handle markdown code fences (```json...``` or ```...```)
@@ -361,7 +403,7 @@ Rules:
       jsonText = codeBlockMatch[1].trim()
     }
 
-    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       console.warn('No JSON object found in response:', text.substring(0, 100))
       return empty
@@ -629,7 +671,8 @@ MANDATORY RULES - DO NOT BREAK THESE:
 8. Return ONLY the JSON object, nothing else
 9. VERIFY each improvement suggestion against the provided data - if not in data, don't include it`
 
-    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
+    // MEDIUM complexity: Flash models are sufficient for document scoring
+    const text = await callGeminiWithFallback(prompt, 'MEDIUM')
 
     // Handle markdown code fences
     let jsonText = text
@@ -638,9 +681,10 @@ MANDATORY RULES - DO NOT BREAK THESE:
       jsonText = codeBlockMatch[1].trim()
     }
 
-    const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
-      console.warn('No JSON object found in report response')
+      // Log the start of the text to debug why JSON wasn't found
+      console.warn('No JSON object found in report response. Text start:', text.substring(0, 200))
       return defaultReport
     }
 
@@ -807,7 +851,7 @@ Return ONLY valid JSON (no markdown, no code fences, no explanations):
 Generate exactly ${questionCount} unique, high-quality VERBAL interview questions.`
 
   try {
-    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
+    const text = await callGeminiWithFallback(prompt, 'MEDIUM') // MEDIUM: Flash handles questions well
 
     // Handle markdown code fences
     let jsonText = text

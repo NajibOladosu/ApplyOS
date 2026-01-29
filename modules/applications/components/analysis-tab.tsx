@@ -213,7 +213,7 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
 
                         <Button
                             onClick={handleAnalyze}
-                            disabled={!selectedDocumentId || isAnalyzing || !application.job_description}
+                            disabled={!selectedDocumentId || !documents.find(d => d.id === selectedDocumentId) || isAnalyzing}
                             className="w-full glow-effect relative overflow-hidden group"
                         >
                             {isAnalyzing ? (
