@@ -1199,7 +1199,7 @@ export default function ApplicationDetailPage() {
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  <StickyNote className="h-6 w-6" />
+                  <StickyNote className="h-6 w-6 text-foreground dark:text-primary" />
                   Notes
                 </h2>
                 <div className="flex flex-wrap gap-2">
@@ -1308,7 +1308,7 @@ export default function ApplicationDetailPage() {
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                      <Mic className="h-6 w-6" />
+                      <Mic className="h-6 w-6 text-foreground dark:text-primary" />
                       Mock Interview
                     </h2>
                     <Button
