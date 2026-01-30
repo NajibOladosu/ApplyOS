@@ -688,9 +688,9 @@ export default function ApplicationDetailPage() {
                     onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
                     className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-input hover:bg-muted transition-colors text-sm font-medium"
                   >
-                    <Badge variant={statusVariant[pendingStatus || application.status]}>
+                    <span className="capitalize">
                       {statusLabel[pendingStatus || application.status]}
-                    </Badge>
+                    </span>
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </button>
                   {statusDropdownOpen && (
