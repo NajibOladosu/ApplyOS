@@ -302,8 +302,42 @@ export default function ApplicationDetailPage() {
     }
   }
 
-  const handleStatusChange = (newStatus: Application["status"]) => {
+  const handleStatusChange = async (newStatus: Application["status"]) => {
+    if (!application) return
+    setIsSavingChanges(true)
+
+    // Optimistic update
     setPendingStatus(newStatus)
+    setApplication(prev => prev ? { ...prev, status: newStatus } : null)
+
+    try {
+      const previousStatus = application.status
+      await updateApplication(application.id, { status: newStatus })
+
+      // Send status update email notification
+      try {
+        await fetch('/api/notifications/send-status-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicationId: application.id,
+            applicationTitle: application.title,
+            previousStatus,
+            newStatus: newStatus,
+          }),
+        })
+      } catch (emailErr) {
+        console.error('Failed to send status update email:', emailErr)
+      }
+    } catch (err) {
+      console.error("Error saving status change:", err)
+      // Revert on error
+      setPendingStatus(application.status)
+      setApplication(prev => prev ? { ...prev, status: application.status } : null)
+      setError("Failed to update status")
+    } finally {
+      setIsSavingChanges(false)
+    }
   }
 
   const toggleDocumentSelection = (docId: string) => {
@@ -312,18 +346,48 @@ export default function ApplicationDetailPage() {
     )
   }
 
-  const addSelectedDocuments = () => {
+  const addSelectedDocuments = async () => {
+    if (!application) return
+    setIsSavingChanges(true)
+
     const newSelectedIds = [
       ...new Set([...selectedDocumentIds, ...pendingDocumentIds]),
     ]
+
+    // Optimistic update
     setSelectedDocumentIds(newSelectedIds)
-    // Don't update initial state here - only when saving
     setPendingDocumentIds([])
     setShowDocumentModal(false)
+
+    try {
+      await updateApplicationDocuments(application.id, newSelectedIds)
+      setInitialSelectedDocumentIds(newSelectedIds)
+    } catch (err) {
+      console.error("Error saving documents:", err)
+      // Revert logic would depend on complexity, for now just log
+      setError("Failed to update documents")
+    } finally {
+      setIsSavingChanges(false)
+    }
   }
 
-  const removeDocument = (docId: string) => {
-    setSelectedDocumentIds((prev) => prev.filter((id) => id !== docId))
+  const removeDocument = async (docId: string) => {
+    if (!application) return
+
+    const newSelectedIds = selectedDocumentIds.filter((id) => id !== docId)
+
+    // Optimistic update
+    setSelectedDocumentIds(newSelectedIds)
+
+    try {
+      await updateApplicationDocuments(application.id, newSelectedIds)
+      setInitialSelectedDocumentIds(newSelectedIds)
+    } catch (err) {
+      console.error("Error removing document:", err)
+      setError("Failed to remove document")
+      // Revert if needed
+      setSelectedDocumentIds(selectedDocumentIds)
+    }
   }
 
   const hasChanges = () => {
@@ -637,32 +701,6 @@ export default function ApplicationDetailPage() {
                 <div className="h-5 mt-1" />
               )}
             </div>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {hasChanges() && (
-              <Button
-                onClick={saveChanges}
-                disabled={isSavingChanges}
-                className="glow-effect flex-1 sm:flex-none"
-              >
-                {isSavingChanges ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => setShowEditModal(true)}
-              className="flex-1 sm:flex-none"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Manage
-            </Button>
           </div>
         </div>
 
@@ -1527,9 +1565,9 @@ export default function ApplicationDetailPage() {
         initialNote={
           editingNote
             ? {
-              content: editingNote.content,
-              category: editingNote.category,
-              is_pinned: editingNote.is_pinned,
+              content: editingNote!.content,
+              category: editingNote!.category,
+              is_pinned: editingNote!.is_pinned,
             }
             : undefined
         }
