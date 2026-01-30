@@ -668,8 +668,12 @@ export default function ApplicationDetailPage() {
 
         {/* Application Info (Static) */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle>Application Information</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="h-8 w-8 text-muted-foreground hover:text-primary">
+              <Edit className="h-4 w-4" />
+              <span className="sr-only">Edit Application</span>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
