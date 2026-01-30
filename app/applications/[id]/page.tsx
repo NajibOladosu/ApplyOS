@@ -718,17 +718,19 @@ export default function ApplicationDetailPage() {
               {application.company && (
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Company/University</p>
-                  <span className="text-sm font-medium">
-                    {application.company}
-                  </span>
+                  <div className="h-[38px] flex items-center">
+                    <span className="text-sm font-medium truncate">
+                      {application.company}
+                    </span>
+                  </div>
                 </div>
               )}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Status</p>
+                <p className="text-sm text-muted-foreground mb-1">Status</p>
                 <div className="relative inline-block w-full">
                   <button
                     onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-input hover:bg-muted transition-colors text-sm font-medium"
+                    className="w-full h-[38px] flex items-center justify-between px-3 py-2 rounded-md border border-input hover:bg-muted transition-colors text-sm font-medium"
                   >
                     <span className="capitalize">
                       {statusLabel[pendingStatus || application.status]}
@@ -756,7 +758,7 @@ export default function ApplicationDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Priority</p>
-                <div className="flex items-center space-x-2">
+                <div className="h-[38px] flex items-center space-x-2">
                   <div className={`h-2 w-2 rounded-full ${priorityColor[application.priority]}`} />
                   <span className="text-sm font-medium capitalize">
                     {application.priority}
@@ -765,7 +767,7 @@ export default function ApplicationDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Deadline</p>
-                <div className="flex items-center space-x-2">
+                <div className="h-[38px] flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
                     {application.deadline
@@ -776,9 +778,11 @@ export default function ApplicationDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Type</p>
-                <Badge variant="outline" className="capitalize">
-                  {application.type}
-                </Badge>
+                <div className="h-[38px] flex items-center">
+                  <Badge variant="outline" className="capitalize">
+                    {application.type}
+                  </Badge>
+                </div>
               </div>
             </div>
 
