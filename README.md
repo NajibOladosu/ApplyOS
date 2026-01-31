@@ -84,6 +84,7 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Full rich text editor with formatting
   - Timeline and card views
   - Timestamps for all updates
+- **Auto-Save System** - Real-time saving of status changes, documents, and notes
 - **Bulk Import** - Import multiple applications via CSV template
 - **Status History** - Automatic tracking of all status changes with timestamps
 - **Linked Documents** - Associate resumes and cover letters with applications
@@ -281,7 +282,7 @@ Before you begin, ensure you have the following installed:
    - Visit [Google AI Studio](https://ai.google.dev/gemini-api/docs/api-key)
    - Create a new API key
    - Copy and add to `.env.local`
-   - Note: Gemini 2.0 Flash is used for all AI features
+   - Note: Gemini 2.5 and 3.0 models are used for optimized performance
 
 4. **Set up SMTP Email** (optional - for email notifications)
 
@@ -475,7 +476,7 @@ npm run lint
 
 2.  **AI Analysis**:
     -   Uses cached extracted text (instant!)
-    -   Gemini 2.0 Flash extracts:
+    -   Gemini 2.5 & 3.0 models extract:
         -   Education (degree, institution, dates)
         -   Experience (company, role, dates, achievements)
         -   Skills (technical, soft, tools)
@@ -667,6 +668,16 @@ ApplyOS/
 │   ├── upload/                  # Document upload page
 │   ├── layout.tsx               # Root layout
 │   └── page.tsx                 # Landing page
+├── modules/                      # Feature Modules
+│   ├── analytics/                # Analytics domain
+│   ├── applications/             # Application lifecycle
+│   ├── auth/                     # Authentication domain
+│   ├── blog/                     # Blog content
+│   ├── documents/                # Document processing
+│   ├── interviews/               # Interview practice system
+│   ├── marketing/                # Marketing tools
+│   ├── notes/                    # Notes & rich text
+│   └── notifications/            # Notification logic
 ├── components/
 │   ├── analytics/               # Analytics charts (Sankey, Timeline, etc.)
 │   ├── interview/               # Interview components
