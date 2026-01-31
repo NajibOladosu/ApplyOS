@@ -24,6 +24,7 @@
 
 # markdown: ignore all .md files except README.md
 *.md
+!.github/*
 !README.md
 !CONTRIBUTING.md
 !CODE_OF_CONDUCT.md
