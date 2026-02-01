@@ -16,8 +16,8 @@
     --card-foreground: #0A0A0A;
     --popover: #FFFFFF;
     --popover-foreground: #0A0A0A;
-    --primary: #00FF88;
-    /* Neon Green (Strictly preserved accent) */
+    --primary: #18bb70;
+    /* Soft Vibrant Green */
     --primary-foreground: #0A0A0A;
     --secondary: #E4E4E7;
     /* Zinc-200 */
@@ -35,8 +35,8 @@
     --border: #E4E4E7;
     /* Zinc-200: Subtle border */
     --input: #E4E4E7;
-    --ring: #00FF88;
-    /* Neon Green focus ring */
+    --ring: #18bb70;
+    /* Focus ring */
     --radius: 0.5rem;
   }
 
@@ -48,14 +48,14 @@
     --card-foreground: #EDEDED;
     --popover: #101010;
     --popover-foreground: #EDEDED;
-    --primary: #00FF88;
+    --primary: #18bb70;
     --primary-foreground: #0A0A0A;
     --secondary: #101010;
     --secondary-foreground: #B5B5B5;
     --muted: #101010;
     --muted-foreground: #B5B5B5;
     --accent: #101010;
-    --accent-foreground: #00FF88;
+    --accent-foreground: #18bb70;
     --destructive: #FF4444;
     /* Brighter red on dark */
     --destructive-foreground: #EDEDED;
@@ -78,11 +78,11 @@
 
 @layer utilities {
   .glow-effect {
-    box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+    box-shadow: 0 0 20px rgba(24, 187, 112, 0.2);
   }
 
   .glow-effect-strong {
-    box-shadow: 0 0 30px rgba(0, 255, 136, 0.4);
+    box-shadow: 0 0 30px rgba(24, 187, 112, 0.4);
   }
 
   .glass-effect {
@@ -147,7 +147,7 @@
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #00FF88 0%, #00CC6A 100%);
+    background: linear-gradient(135deg, #18bb70 0%, #128f55 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
