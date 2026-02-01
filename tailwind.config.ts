@@ -69,8 +69,8 @@ const config: Config = {
           to: { height: "0" },
         },
         "glow": {
-          "0%, 100%": { boxShadow: "0 0 20px rgba(0, 255, 136, 0.3)" },
-          "50%": { boxShadow: "0 0 30px rgba(0, 255, 136, 0.5)" },
+          "0%, 100%": { boxShadow: "0 0 20px rgba(24, 187, 112, 0.3)" },
+          "50%": { boxShadow: "0 0 30px rgba(24, 187, 112, 0.5)" },
         },
       },
       animation: {
