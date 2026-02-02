@@ -17,7 +17,7 @@ export const ApplyOSLogo: React.FC<LogoProps> = ({ width = 48, height = 48 }) =>
       }}
     >
       <img
-        src={`${process.env.NEXT_PUBLIC_APP_URL || 'https://applyos.io'}/logo.svg`}
+        src={`${process.env.NEXT_PUBLIC_APP_URL || 'https://applyos.io'}/ApplyOS%20Logo.webp`}
         alt="ApplyOS"
         width={width}
         height={height}
@@ -32,7 +32,7 @@ export const ApplyOSLogo: React.FC<LogoProps> = ({ width = 48, height = 48 }) =>
         style={{
           fontSize: '24px',
           fontWeight: 'bold',
-          color: '#00FF88',
+          color: '#18BB70',
           fontFamily: "ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
         }}
       >

@@ -53,7 +53,7 @@ export function ConversionFunnel({ data, title = 'Application Conversion Funnel'
             '#06b6d4', // cyan
             '#10b981', // emerald
             '#84cc16', // lime
-            '#00FF88', // primary green
+            '#18BB70', // primary green
           ]
           const barColor = colors[index % colors.length]
 

@@ -135,7 +135,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
             <Text
               style={{
                 fontSize: '12px',
-                color: '#00FF88',
+                color: '#18BB70',
                 margin: '10px 0 30px 0',
                 textAlign: 'center',
                 wordBreak: 'break-all',
@@ -144,7 +144,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
               <Link
                 href={verificationUrl}
                 style={{
-                  color: '#00FF88',
+                  color: '#18BB70',
                   textDecoration: 'underline',
                 }}
               >
@@ -184,7 +184,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                 style={{
                   fontSize: '13px',
                   fontWeight: '600',
-                  color: '#00FF88',
+                  color: '#18BB70',
                   margin: '0 0 15px 0',
                   textTransform: 'uppercase',
                   letterSpacing: '0.5px',
@@ -243,7 +243,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
               <Link
                 href="mailto:support@applyos.io"
                 style={{
-                  color: '#00FF88',
+                  color: '#18BB70',
                   textDecoration: 'none',
                 }}
               >

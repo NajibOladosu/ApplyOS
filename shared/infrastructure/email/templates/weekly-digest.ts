@@ -74,14 +74,14 @@ export const weeklyDigestEmailTemplate = (
 
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 30px;">
       <div class="card" style="margin-bottom: 0;">
-        <div style="font-size: 24px; font-weight: 700; color: #00FF88; margin-bottom: 4px;">
+        <div style="font-size: 24px; font-weight: 700; color: #18BB70; margin-bottom: 4px;">
           ${data.totalApplications}
         </div>
         <div style="font-size: 12px; color: #6b7280;">Total Applications</div>
       </div>
 
       <div class="card" style="margin-bottom: 0;">
-        <div style="font-size: 24px; font-weight: 700; color: #00FF88; margin-bottom: 4px;">
+        <div style="font-size: 24px; font-weight: 700; color: #18BB70; margin-bottom: 4px;">
           ${data.newApplicationsThisWeek}
         </div>
         <div style="font-size: 12px; color: #6b7280;">New This Week</div>

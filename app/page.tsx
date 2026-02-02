@@ -253,7 +253,7 @@ export default function Home() {
           {/* Brand Section */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
+              <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-8 w-auto" />
               <span className="text-xl font-bold font-mono text-foreground">
                 <span className="text-primary">Apply</span>OS
               </span>

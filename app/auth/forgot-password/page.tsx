@@ -54,7 +54,7 @@ export default function ForgotPasswordPage() {
                 <div className="text-center mb-8">
                     <Link href="/" className="inline-block">
                         <div className="flex items-center justify-center space-x-2 mb-4">
-                            <img src="/logo.svg" alt="ApplyOS" className="h-12 w-auto" />
+                            <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-12 w-auto" />
                             <span className="text-3xl font-bold font-mono">
                                 <span className="text-primary">Apply</span>
                                 <span className="text-foreground">OS</span>

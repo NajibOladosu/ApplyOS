@@ -37,7 +37,7 @@ export const deadlineReminderEmailTemplate = (
         </strong>
       </p>
       <p style="margin: 0;">
-        <a href="${appUrl}/applications" style="color: #00FF88; text-decoration: none; font-weight: 600;">
+        <a href="${appUrl}/applications" style="color: #18BB70; text-decoration: none; font-weight: 600;">
           View Application →
         </a>
       </p>
@@ -52,9 +52,8 @@ export const deadlineReminderEmailTemplate = (
     <p>Hi ${data.userName},</p>
 
     <p>
-      You have <strong>${data.applications.length}</strong> application${
-    data.applications.length !== 1 ? 's' : ''
-  } with upcoming deadlines. Don't miss these opportunities!
+      You have <strong>${data.applications.length}</strong> application${data.applications.length !== 1 ? 's' : ''
+    } with upcoming deadlines. Don't miss these opportunities!
     </p>
 
     <div class="divider"></div>

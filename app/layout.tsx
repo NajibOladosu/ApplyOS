@@ -22,8 +22,8 @@ export const metadata: Metadata = {
   },
   description: 'Stop juggling spreadsheets. ApplyOS extracts job questions, auto-fills applications with AI, and tracks your status in one command center.',
   icons: {
-    icon: "/favicon.svg",
-    shortcut: "/favicon.svg",
+    icon: "/favicon.webp",
+    shortcut: "/favicon.webp",
     apple: "/apple-icon?v=1",
   },
   openGraph: {

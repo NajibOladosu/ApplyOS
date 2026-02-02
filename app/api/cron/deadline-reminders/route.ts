@@ -170,7 +170,7 @@ export async function POST(request: NextRequest) {
       font-weight: 700;
       letter-spacing: -0.5px;
       margin: 10px 0 0 0;
-      color: #00FF88;
+      color: #18BB70;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     }
     .header-subtitle {
@@ -199,7 +199,7 @@ export async function POST(request: NextRequest) {
     }
     .button {
       display: inline-block;
-      background-color: #00FF88;
+      background-color: #18BB70;
       color: #000 !important;
       padding: 12px 24px;
       border-radius: 6px;
@@ -264,7 +264,7 @@ export async function POST(request: NextRequest) {
       margin: 0 0 10px 0;
     }
     .footer-link {
-      color: #00FF88;
+      color: #18BB70;
       text-decoration: none;
       font-weight: 600;
     }
@@ -277,7 +277,7 @@ export async function POST(request: NextRequest) {
   <div class="container">
     <div class="header">
       <div class="logo-container">
-        <img src="${emailConfig.appUrl}/logo.svg" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+        <img src="${emailConfig.appUrl}/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
         <h1>ApplyOS</h1>
       </div>
       <p class="header-subtitle">⏰ Deadline Reminder</p>

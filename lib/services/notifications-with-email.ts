@@ -167,7 +167,7 @@ export async function createStatusUpdateNotification(
             font-weight: 700;
             letter-spacing: -0.5px;
             margin: 10px 0 0 0;
-            color: #00FF88;
+            color: #18BB70;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
           }
           .header-subtitle {
@@ -191,7 +191,7 @@ export async function createStatusUpdateNotification(
             border: 1px solid #e5e7eb;
           }
           h2 {
-            color: #00FF88;
+            color: #18BB70;
             margin-bottom: 16px;
           }
           .company {
@@ -215,7 +215,7 @@ export async function createStatusUpdateNotification(
           .status-rejected { background-color: #fee2e2; color: #7f1d1d; }
           .button {
             display: inline-block;
-            background-color: #00FF88;
+            background-color: #18BB70;
             color: #000;
             padding: 12px 24px;
             border-radius: 6px;
@@ -229,7 +229,7 @@ export async function createStatusUpdateNotification(
         <div class="container">
           <div class="header">
             <div class="logo-container">
-              <img src="${emailConfig.appUrl}/logo.svg" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+              <img src="${emailConfig.appUrl}/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
               <h1>ApplyOS</h1>
             </div>
             <p class="header-subtitle">Status Update</p>
@@ -312,7 +312,7 @@ export async function createDeadlineNotification(
             font-weight: 700;
             letter-spacing: -0.5px;
             margin: 10px 0 0 0;
-            color: #00FF88;
+            color: #18BB70;
             font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
           }
           .header-subtitle {
@@ -341,7 +341,7 @@ export async function createDeadlineNotification(
           }
           .button {
             display: inline-block;
-            background-color: #00FF88;
+            background-color: #18BB70;
             color: #000;
             padding: 12px 24px;
             border-radius: 6px;
@@ -359,7 +359,7 @@ export async function createDeadlineNotification(
         <div class="container">
           <div class="header">
             <div class="logo-container">
-               <img src="${emailConfig.appUrl}/logo.svg" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+               <img src="${emailConfig.appUrl}/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
                <h1>ApplyOS</h1>
             </div>
             <p class="header-subtitle">Deadline Reminder</p>
