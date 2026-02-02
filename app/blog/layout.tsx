@@ -29,7 +29,7 @@ export default function BlogLayout({
             <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <Link href="https://blog.applyos.io" className="flex items-center space-x-2">
-                        <img src="/logo.svg" alt="ApplyOS" className="h-8 w-auto" />
+                        <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-8 w-auto" />
                         <span className="text-xl font-bold font-mono">
                             <span className="text-primary">Apply</span>
                             <span className="text-foreground">OS</span>

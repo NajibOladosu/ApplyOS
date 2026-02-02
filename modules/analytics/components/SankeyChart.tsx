@@ -20,7 +20,7 @@ const STATUS_COLORS: Record<string, string> = {
   Submitted: '#3b82f6', // blue
   'In review': '#8b5cf6', // purple
   Interview: '#f59e0b', // amber
-  Offer: '#00FF88', // green (app accent)
+  Offer: '#18BB70', // green (app accent)
   Rejected: '#ef4444', // red
   'Not Submitted': '#9ca3af', // light gray
   Pending: '#d1d5db', // lighter gray

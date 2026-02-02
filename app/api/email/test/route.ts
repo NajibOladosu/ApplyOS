@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
               box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             }
             h1 {
-              color: #00FF88;
+              color: #18BB70;
               margin-bottom: 16px;
             }
             p {
@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
 
             <p style="margin-top: 30px;">
               To manage your email preferences, visit your
-              <a href="${process.env.NEXT_PUBLIC_APP_URL}/settings" style="color: #00FF88; text-decoration: none;">settings page</a>.
+              <a href="${process.env.NEXT_PUBLIC_APP_URL}/settings" style="color: #18BB70; text-decoration: none;">settings page</a>.
             </p>
 
             <div class="footer">

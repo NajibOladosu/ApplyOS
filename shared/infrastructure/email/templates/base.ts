@@ -41,7 +41,7 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
       font-weight: 700;
       letter-spacing: -0.5px;
       margin: 10px 0 0 0;
-      color: #00FF88;
+      color: #18BB70;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     }
     .logo-container {
@@ -63,7 +63,7 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
     }
     .button {
       display: inline-block;
-      background-color: #00FF88;
+      background-color: #18BB70;
       color: #000;
       padding: 12px 24px;
       border-radius: 6px;
@@ -149,7 +149,7 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
   <div class="container">
     <div class="header">
       <div class="logo-container">
-        <img src="[[APP_URL]]/logo.svg" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+        <img src="[[APP_URL]]/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
         <h1>ApplyOS</h1>
       </div>
     </div>
