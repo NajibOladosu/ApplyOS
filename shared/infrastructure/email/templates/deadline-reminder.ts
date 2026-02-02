@@ -71,7 +71,7 @@ export const deadlineReminderEmailTemplate = (
     </p>
   `;
 
-  return baseTemplate(content).replace('[[APP_URL]]', appUrl);
+  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const deadlineReminderEmailSubject = (count: number) =>
