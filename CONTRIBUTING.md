@@ -15,6 +15,7 @@ The following is a set of guidelines for contributing to ApplyOS. These are most
 - [Styleguides](#styleguides)
   - [Git Commit Messages](#git-commit-messages)
   - [JavaScript/TypeScript Styleguide](#javascripttypescript-styleguide)
+- [Testing](#testing)
 - [Setting Up the Project](#setting-up-the-project)
 
 ## Code of Conduct
@@ -75,6 +76,17 @@ Unsure where to begin contributing to ApplyOS? You can start by looking through 
 
 - We use [Prettier](https://prettier.io/) for code formatting.
 - run `npm run lint` to check for linting errors.
+- **Testing**: We use Vitest for testing. See [TESTING.md](docs/TESTING.md) for more details.
+
+## Testing
+
+Quality is a core value of ApplyOS. We encourage all contributors to write tests for their changes.
+
+- **Check coverage**: `npm run test:coverage`
+- **Run all tests**: `npm run test`
+- **Mocking**: We provide global mocks for Supabase and AI services to ensure tests are fast and don't require external credentials.
+
+Please refer to the [Testing Guide](docs/TESTING.md) for detailed instructions on writing and running tests.
 
 ## Setting Up the Project
 
