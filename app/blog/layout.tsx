@@ -66,7 +66,7 @@ export default function BlogLayout({
             <footer className="bg-card border-t border-border py-12 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-4xl mx-auto text-center">
                     <div className="flex items-center justify-center space-x-2 mb-4">
-                        <img src="/logo.svg" alt="ApplyOS" className="h-6 w-auto" />
+                        <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-6 w-auto" />
                         <span className="text-lg font-bold font-mono text-foreground">
                             <span className="text-primary">Apply</span>OS
                         </span>

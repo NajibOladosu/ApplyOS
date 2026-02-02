@@ -1,4 +1,4 @@
-# <img src="public/logo.svg" width="32" height="32" align="center" /> ApplyOS - AI-Powered Application & Interview Manager
+# <img src="public/ApplyOS%20Logo.webp" width="32" height="32" align="center" /> ApplyOS - AI-Powered Application & Interview Manager
 
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js-16.1.1-black?style=for-the-badge" alt="Next.js" />
