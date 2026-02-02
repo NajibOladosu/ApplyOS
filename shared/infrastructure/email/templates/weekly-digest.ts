@@ -103,7 +103,7 @@ export const weeklyDigestEmailTemplate = (
     </p>
   `;
 
-  return baseTemplate(content).replace('[[APP_URL]]', appUrl);
+  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const weeklyDigestEmailSubject = () => 'Your ApplyOS Weekly Summary 📊';

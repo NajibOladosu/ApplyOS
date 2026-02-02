@@ -44,7 +44,7 @@ export const welcomeEmailTemplate = (data: WelcomeEmailData, appUrl: string) => 
     </p>
   `;
 
-  return baseTemplate(content).replace('[[APP_URL]]', appUrl);
+  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const welcomeEmailSubject = () => 'Welcome to ApplyOS! 🎉';

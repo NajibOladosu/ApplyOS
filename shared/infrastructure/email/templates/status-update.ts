@@ -76,7 +76,7 @@ export const statusUpdateEmailTemplate = (
     </p>
   `;
 
-  return baseTemplate(content).replace('[[APP_URL]]', appUrl);
+  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const statusUpdateEmailSubject = (applicationTitle: string, newStatus: string) =>
