@@ -19,9 +19,9 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   const noise3D = useMemo(() => createNoise3D(), [])
 
   const colors = {
-    idle: '#00FF88',
+    idle: '#18BB70',
     user: '#FFD600',
-    ai: '#00FF88',
+    ai: '#18BB70',
   }
 
   const amplitudes = {
@@ -83,9 +83,9 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   // Get current color based on mode
   const currentColor = useMemo(() => {
     const colorMap = {
-      idle: '#00ff88',
+      idle: '#18BB70',
       user: '#ff8800',
-      ai: '#00ff88',
+      ai: '#18BB70',
     }
     console.log('[AIOrb] Rendering with color:', colorMap[mode], 'for mode:', mode)
     return colorMap[mode]

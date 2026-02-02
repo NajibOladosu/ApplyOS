@@ -135,7 +135,7 @@ export const ResetPasswordTemplate: React.FC<ResetPasswordProps> = ({
                         <Text
                             style={{
                                 fontSize: '12px',
-                                color: '#00FF88',
+                                color: '#18BB70',
                                 margin: '10px 0 30px 0',
                                 textAlign: 'center',
                                 wordBreak: 'break-all',
@@ -144,7 +144,7 @@ export const ResetPasswordTemplate: React.FC<ResetPasswordProps> = ({
                             <Link
                                 href={resetUrl}
                                 style={{
-                                    color: '#00FF88',
+                                    color: '#18BB70',
                                     textDecoration: 'underline',
                                 }}
                             >
@@ -202,7 +202,7 @@ export const ResetPasswordTemplate: React.FC<ResetPasswordProps> = ({
                             <Link
                                 href="mailto:support@applyos.io"
                                 style={{
-                                    color: '#00FF88',
+                                    color: '#18BB70',
                                     textDecoration: 'none',
                                 }}
                             >
