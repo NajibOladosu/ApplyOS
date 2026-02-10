@@ -52,19 +52,33 @@ npm run build:edge
 
 ### Loading the Extension
 
-#### Chrome/Edge
+### 2. Build the Extension
 
-1. Build the extension: `npm run build`
-2. Open Chrome/Edge and go to `chrome://extensions/` or `edge://extensions/`
-3. Enable "Developer mode"
-4. Click "Load unpacked"
-5. Select the `dist/chrome` directory
+Run the build command for your target browser:
+
+```bash
+# For Chrome (default)
+npm run build
+
+# For Firefox
+npm run build:firefox
+
+# For Edge
+npm run build:edge
+```
+
+This will create a `dist/` directory containing the compiled extension.
+
+### 3. Load in Browser
+
+#### Chrome / Edge
+1. Open `chrome://extensions`
+2. Enable **Developer mode** (top right toggle)
+3. Click **Load unpacked**
+4. Select the **`extension/dist/chrome`** directory (NOT the `extension` root folder!)
 
 #### Firefox
 
-1. Build the extension: `npm run build:firefox`
-2. Open Firefox and go to `about:debugging#/runtime/this-firefox`
-3. Click "Load Temporary Add-on"
 4. Select any file in the `dist/firefox` directory
 
 ## Project Structure

@@ -44,11 +44,8 @@ module.exports = (env) => {
             new CopyPlugin({
                 patterns: [
                     {
-                        from: 'manifest.json',
-                        to: 'manifest.json',
-                        transform(content) {
-                            return content;
-                        }
+                        from: path.resolve(__dirname, 'manifest.json'),
+                        to: 'manifest.json'
                     },
                     { from: 'public', to: '.' },
                     { from: 'src/popup/index.html', to: 'popup.html' },
