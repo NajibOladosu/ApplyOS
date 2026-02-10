@@ -133,10 +133,3 @@ function findText(selectors: string[]): string | null {
     return null
 }
 
-function findHtml(selectors: string[]): string | null {
-    for (const selector of selectors) {
-        const el = document.querySelector(selector)
-        if (el) return el.innerHTML
-    }
-    return null
-}
