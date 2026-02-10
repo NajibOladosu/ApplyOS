@@ -7,6 +7,7 @@ import { APIClient } from '../lib/api/api-client'
 import { Loader2, Settings, LogOut, PlusCircle, LayoutGrid, Briefcase, RefreshCw, ChevronRight } from 'lucide-react'
 import { QuickAddTab } from './tabs/QuickAddTab'
 import { ApplicationsTab } from './tabs/ApplicationsTab'
+import { ErrorBoundary } from './components/ErrorBoundary'
 
 function Popup() {
   const [session, setSession] = useState<any>(null)
@@ -55,7 +56,7 @@ function Popup() {
   }
 
   if (!session) {
-    return <Login onLoginSuccess={checkAuth} />
+    return <ErrorBoundary><Login onLoginSuccess={checkAuth} /></ErrorBoundary>
   }
 
   return (
@@ -111,11 +112,13 @@ function Popup() {
 
       {/* Content Area */}
       <div className="flex-1 overflow-y-auto">
-        {activeTab === 'quick-add' ? (
-          <QuickAddTab />
-        ) : (
-          <ApplicationsTab />
-        )}
+        <ErrorBoundary>
+          {activeTab === 'quick-add' ? (
+            <QuickAddTab />
+          ) : (
+            <ApplicationsTab />
+          )}
+        </ErrorBoundary>
       </div>
     </div>
   )
