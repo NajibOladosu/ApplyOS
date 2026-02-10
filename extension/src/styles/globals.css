@@ -36,14 +36,14 @@
     }
 
     .text-gradient {
-        background: linear-gradient(135deg, #00FF88 0%, #00CC6A 100%);
+        background: linear-gradient(135deg, #18bb70 0%, #15a060 100%);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
     }
 
     .glow-effect {
-        box-shadow: 0 0 20px rgba(0, 255, 136, 0.2);
+        box-shadow: 0 0 20px rgba(24, 187, 112, 0.2);
     }
 }
 
@@ -63,5 +63,5 @@
 }
 
 ::-webkit-scrollbar-thumb:hover {
-    background: #00FF88;
+    background: #18bb70;
 }
