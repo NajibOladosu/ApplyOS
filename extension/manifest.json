@@ -10,7 +10,12 @@
         "scripting"
     ],
     "host_permissions": [
-        "<all_urls>"
+        "*://*.linkedin.com/*",
+        "*://*.indeed.com/*",
+        "*://*.myworkdayjobs.com/*",
+        "*://*.greenhouse.io/*",
+        "*://*.lever.co/*",
+        "*://*.glassdoor.com/*"
     ],
     "background": {
         "service_worker": "background.js",
@@ -19,7 +24,14 @@
     "content_scripts": [
         {
             "matches": [
-                "<all_urls>"
+                "*://*.linkedin.com/jobs/*",
+                "*://*.linkedin.com/jobs?*",
+                "*://*.indeed.com/viewjob*",
+                "*://*.indeed.com/rc/clk*",
+                "*://*.myworkdayjobs.com/*",
+                "*://*.greenhouse.io/jobs/*",
+                "*://*.lever.co/*",
+                "*://*.glassdoor.com/job-listing/*"
             ],
             "js": [
                 "content.js"
@@ -48,7 +60,12 @@
                 "*.svg"
             ],
             "matches": [
-                "<all_urls>"
+                "*://*.linkedin.com/*",
+                "*://*.indeed.com/*",
+                "*://*.myworkdayjobs.com/*",
+                "*://*.greenhouse.io/*",
+                "*://*.lever.co/*",
+                "*://*.glassdoor.com/*"
             ]
         }
     ]
