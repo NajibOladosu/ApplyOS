@@ -15,6 +15,19 @@ function Popup() {
 
   useEffect(() => {
     checkAuth()
+
+    // Listen for auth state changes (token refresh, sign-out, etc.)
+    const { data: { subscription } } = AuthManager.onAuthStateChange((event, newSession) => {
+      if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
+        setSession(null)
+      } else if (event === 'TOKEN_REFRESHED' || event === 'SIGNED_IN') {
+        setSession(newSession)
+      }
+    })
+
+    return () => {
+      subscription.unsubscribe()
+    }
   }, [])
 
   const checkAuth = async () => {
