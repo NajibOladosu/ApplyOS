@@ -29,13 +29,6 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             sendResponse({ success: true })
             break
 
-        case 'AUTH_CHECK':
-            // Check authentication status
-            chrome.storage.local.get(['supabase_session'], (result) => {
-                sendResponse({ authenticated: !!result.supabase_session })
-            })
-            return true // Keep message channel open for async response
-
         default:
             sendResponse({ error: 'Unknown message type' })
     }
