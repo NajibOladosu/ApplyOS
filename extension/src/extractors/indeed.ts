@@ -10,7 +10,7 @@ export const indeedExtractor = {
 
         const location = document.querySelector('[data-testid="inlineHeader-companyLocation"]')?.textContent?.trim() || null
 
-        const description = document.querySelector('#jobDescriptionText')?.innerHTML || null
+        const description = (document.querySelector('#jobDescriptionText') as HTMLElement)?.innerText?.trim() || null
 
         const url = window.location.href
 

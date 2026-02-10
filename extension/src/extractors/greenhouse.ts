@@ -11,7 +11,7 @@ export const greenhouseExtractor = {
 
         const location = document.querySelector('.location')?.textContent?.trim() || null
 
-        const description = document.querySelector('#content')?.innerHTML || null
+        const description = (document.querySelector('#content') as HTMLElement)?.innerText?.trim() || null
 
         return {
             title,
