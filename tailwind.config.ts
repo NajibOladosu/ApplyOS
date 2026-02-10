@@ -129,11 +129,6 @@ const config: Config = {
               color: "var(--foreground)",
             },
             blockquote: {
-              color: "var(--muted-foreground)",
-              borderLeftColor: "var(--primary)",
-              fontStyle: "italic",
-            },
-            code: {
               color: "var(--primary)",
               backgroundColor: "var(--muted)",
               padding: "0.25rem 0.5rem",
