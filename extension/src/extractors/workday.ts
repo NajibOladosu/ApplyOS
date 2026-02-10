@@ -10,7 +10,7 @@ export const workdayExtractor = {
 
         const location = document.querySelector('[data-automation-id="jobPostingHeader"] + div')?.textContent?.trim() || null
 
-        const description = document.querySelector('[data-automation-id="jobPostingDescription"]')?.innerHTML || null
+        const description = (document.querySelector('[data-automation-id="jobPostingDescription"]') as HTMLElement)?.innerText?.trim() || null
 
         return {
             title,

@@ -8,7 +8,7 @@ export const leverExtractor = {
 
         const location = document.querySelector('.posting-categories .location')?.textContent?.trim() || null
 
-        const description = document.querySelector('.posting-description')?.innerHTML || null
+        const description = (document.querySelector('.posting-description') as HTMLElement)?.innerText?.trim() || null
 
         const employmentType = document.querySelector('.posting-categories .commitment')?.textContent?.trim() || null
 
