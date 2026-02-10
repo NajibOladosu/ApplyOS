@@ -64,8 +64,25 @@ export function ApplicationsTab() {
 
     if (loading) {
         return (
-            <div className="flex flex-col items-center justify-center py-10">
-                <Loader2 className="w-6 h-6 animate-spin text-primary" />
+            <div className="p-4 space-y-4">
+                {/* Skeleton Search */}
+                <div className="relative">
+                    <div className="w-full h-9 bg-secondary/50 rounded-full animate-pulse" />
+                </div>
+                {/* Skeleton List */}
+                <div className="space-y-3 pt-2">
+                    {[1, 2, 3].map(i => (
+                        <div key={i} className="p-3 rounded-lg border border-border bg-card/50 space-y-2">
+                            <div className="flex justify-between items-start">
+                                <div className="space-y-1.5 flex-1">
+                                    <div className="h-4 w-3/4 bg-secondary/50 rounded animate-pulse" />
+                                    <div className="h-3 w-1/2 bg-secondary/30 rounded animate-pulse" />
+                                </div>
+                                <div className="h-5 w-16 bg-secondary/30 rounded-md animate-pulse" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
             </div>
         )
     }
