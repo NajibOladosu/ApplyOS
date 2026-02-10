@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import { APIClient, type Application } from '../../lib/api/api-client'
-import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw, FileText, StickyNote, Loader2, ChevronDown } from 'lucide-react'
 
 interface ApplicationDetailProps {
     application: Application
@@ -9,13 +9,14 @@ interface ApplicationDetailProps {
     onDelete: (id: string) => void
 }
 
-type Tab = 'details' | 'questions' | 'compatibility'
+type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'notes'
 
 export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: ApplicationDetailProps) {
-    const [activeTab, setActiveTab] = useState<Tab>('details')
+    const [activeTab, setActiveTab] = useState<Tab>('overview')
     const [notes, setNotes] = useState(application.notes || '')
     const [status, setStatus] = useState<Application['status']>(application.status)
     const [saving, setSaving] = useState(false)
+    const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
 
     // AI State
     const [questions, setQuestions] = useState<any[]>([])
@@ -24,6 +25,11 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const [compatibility, setCompatibility] = useState<any>(null)
     const [checkingComp, setCheckingComp] = useState(false)
     const [aiContext, setAiContext] = useState('')
+
+    // Cover Letter state
+    const [generatingCL, setGeneratingCL] = useState(false)
+    const [aiCoverLetter, setAiCoverLetter] = useState(application.ai_cover_letter || '')
+    const [mCL, setMCL] = useState(application.manual_cover_letter || '')
 
     useEffect(() => {
         if (activeTab === 'questions') {
@@ -46,8 +52,9 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         try {
             const updated = await APIClient.updateApplication(application.id, {
                 status,
-                notes
-            })
+                notes,
+                manual_cover_letter: mCL
+            } as any)
             onUpdate(updated as Application)
         } catch (e: any) {
             console.error('Update failed:', e)
@@ -123,10 +130,41 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         }
     }
 
+    const handleGenerateCL = async () => {
+        setGeneratingCL(true)
+        try {
+            const result = await APIClient.generateCoverLetter(application.id!)
+            if (result.coverLetter) {
+                setAiCoverLetter(result.coverLetter)
+                // Also update local application state if needed, but the next getApplication will handle it.
+            }
+        } catch (e: any) {
+            console.error(e)
+            alert(`Failed to generate: ${e.message}`)
+        } finally {
+            setGeneratingCL(false)
+        }
+    }
+
     const statuses = ['draft', 'submitted', 'in_review', 'interview', 'offer', 'rejected']
 
+    const renderTabButton = (id: Tab, label: string) => {
+        const isActive = activeTab === id
+        return (
+            <button
+                onClick={() => setActiveTab(id)}
+                className={`flex-1 flex items-center justify-center py-2 px-1 rounded-md text-[10px] font-medium transition-all ${isActive
+                    ? 'bg-primary text-black shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-background/20'
+                    }`}
+            >
+                {label}
+            </button>
+        )
+    }
+
     return (
-        <div className="flex flex-col h-full bg-background animate-in slide-in-from-right-4 duration-200">
+        <div className="flex flex-col h-full bg-background animate-in slide-in-from-right-4 duration-200 w-full overflow-hidden">
             {/* Header */}
             <div className="flex items-center gap-2 p-3 border-b border-border bg-card/50 sticky top-0 z-10 backdrop-blur-md">
                 <button
@@ -142,224 +180,322 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                         <span className="truncate">{application.company || 'Unknown Company'}</span>
                     </div>
                 </div>
+                <div className="flex gap-1">
+                    <button
+                        onClick={handleSave}
+                        disabled={saving}
+                        className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50"
+                        title="Save Changes"
+                    >
+                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                    </button>
+                    <button
+                        onClick={handleDelete}
+                        className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
+                        title="Delete Application"
+                    >
+                        <Trash2 className="w-4 h-4" />
+                    </button>
+                </div>
             </div>
 
-            {/* Tabs */}
-            <div className="flex border-b border-border bg-card/30">
-                <button
-                    onClick={() => setActiveTab('details')}
-                    className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-colors ${activeTab === 'details' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-                >
-                    Details
-                </button>
-                <button
-                    onClick={() => setActiveTab('questions')}
-                    className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-colors ${activeTab === 'questions' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-                >
-                    AI Answers
-                </button>
-                <button
-                    onClick={() => setActiveTab('compatibility')}
-                    className={`flex-1 py-3 text-xs font-semibold text-center border-b-2 transition-colors ${activeTab === 'compatibility' ? 'border-primary text-primary' : 'border-transparent text-muted-foreground hover:text-foreground'}`}
-                >
-                    Match %
-                </button>
+            {/* Pill Tabs */}
+            <div className="p-3 bg-card/30">
+                <div className="flex p-1 bg-secondary rounded-lg gap-1 border border-border overflow-x-auto no-scrollbar">
+                    {renderTabButton('overview', 'Overview')}
+                    {renderTabButton('questions', 'Questions')}
+                    {renderTabButton('analysis', 'Analysis')}
+                    {renderTabButton('cover-letter', 'Cover Letter')}
+                    {renderTabButton('notes', 'Notes')}
+                </div>
             </div>
 
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-4 space-y-6">
-
-                {/* DETAILS TAB */}
-                {activeTab === 'details' && (
-                    <div className="space-y-6 animate-in fade-in duration-200">
-                        {/* Status */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Status</label>
-                            <div className="grid grid-cols-3 gap-2">
-                                {statuses.map(s => (
-                                    <button
-                                        key={s}
-                                        onClick={() => setStatus(s as any)}
-                                        className={`text-[10px] py-1.5 px-2 rounded border capitalize transition-all ${status === s
-                                            ? 'border-primary bg-primary/10 text-primary font-semibold shadow-[0_0_10px_rgba(0,255,136,0.1)]'
-                                            : 'border-border bg-card text-muted-foreground hover:border-primary/30 hover:text-foreground'
-                                            }`}
-                                    >
-                                        {s.replace('_', ' ')}
-                                    </button>
-                                ))}
+            {/* Content Container */}
+            <div className="flex-1 overflow-y-auto min-h-0">
+                <div className="p-4 space-y-6">
+                    {/* OVERVIEW TAB */}
+                    {activeTab === 'overview' && (
+                        <div className="space-y-6 animate-in fade-in duration-200">
+                            {/* Application Information Grid */}
+                            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Status</p>
+                                    <div className="relative group/status">
+                                        <select
+                                            value={status}
+                                            onChange={(e) => setStatus(e.target.value as any)}
+                                            className="w-full text-xs font-medium bg-card border border-border rounded-md px-2 py-1.5 outline-none appearance-none cursor-pointer focus:border-primary transition-colors"
+                                        >
+                                            {statuses.map(s => (
+                                                <option key={s} value={s}>{s.replace('_', ' ')}</option>
+                                            ))}
+                                        </select>
+                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
+                                            <ChevronDown className="w-3 h-3" />
+                                        </div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Created</p>
+                                    <div className="h-[29px] flex items-center">
+                                        <p className="text-xs font-semibold">{new Date(application.created_at || Date.now()).toLocaleDateString()}</p>
+                                    </div>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Platform</p>
+                                    <div className="h-[29px] flex items-center">
+                                        <p className="text-xs font-semibold capitalize truncate">{(application as any).platform || 'Unknown'}</p>
+                                    </div>
+                                </div>
+                                {application.url && (
+                                    <div className="col-span-2">
+                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Job URL</p>
+                                        <a href={application.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary truncate block hover:underline font-medium">
+                                            {application.url}
+                                        </a>
+                                    </div>
+                                )}
                             </div>
-                        </div>
 
-                        {/* Notes */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] uppercase font-bold text-muted-foreground">Notes</label>
-                            <textarea
-                                value={notes}
-                                onChange={e => setNotes(e.target.value)}
-                                className="w-full h-40 p-3 text-sm bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none leading-relaxed"
-                                placeholder="Add private notes about this application..."
-                            />
-                        </div>
-
-                        {/* Save/Delete Actions */}
-                        <div className="pt-4 flex gap-3">
-                            <button
-                                onClick={handleSave}
-                                disabled={saving}
-                                className="flex-1 bg-primary text-background py-2 rounded-lg font-bold text-sm hover:bg-primary/90 transition-colors flex items-center justify-center gap-2"
-                            >
-                                {saving ? <CheckCircle2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                Save Changes
-                            </button>
-                            <button
-                                onClick={handleDelete}
-                                className="p-2 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-lg transition-colors border border-transparent hover:border-red-400/20"
-                            >
-                                <Trash2 className="w-5 h-5" />
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* QUESTIONS TAB */}
-                {activeTab === 'questions' && (
-                    <div className="space-y-4 animate-in fade-in duration-200">
-                        <div className="flex justify-between items-center">
-                            <h3 className="text-sm font-bold flex items-center gap-2">
-                                <Bot className="w-4 h-4 text-primary" />
-                                Application Questions
-                            </h3>
-                            <div className="flex gap-2">
-                                <button
-                                    onClick={handleScanQuestions}
-                                    disabled={scanning}
-                                    className="text-[10px] bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
-                                >
-                                    {scanning ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
-                                    Scan Page
-                                </button>
-                                <button
-                                    onClick={handleGenerateAnswers}
-                                    disabled={generating || questions.length === 0}
-                                    className="text-[10px] bg-primary hover:bg-primary/90 text-background px-3 py-1.5 rounded-full flex items-center gap-1 font-semibold transition-colors disabled:opacity-50"
-                                >
-                                    {generating ? <Wand2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                                    Generate
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Context Input */}
-                        <div className="space-y-1">
-                            <label className="text-[10px] uppercase font-bold text-muted-foreground">AI Context / Instructions (Optional)</label>
-                            <textarea
-                                value={aiContext}
-                                onChange={e => setAiContext(e.target.value)}
-                                className="w-full h-20 p-2 text-xs bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-                                placeholder="E.g., 'Focus on my leadership experience' or 'Keep answers concise under 100 words'"
-                            />
-                        </div>
-
-                        {questions.length === 0 ? (
-                            <div className="text-center py-10 bg-secondary/20 rounded-lg border border-dashed border-border">
-                                <p className="text-xs text-muted-foreground mb-2">No questions saved yet.</p>
-                                <p className="text-[10px] text-muted-foreground/60">Navigate to the application page and click "Scan".</p>
-                            </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {questions.map((q, i) => (
-                                    <div key={i} className="bg-card border border-border/50 rounded-lg p-3 space-y-2">
-                                        <p className="text-xs font-medium">{q.question_text}</p>
-                                        {q.ai_answer ? (
-                                            <div className="bg-secondary/30 p-2 rounded text-xs text-muted-foreground relative group">
-                                                {q.ai_answer}
-                                                <button
-                                                    onClick={() => navigator.clipboard.writeText(q.ai_answer)}
-                                                    className="absolute top-2 right-2 p-1 rounded hover:bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity"
-                                                >
-                                                    <Copy className="w-3 h-3 text-primary" />
-                                                </button>
-                                            </div>
-                                        ) : (
-                                            <div className="text-[10px] italic text-muted-foreground/50">
-                                                Answer not generated yet...
-                                            </div>
+                            {/* Job Description */}
+                            {application.job_description && (
+                                <div className="space-y-2 border-t border-border pt-4">
+                                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Job Description</p>
+                                    <div className="relative">
+                                        <div
+                                            className={`text-xs text-muted-foreground bg-card/40 p-3 rounded-lg border border-border leading-relaxed transition-all ${jobDescriptionExpanded ? "" : "line-clamp-[4]"
+                                                }`}
+                                        >
+                                            {application.job_description}
+                                        </div>
+                                        {application.job_description.length > 200 && (
+                                            <button
+                                                onClick={() => setJobDescriptionExpanded(!jobDescriptionExpanded)}
+                                                className="mt-1 text-[10px] text-primary hover:underline font-medium"
+                                            >
+                                                {jobDescriptionExpanded ? "Show Less" : "Show More"}
+                                            </button>
                                         )}
                                     </div>
-                                ))}
+                                </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* QUESTIONS TAB */}
+                    {activeTab === 'questions' && (
+                        <div className="space-y-4 animate-in fade-in duration-200">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-bold flex items-center gap-2">
+                                    <Bot className="w-4 h-4 text-primary" />
+                                    Application Questions
+                                </h3>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleScanQuestions}
+                                        disabled={scanning}
+                                        className="text-[10px] bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
+                                    >
+                                        {scanning ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
+                                        Scan Page
+                                    </button>
+                                    <button
+                                        onClick={handleGenerateAnswers}
+                                        disabled={generating || questions.length === 0}
+                                        className="text-[10px] bg-primary hover:bg-primary/90 text-background px-3 py-1.5 rounded-full flex items-center gap-1 font-semibold transition-colors disabled:opacity-50"
+                                    >
+                                        {generating ? <Wand2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                                        Generate
+                                    </button>
+                                </div>
                             </div>
-                        )}
-                    </div>
-                )}
 
-                {/* COMPATIBILITY TAB */}
-                {activeTab === 'compatibility' && (
-                    <div className="space-y-6 animate-in fade-in duration-200">
-                        {!compatibility ? (
-                            <div className="flex flex-col items-center justify-center py-8 space-y-4">
-                                <div className="p-4 bg-secondary/30 rounded-full">
-                                    <Target className="w-8 h-8 text-muted-foreground" />
-                                </div>
-                                <div className="text-center space-y-1">
-                                    <p className="text-sm font-semibold">Check Compatibility</p>
-                                    <p className="text-xs text-muted-foreground max-w-[200px]">
-                                        Analyze your resume against this job description to get a match score.
-                                    </p>
-                                </div>
-                                <button
-                                    onClick={handleCheckCompatibility}
-                                    disabled={checkingComp}
-                                    className="bg-primary hover:bg-primary/90 text-background px-6 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2"
-                                >
-                                    {checkingComp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                                    Run Analysis
-                                </button>
+                            {/* Context Input */}
+                            <div className="space-y-1">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground">AI Context / Instructions (Optional)</label>
+                                <textarea
+                                    value={aiContext}
+                                    onChange={e => setAiContext(e.target.value)}
+                                    className="w-full h-20 p-2 text-xs bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                                    placeholder="E.g., 'Focus on my leadership experience' or 'Keep answers concise under 100 words'"
+                                />
                             </div>
-                        ) : (
-                            <div className="space-y-4">
-                                {/* Score */}
-                                <div className="text-center p-6 bg-card border border-border rounded-xl relative overflow-hidden">
-                                    <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-                                    <div className="text-4xl font-black text-primary mb-1">{compatibility.score}%</div>
-                                    <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Match Score</div>
-                                </div>
 
-                                {/* Summary */}
-                                <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
-                                    <p className="text-xs text-muted-foreground italic leading-relaxed">
-                                        "{compatibility.summary}"
-                                    </p>
+                            {questions.length === 0 ? (
+                                <div className="text-center py-10 bg-secondary/20 rounded-lg border border-dashed border-border">
+                                    <p className="text-xs text-muted-foreground mb-2">No questions saved yet.</p>
+                                    <p className="text-[10px] text-muted-foreground/60">Navigate to the application page and click "Scan".</p>
                                 </div>
-
-                                {/* Tips */}
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-bold uppercase text-muted-foreground">Improvement Tips</h4>
-                                    <ul className="space-y-2">
-                                        {compatibility.tips?.map((tip: string, i: number) => (
-                                            <li key={i} className="text-xs flex gap-2 items-start bg-card p-2 rounded border border-border/50">
-                                                <span className="text-primary font-bold">•</span>
-                                                <span className="text-muted-foreground">{tip}</span>
-                                            </li>
-                                        ))}
-                                    </ul>
+                            ) : (
+                                <div className="space-y-4">
+                                    {questions.map((q, i) => (
+                                        <div key={i} className="bg-card border border-border/50 rounded-lg p-3 space-y-2">
+                                            <p className="text-xs font-medium">{q.question_text}</p>
+                                            {q.ai_answer ? (
+                                                <div className="bg-secondary/30 p-2 rounded text-xs text-muted-foreground relative group">
+                                                    {q.ai_answer}
+                                                    <button
+                                                        onClick={() => navigator.clipboard.writeText(q.ai_answer)}
+                                                        className="absolute top-2 right-2 p-1 rounded hover:bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                    >
+                                                        <Copy className="w-3 h-3 text-primary" />
+                                                    </button>
+                                                </div>
+                                            ) : (
+                                                <div className="text-[10px] italic text-muted-foreground/50">
+                                                    Answer not generated yet...
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
                                 </div>
+                            )}
+                        </div>
+                    )}
 
-                                {/* Keywords */}
-                                <div className="space-y-2">
-                                    <h4 className="text-xs font-bold uppercase text-muted-foreground">Missing Keywords</h4>
-                                    <div className="flex flex-wrap gap-1.5">
-                                        {compatibility.missingKeywords?.map((kw: string, i: number) => (
-                                            <span key={i} className="text-[10px] px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">
-                                                {kw}
-                                            </span>
-                                        ))}
+                    {/* ANALYSIS TAB */}
+                    {activeTab === 'analysis' && (
+                        <div className="space-y-6 animate-in fade-in duration-200">
+                            {!compatibility ? (
+                                <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                                    <div className="p-4 bg-secondary/30 rounded-full">
+                                        <Target className="w-8 h-8 text-muted-foreground" />
+                                    </div>
+                                    <div className="text-center space-y-1">
+                                        <p className="text-sm font-semibold">Job Analysis</p>
+                                        <p className="text-xs text-muted-foreground max-w-[200px]">
+                                            Analyze your resume against this job description to get a match score and tips.
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={handleCheckCompatibility}
+                                        disabled={checkingComp}
+                                        className="bg-primary hover:bg-primary/90 text-background px-6 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+                                    >
+                                        {checkingComp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
+                                        Run Analysis
+                                    </button>
+                                </div>
+                            ) : (
+                                <div className="space-y-4">
+                                    {/* Score */}
+                                    <div className="text-center p-6 bg-card border border-border rounded-xl relative overflow-hidden">
+                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
+                                        <div className="text-4xl font-black text-primary mb-1">{compatibility.score}%</div>
+                                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Match Score</div>
+                                    </div>
+
+                                    {/* Summary */}
+                                    <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
+                                        <p className="text-xs text-muted-foreground italic leading-relaxed">
+                                            "{compatibility.summary}"
+                                        </p>
+                                    </div>
+
+                                    {/* Tips */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold uppercase text-muted-foreground">Improvement Tips</h4>
+                                        <ul className="space-y-2">
+                                            {compatibility.tips?.map((tip: string, i: number) => (
+                                                <li key={i} className="text-xs flex gap-2 items-start bg-card p-2 rounded border border-border/50">
+                                                    <span className="text-primary font-bold">•</span>
+                                                    <span className="text-muted-foreground">{tip}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+
+                                    {/* Keywords */}
+                                    <div className="space-y-2">
+                                        <h4 className="text-xs font-bold uppercase text-muted-foreground">Missing Keywords</h4>
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {compatibility.missingKeywords?.map((kw: string, i: number) => (
+                                                <span key={i} className="text-[10px] px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">
+                                                    {kw}
+                                                </span>
+                                            ))}
+                                        </div>
                                     </div>
                                 </div>
+                            )}
+                        </div>
+                    )}
+
+                    {/* COVER LETTER TAB */}
+                    {activeTab === 'cover-letter' && (
+                        <div className="space-y-6 animate-in fade-in duration-200">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-bold flex items-center gap-2">
+                                    <FileText className="w-4 h-4 text-primary" />
+                                    Cover Letter
+                                </h3>
+                                <button
+                                    onClick={handleGenerateCL}
+                                    disabled={generatingCL}
+                                    className="text-[10px] bg-primary hover:bg-primary/90 text-background px-4 py-1.5 rounded-full flex items-center gap-1 font-semibold transition-colors disabled:opacity-50"
+                                >
+                                    {generatingCL ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                                    {aiCoverLetter ? 'Regenerate' : 'Generate'}
+                                </button>
                             </div>
-                        )}
-                    </div>
-                )}
+
+                            {aiCoverLetter && (
+                                <div className="space-y-2">
+                                    <label className="text-[10px] uppercase font-bold text-muted-foreground flex justify-between">
+                                        AI Version
+                                        <button
+                                            onClick={() => {
+                                                setMCL(aiCoverLetter)
+                                                // We'll also need to update the application record eventually or just on manual save
+                                            }}
+                                            className="text-primary hover:underline lowercase font-normal"
+                                        >
+                                            Copy to manual
+                                        </button>
+                                    </label>
+                                    <div className="bg-secondary/30 p-3 rounded-lg text-xs text-muted-foreground relative group max-h-48 overflow-y-auto border border-border/50 leading-relaxed">
+                                        {aiCoverLetter}
+                                        <button
+                                            onClick={() => navigator.clipboard.writeText(aiCoverLetter)}
+                                            className="absolute top-2 right-2 p-1 rounded bg-background/50 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
+                                        >
+                                            <Copy className="w-3 h-3 text-primary" />
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Your Version</label>
+                                <textarea
+                                    value={mCL}
+                                    onChange={e => setMCL(e.target.value)}
+                                    className="w-full h-64 p-3 text-sm bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none leading-relaxed"
+                                    placeholder="Edit your cover letter here..."
+                                />
+                            </div>
+                        </div>
+                    )}
+
+                    {/* NOTES TAB */}
+                    {activeTab === 'notes' && (
+                        <div className="space-y-4 animate-in fade-in duration-200">
+                            <h3 className="text-sm font-bold flex items-center gap-2">
+                                <StickyNote className="w-4 h-4 text-primary" />
+                                Application Notes
+                            </h3>
+                            <div className="space-y-2">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Private Notes</label>
+                                <textarea
+                                    value={notes}
+                                    onChange={e => setNotes(e.target.value)}
+                                    className="w-full h-[350px] p-3 text-sm bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none leading-relaxed"
+                                    placeholder="Add private notes about this application, interview dates, contact info, etc."
+                                />
+                            </div>
+                        </div>
+                    )}
+                </div>
             </div>
         </div>
     )

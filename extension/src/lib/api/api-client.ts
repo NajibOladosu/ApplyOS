@@ -9,7 +9,11 @@ export interface Application {
     url: string | null
     job_description: string | null
     status: 'draft' | 'submitted' | 'in_review' | 'interview' | 'offer' | 'rejected'
+    priority: 'low' | 'medium' | 'high'
+    platform?: string | null
     notes?: string | null
+    ai_cover_letter?: string | null
+    manual_cover_letter?: string | null
     created_at?: string
 }
 
@@ -124,6 +128,27 @@ export class APIClient {
                 'Authorization': `Bearer ${session?.access_token}`
             },
             body: JSON.stringify({ applicationId, extraContext })
+        })
+
+        if (!response.ok) {
+            const err = await response.json().catch(() => ({}))
+            throw new Error(err.error || `API error: ${response.statusText}`)
+        }
+
+        return await response.json()
+    }
+
+    static async generateCoverLetter(applicationId: string) {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const { data: { session } } = await supabase.auth.getSession()
+
+        const response = await fetch(`${baseUrl}/api/cover-letter/generate`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${session?.access_token}`
+            },
+            body: JSON.stringify({ applicationId })
         })
 
         if (!response.ok) {

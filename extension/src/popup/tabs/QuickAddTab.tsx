@@ -195,7 +195,7 @@ export function QuickAddTab() {
             <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
                 <button
                     onClick={handleSave}
-                    className="w-full btn-primary h-10 shadow-[0_0_15px_rgba(0,255,136,0.2)]"
+                    className="w-full btn-primary h-10 shadow-[0_0_15px_rgba(24,187,112,0.2)]"
                 >
                     <Save className="w-4 h-4 mr-2" />
                     Save Application
