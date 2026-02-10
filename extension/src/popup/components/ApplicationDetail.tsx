@@ -113,8 +113,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const handleCheckCompatibility = async () => {
         setCheckingComp(true)
         try {
-            // We pass null documentId to force fallback to latest analyzed resume
-            const result = await APIClient.checkCompatibility(application.job_description || '', '')
+            const result = await APIClient.checkCompatibility(application.job_description || '')
             setCompatibility(result)
         } catch (e) {
             console.error(e)
