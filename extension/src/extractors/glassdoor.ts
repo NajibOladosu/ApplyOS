@@ -8,7 +8,7 @@ export const glassdoorExtractor = {
 
         const location = document.querySelector('[data-test="location"]')?.textContent?.trim() || null
 
-        const description = document.querySelector('.jobDescriptionContent')?.innerHTML || null
+        const description = (document.querySelector('.jobDescriptionContent') as HTMLElement)?.innerText?.trim() || null
 
         return {
             title,
