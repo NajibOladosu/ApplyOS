@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { APIClient, type Application } from '../../lib/api/api-client'
-import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw, FileText, StickyNote, Loader2, ChevronDown, ExternalLink, Briefcase, MapPin, Calendar, Globe, CheckCircle, XCircle, AlertTriangle, Info, Plus, Minus, ChevronUp } from 'lucide-react'
+import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw, FileText, StickyNote, Loader2, ChevronDown, ExternalLink, Briefcase, MapPin, Calendar, Globe, CheckCircle, XCircle, AlertTriangle, Info, Plus, Minus, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
 import { NoteEditor } from './NoteEditor'
 
 interface ApplicationDetailProps {
@@ -12,8 +12,17 @@ interface ApplicationDetailProps {
 
 type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'notes'
 
+const TABS: { id: Tab, label: string }[] = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'questions', label: 'Questions' },
+    { id: 'analysis', label: 'Analysis' },
+    { id: 'cover-letter', label: 'Cover Letter' },
+    { id: 'notes', label: 'Notes' }
+]
+
 export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: ApplicationDetailProps) {
     const [activeTab, setActiveTab] = useState<Tab>('overview')
+    const [viewStart, setViewStart] = useState(0)
     const [notes, setNotes] = useState(application.notes || '')
     const [noteCategory, setNoteCategory] = useState(application.note_category || '')
     const [noteIsPinned, setNoteIsPinned] = useState(application.note_is_pinned || false)
@@ -51,6 +60,16 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
             loadQuestions()
         } else if (activeTab === 'overview') {
             loadDocuments()
+        }
+
+        // Auto-center active tab logic
+        const activeIndex = TABS.findIndex(t => t.id === activeTab)
+        if (activeIndex !== -1) {
+            let targetStart = activeIndex - 1
+            const maxStart = TABS.length - 3
+            if (targetStart < 0) targetStart = 0
+            if (targetStart > maxStart) targetStart = maxStart
+            setViewStart(targetStart)
         }
     }, [activeTab])
 
@@ -333,12 +352,26 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
 
             {/* Pill Tabs */}
             <div className="p-3 bg-card/30">
-                <div className="flex p-1 bg-secondary rounded-lg gap-1 border border-border overflow-x-auto no-scrollbar">
-                    {renderTabButton('overview', 'Overview')}
-                    {renderTabButton('questions', 'Questions')}
-                    {renderTabButton('analysis', 'Analysis')}
-                    {renderTabButton('cover-letter', 'Cover Letter')}
-                    {renderTabButton('notes', 'Notes')}
+                <div className="flex items-center gap-1">
+                    <button
+                        onClick={() => setViewStart(Math.max(0, viewStart - 1))}
+                        disabled={viewStart === 0}
+                        className="p-1 rounded-md text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none hover:bg-secondary transition-colors"
+                    >
+                        <ChevronLeft className="w-4 h-4" />
+                    </button>
+
+                    <div className="flex-1 flex p-1 bg-secondary rounded-lg gap-1 border border-border overflow-hidden">
+                        {TABS.slice(viewStart, viewStart + 3).map(tab => renderTabButton(tab.id, tab.label))}
+                    </div>
+
+                    <button
+                        onClick={() => setViewStart(Math.min(TABS.length - 3, viewStart + 1))}
+                        disabled={viewStart >= TABS.length - 3}
+                        className="p-1 rounded-md text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none hover:bg-secondary transition-colors"
+                    >
+                        <ChevronRight className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
