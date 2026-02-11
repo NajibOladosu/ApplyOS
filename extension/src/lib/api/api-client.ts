@@ -12,6 +12,7 @@ export interface Application {
     priority: 'low' | 'medium' | 'high'
     platform?: string | null
     notes?: string | null
+    last_analyzed_document_id?: string | null
     ai_cover_letter?: string | null
     manual_cover_letter?: string | null
     created_at?: string

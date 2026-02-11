@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { APIClient, type Application } from '../../lib/api/api-client'
-import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw, FileText, StickyNote, Loader2, ChevronDown } from 'lucide-react'
+import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw, FileText, StickyNote, Loader2, ChevronDown, ExternalLink, Briefcase, MapPin, Calendar, Globe, CheckCircle, XCircle, AlertTriangle, Info, Plus, Minus, ChevronUp } from 'lucide-react'
 
 interface ApplicationDetailProps {
     application: Application
@@ -32,6 +32,10 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const [generatingCL, setGeneratingCL] = useState(false)
     const [aiCoverLetter, setAiCoverLetter] = useState(application.ai_cover_letter || '')
     const [mCL, setMCL] = useState(application.manual_cover_letter || '')
+
+    // Analysis state
+    const [analysis, setAnalysis] = useState<any>(null)
+    const [loadingAnalysis, setLoadingAnalysis] = useState(false)
 
     // Document state
     const [userDocuments, setUserDocuments] = useState<any[]>([])
@@ -104,6 +108,30 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
             alert(`Failed to update: ${e.message || JSON.stringify(e)}`)
         } finally {
             setSaving(false)
+        }
+    }
+
+    useEffect(() => {
+        if (activeTab === 'analysis' && application.id) {
+            loadAnalysis()
+        }
+    }, [activeTab, application.id])
+
+    const loadAnalysis = async () => {
+        // use the first attached doc or the last analyzed one
+        const docId = selectedDocIds.length > 0 ? selectedDocIds[0] : application.last_analyzed_document_id
+        if (!docId || !application.id) return
+
+        setLoadingAnalysis(true)
+        try {
+            const data = await APIClient.getAnalysis(application.id, docId)
+            if (data?.analysis_result) {
+                setAnalysis(data.analysis_result)
+            }
+        } catch (e) {
+            console.error('Failed to load analysis:', e)
+        } finally {
+            setLoadingAnalysis(false)
         }
     }
 
@@ -199,13 +227,33 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         setCheckingComp(true)
         try {
             const result = await APIClient.checkCompatibility(application.id, docId)
-            setCompatibility(result.analysis)
+            setAnalysis(result.analysis)
+            // also refresh the loaded analysis to ensure persistence
+            loadAnalysis()
         } catch (e: any) {
             console.error(e)
             alert(`Analysis failed: ${e.message || 'Unknown error'}`)
         } finally {
             setCheckingComp(false)
         }
+    }
+
+    const getScoreColor = (score: number) => {
+        if (score >= 80) return "text-green-600"
+        if (score >= 60) return "text-orange-600"
+        return "text-red-600"
+    }
+
+    const getScoreBg = (score: number) => {
+        if (score >= 80) return "bg-primary"
+        if (score >= 60) return "bg-orange-500"
+        return "bg-red-500"
+    }
+
+    const getScoreCardTextColor = (score: number) => {
+        if (score >= 80) return "text-green-600"
+        if (score >= 60) return "text-orange-600"
+        return "text-red-600"
     }
 
     const handleGenerateCL = async () => {
@@ -495,13 +543,35 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                     {/* ANALYSIS TAB */}
                     {activeTab === 'analysis' && (
                         <div className="space-y-6 animate-in fade-in duration-200">
-                            {!compatibility ? (
-                                <div className="flex flex-col items-center justify-center py-8 space-y-4">
+                            <div className="flex justify-between items-center">
+                                <h3 className="text-sm font-bold flex items-center gap-2">
+                                    <Target className="w-4 h-4 text-primary" />
+                                    Job Analysis
+                                </h3>
+                                {(analysis || !loadingAnalysis) && (
+                                    <button
+                                        onClick={handleCheckCompatibility}
+                                        disabled={checkingComp}
+                                        className="text-[10px] bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1 rounded-full flex items-center gap-1 font-medium transition-colors disabled:opacity-50"
+                                    >
+                                        {checkingComp ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
+                                        Re-Analyze
+                                    </button>
+                                )}
+                            </div>
+
+                            {loadingAnalysis && !analysis ? (
+                                <div className="flex flex-col items-center justify-center py-10 space-y-3">
+                                    <RefreshCw className="w-8 h-8 text-primary animate-spin" />
+                                    <p className="text-xs text-muted-foreground">Loading analysis...</p>
+                                </div>
+                            ) : !analysis ? (
+                                <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
                                     <div className="p-4 bg-secondary/30 rounded-full">
                                         <Target className="w-8 h-8 text-muted-foreground" />
                                     </div>
                                     <div className="text-center space-y-1">
-                                        <p className="text-sm font-semibold">Job Analysis</p>
+                                        <p className="text-sm font-semibold">No Analysis Found</p>
                                         <p className="text-xs text-muted-foreground max-w-[200px]">
                                             Analyze your resume against this job description to get a match score and tips.
                                         </p>
@@ -517,44 +587,59 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 </div>
                             ) : (
                                 <div className="space-y-4">
-                                    {/* Score */}
-                                    <div className="text-center p-6 bg-card border border-border rounded-xl relative overflow-hidden">
-                                        <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent pointer-events-none" />
-                                        <div className="text-4xl font-black text-primary mb-1">{compatibility.score}%</div>
-                                        <div className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Match Score</div>
-                                    </div>
+                                    {/* Score Card */}
+                                    <div className={`text-center p-6 border rounded-xl relative overflow-hidden ${getScoreBg(analysis.score)} bg-opacity-10 border-opacity-20`}>
+                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
 
-                                    {/* Summary */}
-                                    <div className="bg-secondary/20 p-3 rounded-lg border border-border/50">
-                                        <p className="text-xs text-muted-foreground italic leading-relaxed">
-                                            "{compatibility.summary}"
-                                        </p>
-                                    </div>
-
-                                    {/* Tips */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold uppercase text-muted-foreground">Improvement Tips</h4>
-                                        <ul className="space-y-2">
-                                            {compatibility.tips?.map((tip: string, i: number) => (
-                                                <li key={i} className="text-xs flex gap-2 items-start bg-card p-2 rounded border border-border/50">
-                                                    <span className="text-primary font-bold">•</span>
-                                                    <span className="text-muted-foreground">{tip}</span>
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-
-                                    {/* Keywords */}
-                                    <div className="space-y-2">
-                                        <h4 className="text-xs font-bold uppercase text-muted-foreground">Missing Keywords</h4>
-                                        <div className="flex flex-wrap gap-1.5">
-                                            {compatibility.missingKeywords?.map((kw: string, i: number) => (
-                                                <span key={i} className="text-[10px] px-2 py-1 bg-red-500/10 text-red-400 border border-red-500/20 rounded-md">
-                                                    {kw}
+                                        <div className="relative flex items-center justify-center h-24 w-24 mx-auto mb-2">
+                                            <svg className="h-full w-full -rotate-90 text-muted-foreground/20" viewBox="0 0 100 100">
+                                                <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" />
+                                            </svg>
+                                            <svg className="h-full w-full -rotate-90 absolute inset-0" viewBox="0 0 100 100">
+                                                <circle
+                                                    cx="50" cy="50" r="40"
+                                                    fill="none"
+                                                    stroke="currentColor"
+                                                    strokeWidth="8"
+                                                    strokeDasharray="251.2"
+                                                    strokeDashoffset={251.2 - (251.2 * analysis.score) / 100}
+                                                    strokeLinecap="round"
+                                                    className={`transition-all duration-1000 ease-out ${getScoreColor(analysis.score)}`}
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span className={`text-2xl font-bold ${getScoreCardTextColor(analysis.score)}`}>
+                                                    {analysis.score}
                                                 </span>
-                                            ))}
+                                                <span className={`text-[10px] font-medium uppercase tracking-wider opacity-70 ${getScoreCardTextColor(analysis.score)}`}>/ 100</span>
+                                            </div>
                                         </div>
+                                        <div className={`text-xs font-medium uppercase tracking-wider ${getScoreCardTextColor(analysis.score)}`}>Match Score</div>
                                     </div>
+
+                                    {/* Missing Keywords */}
+                                    <div className={`rounded-lg border p-4 ${analysis.score < 60 ? "border-red-500/30 bg-red-500/5" : "border-border bg-card"}`}>
+                                        <div className="flex items-center gap-2 mb-3">
+                                            <AlertTriangle className={`h-4 w-4 ${analysis.score < 60 ? "text-red-500" : "text-orange-500"}`} />
+                                            <h4 className={`text-xs font-bold uppercase ${analysis.score < 60 ? "text-red-500" : "text-foreground"}`}>Missing Keywords</h4>
+                                        </div>
+                                        {analysis.missingKeywords?.length > 0 ? (
+                                            <div className="flex flex-wrap gap-1.5">
+                                                {analysis.missingKeywords.map((kw: string, i: number) => (
+                                                    <span key={i} className={`text-[10px] px-2 py-1 rounded-md border ${analysis.score < 60
+                                                        ? "bg-red-500/10 text-red-500 border-red-500/20"
+                                                        : "bg-orange-500/10 text-orange-500 border-orange-500/20"
+                                                        }`}>
+                                                        {kw}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <div className="text-xs text-muted-foreground italic">None! Great job coverage.</div>
+                                        )}
+                                    </div>
+
+
                                 </div>
                             )}
                         </div>
@@ -615,7 +700,6 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                             </div>
                         </div>
                     )}
-
 
                     {/* NOTES TAB */}
                     {activeTab === 'notes' && (
