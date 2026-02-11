@@ -31,7 +31,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     // Cover Letter state
     const [generatingCL, setGeneratingCL] = useState(false)
     const [aiCoverLetter, setAiCoverLetter] = useState(application.ai_cover_letter || '')
-    const [mCL, setMCL] = useState(application.manual_cover_letter || '')
+    const [mCL, setMCL] = useState(application.manual_cover_letter || application.ai_cover_letter || '')
 
     // Analysis state
     const [analysis, setAnalysis] = useState<any>(null)
@@ -261,8 +261,8 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         try {
             const result = await APIClient.generateCoverLetter(application.id!)
             if (result.coverLetter) {
+                setMCL(result.coverLetter)
                 setAiCoverLetter(result.coverLetter)
-                // Also update local application state if needed, but the next getApplication will handle it.
             }
         } catch (e: any) {
             console.error(e)
@@ -663,41 +663,12 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 </button>
                             </div>
 
-                            {aiCoverLetter && (
-                                <div className="space-y-2">
-                                    <label className="text-[10px] uppercase font-bold text-muted-foreground flex justify-between">
-                                        AI Version
-                                        <button
-                                            onClick={() => {
-                                                setMCL(aiCoverLetter)
-                                                // We'll also need to update the application record eventually or just on manual save
-                                            }}
-                                            className="text-primary hover:underline lowercase font-normal"
-                                        >
-                                            Copy to manual
-                                        </button>
-                                    </label>
-                                    <div className="bg-secondary/30 p-3 rounded-lg text-xs text-muted-foreground relative group max-h-48 overflow-y-auto border border-border/50 leading-relaxed">
-                                        {aiCoverLetter}
-                                        <button
-                                            onClick={() => navigator.clipboard.writeText(aiCoverLetter)}
-                                            className="absolute top-2 right-2 p-1 rounded bg-background/50 hover:bg-background opacity-0 group-hover:opacity-100 transition-opacity"
-                                        >
-                                            <Copy className="w-3 h-3 text-primary" />
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-
-                            <div className="space-y-2">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Your Version</label>
-                                <textarea
-                                    value={mCL}
-                                    onChange={e => setMCL(e.target.value)}
-                                    className="w-full h-64 p-3 text-sm bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none leading-relaxed"
-                                    placeholder="Edit your cover letter here..."
-                                />
-                            </div>
+                            <textarea
+                                value={mCL}
+                                onChange={e => setMCL(e.target.value)}
+                                className="w-full h-[400px] p-4 text-sm bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none leading-relaxed"
+                                placeholder="Generate a cover letter or start writing here..."
+                            />
                         </div>
                     )}
 
