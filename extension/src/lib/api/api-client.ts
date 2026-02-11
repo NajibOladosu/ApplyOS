@@ -178,10 +178,7 @@ export class APIClient {
             .from('questions')
             .insert({
                 application_id: applicationId,
-                user_id: user.id,
-                question_text: text,
-                type: 'text',
-                required: false
+                question_text: text
             })
             .select()
             .single()

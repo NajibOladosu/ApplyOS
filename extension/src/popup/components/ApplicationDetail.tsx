@@ -384,24 +384,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 />
                             </div>
 
-                            {/* Manual Question Entry */}
-                            <div className="flex gap-2">
-                                <input
-                                    type="text"
-                                    value={newQuestion}
-                                    onChange={e => setNewQuestion(e.target.value)}
-                                    onKeyDown={e => e.key === 'Enter' && handleAddQuestion()}
-                                    placeholder="Add manual question (e.g. why us?)"
-                                    className="flex-1 text-xs bg-card border border-border rounded-lg px-3 py-2 focus:border-primary outline-none"
-                                />
-                                <button
-                                    onClick={handleAddQuestion}
-                                    disabled={addingQuestion || !newQuestion.trim()}
-                                    className="p-2 bg-primary text-black rounded-lg disabled:opacity-50"
-                                >
-                                    {addingQuestion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-                                </button>
-                            </div>
+
 
                             {questions.length === 0 ? (
                                 <div className="text-center py-10 bg-secondary/20 rounded-lg border border-dashed border-border">
@@ -440,6 +423,25 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     ))}
                                 </div>
                             )}
+
+                            {/* Manual Question Entry */}
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newQuestion}
+                                    onChange={e => setNewQuestion(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleAddQuestion()}
+                                    placeholder="Add manual question (e.g. why us?)"
+                                    className="flex-1 text-xs bg-card border border-border rounded-lg px-3 py-2 focus:border-primary outline-none"
+                                />
+                                <button
+                                    onClick={handleAddQuestion}
+                                    disabled={addingQuestion || !newQuestion.trim()}
+                                    className="p-2 bg-primary text-black rounded-lg disabled:opacity-50"
+                                >
+                                    {addingQuestion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                </button>
+                            </div>
                         </div>
                     )}
 
