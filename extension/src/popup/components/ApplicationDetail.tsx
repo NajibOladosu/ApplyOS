@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react'
 import { APIClient, type Application } from '../../lib/api/api-client'
 import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw, FileText, StickyNote, Loader2, ChevronDown, ExternalLink, Briefcase, MapPin, Calendar, Globe, CheckCircle, XCircle, AlertTriangle, Info, Plus, Minus, ChevronUp } from 'lucide-react'
+import { NoteEditor } from './NoteEditor'
 
 interface ApplicationDetailProps {
     application: Application
@@ -14,6 +15,8 @@ type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'notes'
 export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: ApplicationDetailProps) {
     const [activeTab, setActiveTab] = useState<Tab>('overview')
     const [notes, setNotes] = useState(application.notes || '')
+    const [noteCategory, setNoteCategory] = useState(application.note_category || '')
+    const [noteIsPinned, setNoteIsPinned] = useState(application.note_is_pinned || false)
     const [status, setStatus] = useState<Application['status']>(application.status)
     const [saving, setSaving] = useState(false)
     const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
@@ -101,6 +104,8 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
             const updated = await APIClient.updateApplication(application.id, {
                 status,
                 notes,
+                note_category: noteCategory,
+                note_is_pinned: noteIsPinned,
                 manual_cover_letter: mCL
             } as any)
             onUpdate(updated as Application)
@@ -684,21 +689,23 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                     )}
 
                     {/* NOTES TAB */}
+                    {/* NOTES TAB */}
                     {activeTab === 'notes' && (
-                        <div className="space-y-4 animate-in fade-in duration-200">
-                            <h3 className="text-sm font-bold flex items-center gap-2">
+                        <div className="h-full animate-in fade-in duration-200 pb-4">
+                            <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
                                 <StickyNote className="w-4 h-4 text-primary" />
                                 Application Notes
                             </h3>
-                            <div className="space-y-2">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Private Notes</label>
-                                <textarea
-                                    value={notes}
-                                    onChange={e => setNotes(e.target.value)}
-                                    className="w-full h-[350px] p-3 text-sm bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none leading-relaxed"
-                                    placeholder="Add private notes about this application, interview dates, contact info, etc."
-                                />
-                            </div>
+                            <NoteEditor
+                                content={notes}
+                                onChangeContent={setNotes}
+                                category={noteCategory}
+                                onChangeCategory={setNoteCategory}
+                                isPinned={noteIsPinned}
+                                onChangePinned={setNoteIsPinned}
+                                onSave={handleSave}
+                                saving={saving}
+                            />
                         </div>
                     )}
                 </div>
