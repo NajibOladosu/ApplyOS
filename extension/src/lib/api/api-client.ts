@@ -170,6 +170,36 @@ export class APIClient {
         return data
     }
 
+    static async createQuestion(applicationId: string, text: string) {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) throw new Error('Not authenticated')
+
+        const { data, error } = await supabase
+            .from('questions')
+            .insert({
+                application_id: applicationId,
+                user_id: user.id,
+                question_text: text,
+                type: 'text',
+                required: false
+            })
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    }
+
+    static async deleteQuestion(id: string) {
+        const { error } = await supabase
+            .from('questions')
+            .delete()
+            .eq('id', id)
+
+        if (error) throw error
+        return true
+    }
+
     // Documents
     static async uploadDocument(file: File, userId: string) {
         // Upload to storage
@@ -210,6 +240,40 @@ export class APIClient {
 
         if (error) throw error
         return data
+    }
+
+    static async getApplicationDocuments(applicationId: string) {
+        const { data, error } = await supabase
+            .from('application_documents')
+            .select('document_id')
+            .eq('application_id', applicationId)
+
+        if (error) throw error
+        return (data || []).map(row => row.document_id)
+    }
+
+    static async updateApplicationDocuments(applicationId: string, documentIds: string[]) {
+        // Delete all existing relationships for this application
+        const { error: deleteError } = await supabase
+            .from('application_documents')
+            .delete()
+            .eq('application_id', applicationId)
+
+        if (deleteError) throw deleteError
+
+        // Insert new relationships
+        if (documentIds.length > 0) {
+            const { error: insertError } = await supabase
+                .from('application_documents')
+                .insert(
+                    documentIds.map(docId => ({
+                        application_id: applicationId,
+                        document_id: docId,
+                    }))
+                )
+
+            if (insertError) throw insertError
+        }
     }
 
     // Analytics stub

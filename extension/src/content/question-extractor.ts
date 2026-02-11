@@ -61,7 +61,7 @@ export class QuestionExtractor {
 
         // 4. Check for closest <label> parent
         const parentLabel = input.closest('label')
-        if (parentLabel) {
+        if (parentLabel && parentLabel.textContent?.trim()) {
             // Clone and remove input to get just text
             const clone = parentLabel.cloneNode(true) as HTMLElement
             const inputInClone = clone.querySelector('input, textarea, select')
@@ -69,17 +69,35 @@ export class QuestionExtractor {
             return clone.textContent?.trim() || null
         }
 
-        // 5. Look for preceding text sibling (heuristic)
+        // 5. Look for the closest parent container that might have secondary text
+        // (common in Workday/Greenhouse where label and input are in a div)
+        const parentDiv = input.closest('div, [class*="form-group"], [class*="question"]')
+        if (parentDiv) {
+            // Check for previous element sibling or first child that isn't the input
+            const textNodes = Array.from(parentDiv.querySelectorAll('span, p, h1, h2, h3, h4, h5, h6, b, strong, label'))
+            for (const node of textNodes) {
+                if (node.contains(input)) continue
+                const text = node.textContent?.trim()
+                if (text && text.length > 3) return text
+            }
+        }
+
+        // 6. Look for preceding text sibling (heuristic)
         let sibling = input.previousElementSibling
-        while (sibling) {
+        let count = 0
+        while (sibling && count < 3) {
             if (['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'P', 'SPAN', 'DIV', 'LABEL'].includes(sibling.tagName)) {
                 if (sibling.textContent && sibling.textContent.trim().length > 3) {
                     return sibling.textContent.trim()
                 }
             }
             sibling = sibling.previousElementSibling
-            if (!sibling) break // Limit search
+            count++
         }
+
+        // 7. Placeholder/Title as fallback
+        const placeholder = input.getAttribute('placeholder')
+        if (placeholder && placeholder.length > 5) return placeholder
 
         return null
     }
@@ -107,11 +125,14 @@ export class QuestionExtractor {
     }
 
     private static isGenericField(label: string): boolean {
-        // We might WANT generic fields for auto-fill, but for "Questions" maybe we only want custom ones?
-        // User asked for "Detect questions on an application form"
-        // Usually this means "Why do you want to work here?", not "First Name".
-        // But collecting everything is safer.
-        return false
+        const text = label.toLowerCase()
+        const generics = [
+            'first name', 'last name', 'email', 'phone', 'address',
+            'city', 'state', 'zip', 'country', 'linkedin', 'github',
+            'website', 'portfolio', 'resume', 'cover letter'
+        ]
+        // If it starts with any of these, skip it (unless it's a longer question containing these words)
+        return generics.some(g => text === g || text.startsWith(g + ' ') || text.startsWith(g + ':'))
     }
 
     private static deduplicate(questions: ExtractedQuestion[]): ExtractedQuestion[] {

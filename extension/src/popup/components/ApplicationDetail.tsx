@@ -9,7 +9,7 @@ interface ApplicationDetailProps {
     onDelete: (id: string) => void
 }
 
-type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'notes'
+type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'documents' | 'notes'
 
 export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: ApplicationDetailProps) {
     const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -25,17 +25,60 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const [compatibility, setCompatibility] = useState<any>(null)
     const [checkingComp, setCheckingComp] = useState(false)
     const [aiContext, setAiContext] = useState('')
+    const [newQuestion, setNewQuestion] = useState('')
+    const [addingQuestion, setAddingQuestion] = useState(false)
 
     // Cover Letter state
     const [generatingCL, setGeneratingCL] = useState(false)
     const [aiCoverLetter, setAiCoverLetter] = useState(application.ai_cover_letter || '')
     const [mCL, setMCL] = useState(application.manual_cover_letter || '')
 
+    // Document state
+    const [userDocuments, setUserDocuments] = useState<any[]>([])
+    const [selectedDocIds, setSelectedDocIds] = useState<string[]>([])
+    const [docsLoading, setDocsLoading] = useState(false)
+
     useEffect(() => {
         if (activeTab === 'questions') {
             loadQuestions()
+        } else if (activeTab === 'documents') {
+            loadDocuments()
         }
     }, [activeTab])
+
+    const loadDocuments = async () => {
+        if (!application.id) return
+        setDocsLoading(true)
+        try {
+            const [allDocs, linkedDocIds] = await Promise.all([
+                APIClient.getDocuments(),
+                APIClient.getApplicationDocuments(application.id)
+            ])
+            setUserDocuments(allDocs || [])
+            setSelectedDocIds(linkedDocIds || [])
+        } catch (e) {
+            console.error('Failed to load documents:', e)
+        } finally {
+            setDocsLoading(false)
+        }
+    }
+
+    const toggleDocumentSelection = async (docId: string) => {
+        if (!application.id) return
+        const newSelectedIds = selectedDocIds.includes(docId)
+            ? selectedDocIds.filter(id => id !== docId)
+            : [...selectedDocIds, docId]
+
+        setSelectedDocIds(newSelectedIds)
+        try {
+            await APIClient.updateApplicationDocuments(application.id, newSelectedIds)
+        } catch (e) {
+            console.error('Failed to update documents:', e)
+            alert('Failed to save document selection')
+            // Revert on failure
+            setSelectedDocIds(selectedDocIds)
+        }
+    }
 
     const loadQuestions = async () => {
         try {
@@ -109,11 +152,36 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         try {
             await APIClient.generateAnswers(application.id!, aiContext || undefined)
             loadQuestions()
-        } catch (e) {
+        } catch (e: any) {
             console.error(e)
-            alert("Failed to generate answers")
+            alert(`Failed to generate answers: ${e.message || 'Unknown error'}`)
         } finally {
             setGenerating(false)
+        }
+    }
+
+    const handleAddQuestion = async () => {
+        if (!newQuestion.trim() || !application.id) return
+        setAddingQuestion(true)
+        try {
+            await APIClient.createQuestion(application.id, newQuestion.trim())
+            setNewQuestion('')
+            loadQuestions()
+        } catch (e: any) {
+            console.error(e)
+            alert(`Failed to add question: ${e.message}`)
+        } finally {
+            setAddingQuestion(false)
+        }
+    }
+
+    const handleDeleteQuestion = async (id: string) => {
+        try {
+            await APIClient.deleteQuestion(id)
+            loadQuestions()
+        } catch (e: any) {
+            console.error(e)
+            alert(`Failed to delete question: ${e.message}`)
         }
     }
 
@@ -206,6 +274,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                     {renderTabButton('questions', 'Questions')}
                     {renderTabButton('analysis', 'Analysis')}
                     {renderTabButton('cover-letter', 'Cover Letter')}
+                    {renderTabButton('documents', 'Documents')}
                     {renderTabButton('notes', 'Notes')}
                 </div>
             </div>
@@ -239,12 +308,6 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Created</p>
                                     <div className="h-[29px] flex items-center">
                                         <p className="text-xs font-semibold">{new Date(application.created_at || Date.now()).toLocaleDateString()}</p>
-                                    </div>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Platform</p>
-                                    <div className="h-[29px] flex items-center">
-                                        <p className="text-xs font-semibold capitalize truncate">{(application as any).platform || 'Unknown'}</p>
                                     </div>
                                 </div>
                                 {application.url && (
@@ -321,6 +384,25 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 />
                             </div>
 
+                            {/* Manual Question Entry */}
+                            <div className="flex gap-2">
+                                <input
+                                    type="text"
+                                    value={newQuestion}
+                                    onChange={e => setNewQuestion(e.target.value)}
+                                    onKeyDown={e => e.key === 'Enter' && handleAddQuestion()}
+                                    placeholder="Add manual question (e.g. why us?)"
+                                    className="flex-1 text-xs bg-card border border-border rounded-lg px-3 py-2 focus:border-primary outline-none"
+                                />
+                                <button
+                                    onClick={handleAddQuestion}
+                                    disabled={addingQuestion || !newQuestion.trim()}
+                                    className="p-2 bg-primary text-black rounded-lg disabled:opacity-50"
+                                >
+                                    {addingQuestion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                </button>
+                            </div>
+
                             {questions.length === 0 ? (
                                 <div className="text-center py-10 bg-secondary/20 rounded-lg border border-dashed border-border">
                                     <p className="text-xs text-muted-foreground mb-2">No questions saved yet.</p>
@@ -329,8 +411,16 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                             ) : (
                                 <div className="space-y-4">
                                     {questions.map((q, i) => (
-                                        <div key={i} className="bg-card border border-border/50 rounded-lg p-3 space-y-2">
-                                            <p className="text-xs font-medium">{q.question_text}</p>
+                                        <div key={i} className="bg-card border border-border/50 rounded-lg p-3 space-y-2 relative group-card">
+                                            <div className="flex justify-between items-start gap-2">
+                                                <p className="text-xs font-medium pr-6">{q.question_text}</p>
+                                                <button
+                                                    onClick={() => handleDeleteQuestion(q.id)}
+                                                    className="p-1 text-muted-foreground hover:text-red-400 opacity-0 group-card:opacity-100 transition-opacity"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
+                                            </div>
                                             {q.ai_answer ? (
                                                 <div className="bg-secondary/30 p-2 rounded text-xs text-muted-foreground relative group">
                                                     {q.ai_answer}
@@ -474,6 +564,64 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     placeholder="Edit your cover letter here..."
                                 />
                             </div>
+                        </div>
+                    )}
+
+                    {/* DOCUMENTS TAB */}
+                    {activeTab === 'documents' && (
+                        <div className="space-y-4 animate-in fade-in duration-200">
+                            <h3 className="text-sm font-bold flex items-center gap-2">
+                                <FileText className="w-4 h-4 text-primary" />
+                                Application Documents
+                            </h3>
+
+                            {docsLoading ? (
+                                <div className="flex flex-col items-center justify-center py-12 space-y-3">
+                                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                                    <p className="text-xs text-muted-foreground">Loading documents...</p>
+                                </div>
+                            ) : userDocuments.length === 0 ? (
+                                <div className="text-center py-10 bg-secondary/20 rounded-lg border border-dashed border-border">
+                                    <p className="text-xs text-muted-foreground mb-2">No documents found.</p>
+                                    <p className="text-[10px] text-muted-foreground/60">Upload resumes or cover letters in the main app.</p>
+                                </div>
+                            ) : (
+                                <div className="space-y-2">
+                                    <p className="text-[10px] uppercase font-bold text-muted-foreground mb-3">Attach to this application</p>
+                                    <div className="space-y-2">
+                                        {userDocuments.map(doc => {
+                                            const isSelected = selectedDocIds.includes(doc.id)
+                                            return (
+                                                <button
+                                                    key={doc.id}
+                                                    onClick={() => toggleDocumentSelection(doc.id)}
+                                                    className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left group ${isSelected
+                                                        ? 'border-primary bg-primary/5'
+                                                        : 'border-border bg-card hover:border-primary/30'
+                                                        }`}
+                                                >
+                                                    <div className={`p-2 rounded-md transition-colors ${isSelected ? 'bg-primary text-black' : 'bg-secondary text-muted-foreground group-hover:text-foreground'
+                                                        }`}>
+                                                        <FileText className="w-4 h-4" />
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <p className={`text-xs font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
+                                                            {doc.file_name}
+                                                        </p>
+                                                        <p className="text-[10px] text-muted-foreground/60">
+                                                            {new Date(doc.created_at).toLocaleDateString()}
+                                                        </p>
+                                                    </div>
+                                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : 'border-border'
+                                                        }`}>
+                                                        {isSelected && <CheckCircle2 className="w-3 h-3 text-black" />}
+                                                    </div>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 
