@@ -1,13 +1,28 @@
 import { createClient } from '@/shared/db/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { analyzeResumeMatch } from '@/shared/infrastructure/ai'
-import { buildContextFromDocument } from '@/modules/documents/services/document.service' // Keep helper, it's pure logic
+import { buildContextFromDocument } from '@/modules/documents/services/document.service'
 
 export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
     try {
-        const supabase = await createClient()
+        let supabase
+        const authHeader = req.headers.get('Authorization')
+
+        if (authHeader?.startsWith('Bearer ')) {
+            supabase = createSupabaseClient(
+                process.env.NEXT_PUBLIC_SUPABASE_URL!,
+                process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+                {
+                    global: { headers: { Authorization: authHeader } }
+                }
+            )
+        } else {
+            supabase = await createClient()
+        }
+
         const { data: { user }, error: authError } = await supabase.auth.getUser()
 
         console.log('[API Debug] User:', user?.id)
