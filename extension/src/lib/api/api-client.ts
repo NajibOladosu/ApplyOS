@@ -12,6 +12,8 @@ export interface Application {
     priority: 'low' | 'medium' | 'high'
     platform?: string | null
     notes?: string | null
+    note_category?: string | null
+    note_is_pinned?: boolean
     last_analyzed_document_id?: string | null
     ai_cover_letter?: string | null
     manual_cover_letter?: string | null
@@ -44,23 +46,92 @@ export class APIClient {
     static async getApplications() {
         const { data, error } = await supabase
             .from('applications')
-            .select('*')
+            .select('*, application_notes(content, category, is_pinned)')
             .order('created_at', { ascending: false })
 
         if (error) throw error
-        return data
+
+        return data.map((app: any) => ({
+            ...app,
+            notes: app.application_notes?.[0]?.content || null,
+            note_category: app.application_notes?.[0]?.category || null,
+            note_is_pinned: app.application_notes?.[0]?.is_pinned || false
+        }))
     }
 
     static async updateApplication(id: string, updates: Partial<Application>) {
-        const { data, error } = await supabase
-            .from('applications')
-            .update(updates)
-            .eq('id', id)
-            .select()
-            .single()
+        // Separate notes from other updates
+        const { notes, note_category, note_is_pinned, ...appUpdates } = updates
 
-        if (error) throw error
-        return data
+        // Update application record if there are fields to update
+        let updatedApp = null
+        if (Object.keys(appUpdates).length > 0) {
+            const { data, error } = await supabase
+                .from('applications')
+                .update(appUpdates)
+                .eq('id', id)
+                .select()
+                .single()
+
+            if (error) throw error
+            updatedApp = data
+        }
+
+        // Handle notes update if provided (or if category/pinned provided)
+        if (typeof notes !== 'undefined' || typeof note_category !== 'undefined' || typeof note_is_pinned !== 'undefined') {
+            const { data: { user } } = await supabase.auth.getUser()
+            if (user) {
+                // Check for existing note
+                const { data: existingNote } = await supabase
+                    .from('application_notes')
+                    .select('id')
+                    .eq('application_id', id)
+                    .maybeSingle()
+
+                const noteUpdates: any = {
+                    updated_at: new Date().toISOString()
+                }
+                if (typeof notes !== 'undefined') noteUpdates.content = notes
+                if (typeof note_category !== 'undefined') noteUpdates.category = note_category
+                if (typeof note_is_pinned !== 'undefined') noteUpdates.is_pinned = note_is_pinned
+
+                if (existingNote) {
+                    await supabase
+                        .from('application_notes')
+                        .update(noteUpdates)
+                        .eq('id', existingNote.id)
+                } else if (notes) {
+                    // Only insert if content is not empty (or if we really want to create empty note?)
+                    await supabase
+                        .from('application_notes')
+                        .insert({
+                            application_id: id,
+                            user_id: user.id,
+                            content: notes || '',
+                            category: note_category || null,
+                            is_pinned: note_is_pinned || false
+                        })
+                }
+            }
+        }
+
+        // If we didn't update the app record, fetch it to return valid object
+        if (!updatedApp) {
+            const { data, error } = await supabase
+                .from('applications')
+                .select('*')
+                .eq('id', id)
+                .single()
+
+            if (error) throw error
+            updatedApp = data
+        }
+
+        // Return combined object with the updated note
+        return {
+            ...updatedApp,
+            notes: typeof notes !== 'undefined' ? notes : (updatedApp as any).notes
+        }
     }
 
     static async deleteApplication(id: string) {
