@@ -45,6 +45,10 @@
     .glow-effect {
         box-shadow: 0 0 20px rgba(24, 187, 112, 0.2);
     }
+
+    .group-card:hover .group-card\:opacity-100 {
+        opacity: 1;
+    }
 }
 
 /* Scrollbar */
