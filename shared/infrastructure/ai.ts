@@ -224,6 +224,7 @@ export async function generateCoverLetter(
     experience?: string
     education?: string
     jobDescription?: string
+    extraInstructions?: string
   }
 ): Promise<string> {
   if (!genAI) {
@@ -236,6 +237,8 @@ Application: ${applicationTitle}${company ? ` at ${company}` : ''}
 
 ${context.jobDescription ? `Position/Opportunity Description:\n${context.jobDescription}\n\n` : ''}Candidate's Background:
 ${context.resume ? `Resume/Profile:\n${context.resume}` : '(No resume provided)'}
+
+${context.extraInstructions ? `Additional Instructions from User:\n${context.extraInstructions}\n` : ''}
 
 Important Instructions:
 - Write the cover letter in first person (as the candidate)
