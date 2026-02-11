@@ -9,7 +9,7 @@ interface ApplicationDetailProps {
     onDelete: (id: string) => void
 }
 
-type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'documents' | 'notes'
+type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'notes'
 
 export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: ApplicationDetailProps) {
     const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -41,7 +41,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     useEffect(() => {
         if (activeTab === 'questions') {
             loadQuestions()
-        } else if (activeTab === 'documents') {
+        } else if (activeTab === 'overview') {
             loadDocuments()
         }
     }, [activeTab])
@@ -274,7 +274,6 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                     {renderTabButton('questions', 'Questions')}
                     {renderTabButton('analysis', 'Analysis')}
                     {renderTabButton('cover-letter', 'Cover Letter')}
-                    {renderTabButton('documents', 'Documents')}
                     {renderTabButton('notes', 'Notes')}
                 </div>
             </div>
@@ -342,6 +341,44 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     </div>
                                 </div>
                             )}
+
+                            {/* Attached Documents */}
+                            <div className="space-y-2 border-t border-border pt-4">
+                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Attached Documents</p>
+                                {docsLoading ? (
+                                    <div className="flex items-center gap-2 py-2">
+                                        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
+                                        <span className="text-[10px] text-muted-foreground">Loading...</span>
+                                    </div>
+                                ) : userDocuments.length === 0 ? (
+                                    <p className="text-[10px] text-muted-foreground/60 py-2">No documents uploaded yet. Upload in the main app.</p>
+                                ) : (
+                                    <div className="space-y-1.5">
+                                        {userDocuments.map(doc => {
+                                            const isSelected = selectedDocIds.includes(doc.id)
+                                            return (
+                                                <button
+                                                    key={doc.id}
+                                                    onClick={() => toggleDocumentSelection(doc.id)}
+                                                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all text-left ${isSelected
+                                                            ? 'border-primary bg-primary/5'
+                                                            : 'border-border bg-card hover:border-primary/30'
+                                                        }`}
+                                                >
+                                                    <FileText className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
+                                                    <span className={`text-xs truncate flex-1 ${isSelected ? 'font-medium' : 'text-muted-foreground'}`}>
+                                                        {doc.file_name}
+                                                    </span>
+                                                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-primary border-primary' : 'border-border'
+                                                        }`}>
+                                                        {isSelected && <CheckCircle2 className="w-2.5 h-2.5 text-black" />}
+                                                    </div>
+                                                </button>
+                                            )
+                                        })}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                     )}
 
@@ -569,63 +606,6 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                         </div>
                     )}
 
-                    {/* DOCUMENTS TAB */}
-                    {activeTab === 'documents' && (
-                        <div className="space-y-4 animate-in fade-in duration-200">
-                            <h3 className="text-sm font-bold flex items-center gap-2">
-                                <FileText className="w-4 h-4 text-primary" />
-                                Application Documents
-                            </h3>
-
-                            {docsLoading ? (
-                                <div className="flex flex-col items-center justify-center py-12 space-y-3">
-                                    <Loader2 className="w-8 h-8 text-primary animate-spin" />
-                                    <p className="text-xs text-muted-foreground">Loading documents...</p>
-                                </div>
-                            ) : userDocuments.length === 0 ? (
-                                <div className="text-center py-10 bg-secondary/20 rounded-lg border border-dashed border-border">
-                                    <p className="text-xs text-muted-foreground mb-2">No documents found.</p>
-                                    <p className="text-[10px] text-muted-foreground/60">Upload resumes or cover letters in the main app.</p>
-                                </div>
-                            ) : (
-                                <div className="space-y-2">
-                                    <p className="text-[10px] uppercase font-bold text-muted-foreground mb-3">Attach to this application</p>
-                                    <div className="space-y-2">
-                                        {userDocuments.map(doc => {
-                                            const isSelected = selectedDocIds.includes(doc.id)
-                                            return (
-                                                <button
-                                                    key={doc.id}
-                                                    onClick={() => toggleDocumentSelection(doc.id)}
-                                                    className={`w-full flex items-center gap-3 p-3 rounded-lg border transition-all text-left group ${isSelected
-                                                        ? 'border-primary bg-primary/5'
-                                                        : 'border-border bg-card hover:border-primary/30'
-                                                        }`}
-                                                >
-                                                    <div className={`p-2 rounded-md transition-colors ${isSelected ? 'bg-primary text-black' : 'bg-secondary text-muted-foreground group-hover:text-foreground'
-                                                        }`}>
-                                                        <FileText className="w-4 h-4" />
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <p className={`text-xs font-medium truncate ${isSelected ? 'text-foreground' : 'text-muted-foreground group-hover:text-foreground'}`}>
-                                                            {doc.file_name}
-                                                        </p>
-                                                        <p className="text-[10px] text-muted-foreground/60">
-                                                            {new Date(doc.created_at).toLocaleDateString()}
-                                                        </p>
-                                                    </div>
-                                                    <div className={`w-4 h-4 rounded-full border flex items-center justify-center transition-all ${isSelected ? 'bg-primary border-primary' : 'border-border'
-                                                        }`}>
-                                                        {isSelected && <CheckCircle2 className="w-3 h-3 text-black" />}
-                                                    </div>
-                                                </button>
-                                            )
-                                        })}
-                                    </div>
-                                </div>
-                            )}
-                        </div>
-                    )}
 
                     {/* NOTES TAB */}
                     {activeTab === 'notes' && (
