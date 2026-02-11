@@ -32,6 +32,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const [generatingCL, setGeneratingCL] = useState(false)
     const [aiCoverLetter, setAiCoverLetter] = useState(application.ai_cover_letter || '')
     const [mCL, setMCL] = useState(application.manual_cover_letter || application.ai_cover_letter || '')
+    const [clInstructions, setClInstructions] = useState('')
 
     // Analysis state
     const [analysis, setAnalysis] = useState<any>(null)
@@ -259,7 +260,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const handleGenerateCL = async () => {
         setGeneratingCL(true)
         try {
-            const result = await APIClient.generateCoverLetter(application.id!)
+            const result = await APIClient.generateCoverLetter(application.id!, clInstructions)
             if (result.coverLetter) {
                 setMCL(result.coverLetter)
                 setAiCoverLetter(result.coverLetter)
@@ -470,7 +471,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
 
                             {/* Context Input */}
                             <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">AI Context / Instructions (Optional)</label>
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Instructions</label>
                                 <textarea
                                     value={aiContext}
                                     onChange={e => setAiContext(e.target.value)}
@@ -661,6 +662,16 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     {generatingCL ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
                                     {aiCoverLetter ? 'Regenerate' : 'Generate'}
                                 </button>
+                            </div>
+
+                            <div className="space-y-1 mb-3">
+                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Instructions</label>
+                                <textarea
+                                    value={clInstructions}
+                                    onChange={e => setClInstructions(e.target.value)}
+                                    className="w-full h-16 p-2 text-xs bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
+                                    placeholder="E.g. 'Emphasize my Python experience' or 'Keep it under 200 words'"
+                                />
                             </div>
 
                             <textarea

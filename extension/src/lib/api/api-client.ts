@@ -153,7 +153,7 @@ export class APIClient {
         return await response.json()
     }
 
-    static async generateCoverLetter(applicationId: string) {
+    static async generateCoverLetter(applicationId: string, instructions?: string) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
         const { data: { session } } = await supabase.auth.getSession()
 
@@ -163,7 +163,7 @@ export class APIClient {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session?.access_token}`
             },
-            body: JSON.stringify({ applicationId })
+            body: JSON.stringify({ applicationId, instructions })
         })
 
         if (!response.ok) {

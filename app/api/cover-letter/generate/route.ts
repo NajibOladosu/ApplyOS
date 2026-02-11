@@ -45,9 +45,9 @@ export async function POST(req: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse
 
     const body = await req.json()
-    const { applicationId } = body
+    const { applicationId, instructions } = body
 
-    console.log("Generate cover letter request:", { applicationId, hasBody: !!body })
+    console.log("Generate cover letter request:", { applicationId, hasBody: !!body, hasInstructions: !!instructions })
 
     if (!applicationId) {
       return NextResponse.json(
@@ -78,12 +78,22 @@ export async function POST(req: NextRequest) {
       experience?: string
       education?: string
       jobDescription?: string
+      extraInstructions?: string
     } = {
       resume: undefined,
       experience: undefined,
       education: undefined,
       jobDescription: app.job_description || undefined,
+      extraInstructions: instructions || undefined,
     }
+    // ...
+    // Note: I need to replace the call to generateCoverLetter later in the file too?
+    // Wait, context object is passed. I just added extraInstructions to it.
+    // So the call to generateCoverLetter(app.title, app.company || null, context) will work fine
+    // as long as context has the property.
+    // But I replaced the BLOCK from line 48 to 86.
+    // Let's verify the ReplacementContent covers the original lines correctly.
+
 
     // Get the documents associated with this application
     const { data: appDocRows, error: appDocError } = await supabase
