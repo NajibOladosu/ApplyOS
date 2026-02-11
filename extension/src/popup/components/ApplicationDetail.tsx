@@ -186,13 +186,23 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     }
 
     const handleCheckCompatibility = async () => {
+        if (!application.id) return
+
+        // Pass the first attached document ID if available
+        const docId = selectedDocIds.length > 0 ? selectedDocIds[0] : undefined
+
+        if (!docId) {
+            alert("Please attach a resume in the Overview tab first.")
+            return
+        }
+
         setCheckingComp(true)
         try {
-            const result = await APIClient.checkCompatibility(application.job_description || '')
-            setCompatibility(result)
-        } catch (e) {
+            const result = await APIClient.checkCompatibility(application.id, docId)
+            setCompatibility(result.analysis)
+        } catch (e: any) {
             console.error(e)
-            alert("Analysis failed. Ensure you have an uploaded resume.")
+            alert(`Analysis failed: ${e.message || 'Unknown error'}`)
         } finally {
             setCheckingComp(false)
         }
@@ -361,8 +371,8 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                                     key={doc.id}
                                                     onClick={() => toggleDocumentSelection(doc.id)}
                                                     className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all text-left ${isSelected
-                                                            ? 'border-primary bg-primary/5'
-                                                            : 'border-border bg-card hover:border-primary/30'
+                                                        ? 'border-primary bg-primary/5'
+                                                        : 'border-border bg-card hover:border-primary/30'
                                                         }`}
                                                 >
                                                     <FileText className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />

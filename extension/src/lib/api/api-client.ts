@@ -73,25 +73,39 @@ export class APIClient {
     }
 
     // AI Features
-    static async checkCompatibility(jobDescription: string, documentId?: string) {
+    static async checkCompatibility(applicationId: string, documentId: string) {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
         const { data: { session } } = await supabase.auth.getSession()
 
-        const response = await fetch(`${baseUrl}/api/ai/compatibility`, {
+        const response = await fetch(`${baseUrl}/api/applications/analyze`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${session?.access_token}`
             },
-            body: JSON.stringify({ jobDescription, documentId: documentId || undefined })
+            body: JSON.stringify({ applicationId, documentId })
         })
 
         if (!response.ok) {
-            const err = await response.json().catch(() => ({}))
-            throw new Error(err.error || `API error: ${response.statusText}`)
+            const text = await response.text().catch(() => '')
+            let errorMsg = ''
+            try { errorMsg = JSON.parse(text)?.error } catch { }
+            throw new Error(errorMsg || `HTTP ${response.status}: ${text.substring(0, 200)}`)
         }
 
         return await response.json()
+    }
+
+    static async getAnalysis(applicationId: string, documentId: string) {
+        const { data, error } = await supabase
+            .from('document_analyses')
+            .select('*')
+            .eq('application_id', applicationId)
+            .eq('document_id', documentId)
+            .maybeSingle()
+
+        if (error) throw error
+        return data
     }
 
     static async saveQuestions(applicationId: string, questions: any[]) {
