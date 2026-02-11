@@ -15,7 +15,9 @@
         "*://*.myworkdayjobs.com/*",
         "*://*.greenhouse.io/*",
         "*://*.lever.co/*",
-        "*://*.glassdoor.com/*"
+        "*://*.glassdoor.com/*",
+        "http://localhost:3000/*",
+        "https://applyos.io/*"
     ],
     "background": {
         "service_worker": "background.js",
