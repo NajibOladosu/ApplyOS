@@ -59,7 +59,9 @@
         {
             "resources": [
                 "icons/*.png",
-                "*.svg"
+                "*.svg",
+                "*.webp",
+                "logo.png"
             ],
             "matches": [
                 "*://*.linkedin.com/*",

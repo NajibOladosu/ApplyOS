@@ -18,10 +18,18 @@
     "license": "MIT",
     "dependencies": {
         "@supabase/supabase-js": "^2.43.0",
+        "@tailwindcss/typography": "^0.5.19",
+        "@tiptap/extension-placeholder": "^3.19.0",
+        "@tiptap/extension-strike": "^3.19.0",
+        "@tiptap/extension-text-align": "^3.19.0",
+        "@tiptap/extension-underline": "^3.19.0",
+        "@tiptap/react": "^3.19.0",
+        "@tiptap/starter-kit": "^3.19.0",
         "clsx": "^2.1.1",
         "lucide-react": "^0.468.0",
         "react": "^19.2.1",
         "react-dom": "^19.2.1",
+        "sharp": "^0.34.5",
         "tailwind-merge": "^2.3.0"
     },
     "devDependencies": {
