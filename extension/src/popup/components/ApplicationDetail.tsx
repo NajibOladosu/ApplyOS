@@ -120,6 +120,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         if (!application.id) return
         setSaving(true)
         try {
+            // Update Application
             const updated = await APIClient.updateApplication(application.id, {
                 status,
                 notes,
@@ -127,6 +128,14 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                 note_is_pinned: noteIsPinned,
                 manual_cover_letter: mCL
             } as any)
+
+            // Update Questions
+            if (questions.length > 0) {
+                await Promise.all(questions.map(q =>
+                    APIClient.updateQuestion(q.id, { ai_answer: q.ai_answer })
+                ))
+            }
+
             onUpdate(updated as Application)
         } catch (e: any) {
             console.error('Update failed:', e)
@@ -134,6 +143,12 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         } finally {
             setSaving(false)
         }
+    }
+
+    const handleQuestionChange = (id: string, newAnswer: string) => {
+        setQuestions(prev => prev.map(q =>
+            q.id === id ? { ...q, ai_answer: newAnswer } : q
+        ))
     }
 
     useEffect(() => {
@@ -539,30 +554,32 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 <div className="space-y-4">
                                     {questions.map((q, i) => (
                                         <div key={i} className="bg-card border border-border/50 rounded-lg p-3 space-y-2 relative group-card">
-                                            <div className="flex justify-between items-start gap-2">
-                                                <p className="text-xs font-medium pr-6">{q.question_text}</p>
-                                                <button
-                                                    onClick={() => handleDeleteQuestion(q.id)}
-                                                    className="p-1 text-muted-foreground hover:text-red-400 opacity-0 group-card:opacity-100 transition-opacity"
-                                                >
-                                                    <Trash2 className="w-3 h-3" />
-                                                </button>
-                                            </div>
-                                            {q.ai_answer ? (
-                                                <div className="bg-secondary/30 p-2 rounded text-xs text-muted-foreground relative group">
-                                                    {q.ai_answer}
+                                            <div className="flex justify-between items-start gap-2 mb-2">
+                                                <p className="text-xs font-bold text-foreground">{q.question_text}</p>
+                                                <div className="flex gap-1">
                                                     <button
-                                                        onClick={() => navigator.clipboard.writeText(q.ai_answer)}
-                                                        className="absolute top-2 right-2 p-1 rounded hover:bg-background/80 opacity-0 group-hover:opacity-100 transition-opacity"
+                                                        onClick={() => navigator.clipboard.writeText(q.ai_answer || '')}
+                                                        className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                                        title="Copy Answer"
                                                     >
-                                                        <Copy className="w-3 h-3 text-primary" />
+                                                        <Copy className="w-3 h-3" />
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleDeleteQuestion(q.id)}
+                                                        className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
+                                                        title="Delete Question"
+                                                    >
+                                                        <Trash2 className="w-3 h-3" />
                                                     </button>
                                                 </div>
-                                            ) : (
-                                                <div className="text-[10px] italic text-muted-foreground/50">
-                                                    Answer not generated yet...
-                                                </div>
-                                            )}
+                                            </div>
+
+                                            <textarea
+                                                value={q.ai_answer || ''}
+                                                readOnly
+                                                className="w-full h-32 p-3 text-xs bg-card border border-border rounded-lg outline-none resize-none leading-relaxed"
+                                                placeholder="Answer will be generated here..."
+                                            />
                                         </div>
                                     ))}
                                 </div>
@@ -702,14 +719,16 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     <FileText className="w-4 h-4 text-primary" />
                                     Cover Letter
                                 </h3>
-                                <button
-                                    onClick={handleGenerateCL}
-                                    disabled={generatingCL}
-                                    className="text-[10px] bg-primary hover:bg-primary/90 text-background px-4 py-1.5 rounded-full flex items-center gap-1 font-semibold transition-colors disabled:opacity-50"
-                                >
-                                    {generatingCL ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                                    {aiCoverLetter ? 'Regenerate' : 'Generate'}
-                                </button>
+                                <div className="flex gap-2">
+                                    <button
+                                        onClick={handleGenerateCL}
+                                        disabled={generatingCL}
+                                        className="text-[10px] bg-primary hover:bg-primary/90 text-background px-4 py-1.5 rounded-full flex items-center gap-1 font-semibold transition-colors disabled:opacity-50"
+                                    >
+                                        {generatingCL ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
+                                        {aiCoverLetter ? 'Regenerate' : 'Generate'}
+                                    </button>
+                                </div>
                             </div>
 
                             <div className="space-y-1 mb-3">
@@ -722,12 +741,26 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 />
                             </div>
 
-                            <textarea
-                                value={mCL}
-                                onChange={e => setMCL(e.target.value)}
-                                className="w-full h-[400px] p-4 text-sm bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none leading-relaxed"
-                                placeholder="Generate a cover letter or start writing here..."
-                            />
+                            <div className="bg-card border border-border rounded-lg p-3 space-y-2 relative group-card">
+                                <div className="flex justify-between items-start gap-2 mb-2">
+                                    <p className="text-xs font-bold text-foreground">Generated Cover Letter</p>
+                                    <div className="flex gap-1">
+                                        <button
+                                            onClick={() => navigator.clipboard.writeText(mCL)}
+                                            className="p-1 text-muted-foreground hover:text-primary transition-colors"
+                                            title="Copy Cover Letter"
+                                        >
+                                            <Copy className="w-3 h-3" />
+                                        </button>
+                                    </div>
+                                </div>
+                                <textarea
+                                    value={mCL}
+                                    readOnly
+                                    className="w-full h-[400px] p-4 text-sm bg-card border border-border rounded-lg outline-none resize-none leading-relaxed"
+                                    placeholder="Generate a cover letter..."
+                                />
+                            </div>
                         </div>
                     )}
 

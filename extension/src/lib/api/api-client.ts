@@ -283,6 +283,18 @@ export class APIClient {
         return true
     }
 
+    static async updateQuestion(id: string, updates: any) {
+        const { data, error } = await supabase
+            .from('questions')
+            .update(updates)
+            .eq('id', id)
+            .select()
+            .single()
+
+        if (error) throw error
+        return data
+    }
+
     // Documents
     static async uploadDocument(file: File, userId: string) {
         // Upload to storage
