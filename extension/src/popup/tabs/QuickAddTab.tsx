@@ -198,7 +198,7 @@ export function QuickAddTab() {
                     className="w-full btn-primary h-10 shadow-[0_0_15px_rgba(24,187,112,0.2)]"
                 >
                     <Save className="w-4 h-4 mr-2" />
-                    Save Application
+                    Add Application
                 </button>
             </div>
         </div>
