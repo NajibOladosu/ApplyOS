@@ -132,8 +132,18 @@ export function ApplicationsTab() {
                             </div>
 
                             {/* Hover Actions */}
-                            <div className="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity">
-                                <ExternalLink className="w-4 h-4 text-primary" />
+                            <div className="absolute right-3 bottom-3 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-2">
+                                <button
+                                    onClick={(e) => {
+                                        e.stopPropagation()
+                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+                                        window.open(`${baseUrl}/applications/${app.id}`, '_blank')
+                                    }}
+                                    className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                                    title="Open in ApplyOS"
+                                >
+                                    <ExternalLink className="w-4 h-4" />
+                                </button>
                             </div>
                         </div>
                     ))
