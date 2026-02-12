@@ -15,8 +15,8 @@ type Tab = 'overview' | 'questions' | 'analysis' | 'cover-letter' | 'notes'
 const TABS: { id: Tab, label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'questions', label: 'Questions' },
-    { id: 'analysis', label: 'Analysis' },
     { id: 'cover-letter', label: 'Cover Letter' },
+    { id: 'analysis', label: 'Analysis' },
     { id: 'notes', label: 'Notes' }
 ]
 
