@@ -136,7 +136,7 @@ export function ApplicationsTab() {
                                 <button
                                     onClick={(e) => {
                                         e.stopPropagation()
-                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
                                         window.open(`${baseUrl}/applications/${app.id}`, '_blank')
                                     }}
                                     className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"

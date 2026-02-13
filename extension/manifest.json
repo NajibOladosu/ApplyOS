@@ -16,8 +16,7 @@
         "*://*.greenhouse.io/*",
         "*://*.lever.co/*",
         "*://*.glassdoor.com/*",
-        "http://localhost:3000/*",
-        "https://applyos.io/*"
+        "https://www.applyos.io/*"
     ],
     "background": {
         "service_worker": "background.js",
