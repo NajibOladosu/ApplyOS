@@ -146,7 +146,7 @@ export class APIClient {
 
     // AI Features
     static async checkCompatibility(applicationId: string, documentId: string) {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
         const { data: { session } } = await supabase.auth.getSession()
 
         const response = await fetch(`${baseUrl}/api/applications/analyze`, {
@@ -204,7 +204,7 @@ export class APIClient {
     }
 
     static async generateAnswers(applicationId: string, extraContext?: string) {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
         const { data: { session } } = await supabase.auth.getSession()
 
         const response = await fetch(`${baseUrl}/api/questions/regenerate`, {
@@ -225,7 +225,7 @@ export class APIClient {
     }
 
     static async generateCoverLetter(applicationId: string, instructions?: string) {
-        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
         const { data: { session } } = await supabase.auth.getSession()
 
         const response = await fetch(`${baseUrl}/api/cover-letter/generate`, {
