@@ -98,7 +98,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
 
                 <div className="text-center">
                     <p className="text-xs text-muted-foreground">
-                        Don't have an account? <a href="http://localhost:3000/auth/signup" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline transition-colors">Create one</a>
+                        Don't have an account? <a href="https://www.applyos.io/auth/signup" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline transition-colors">Create one</a>
                     </p>
                 </div>
             </div>
