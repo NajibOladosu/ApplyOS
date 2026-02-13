@@ -349,7 +349,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                 <div className="flex gap-1">
                     <button
                         onClick={() => {
-                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+                            const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
                             window.open(`${baseUrl}/applications/${application.id}`, '_blank')
                         }}
                         className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
