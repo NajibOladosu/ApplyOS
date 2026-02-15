@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { callGeminiWithFallback } from "@/lib/ai"
-import { createClient } from "@/lib/supabase/server"
-import { getAnalyzedDocuments, buildContextFromDocument } from "@/lib/services/documents"
+import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
+import { createClient } from "@/shared/db/supabase/server"
+import { getAnalyzedDocuments, buildContextFromDocument } from "@/modules/documents/services/document.service"
 
 export const dynamic = 'force-dynamic'
 
