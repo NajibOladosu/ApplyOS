@@ -6,6 +6,23 @@ export async function proxy(request: NextRequest) {
   const pathname = request.nextUrl.pathname
 
   // ============================================================
+  // CORS FOR API ROUTES
+  // ============================================================
+  // Handle preflight requests for browser extension and other cross-origin callers
+  if (pathname.startsWith('/api/')) {
+    if (request.method === 'OPTIONS') {
+      return new NextResponse(null, {
+        status: 200,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        },
+      })
+    }
+  }
+
+  // ============================================================
   // SUBDOMAIN ROUTING FOR BLOG
   // ============================================================
   // Detect if request is coming from blog.applyos.io subdomain
@@ -142,6 +159,13 @@ export async function proxy(request: NextRequest) {
   response.headers.set('X-Content-Type-Options', 'nosniff') // Prevent MIME type sniffing
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin') // Control referrer information
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()') // Restrict browser features (allow microphone for voice interviews)
+
+  // Add CORS headers for API routes
+  if (pathname.startsWith('/api/')) {
+    response.headers.set('Access-Control-Allow-Origin', '*')
+    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+  }
 
   // HSTS (HTTP Strict Transport Security) - only in production with HTTPS
   if (process.env.NODE_ENV === 'production') {
