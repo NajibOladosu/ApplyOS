@@ -189,6 +189,14 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Placeholder text
   - Auto-save capabilities
 
+### Smart Browser Extension
+
+- **Instant Application Capture** - One-click saving of job postings from LinkedIn, Indeed, Glassdoor, and more
+- **AI Compatibility Analysis** - Real-time matching of your resume against the current job description
+- **Quick-Add Dashboard** - Rapidly add notes and track application status without leaving the job board
+- **Automatic Data Extraction** - AI-powered parsing of job titles, companies, and requirements
+- **Seamless Sync** - Instant synchronization with your ApplyOS dashboard
+
 ### Marketing & Growth (Beta)
 
 - **Marketing Content Calendar** - System for planning social media posts (LinkedIn, Twitter)
@@ -704,11 +712,15 @@ ApplyOS/
 │   ├── functions/               # Supabase Edge Functions
 │   │   └── analyze-screenshot/  # AI screenshot analysis logic
 │   └── migrations/              # SQL migration files (001-021)
+├── extension/                    # Browser Extension (Chrome/Edge/Firefox)
+│   ├── src/                     # Extension source code
+│   ├── public/                  # Static assets
+│   └── manifest.json            # Extension configuration
 ├── types/
 │   └── database.ts              # TypeScript type definitions
 ├── contexts/
 │   └── AuthContext.tsx          # Authentication context
-├── middleware.ts                # Route protection middleware
+├── proxy.ts                     # Unified Authentication, Subdomain & CORS Middleware
 ├── next.config.js               # Next.js configuration
 ├── tailwind.config.ts           # Tailwind configuration
 ├── tsconfig.json                # TypeScript configuration
@@ -728,6 +740,12 @@ ApplyOS/
 | `/api/auth/verify-email` | GET | Verify email with token from email link |
 | `/api/auth/resend-verification` | POST | Resend verification email (rate-limited) |
 | `/auth/callback` | GET | OAuth callback handler (Google) |
+
+### AI Analysis (General)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ai/compatibility` | POST | Analyze match between Job Description and Resume |
 
 ### Documents
 
@@ -846,13 +864,22 @@ We welcome contributions! Here's how you can help:
 ### Contribution Process
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create a standardized feature branch (`git checkout -b type/amazing-feature`)
 3. Make your changes
 4. Follow code standards (TypeScript, ESLint config)
 5. Test your changes locally
 6. Commit with clear messages (`git commit -m 'feat: add amazing feature'`)
-7. Push to your branch (`git push origin feature/amazing-feature`)
+7. Push to your branch (`git push origin type/amazing-feature`)
 8. Open a Pull Request
+
+#### Branch Naming Conventions
+
+We follow a structured naming convention to keep the repository organized:
+- `feat/`: New features
+- `fix/`: Bug fixes
+- `docs/`: Documentation updates
+- `refactor/`: Code improvements (no new features/fixes)
+- `chore/`: Maintenance (dependencies, config, etc.)
 
 ### Code Standards
 
