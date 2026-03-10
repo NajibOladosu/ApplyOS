@@ -13,7 +13,8 @@ import {
   ArrowRight,
   Zap,
   Shield,
-  Clock
+  Clock,
+  Chrome
 } from "lucide-react"
 import { BlogSettingsButton } from "@/components/blog-settings-button"
 
@@ -137,10 +138,15 @@ export default function Home() {
                 asChild
                 className="text-foreground border-foreground/20 hover:border-primary hover:bg-primary hover:text-primary-foreground group transition-all"
               >
-                <Link href="#how-it-works" className="flex items-center gap-2">
-                  <span>View Workflow</span>
-                  <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1 rotate-90" aria-hidden="true" />
-                </Link>
+                <a
+                  href="https://chromewebstore.google.com/detail/gikepikgajfppgebbgcikhocdeejandg?utm_source=item-share-cb"
+                  target="_blank"
+                  rel="noreferrer"
+                  className="flex items-center gap-2"
+                >
+                  <Chrome className="h-4 w-4" aria-hidden="true" />
+                  <span>Chrome Extension</span>
+                </a>
               </Button>
             </div>
 
