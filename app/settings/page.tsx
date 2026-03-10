@@ -17,6 +17,7 @@ import {
   Sun,
   Moon,
   Monitor,
+  Puzzle,
 } from "lucide-react"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -462,6 +463,39 @@ export default function SettingsPage() {
               </div>
               <Button variant="outline" size="sm" disabled>
                 Coming soon
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Browser Extension */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Browser Extension</CardTitle>
+            <CardDescription>
+              Install the Chrome extension to easily save jobs from any website.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Puzzle className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Chrome Extension</p>
+                  <p className="text-sm text-muted-foreground">
+                    Download the latest release and install it in Chrome.
+                  </p>
+                </div>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href="https://github.com/NajibOladosu/Trackly/releases/latest"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Download
+                  <Download className="ml-2 h-4 w-4" />
+                </a>
               </Button>
             </div>
           </CardContent>
