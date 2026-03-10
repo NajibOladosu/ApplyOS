@@ -17,7 +17,7 @@ import {
   Sun,
   Moon,
   Monitor,
-  Puzzle,
+  Chrome,
 } from "lucide-react"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
@@ -479,7 +479,7 @@ export default function SettingsPage() {
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-3">
-                <Puzzle className="h-5 w-5 text-muted-foreground" />
+                <Chrome className="h-5 w-5 text-muted-foreground" />
                 <div>
                   <p className="font-medium">Chrome Extension</p>
                   <p className="text-sm text-muted-foreground">
@@ -489,7 +489,7 @@ export default function SettingsPage() {
               </div>
               <Button asChild variant="outline" size="sm">
                 <a
-                  href="https://github.com/NajibOladosu/Trackly/releases/latest"
+                  href="https://chromewebstore.google.com/detail/gikepikgajfppgebbgcikhocdeejandg?utm_source=item-share-cb"
                   target="_blank"
                   rel="noreferrer"
                 >
