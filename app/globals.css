@@ -142,6 +142,7 @@
   :root:not(.dark) .lucide.lucide-underline,
   :root:not(.dark) .lucide.lucide-trending-up,
   :root:not(.dark) .lucide.lucide-share,
+  :root:not(.dark) .lucide.lucide-chrome,
   :root:not(.dark) .lucide.lucide-share-2 {
     fill: none;
   }
