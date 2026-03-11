@@ -227,6 +227,66 @@ export default function Home() {
         </div>
       </section >
 
+      {/* Chrome Extension Section */}
+      <section id="browser-extension" className="py-20 px-6">
+        <div className="container mx-auto">
+          <Card className="glass-effect border-primary/20 bg-background/50">
+            <CardContent className="p-12 flex items-center gap-12 flex-col md:flex-row">
+              <div className="flex-1 space-y-6">
+                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-sm font-medium">
+                  <Chrome className="h-4 w-4" />
+                  Browser Extension
+                </div>
+                <h2 className="text-4xl font-bold">
+                  Save Jobs Faster with the ApplyOS Extension
+                </h2>
+                <p className="text-xl text-muted-foreground">
+                  Stop copy-pasting URLs. With our Chrome extension, you can extract
+                  job details and application questions directly from any tab in seconds.
+                </p>
+                <div className="pt-4">
+                  <Button
+                    asChild
+                    className="bg-primary text-primary-foreground font-bold hover:bg-primary/90 shadow-[0_0_20px_rgba(0,255,136,0.3)] hover:shadow-[0_0_30px_rgba(0,255,136,0.5)] transition-all duration-200"
+                  >
+                    <a
+                      href="https://chromewebstore.google.com/detail/gikepikgajfppgebbgcikhocdeejandg?utm_source=item-share-cb"
+                      target="_blank"
+                      rel="noreferrer"
+                      className="flex items-center gap-2"
+                    >
+                      <Chrome className="h-5 w-5" aria-hidden="true" />
+                      <span>Download for Chrome</span>
+                    </a>
+                  </Button>
+                </div>
+              </div>
+              <div className="flex-1 w-full flex justify-center">
+                {/* Visualizer Placeholder */}
+                <div className="relative w-full max-w-sm aspect-square rounded-2xl bg-secondary/50 border border-border flex items-center justify-center overflow-hidden">
+                  <div className="absolute inset-0 bg-gradient-to-br from-primary/20 via-transparent to-transparent opacity-50"></div>
+                  <div className="h-24 w-24 rounded-2xl bg-card border border-border shadow-2xl flex items-center justify-center relative z-10">
+                    <Chrome className="h-12 w-12 text-primary" />
+                  </div>
+
+                  {/* Abstract floating elements */}
+                  <motion.div
+                    className="absolute top-10 right-10 h-16 w-32 bg-card border border-border rounded-lg shadow-lg"
+                    animate={{ y: [0, -10, 0] }}
+                    transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                  <motion.div
+                    className="absolute bottom-16 left-8 h-12 w-40 bg-card border border-border rounded-lg shadow-lg"
+                    animate={{ y: [0, 10, 0] }}
+                    transition={{ duration: 5, repeat: Infinity, ease: "easeInOut", delay: 1 }}
+                  />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      </section>
+
       {/* CTA Section */}
       < section className="py-20 px-6 bg-secondary/30" >
         <div className="container mx-auto">
