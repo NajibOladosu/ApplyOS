@@ -244,7 +244,7 @@ export default function InterviewReportPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Difficulty</p>
-                <Badge className={difficultyColors[session.difficulty]}>
+                <Badge className={difficultyColors[session.difficulty ?? 'medium']}>
                   <span className="capitalize">{session.difficulty}</span>
                 </Badge>
               </div>
