@@ -455,7 +455,7 @@ export default function InterviewReportPage() {
                                 <Badge variant="outline" className="text-xs">
                                   {question.question_category.replace(/_/g, ' ')}
                                 </Badge>
-                                <Badge className={difficultyColors[question.difficulty]} variant="outline">
+                                <Badge className={difficultyColors[question.difficulty ?? 'medium']} variant="outline">
                                   <span className="capitalize">{question.difficulty}</span>
                                 </Badge>
                               </div>

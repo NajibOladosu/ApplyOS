@@ -1227,6 +1227,7 @@ export async function evaluateInterviewAnswer(params: {
     strengths: string[]
     weaknesses: string[]
     suggestions: string[]
+    tone_analysis?: string
   }
 }> {
   if (!genAI) {
