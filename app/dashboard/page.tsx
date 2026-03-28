@@ -101,13 +101,21 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      const [applicationsData, statsData, documentsData] = await Promise.all([
+      const [applicationsResult, statsResult, documentsResult] = await Promise.allSettled([
         getApplications(),
         getApplicationStats(),
         getDocuments()
       ])
 
-      setStats(statsData)
+      const applicationsData = applicationsResult.status === 'fulfilled' ? applicationsResult.value : []
+      const statsData = statsResult.status === 'fulfilled' ? statsResult.value : null
+      const documentsData = documentsResult.status === 'fulfilled' ? documentsResult.value : []
+
+      if (applicationsResult.status === 'rejected') console.error('Error fetching applications:', applicationsResult.reason)
+      if (statsResult.status === 'rejected') console.error('Error fetching stats:', statsResult.reason)
+      if (documentsResult.status === 'rejected') console.error('Error fetching documents:', documentsResult.reason)
+
+      if (statsData) setStats(statsData)
       setDocumentsCount(documentsData.length)
       setRecentApplications(applicationsData.slice(0, 4))
 
