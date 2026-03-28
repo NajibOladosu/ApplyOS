@@ -163,6 +163,7 @@ export interface InterviewFeedback {
   weaknesses: string[]
   suggestions: string[]
   tone_analysis?: string  // Analysis of communication style and delivery
+  rubric?: Record<string, number>  // Optional per-dimension rubric scores
 }
 
 export interface ScoreBreakdown {

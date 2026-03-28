@@ -691,11 +691,11 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                     </div>
 
                     {/* General Feedback - Display first */}
-                    {(currentFeedback.feedback.text || currentFeedback.feedback.overall) && (
+                    {currentFeedback.feedback.overall && (
                       <div className="pb-4 border-b">
                         <h4 className="text-sm font-semibold mb-2">General Feedback</h4>
                         <p className="text-sm text-muted-foreground">
-                          {currentFeedback.feedback.text || currentFeedback.feedback.overall}
+                          {currentFeedback.feedback.overall}
                         </p>
                       </div>
                     )}
