@@ -96,17 +96,17 @@ export async function POST(request: NextRequest) {
 
       // Render React Email template (both HTML and plain text)
       const htmlBody = await render(
-        VerifyEmailTemplate({
-          userName,
-          verificationUrl,
-        })
+        <VerifyEmailTemplate
+          userName={userName}
+          verificationUrl={verificationUrl}
+        />
       );
 
       const textBody = await render(
-        VerifyEmailTemplate({
-          userName,
-          verificationUrl,
-        }),
+        <VerifyEmailTemplate
+          userName={userName}
+          verificationUrl={verificationUrl}
+        />,
         { plainText: true }
       );
 
