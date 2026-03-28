@@ -21,16 +21,22 @@ interface RetryTask {
 }
 
 export class RetryQueueService {
-  private static supabase = createClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL || '',
-    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || '',
-    {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-      },
+  private static supabase = (() => {
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceRoleKey) {
+      throw new Error('SUPABASE_SERVICE_ROLE_KEY is required for RetryQueueService. Falling back to anon key would bypass RLS and is not allowed.')
     }
-  )
+    return createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL || '',
+      serviceRoleKey,
+      {
+        auth: {
+          persistSession: false,
+          autoRefreshToken: false,
+        },
+      }
+    )
+  })()
 
   /**
    * Queue a task for retry when rate limit expires
@@ -75,7 +81,7 @@ export class RetryQueueService {
         .select('*')
         .is('completed_at', null)
         .lte('scheduled_retry_time', now.toISOString())
-        .lt('attempt_count', this.supabase.from('ai_retry_queue') as any) // This will be fixed in the next line
+        .lt('attempt_count', 5) // Only fetch tasks that haven't exceeded max_attempts (default: 5)
         .order('scheduled_retry_time', { ascending: true })
         .limit(limit)
 
