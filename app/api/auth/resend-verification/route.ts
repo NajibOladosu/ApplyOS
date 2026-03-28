@@ -6,6 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
+import React from 'react';
 import { render } from '@react-email/render';
 import VerifyEmailTemplate from '@/emails/verify-email';
 import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport';
@@ -96,17 +97,11 @@ export async function POST(request: NextRequest) {
 
       // Render React Email template (both HTML and plain text)
       const htmlBody = await render(
-        <VerifyEmailTemplate
-          userName={userName}
-          verificationUrl={verificationUrl}
-        />
+        React.createElement(VerifyEmailTemplate, { userName, verificationUrl })
       );
 
       const textBody = await render(
-        <VerifyEmailTemplate
-          userName={userName}
-          verificationUrl={verificationUrl}
-        />,
+        React.createElement(VerifyEmailTemplate, { userName, verificationUrl }),
         { plainText: true }
       );
 
