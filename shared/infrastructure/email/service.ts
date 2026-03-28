@@ -15,6 +15,7 @@ import {
   EmailTemplateType,
   EmailService,
 } from './types';
+import React from 'react';
 import { render } from '@react-email/render';
 
 // Import templates
@@ -163,7 +164,7 @@ export const emailService: EmailService = {
    */
   async sendVerificationEmail(data: VerificationEmailData) {
     const htmlBody = await render(
-      VerifyEmailTemplate({
+      React.createElement(VerifyEmailTemplate, {
         userName: data.userName,
         verificationUrl: data.verificationUrl,
       })
