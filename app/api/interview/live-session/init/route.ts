@@ -206,10 +206,18 @@ export async function POST(request: NextRequest) {
     // Model configuration
     const model = 'models/gemini-2.5-flash-native-audio-preview-09-2025'
 
-    // TODO: Use ephemeral tokens once available in SDK
-    // Ephemeral tokens provide better security by having a limited TTL (1 hour)
-    // For now, using API key directly - client should connect directly to Gemini
-    // and the key will be used for WebSocket authentication
+    // SECURITY NOTE: The Gemini Live WebSocket API requires a key in the URL query string
+    // for the client-side WebSocket connection. There is currently no ephemeral token support
+    // in the SDK for this use case.
+    //
+    // MITIGATIONS IN PLACE:
+    // - GEMINI_LIVE_API_KEY should be a SEPARATE key from GEMINI_API_KEY, restricted to
+    //   only the "Generative Language API" in Google Cloud Console.
+    // - This endpoint requires authentication (line 53) — only your users can request it.
+    // - Add HTTP referrer restrictions in Google Cloud Console for this key.
+    //
+    // TODO: When Google adds ephemeral token support for the Live API, replace this
+    // with ephemeral tokens (short-lived, per-session, non-reusable).
     const token = process.env.GEMINI_LIVE_API_KEY
 
     console.log('Live session token prepared for model:', model)
