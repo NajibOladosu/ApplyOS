@@ -54,11 +54,12 @@ export async function POST(req: NextRequest) {
 
         const { data: app, error: appError } = await supabase
             .from("applications")
-            .select("id, user_id, job_description, position_title, company")
+            .select("id, user_id, job_description, title, company")
             .eq("id", applicationId)
             .single()
 
         if (appError || !app) {
+            console.error("[Apply Recommendations] application lookup failed:", appError)
             return new NextResponse("Application not found", { status: 404 })
         }
         if (app.user_id !== user.id) {
@@ -76,7 +77,7 @@ export async function POST(req: NextRequest) {
 
         const prompt = `You are an expert resume writer. Rewrite the following TipTap JSON resume to address the analysis recommendations and tailor it to the target role. Preserve the document STRUCTURE exactly: same number of nodes, same node types, same ordering, same heading levels, same list lengths. Only change the TEXT inside text nodes. Do NOT add, remove, or reorder nodes.
 
-Target role: ${app.position_title || "Unknown"}${app.company ? ` at ${app.company}` : ""}
+Target role: ${app.title || "Unknown"}${app.company ? ` at ${app.company}` : ""}
 Job description:
 ${(app.job_description || "").slice(0, 6000)}
 
