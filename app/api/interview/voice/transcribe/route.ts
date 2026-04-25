@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { transcribeAudioWithRetry, validateAudioData, AudioProcessingError } from '@/lib/ai-audio'
+import { createClient } from '@/shared/db/supabase/server'
+import { transcribeAudioWithRetry, validateAudioData, AudioProcessingError } from '@/shared/infrastructure/ai-audio'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
