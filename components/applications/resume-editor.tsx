@@ -32,6 +32,7 @@ import { blocksToTipTap, emptyDoc } from "./editor/blocks-to-tiptap"
 import { renderTemplate } from "./editor/templates/registry"
 import type { TemplateId, EditorBlock, ResumeDoc } from "./editor/types"
 import { EditorToolbar } from "./editor/toolbar"
+import { DiffModal } from "./editor/diff-modal"
 
 // Re-export legacy types so existing imports keep working until callers migrate.
 export type { EditorBlock, BlockType, BlockStyles } from "./editor/types"
@@ -73,6 +74,10 @@ export function ResumeEditor({
     const [isSaving, setIsSaving] = useState(false)
     const [isExporting, setIsExporting] = useState(false)
     const [isRewriting, setIsRewriting] = useState(false)
+    const [diffOpen, setDiffOpen] = useState(false)
+    const [diffOriginal, setDiffOriginal] = useState<ResumeDoc | null>(null)
+    const [diffProposed, setDiffProposed] = useState<ResumeDoc | null>(null)
+    const [diffLoading, setDiffLoading] = useState(false)
 
     const sourceFormat = useMemo(() => detectSourceFormat(fileName), [fileName])
 
@@ -143,7 +148,27 @@ export function ResumeEditor({
                     } else if (latest.blocks && Array.isArray(latest.blocks) && latest.blocks.length > 0) {
                         initialDoc = blocksToTipTap(latest.blocks as EditorBlock[])
                     }
-                } else if (sourceFormat === 'docx') {
+                } else {
+                    if (sourceFormat === 'pdf') {
+                        try {
+                            const layoutRes = await fetch('/api/editor/detect-layout', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ documentId }),
+                            })
+                            if (layoutRes.ok) {
+                                const { layout } = await layoutRes.json()
+                                if (layout?.suggestedTemplate) {
+                                    initialTemplate = layout.suggestedTemplate
+                                }
+                            }
+                        } catch (err) {
+                            console.warn("Layout detection failed:", err)
+                        }
+                    }
+                }
+
+                if (appScoped.length === 0 && sourceFormat === 'docx') {
                     try {
                         const res = await fetch('/api/editor/import-docx', {
                             method: 'POST',
@@ -161,7 +186,7 @@ export function ResumeEditor({
                     } catch (err) {
                         console.warn("DOCX import error, falling back to text parse:", err)
                     }
-                } else if (extractedText && extractedText.trim().length > 50) {
+                } else if (appScoped.length === 0 && extractedText && extractedText.trim().length > 50) {
                     try {
                         const res = await fetch('/api/editor/parse-text', {
                             method: 'POST',
@@ -308,7 +333,11 @@ export function ResumeEditor({
             toast({ title: "No recommendations to apply", variant: "destructive" })
             return
         }
-        setIsRewriting(true)
+        const original = editor.getJSON()
+        setDiffOriginal(original)
+        setDiffProposed(null)
+        setDiffOpen(true)
+        setDiffLoading(true)
         try {
             const res = await fetch('/api/editor/apply-recommendations', {
                 method: 'POST',
@@ -316,7 +345,7 @@ export function ResumeEditor({
                 body: JSON.stringify({
                     applicationId,
                     documentId,
-                    contentJson: editor.getJSON(),
+                    contentJson: original,
                     recommendations: analysis.recommendations,
                 }),
             })
@@ -326,21 +355,47 @@ export function ResumeEditor({
             }
             const data = await res.json()
             if (data.contentJson) {
-                editor.commands.setContent(data.contentJson)
-                toast({
-                    title: "Recommendations applied",
-                    description: "Resume rewritten as a new version. Review changes.",
-                })
-                await handleNewVersion()
+                setDiffProposed(data.contentJson as ResumeDoc)
+            } else {
+                throw new Error("AI returned no content")
             }
         } catch (err: any) {
+            setDiffOpen(false)
             toast({
                 title: "Failed to apply recommendations",
                 description: err.message,
                 variant: "destructive",
             })
         } finally {
-            setIsRewriting(false)
+            setDiffLoading(false)
+        }
+    }
+
+    const acceptDiff = async (mergedDoc: ResumeDoc) => {
+        if (!editor) return
+        editor.commands.setContent(mergedDoc as any)
+        setDiffOpen(false)
+        setDiffProposed(null)
+        setDiffOriginal(null)
+        toast({
+            title: "Recommendations applied",
+            description: "Saved as a new version.",
+        })
+        try {
+            const newName = `Version ${versions.length + 1}`
+            const created = await resumeVersionsService.saveVersion({
+                document_id: documentId,
+                application_id: applicationId,
+                version_name: newName,
+                content_json: mergedDoc,
+                template_id: templateId,
+                source_format: sourceFormat,
+                parent_document_id: documentId,
+            })
+            setVersions([created, ...versions])
+            setCurrentVersionId(created.id)
+        } catch (err) {
+            console.error("Failed to capture version after diff accept:", err)
         }
     }
 
@@ -482,6 +537,22 @@ export function ResumeEditor({
 
                 {renderTemplate(templateId, { editor })}
             </div>
+
+            <DiffModal
+                open={diffOpen}
+                originalDoc={diffOriginal}
+                proposedDoc={diffProposed}
+                isLoading={diffLoading}
+                onCancel={() => {
+                    setDiffOpen(false)
+                    setDiffProposed(null)
+                    setDiffOriginal(null)
+                }}
+                onAcceptAll={() => {
+                    if (diffProposed) acceptDiff(diffProposed)
+                }}
+                onAcceptPartial={(merged) => acceptDiff(merged)}
+            />
 
             <div className="h-8 border-t border-border bg-card px-4 flex items-center justify-between text-[11px] text-muted-foreground uppercase tracking-widest font-medium">
                 <div className="flex items-center gap-4">
