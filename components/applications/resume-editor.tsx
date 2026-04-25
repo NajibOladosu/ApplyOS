@@ -525,7 +525,7 @@ export function ResumeEditor({
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto p-12 flex flex-col items-center gap-8 custom-scrollbar bg-background bg-[radial-gradient(circle_at_50%_0%,rgba(0,255,136,0.04),transparent_60%)]">
+            <div className="flex-1 overflow-auto custom-scrollbar bg-background bg-[radial-gradient(circle_at_50%_0%,rgba(0,255,136,0.04),transparent_60%)]">
                 {isRewriting && (
                     <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
                         <div className="bg-card p-5 rounded-2xl shadow-2xl flex items-center gap-4 border border-primary/30 animate-in zoom-in duration-300">
@@ -535,7 +535,11 @@ export function ResumeEditor({
                     </div>
                 )}
 
-                {renderTemplate(templateId, { editor })}
+                <div className="min-w-min py-12 px-6 flex flex-col items-center gap-8">
+                    <div className="flex-shrink-0">
+                        {renderTemplate(templateId, { editor })}
+                    </div>
+                </div>
             </div>
 
             <DiffModal

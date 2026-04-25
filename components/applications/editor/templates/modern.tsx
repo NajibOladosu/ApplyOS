@@ -21,6 +21,12 @@ export function ModernTemplate({ editor, pageNumber, totalPages }: ModernTemplat
                 minHeight: `${A4_HEIGHT_MM}mm`,
                 padding: '20mm',
                 boxSizing: 'border-box',
+                backgroundImage:
+                    'repeating-linear-gradient(to bottom, transparent 0, transparent calc(297mm - 2px), rgba(15,23,42,0.08) calc(297mm - 2px), rgba(15,23,42,0.08) 297mm)',
+                backgroundSize: '100% 297mm',
+                backgroundRepeat: 'repeat-y',
+                backgroundPosition: '0 0',
+                backgroundOrigin: 'border-box',
             }}
         >
             {pageNumber !== undefined && totalPages !== undefined && totalPages > 1 && (

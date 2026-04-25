@@ -19,6 +19,11 @@ export function ClassicTemplate({ editor, pageNumber, totalPages }: Props) {
                 padding: '20mm',
                 boxSizing: 'border-box',
                 fontFamily: '"Source Serif Pro", Georgia, serif',
+                backgroundImage:
+                    'repeating-linear-gradient(to bottom, transparent 0, transparent calc(297mm - 2px), rgba(15,23,42,0.08) calc(297mm - 2px), rgba(15,23,42,0.08) 297mm)',
+                backgroundSize: '100% 297mm',
+                backgroundRepeat: 'repeat-y',
+                backgroundPosition: '0 0',
             }}
         >
             {pageNumber && totalPages && totalPages > 1 && (

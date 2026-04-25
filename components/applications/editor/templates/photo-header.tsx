@@ -20,12 +20,17 @@ interface Props {
 export function PhotoHeaderTemplate({ editor, pageNumber, totalPages, photoUrl }: Props) {
     return (
         <div
-            className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 relative resume-template-photo-header overflow-hidden"
+            className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 relative resume-template-photo-header"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
                 boxSizing: 'border-box',
                 fontFamily: 'Manrope, -apple-system, sans-serif',
+                backgroundImage:
+                    'repeating-linear-gradient(to bottom, transparent 0, transparent calc(297mm - 2px), rgba(15,23,42,0.08) calc(297mm - 2px), rgba(15,23,42,0.08) 297mm)',
+                backgroundSize: '100% 297mm',
+                backgroundRepeat: 'repeat-y',
+                backgroundPosition: '0 0',
             }}
         >
             {pageNumber && totalPages && totalPages > 1 && (
@@ -34,7 +39,7 @@ export function PhotoHeaderTemplate({ editor, pageNumber, totalPages, photoUrl }
                 </div>
             )}
 
-            <div className="flex items-center gap-6 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b-4 border-emerald-600 px-[20mm] py-6">
+            <div className="flex items-center gap-6 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b-4 border-emerald-600 px-[20mm] py-6 rounded-t-none">
                 <div className="flex-shrink-0 h-24 w-24 rounded-full bg-white ring-2 ring-emerald-600 flex items-center justify-center overflow-hidden">
                     {photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
