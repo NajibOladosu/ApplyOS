@@ -187,13 +187,13 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             {/* Control Panel */}
             <Card className="border-primary/20 bg-muted/10">
                 <CardContent className="pt-6">
-                    <div className="flex flex-col gap-4">
-                        <div className="w-full space-y-2">
+                    <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+                        <div className="flex-1 min-w-0 space-y-2">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                 Select Resume
                             </label>
                             {documents.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {documents.map((doc) => (
                                         <div
                                             key={doc.id}
@@ -229,13 +229,12 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                             )}
                         </div>
 
-                        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                        <div className="flex flex-col gap-2 lg:w-56 lg:self-end lg:pb-0">
                             {selectedDocumentId && (
                                 <Button
-                                    size="lg"
                                     variant="outline"
                                     onClick={() => setViewMode("editor")}
-                                    className="w-full md:w-auto min-w-[160px]"
+                                    className="w-full justify-center"
                                 >
                                     <Edit className="mr-2 h-4 w-4" />
                                     Edit Resume
@@ -243,10 +242,9 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                             )}
 
                             <Button
-                                size="lg"
                                 onClick={handleAnalyze}
                                 disabled={!selectedDocumentId || isAnalyzing || !application.job_description}
-                                className="w-full md:w-auto min-w-[160px] glow-effect relative overflow-hidden group"
+                                className="w-full justify-center glow-effect relative overflow-hidden group"
                             >
                                 {isAnalyzing ? (
                                     <>
