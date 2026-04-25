@@ -1,7 +1,6 @@
 "use client"
 
 import type { Editor } from "@tiptap/react"
-import { Button } from "@/shared/ui/button"
 import {
     Bold,
     Italic,
@@ -19,8 +18,6 @@ import {
     Undo2,
     Redo2,
     Link as LinkIcon,
-    Sparkles,
-    Wand2,
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import {
@@ -36,10 +33,6 @@ interface ToolbarProps {
     editor: Editor | null
     templateId: TemplateId
     onTemplateChange: (id: TemplateId) => void
-    onAIRewriteSelection: () => void
-    onApplyRecommendations: () => void
-    canApplyRecommendations: boolean
-    isRewriting: boolean
 }
 
 const ToolbarButton = ({
@@ -94,10 +87,6 @@ export function EditorToolbar({
     editor,
     templateId,
     onTemplateChange,
-    onAIRewriteSelection,
-    onApplyRecommendations,
-    canApplyRecommendations,
-    isRewriting,
 }: ToolbarProps) {
     if (!editor) {
         return <div className="flex items-center gap-2 px-2 h-10" />
@@ -108,8 +97,8 @@ export function EditorToolbar({
     return (
         <div className="flex items-center flex-wrap gap-2 px-3 py-2">
             <Select value={templateId} onValueChange={(v) => onTemplateChange(v as TemplateId)}>
-                <SelectTrigger className="w-[160px] h-8 bg-muted/40 border-border text-foreground hover:border-primary">
-                    <SelectValue />
+                <SelectTrigger className="w-[150px] h-8 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
+                    <SelectValue placeholder="Template" />
                 </SelectTrigger>
                 <SelectContent>
                     {Object.values(TEMPLATES).map(t => (
@@ -246,28 +235,6 @@ export function EditorToolbar({
                     <ListOrdered className="h-4 w-4" />
                 </ToolbarButton>
             </Group>
-
-            <Divider />
-
-            <Button
-                size="sm"
-                onClick={onAIRewriteSelection}
-                disabled={isRewriting || editor.state.selection.empty}
-                className="font-medium bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-50 h-8"
-            >
-                <Sparkles className="h-3 w-3 mr-1" /> Ask AI
-            </Button>
-
-            <Button
-                size="sm"
-                variant="outline"
-                onClick={onApplyRecommendations}
-                disabled={!canApplyRecommendations || isRewriting}
-                className="font-medium bg-muted/40 border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary disabled:opacity-50 h-8"
-                title={canApplyRecommendations ? "Rewrite resume to address analysis recommendations" : "Run analysis first to enable bulk apply"}
-            >
-                <Wand2 className="h-3 w-3 mr-1" /> Apply Recommendations
-            </Button>
         </div>
     )
 }

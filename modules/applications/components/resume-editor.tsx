@@ -11,6 +11,7 @@ import {
     History,
     Loader2,
     Sparkles,
+    Wand2,
 } from "lucide-react"
 import {
     Select,
@@ -78,6 +79,7 @@ export function ResumeEditor({
     const [diffOriginal, setDiffOriginal] = useState<ResumeDoc | null>(null)
     const [diffProposed, setDiffProposed] = useState<ResumeDoc | null>(null)
     const [diffLoading, setDiffLoading] = useState(false)
+    const [selectionEmpty, setSelectionEmpty] = useState(true)
 
     const sourceFormat = useMemo(() => detectSourceFormat(fileName), [fileName])
 
@@ -122,9 +124,16 @@ export function ResumeEditor({
         const handler = () => {
             debouncedSave(editor.getJSON())
         }
+        const selectionHandler = () => {
+            setSelectionEmpty(editor.state.selection.empty)
+        }
         editor.on('update', handler)
+        editor.on('selectionUpdate', selectionHandler)
+        editor.on('transaction', selectionHandler)
         return () => {
             editor.off('update', handler)
+            editor.off('selectionUpdate', selectionHandler)
+            editor.off('transaction', selectionHandler)
         }
     }, [editor, debouncedSave])
 
@@ -254,8 +263,13 @@ export function ResumeEditor({
             setVersions([created, ...versions])
             setCurrentVersionId(created.id)
             toast({ title: "Saved as new version" })
-        } catch (err) {
-            toast({ title: "Failed to save version", variant: "destructive" })
+        } catch (err: any) {
+            console.error("Capture failed:", err)
+            toast({
+                title: "Failed to save version",
+                description: err?.message ?? "Unknown error",
+                variant: "destructive",
+            })
         } finally {
             setIsSaving(false)
         }
@@ -459,57 +473,79 @@ export function ResumeEditor({
     return (
         <div className="flex flex-col h-[calc(100vh-140px)] bg-background rounded-lg border border-border overflow-hidden">
             <div className="border-b border-border bg-card z-20 sticky top-0">
-                <div className="flex items-center justify-between px-4 h-14">
-                    <div className="flex items-center gap-3">
-                        <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={onBack}
-                            className="font-medium text-muted-foreground hover:text-primary hover:bg-muted"
+                <div className="flex items-center flex-wrap gap-3 px-4 py-2.5 min-h-14">
+                    <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={onBack}
+                        className="font-medium text-muted-foreground hover:text-primary hover:bg-muted"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                    </Button>
+                    <div className="h-6 w-px bg-border" />
+                    <div className="flex items-center gap-2">
+                        <History className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <Select
+                            value={currentVersionId ?? undefined}
+                            onValueChange={handleSwitchVersion}
                         >
-                            <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                            <SelectTrigger className="w-[180px] h-8 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
+                                <SelectValue placeholder="Select version" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {versions.length === 0 ? (
+                                    <div className="px-2 py-1.5 text-xs text-muted-foreground">No saved versions yet</div>
+                                ) : versions.map(v => (
+                                    <SelectItem key={v.id} value={v.id}>{v.version_name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={handleNewVersion}
+                            disabled={isSaving}
+                            className="h-8 px-3 border-dashed font-medium bg-muted/40 border-primary/30 text-foreground hover:bg-muted hover:border-primary"
+                        >
+                            {isSaving ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Save className="h-3 w-3 mr-2" />}
+                            Capture
                         </Button>
-                        <div className="h-6 w-px bg-border" />
-                        <div className="flex items-center gap-2">
-                            <History className="h-4 w-4 text-muted-foreground" />
-                            <Select
-                                value={currentVersionId ?? undefined}
-                                onValueChange={handleSwitchVersion}
-                            >
-                                <SelectTrigger className="w-[200px] h-8 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
-                                    <SelectValue placeholder="Select version" />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    {versions.map(v => (
-                                        <SelectItem key={v.id} value={v.id}>{v.version_name}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={handleNewVersion}
-                                disabled={isSaving}
-                                className="h-8 px-3 border-dashed font-medium bg-muted/40 border-primary/30 text-foreground hover:bg-muted hover:border-primary"
-                            >
-                                {isSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3 mr-2" />}
-                                Capture
-                            </Button>
-                        </div>
                     </div>
 
-                    <Button
-                        onClick={handleExport}
-                        disabled={isExporting}
-                        className="glow-effect font-semibold h-9 bg-primary text-primary-foreground hover:bg-primary/90"
-                    >
-                        {isExporting ? (
-                            <Loader2 className="h-4 w-4 animate-spin mr-2" />
-                        ) : (
-                            <Download className="h-4 w-4 mr-2" />
-                        )}
-                        Download {sourceFormat === 'docx' ? 'DOCX' : 'PDF'}
-                    </Button>
+                    <div className="ml-auto flex items-center gap-2 flex-wrap">
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleAIRewriteSelection}
+                            disabled={isRewriting || selectionEmpty}
+                            className="h-8 font-medium bg-muted/40 border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary disabled:opacity-50"
+                            title={selectionEmpty ? "Select text in the editor to rewrite" : "Rewrite selected text with AI"}
+                        >
+                            <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Ask AI
+                        </Button>
+                        <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={handleApplyRecommendations}
+                            disabled={!analysis?.recommendations?.length || isRewriting}
+                            className="h-8 font-medium bg-muted/40 border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary disabled:opacity-50"
+                            title={analysis?.recommendations?.length ? "Rewrite resume to address analysis recommendations" : "Run analysis first to enable bulk apply"}
+                        >
+                            <Wand2 className="h-3.5 w-3.5 mr-1.5" /> Apply Recommendations
+                        </Button>
+                        <Button
+                            onClick={handleExport}
+                            disabled={isExporting}
+                            className="glow-effect font-semibold h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+                        >
+                            {isExporting ? (
+                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                            ) : (
+                                <Download className="h-4 w-4 mr-2" />
+                            )}
+                            Download {sourceFormat === 'docx' ? 'DOCX' : 'PDF'}
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="border-t border-border bg-card">
@@ -517,10 +553,6 @@ export function ResumeEditor({
                         editor={editor}
                         templateId={templateId}
                         onTemplateChange={handleTemplateChange}
-                        onAIRewriteSelection={handleAIRewriteSelection}
-                        onApplyRecommendations={handleApplyRecommendations}
-                        canApplyRecommendations={!!analysis?.recommendations?.length}
-                        isRewriting={isRewriting}
                     />
                 </div>
             </div>

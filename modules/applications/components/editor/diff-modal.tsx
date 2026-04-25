@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { JSONContent } from "@tiptap/core"
 import { diffWords } from "diff"
 import { Button } from "@/shared/ui/button"
@@ -93,7 +93,11 @@ export function DiffModal({
         return result
     }, [originalDoc, proposedDoc])
 
-    const [accepted, setAccepted] = useState<Set<number>>(() => new Set(changes.map((_, i) => i)))
+    const [accepted, setAccepted] = useState<Set<number>>(new Set())
+
+    useEffect(() => {
+        setAccepted(new Set(changes.map((_, i) => i)))
+    }, [changes])
 
     if (!open) return null
 
@@ -193,7 +197,7 @@ export function DiffModal({
                         {!isLoading && `${accepted.size} of ${changes.length} selected`}
                     </div>
                     <div className="flex items-center gap-2">
-                        <Button variant="ghost" onClick={onCancel} disabled={isLoading}>
+                        <Button variant="ghost" onClick={onCancel}>
                             Cancel
                         </Button>
                         <Button
