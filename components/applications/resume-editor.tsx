@@ -143,6 +143,24 @@ export function ResumeEditor({
                     } else if (latest.blocks && Array.isArray(latest.blocks) && latest.blocks.length > 0) {
                         initialDoc = blocksToTipTap(latest.blocks as EditorBlock[])
                     }
+                } else if (sourceFormat === 'docx') {
+                    try {
+                        const res = await fetch('/api/editor/import-docx', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ documentId }),
+                        })
+                        if (res.ok) {
+                            const data = await res.json()
+                            if (data.contentJson) {
+                                initialDoc = data.contentJson as ResumeDoc
+                            }
+                        } else {
+                            console.warn("DOCX import failed:", res.status)
+                        }
+                    } catch (err) {
+                        console.warn("DOCX import error, falling back to text parse:", err)
+                    }
                 } else if (extractedText && extractedText.trim().length > 50) {
                     try {
                         const res = await fetch('/api/editor/parse-text', {
