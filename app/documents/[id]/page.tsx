@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
+import { Button } from "@/shared/ui/button"
 import { Loader2, ArrowLeft, ExternalLink, RefreshCw, FileText, ChevronDown } from "lucide-react"
 import Link from "next/link"
-import { useToast } from "@/components/ui/use-toast"
-import { cn } from "@/lib/utils"
+import { useToast } from "@/shared/ui/use-toast"
+import { cn } from "@/shared/lib/utils"
 import type { DocumentReport } from "@/types/database"
 
 type ParsedEducation = {
@@ -181,34 +181,34 @@ export default function DocumentDetailPage() {
       setDoc((prev) =>
         prev
           ? {
-              ...prev,
-              file_name: payload.file_name ?? prev.file_name,
-              file_url: payload.file_url ?? prev.file_url,
-              file_type: payload.file_type ?? prev.file_type,
-              file_size: payload.file_size ?? prev.file_size,
-              report: payload.report ?? prev.report,
-              report_generated_at: payload.report_generated_at ?? prev.report_generated_at,
-              parsed_data: parsedData ?? prev.parsed_data,
-              parsed_at: payload.parsed_at ?? prev.parsed_at,
-              analysis_status: payload.analysis_status ?? prev.analysis_status,
-              analysis_error: payload.analysis_error ?? prev.analysis_error,
-            }
+            ...prev,
+            file_name: payload.file_name ?? prev.file_name,
+            file_url: payload.file_url ?? prev.file_url,
+            file_type: payload.file_type ?? prev.file_type,
+            file_size: payload.file_size ?? prev.file_size,
+            report: payload.report ?? prev.report,
+            report_generated_at: payload.report_generated_at ?? prev.report_generated_at,
+            parsed_data: parsedData ?? prev.parsed_data,
+            parsed_at: payload.parsed_at ?? prev.parsed_at,
+            analysis_status: payload.analysis_status ?? prev.analysis_status,
+            analysis_error: payload.analysis_error ?? prev.analysis_error,
+          }
           : {
-              id: payload.id,
-              file_name: payload.file_name,
-              file_url: payload.file_url ?? null,
-              file_type: payload.file_type ?? null,
-              file_size: typeof payload.file_size === "number" ? payload.file_size : null,
-              created_at: payload.created_at ?? null,
-              updated_at: payload.updated_at ?? null,
-              report: payload.report ?? null,
-              report_generated_at: payload.report_generated_at ?? null,
-              parsed_data: parsedData ?? null,
-              parsed_at: payload.parsed_at ?? null,
-              analysis_status: payload.analysis_status ?? "not_analyzed",
-              analysis_error: payload.analysis_error ?? null,
-              application_id: payload.application_id ?? null,
-            }
+            id: payload.id,
+            file_name: payload.file_name,
+            file_url: payload.file_url ?? null,
+            file_type: payload.file_type ?? null,
+            file_size: typeof payload.file_size === "number" ? payload.file_size : null,
+            created_at: payload.created_at ?? null,
+            updated_at: payload.updated_at ?? null,
+            report: payload.report ?? null,
+            report_generated_at: payload.report_generated_at ?? null,
+            parsed_data: parsedData ?? null,
+            parsed_at: payload.parsed_at ?? null,
+            analysis_status: payload.analysis_status ?? "not_analyzed",
+            analysis_error: payload.analysis_error ?? null,
+            application_id: payload.application_id ?? null,
+          }
       )
     } catch (err) {
       console.error("Error refreshing document detail:", err)
@@ -261,12 +261,12 @@ export default function DocumentDetailPage() {
         setDoc((prev) =>
           prev
             ? {
-                ...prev,
-                parsed_data: parsedData,
-                parsed_at: payload.parsed_at ?? prev.parsed_at,
-                analysis_status: payload.analysis_status ?? prev.analysis_status,
-                analysis_error: payload.analysis_error ?? prev.analysis_error,
-              }
+              ...prev,
+              parsed_data: parsedData,
+              parsed_at: payload.parsed_at ?? prev.parsed_at,
+              analysis_status: payload.analysis_status ?? prev.analysis_status,
+              analysis_error: payload.analysis_error ?? prev.analysis_error,
+            }
             : prev
         )
 
@@ -317,11 +317,11 @@ export default function DocumentDetailPage() {
         setDoc((prev) =>
           prev
             ? {
-                ...prev,
-                report: payload.report ?? prev.report,
-                report_generated_at:
-                  payload.report_generated_at ?? prev.report_generated_at,
-              }
+              ...prev,
+              report: payload.report ?? prev.report,
+              report_generated_at:
+                payload.report_generated_at ?? prev.report_generated_at,
+            }
             : prev
         )
         // Reset expanded categories when new report is generated
@@ -343,18 +343,18 @@ export default function DocumentDetailPage() {
   const renderAnalysisStatusBadge = () => {
     if (!doc) return null
     const status = doc.analysis_status
-    const base = "px-2 py-0.5 text-xs rounded-full border"
+    const base = "px-2 py-0.5 text-xs rounded-full border bg-transparent"
 
     if (status === "success") {
       return (
-        <span className={cn(base, "border-emerald-500/40 text-emerald-400")}>
+        <span className={cn(base, "border-border text-foreground")}>
           Analyzed
         </span>
       )
     }
     if (status === "pending") {
       return (
-        <span className={cn(base, "border-primary/40 text-primary flex items-center gap-1")}>
+        <span className={cn(base, "border-border text-foreground flex items-center gap-1")}>
           <Loader2 className="h-3 w-3 animate-spin" />
           Analyzing...
         </span>
@@ -362,13 +362,13 @@ export default function DocumentDetailPage() {
     }
     if (status === "failed") {
       return (
-        <span className={cn(base, "border-red-500/40 text-red-400")}>
+        <span className={cn(base, "border-destructive/40 text-destructive")}>
           Analysis failed
         </span>
       )
     }
     return (
-      <span className={cn(base, "border-muted-foreground/30 text-muted-foreground")}>
+      <span className={cn(base, "border-border text-muted-foreground")}>
         Not analyzed
       </span>
     )
@@ -396,7 +396,7 @@ export default function DocumentDetailPage() {
             <CardTitle className="text-base sm:text-lg">Document Report</CardTitle>
             <div className="flex flex-wrap items-center gap-2">
               {report && (
-                <Badge variant="outline" className="text-xs">
+                <Badge variant="outline" className="text-xs bg-transparent text-foreground border-border">
                   Updated {formatDate(doc.report_generated_at)}
                 </Badge>
               )}
@@ -431,7 +431,7 @@ export default function DocumentDetailPage() {
                   <h3 className="text-sm font-semibold text-foreground">
                     {report.documentType || "Document"}
                   </h3>
-                  <div className="text-sm font-bold text-primary">
+                  <div className="text-sm font-bold text-foreground">
                     {report.overallScore}/10
                   </div>
                 </div>
@@ -455,10 +455,10 @@ export default function DocumentDetailPage() {
                     const scorePercentage = (category.score / 10) * 100
                     const scoreColor =
                       category.score >= 8
-                        ? "text-emerald-400"
+                        ? "text-foreground"
                         : category.score >= 6
-                        ? "text-amber-400"
-                        : "text-red-400"
+                          ? "text-muted-foreground"
+                          : "text-destructive"
 
                     return (
                       <div key={idx} className="border border-border/50 rounded-lg overflow-hidden">
@@ -494,13 +494,13 @@ export default function DocumentDetailPage() {
                           <div className="px-3 pb-3 space-y-3 border-t border-border/50 bg-muted/20">
                             {category.strengths && category.strengths.length > 0 && (
                               <div>
-                                <h4 className="text-xs font-semibold text-emerald-400 mb-1.5">
+                                <h4 className="text-xs font-semibold text-primary mb-1.5">
                                   Strengths
                                 </h4>
                                 <ul className="space-y-1">
                                   {category.strengths.map((strength, i) => (
                                     <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                                      <span className="text-emerald-400/60 mt-0.5">✓</span>
+                                      <span className="text-primary mt-0.5">✓</span>
                                       <span>{strength}</span>
                                     </li>
                                   ))}
@@ -510,13 +510,13 @@ export default function DocumentDetailPage() {
 
                             {category.improvements && category.improvements.length > 0 && (
                               <div>
-                                <h4 className="text-xs font-semibold text-amber-400 mb-1.5">
+                                <h4 className="text-xs font-semibold text-muted-foreground mb-1.5">
                                   Areas for Improvement
                                 </h4>
                                 <ul className="space-y-1">
                                   {category.improvements.map((improvement, i) => (
                                     <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                                      <span className="text-amber-400/60 mt-0.5">→</span>
+                                      <span className="text-muted-foreground mt-0.5">→</span>
                                       <span>{improvement}</span>
                                     </li>
                                   ))}
@@ -651,8 +651,8 @@ export default function DocumentDetailPage() {
                           {e.institution}
                           {e.start_date || e.end_date
                             ? ` • ${[e.start_date, e.end_date]
-                                .filter(Boolean)
-                                .join(" - ")}`
+                              .filter(Boolean)
+                              .join(" - ")}`
                             : ""}
                         </div>
                         {e.description && (
@@ -681,8 +681,8 @@ export default function DocumentDetailPage() {
                           {e.company}
                           {e.start_date || e.end_date
                             ? ` • ${[e.start_date, e.end_date]
-                                .filter(Boolean)
-                                .join(" - ")}`
+                              .filter(Boolean)
+                              .join(" - ")}`
                             : ""}
                         </div>
                         {e.description && (
@@ -710,8 +710,8 @@ export default function DocumentDetailPage() {
                         <div className="text-xs">
                           {p.start_date || p.end_date
                             ? `${[p.start_date, p.end_date]
-                                .filter(Boolean)
-                                .join(" - ")}`
+                              .filter(Boolean)
+                              .join(" - ")}`
                             : ""}
                         </div>
                         {p.description && (
@@ -725,7 +725,7 @@ export default function DocumentDetailPage() {
                               <Badge
                                 key={i}
                                 variant="outline"
-                                className="border-amber-400/40 text-amber-300 text-[10px]"
+                                className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
                               >
                                 {tech}
                               </Badge>
@@ -741,41 +741,41 @@ export default function DocumentDetailPage() {
               {(parsed.skills?.technical?.length ||
                 parsed.skills?.soft?.length ||
                 parsed.skills?.other?.length) && (
-                <section>
-                  <h3 className="font-semibold text-foreground mb-1">
-                    Skills
-                  </h3>
-                  <div className="flex flex-wrap gap-1">
-                    {parsed.skills.technical.map((s, i) => (
-                      <Badge
-                        key={`t-${i}`}
-                        variant="outline"
-                        className="border-primary/40 text-primary text-[10px]"
-                      >
-                        {s}
-                      </Badge>
-                    ))}
-                    {parsed.skills.soft.map((s, i) => (
-                      <Badge
-                        key={`s-${i}`}
-                        variant="outline"
-                        className="border-sky-400/40 text-sky-300 text-[10px]"
-                      >
-                        {s}
-                      </Badge>
-                    ))}
-                    {parsed.skills.other.map((s, i) => (
-                      <Badge
-                        key={`o-${i}`}
-                        variant="outline"
-                        className="border-purple-400/40 text-purple-300 text-[10px]"
-                      >
-                        {s}
-                      </Badge>
-                    ))}
-                  </div>
-                </section>
-              )}
+                  <section>
+                    <h3 className="font-semibold text-foreground mb-1">
+                      Skills
+                    </h3>
+                    <div className="flex flex-wrap gap-1">
+                      {parsed.skills.technical.map((s, i) => (
+                        <Badge
+                          key={`t-${i}`}
+                          variant="outline"
+                          className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
+                        >
+                          {s}
+                        </Badge>
+                      ))}
+                      {parsed.skills.soft.map((s, i) => (
+                        <Badge
+                          key={`s-${i}`}
+                          variant="outline"
+                          className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
+                        >
+                          {s}
+                        </Badge>
+                      ))}
+                      {parsed.skills.other.map((s, i) => (
+                        <Badge
+                          key={`o-${i}`}
+                          variant="outline"
+                          className="bg-transparent text-muted-foreground border-border px-3 py-1 text-[10px]"
+                        >
+                          {s}
+                        </Badge>
+                      ))}
+                    </div>
+                  </section>
+                )}
 
               {parsed.achievements?.length > 0 && (
                 <section>
@@ -819,7 +819,7 @@ export default function DocumentDetailPage() {
                       <Badge
                         key={i}
                         variant="outline"
-                        className="text-[10px]"
+                        className="text-[10px] bg-transparent text-foreground border-border"
                       >
                         {k}
                       </Badge>
@@ -943,7 +943,7 @@ export default function DocumentDetailPage() {
             {doc.report && (
               <Badge
                 variant="outline"
-                className="border-primary/40 text-primary text-xs"
+                className="bg-transparent border-border text-foreground text-xs"
               >
                 Report available
               </Badge>

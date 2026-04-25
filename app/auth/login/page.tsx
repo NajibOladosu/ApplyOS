@@ -4,10 +4,10 @@ import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { createClient } from "@/shared/db/supabase/client"
 import { Chrome } from "lucide-react"
 
 function LoginContent() {
@@ -150,12 +150,10 @@ function LoginContent() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect p-2">
-                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-              </div>
+              <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-12 w-auto" />
               <span className="text-3xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+                <span className="text-foreground">OS</span>
               </span>
             </div>
           </Link>
@@ -193,9 +191,17 @@ function LoginContent() {
               </div>
 
               <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
+                <div className="flex items-center justify-between">
+                  <label htmlFor="password" className="text-sm font-medium">
+                    Password
+                  </label>
+                  <Link
+                    href="/auth/forgot-password"
+                    className="text-sm text-primary hover:underline"
+                  >
+                    Forgot password?
+                  </Link>
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -206,7 +212,7 @@ function LoginContent() {
                 />
               </div>
 
-              <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading}>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading}>
                 {loading ? "Signing in..." : "Sign In"}
               </Button>
 
@@ -273,7 +279,7 @@ function LoginContent() {
                 </div>
 
                 {resendSuccess && (
-                  <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 text-sm">
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm">
                     ✓ Verification email resent successfully!
                   </div>
                 )}

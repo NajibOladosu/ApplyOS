@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/ui/button"
 import { ArrowLeft, Shield } from "lucide-react"
 
 export default function PrivacyPolicy() {
@@ -12,12 +12,10 @@ export default function PrivacyPolicy() {
       <nav className="fixed top-0 w-full z-50 border-b border-border bg-background/80 backdrop-blur-xl">
         <div className="container mx-auto px-6 h-16 flex items-center justify-between">
           <Link href="/" className="flex items-center space-x-2">
-            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center p-1.5">
-              <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-            </div>
+            <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-8 w-auto" />
             <span className="text-xl font-bold font-mono">
               <span className="text-primary">Apply</span>
-              <span className="text-white">OS</span>
+              <span className="text-foreground">OS</span>
             </span>
           </Link>
 
@@ -50,7 +48,7 @@ export default function PrivacyPolicy() {
             </div>
 
             {/* Content Sections */}
-            <div className="prose prose-invert max-w-none">
+            <div className="prose dark:prose-invert max-w-none">
               <div className="space-y-8">
                 {/* Introduction */}
                 <section className="glass-effect rounded-lg p-8">
@@ -226,7 +224,7 @@ export default function PrivacyPolicy() {
 
             {/* Footer CTA */}
             <div className="mt-12 text-center">
-              <Button asChild size="lg" className="glow-effect">
+              <Button asChild className="glow-effect">
                 <Link href="/">Return to Home</Link>
               </Button>
             </div>

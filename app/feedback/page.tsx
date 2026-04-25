@@ -2,9 +2,9 @@
 
 import { useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { useToast } from "@/shared/ui/use-toast"
 import { motion } from "framer-motion"
 import { MessageSquare, Loader2, CheckCircle } from "lucide-react"
 import type { FeedbackType } from "@/types/database"
@@ -178,8 +178,8 @@ export default function FeedbackPage() {
                         whileHover={{ scale: 1.02 }}
                         whileTap={{ scale: 0.98 }}
                         className={`p-4 rounded-lg border-2 transition-all text-left ${feedbackType === type.value
-                            ? "border-primary bg-primary/5 shadow-md"
-                            : "border-border hover:border-border/75 bg-background"
+                          ? "border-primary bg-primary/5 shadow-md"
+                          : "border-border hover:border-border/75 bg-background"
                           }`}
                       >
                         <div className="font-medium">{type.label}</div>
@@ -230,7 +230,7 @@ export default function FeedbackPage() {
                     type="submit"
                     disabled={isSubmitting}
                     className="w-full"
-                    size="lg"
+                    size="default"
                   >
                     {isSubmitting ? (
                       <>
@@ -246,7 +246,7 @@ export default function FeedbackPage() {
                 {/* Info */}
                 <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                   <p className="text-xs text-muted-foreground">
-                    💡 <strong>Tip:</strong> Be specific about what you're reporting or suggesting. This helps us understand and address your feedback better.
+                    <strong>Tip:</strong> Be specific about what you're reporting or suggesting. This helps us understand and address your feedback better.
                   </p>
                 </div>
               </form>
