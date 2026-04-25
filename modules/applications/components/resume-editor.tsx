@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react"
 import { useEditor } from "@tiptap/react"
 import type { JSONContent } from "@tiptap/react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/ui/button"
 import {
     ArrowLeft,
     Download,
@@ -18,8 +18,8 @@ import {
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select"
-import { useToast } from "@/components/ui/use-toast"
+} from "@/shared/ui/select"
+import { useToast } from "@/shared/ui/use-toast"
 import { useDebounceCallback } from "usehooks-ts"
 import { type ResumeAnalysisResult } from "./resume-feedback"
 import {

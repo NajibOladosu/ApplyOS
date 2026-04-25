@@ -1,11 +1,11 @@
 
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
 import { Target, XCircle, Lightbulb, CheckCircle, AlertTriangle } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/lib/utils"
 
 export type ResumeAnalysisResult = {
     score: number           // 0-100
