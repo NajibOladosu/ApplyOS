@@ -18,7 +18,7 @@ export const ApplyOSButton: React.FC<EmailButtonProps> = ({
     <EmailButton
       href={href}
       style={{
-        backgroundColor: isPrimary ? '#00FF88' : '#1A1A1A',
+        backgroundColor: isPrimary ? '#18BB70' : '#1A1A1A',
         color: isPrimary ? '#000000' : '#EDEDED',
         padding: '12px 24px',
         fontSize: '14px',

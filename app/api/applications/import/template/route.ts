@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { generateCSVTemplate } from '@/lib/csv-utils'
+import { generateCSVTemplate } from '@/modules/documents/lib/csv-utils'
 
 export const dynamic = 'force-dynamic'
 

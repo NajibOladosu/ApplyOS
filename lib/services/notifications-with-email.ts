@@ -3,9 +3,9 @@
  * Server-side only - handles creating notifications with optional email sending
  */
 
-import { createClient } from '@/lib/supabase/server';
-import { sendEmailDirectly } from '@/lib/email';
-import { emailConfig } from '@/lib/email/config';
+import { createClient } from '@/shared/db/supabase/server';
+import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { emailConfig } from '@/shared/infrastructure/email/config';
 
 interface NotificationOptions {
   type: 'info' | 'success' | 'warning' | 'error' | 'deadline' | 'status_update';
@@ -151,17 +151,47 @@ export async function createStatusUpdateNotification(
           .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f9fafb;
+            background-color: #ffffff;
+          }
+          .header {
+            background-color: #151515;
+            background-image: linear-gradient(135deg, #151515 0%, #1A1A1A 100%);
+            color: #ffffff;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+            border-bottom: 1px solid #333333;
+          }
+          .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 10px 0 0 0;
+            color: #18BB70;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+          }
+          .header-subtitle {
+             font-size: 14px;
+             color: #B5B5B5;
+             margin: 10px 0 0 0;
+          }
+          .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+          }
+          .content {
+            padding: 30px;
           }
           .card {
-            background-color: #ffffff;
+            background-color: #f9fafb;
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
           }
           h2 {
-            color: #00FF88;
+            color: #18BB70;
             margin-bottom: 16px;
           }
           .company {
@@ -185,7 +215,7 @@ export async function createStatusUpdateNotification(
           .status-rejected { background-color: #fee2e2; color: #7f1d1d; }
           .button {
             display: inline-block;
-            background-color: #00FF88;
+            background-color: #18BB70;
             color: #000;
             padding: 12px 24px;
             border-radius: 6px;
@@ -197,22 +227,31 @@ export async function createStatusUpdateNotification(
       </head>
       <body>
         <div class="container">
-          <div class="card">
-            <h2>Application Status Updated 📊</h2>
-            <p>Hi,</p>
-            <p>Your application for <strong>${applicationTitle}</strong>${company ? ` at <strong>${company}</strong>` : ''} has been updated:</p>
-            <p>
-              <span class="status-badge status-${previousStatus.toLowerCase().replace(/ /g, '_')}">
-                ${previousStatus.toUpperCase()}
-              </span>
-              →
-              <span class="status-badge status-${newStatus.toLowerCase().replace(/ /g, '_')}">
-                ${newStatus.toUpperCase()}
-              </span>
-            </p>
-            <p>
-              <a href="${emailConfig.appUrl}/applications" class="button">View Application</a>
-            </p>
+          <div class="header">
+            <div class="logo-container">
+              <img src="${emailConfig.appUrl}/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+              <h1>ApplyOS</h1>
+            </div>
+            <p class="header-subtitle">Status Update</p>
+          </div>
+          <div class="content">
+            <div class="card">
+              <h2>Application Updated 📊</h2>
+              <p>Hi,</p>
+              <p>Your application for <strong>${applicationTitle}</strong>${company ? ` at <strong>${company}</strong>` : ''} has been updated:</p>
+              <p>
+                <span class="status-badge status-${previousStatus.toLowerCase().replace(/ /g, '_')}">
+                  ${previousStatus.toUpperCase()}
+                </span>
+                →
+                <span class="status-badge status-${newStatus.toLowerCase().replace(/ /g, '_')}">
+                  ${newStatus.toUpperCase()}
+                </span>
+              </p>
+              <p>
+                <a href="${emailConfig.appUrl}/applications" class="button">View Application</a>
+              </p>
+            </div>
           </div>
         </div>
       </body>
@@ -257,14 +296,44 @@ export async function createDeadlineNotification(
           .container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 20px;
-            background-color: #f9fafb;
+            background-color: #ffffff;
+          }
+          .header {
+            background-color: #151515;
+            background-image: linear-gradient(135deg, #151515 0%, #1A1A1A 100%);
+            color: #ffffff;
+            padding: 40px 20px;
+            text-align: center;
+            border-radius: 12px 12px 0 0;
+            border-bottom: 1px solid #333333;
+          }
+          .header h1 {
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            margin: 10px 0 0 0;
+            color: #18BB70;
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+          }
+          .header-subtitle {
+             font-size: 14px;
+             color: #B5B5B5;
+             margin: 10px 0 0 0;
+          }
+          .logo-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+          }
+          .content {
+            padding: 30px;
           }
           .card {
-            background-color: #ffffff;
+            background-color: #f9fafb;
             padding: 30px;
             border-radius: 8px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border: 1px solid #e5e7eb;
           }
           h2 {
             color: ${daysUntil === 1 ? '#dc2626' : daysUntil <= 3 ? '#f97316' : '#eab308'};
@@ -272,7 +341,7 @@ export async function createDeadlineNotification(
           }
           .button {
             display: inline-block;
-            background-color: #00FF88;
+            background-color: #18BB70;
             color: #000;
             padding: 12px 24px;
             border-radius: 6px;
@@ -288,19 +357,28 @@ export async function createDeadlineNotification(
       </head>
       <body>
         <div class="container">
-          <div class="card">
-            <h2>⏰ Deadline Reminder ${daysUntil === 1 ? '🔴' : daysUntil <= 3 ? '🟠' : '🟡'}</h2>
-            <p>Hi,</p>
-            <p>
-              Your application for <strong>${applicationTitle}</strong>
-              <span class="urgent"> has a deadline in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}!</span>
-            </p>
-            <p>
-              Make sure to submit before the deadline to ensure your application is reviewed.
-            </p>
-            <p>
-              <a href="${emailConfig.appUrl}/applications" class="button">View Applications</a>
-            </p>
+          <div class="header">
+            <div class="logo-container">
+               <img src="${emailConfig.appUrl}/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+               <h1>ApplyOS</h1>
+            </div>
+            <p class="header-subtitle">Deadline Reminder</p>
+          </div>
+          <div class="content">
+            <div class="card">
+              <h2>Deadline Reminder ${daysUntil === 1 ? '🔴' : daysUntil <= 3 ? '🟠' : '🟡'}</h2>
+              <p>Hi,</p>
+              <p>
+                Your application for <strong>${applicationTitle}</strong>
+                <span class="urgent"> has a deadline in ${daysUntil} day${daysUntil !== 1 ? 's' : ''}!</span>
+              </p>
+              <p>
+                Make sure to submit before the deadline to ensure your application is reviewed.
+              </p>
+              <p>
+                <a href="${emailConfig.appUrl}/applications" class="button">View Applications</a>
+              </p>
+            </div>
           </div>
         </div>
       </body>

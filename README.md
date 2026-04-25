@@ -1,11 +1,11 @@
-# <img src="public/favicon.svg" width="32" height="32" align="center" /> ApplyOS - AI-Powered Application & Interview Manager
+# <img src="public/ApplyOS%20Logo.webp" width="32" height="32" align="center" /> ApplyOS - AI-Powered Application & Interview Manager
 
 <div align="center">
   <img src="https://img.shields.io/badge/Next.js-16.1.1-black?style=for-the-badge" alt="Next.js" />
   <img src="https://img.shields.io/badge/TypeScript-5.4.0-blue?style=for-the-badge" alt="TypeScript" />
   <img src="https://img.shields.io/badge/Supabase-Enabled-green?style=for-the-badge" alt="Supabase" />
   <img src="https://img.shields.io/badge/Tailwind-3.4.3-38bdf8?style=for-the-badge" alt="Tailwind" />
-  <img src="https://img.shields.io/badge/Gemini-2.0%20Flash-orange?style=for-the-badge" alt="Gemini AI" />
+  <img src="https://img.shields.io/badge/Gemini-3.0%20Flash-orange?style=for-the-badge" alt="Gemini AI" />
   <img src="https://img.shields.io/badge/Vercel-Deployed-black?logo=vercel&style=for-the-badge" alt="Vercel" />
   <img src="https://img.shields.io/badge/License-MIT-yellow?style=for-the-badge" alt="License" />
 </div>
@@ -84,6 +84,7 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Full rich text editor with formatting
   - Timeline and card views
   - Timestamps for all updates
+- **Auto-Save System** - Real-time saving of status changes, documents, and notes
 - **Bulk Import** - Import multiple applications via CSV template
 - **Status History** - Automatic tracking of all status changes with timestamps
 - **Linked Documents** - Associate resumes and cover letters with applications
@@ -141,6 +142,11 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Email/password with verification
   - Google OAuth with seamless integration
 
+- **Secure Blog Platform**:
+  - **MDX-Powered Blog** - Rich content authoring with React components
+  - **SEO Optimized** - Automatic metadata, sitemaps, and canonical tags
+  - **Subdomain Routing** - `blog.applyos.io` integration via middleware
+
 - **Email Verification** - Required for all signup methods with:
   - Automatic verification email sending
   - Beautiful verification check pages
@@ -166,9 +172,12 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
 - **Modern Design**:
   - Clean, intuitive interface built with shadcn/ui
   - Responsive design for desktop, tablet, and mobile
-  - Dark mode support with green accent (#00FF88)
+  - **Theme Support** - Seamless Light and Dark mode toggle with persisted preference
+  - **Premium Aesthetics** - Glassmorphism, tailored HSL color palettes, and polished typography
 
-- **Smooth Interactions**:
+- **Advanced Interactions**:
+  - **AI Orb Interface** - Dynamic, reactive 3D orb visualizing AI voice activity and user speech
+  - **Voice-First Design** - Hands-free interview practice with real-time feedback
   - Framer Motion-powered animations
   - Real-time toast notifications
   - Loading states and progress indicators
@@ -180,9 +189,18 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
   - Placeholder text
   - Auto-save capabilities
 
+### Smart Browser Extension
+
+- **Instant Application Capture** - One-click saving of job postings from LinkedIn, Indeed, Glassdoor, and more
+- **AI Compatibility Analysis** - Real-time matching of your resume against the current job description
+- **Quick-Add Dashboard** - Rapidly add notes and track application status without leaving the job board
+- **Automatic Data Extraction** - AI-powered parsing of job titles, companies, and requirements
+- **Seamless Sync** - Instant synchronization with your ApplyOS dashboard
+
 ### Marketing & Growth (Beta)
 
 - **Marketing Content Calendar** - System for planning social media posts (LinkedIn, Twitter)
+- **ApplyOS Social Media Manager** - n8n workflow for automated content curation and scheduling
 - **AI-Powered Screenshot Analysis** - Automatic feature extraction and analysis from screenshots
 - **n8n Automation Workflows** - Integrated workflows for:
   - Automated social content generation using Gemini AI
@@ -272,7 +290,7 @@ Before you begin, ensure you have the following installed:
    - Visit [Google AI Studio](https://ai.google.dev/gemini-api/docs/api-key)
    - Create a new API key
    - Copy and add to `.env.local`
-   - Note: Gemini 2.0 Flash is used for all AI features
+   - Note: Gemini 2.5 and 3.0 models are used for optimized performance
 
 4. **Set up SMTP Email** (optional - for email notifications)
 
@@ -466,7 +484,7 @@ npm run lint
 
 2.  **AI Analysis**:
     -   Uses cached extracted text (instant!)
-    -   Gemini 2.0 Flash extracts:
+    -   Gemini 2.5 & 3.0 models extract:
         -   Education (degree, institution, dates)
         -   Experience (company, role, dates, achievements)
         -   Skills (technical, soft, tools)
@@ -528,6 +546,7 @@ ApplyOS includes a comprehensive email system:
     -   Deadline reminders (7/3/1 days before)
     -   Weekly digest of application activity
     -   Status update notifications
+-   **Premium Dark Theme** - Consistent, branded email templates with dark mode aesthetics (Neon Green on Dark Gray).
 
 ### Cron Jobs (Scheduled Tasks)
 
@@ -657,6 +676,16 @@ ApplyOS/
 │   ├── upload/                  # Document upload page
 │   ├── layout.tsx               # Root layout
 │   └── page.tsx                 # Landing page
+├── modules/                      # Feature Modules
+│   ├── analytics/                # Analytics domain
+│   ├── applications/             # Application lifecycle
+│   ├── auth/                     # Authentication domain
+│   ├── blog/                     # Blog content
+│   ├── documents/                # Document processing
+│   ├── interviews/               # Interview practice system
+│   ├── marketing/                # Marketing tools
+│   ├── notes/                    # Notes & rich text
+│   └── notifications/            # Notification logic
 ├── components/
 │   ├── analytics/               # Analytics charts (Sankey, Timeline, etc.)
 │   ├── interview/               # Interview components
@@ -683,17 +712,22 @@ ApplyOS/
 │   ├── functions/               # Supabase Edge Functions
 │   │   └── analyze-screenshot/  # AI screenshot analysis logic
 │   └── migrations/              # SQL migration files (001-021)
+├── extension/                    # Browser Extension (Chrome/Edge/Firefox)
+│   ├── src/                     # Extension source code
+│   ├── public/                  # Static assets
+│   └── manifest.json            # Extension configuration
 ├── types/
 │   └── database.ts              # TypeScript type definitions
 ├── contexts/
 │   └── AuthContext.tsx          # Authentication context
-├── middleware.ts                # Route protection middleware
+├── proxy.ts                     # Unified Authentication, Subdomain & CORS Middleware
 ├── next.config.js               # Next.js configuration
 ├── tailwind.config.ts           # Tailwind configuration
 ├── tsconfig.json                # TypeScript configuration
 ├── vercel.json                  # Vercel deployment config
 ├── Call_Gemini_Image_Generation_API.json # n8n workflow for images
-└── applyos-weekday-auto-publisher.json   # n8n workflow for social publishing
+├── applyos-weekday-auto-publisher.json   # n8n workflow for social publishing
+└── applyos_social_media_manager.json     # n8n workflow for content curation
 ```
 
 ## API Endpoints
@@ -706,6 +740,12 @@ ApplyOS/
 | `/api/auth/verify-email` | GET | Verify email with token from email link |
 | `/api/auth/resend-verification` | POST | Resend verification email (rate-limited) |
 | `/auth/callback` | GET | OAuth callback handler (Google) |
+
+### AI Analysis (General)
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/api/ai/compatibility` | POST | Analyze match between Job Description and Resume |
 
 ### Documents
 
@@ -824,13 +864,22 @@ We welcome contributions! Here's how you can help:
 ### Contribution Process
 
 1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+2. Create a standardized feature branch (`git checkout -b type/amazing-feature`)
 3. Make your changes
 4. Follow code standards (TypeScript, ESLint config)
 5. Test your changes locally
 6. Commit with clear messages (`git commit -m 'feat: add amazing feature'`)
-7. Push to your branch (`git push origin feature/amazing-feature`)
+7. Push to your branch (`git push origin type/amazing-feature`)
 8. Open a Pull Request
+
+#### Branch Naming Conventions
+
+We follow a structured naming convention to keep the repository organized:
+- `feat/`: New features
+- `fix/`: Bug fixes
+- `docs/`: Documentation updates
+- `refactor/`: Code improvements (no new features/fixes)
+- `chore/`: Maintenance (dependencies, config, etc.)
 
 ### Code Standards
 

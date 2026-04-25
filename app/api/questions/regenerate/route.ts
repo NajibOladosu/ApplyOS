@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { generateAnswer } from "@/lib/ai"
-import { getAnalyzedDocuments, buildContextFromDocument } from "@/lib/services/documents"
+import { createClient } from "@/shared/db/supabase/server"
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { generateAnswer } from "@/shared/infrastructure/ai"
+import { getAnalyzedDocuments, buildContextFromDocument } from "@/modules/documents/services/document.service"
 import type { Question } from "@/types/database"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
@@ -9,7 +10,20 @@ export const dynamic = 'force-dynamic'
 
 export async function POST(req: NextRequest) {
   try {
-    const supabase = await createClient()
+    let supabase
+    const authHeader = req.headers.get('Authorization')
+
+    if (authHeader?.startsWith('Bearer ')) {
+      supabase = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+        {
+          global: { headers: { Authorization: authHeader } }
+        }
+      )
+    } else {
+      supabase = await createClient()
+    }
 
     const {
       data: { user },
@@ -32,9 +46,9 @@ export async function POST(req: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse
 
     const body = await req.json()
-    const { applicationId, questionId } = body
+    const { applicationId, questionId, extraContext } = body
 
-    console.log("Regenerate request:", { applicationId, questionId, hasBody: !!body })
+    console.log("Regenerate request:", { applicationId, questionId, hasBody: !!body, hasExtraContext: !!extraContext })
 
     if (!applicationId) {
       return NextResponse.json(
@@ -83,11 +97,13 @@ export async function POST(req: NextRequest) {
       experience?: string
       education?: string
       jobDescription?: string
+      extraInstructions?: string
     } = {
       resume: undefined,
       experience: undefined,
       education: undefined,
       jobDescription: app.job_description || undefined,
+      extraInstructions: extraContext || undefined,
     }
 
     // Get the documents associated with this application (using server client)
@@ -143,12 +159,15 @@ export async function POST(req: NextRequest) {
       const analyzedDocs = await getAnalyzedDocuments()
       console.log("Analyzed documents available:", analyzedDocs.length)
       if (analyzedDocs.length > 0) {
-        context = buildContextFromDocument(analyzedDocs[0])
+        const fallbackContext = buildContextFromDocument(analyzedDocs[0])
         console.log("Built context from fallback document:", {
-          hasResume: !!context.resume,
-          hasExperience: !!context.experience,
-          hasEducation: !!context.education
+          hasResume: !!fallbackContext.resume,
+          hasExperience: !!fallbackContext.experience,
+          hasEducation: !!fallbackContext.education
         })
+        if (fallbackContext.resume) context.resume = fallbackContext.resume
+        if (fallbackContext.experience) context.experience = fallbackContext.experience
+        if (fallbackContext.education) context.education = fallbackContext.education
       }
     }
 
@@ -156,7 +175,8 @@ export async function POST(req: NextRequest) {
       hasJobDescription: !!context.jobDescription,
       hasResume: !!context.resume,
       hasExperience: !!context.experience,
-      hasEducation: !!context.education
+      hasEducation: !!context.education,
+      hasExtraInstructions: !!context.extraInstructions
     })
 
     const updatedQuestions: Question[] = []

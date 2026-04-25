@@ -30,7 +30,7 @@ export default function Image() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        background: '#00ff88',
+                        background: '#18BB70',
                         borderRadius: '40px',
                         width: '160px',
                         height: '160px',
@@ -58,7 +58,7 @@ export default function Image() {
                         fontFamily: 'monospace',
                     }}
                 >
-                    <span style={{ color: '#00ff88' }}>Apply</span>
+                    <span style={{ color: '#18BB70' }}>Apply</span>
                     <span style={{ color: 'white' }}>OS</span>
                 </div>
                 <div

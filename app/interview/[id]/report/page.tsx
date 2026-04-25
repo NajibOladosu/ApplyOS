@@ -3,15 +3,15 @@
 import { useEffect, useState } from "react"
 import { useParams, useRouter } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Badge } from "@/shared/ui/badge"
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/ui/accordion"
 import { ArrowLeft, Mic, Calendar, Clock, Target, Loader2, CheckCircle, XCircle, Lightbulb } from "lucide-react"
 import Link from "next/link"
 import type { InterviewSession, InterviewQuestion, InterviewAnswer, Application } from "@/types/database"
-import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/lib/services/interviews"
-import { getApplication } from "@/lib/services/applications"
+import { getInterviewSession, getQuestionsForSession, getAnswersForSession } from "@/modules/interviews/services/interview.service"
+import { getApplication } from "@/modules/applications/services/application.service"
 
 // Session type labels
 const sessionTypeLabels: Record<string, string> = {
@@ -244,8 +244,8 @@ export default function InterviewReportPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Difficulty</p>
-                <Badge className={difficultyColors[session.difficulty]}>
-                  {session.difficulty}
+                <Badge className={difficultyColors[session.difficulty ?? 'medium']}>
+                  <span className="capitalize">{session.difficulty}</span>
                 </Badge>
               </div>
               <div>
@@ -455,8 +455,8 @@ export default function InterviewReportPage() {
                                 <Badge variant="outline" className="text-xs">
                                   {question.question_category.replace(/_/g, ' ')}
                                 </Badge>
-                                <Badge className={difficultyColors[question.difficulty]} variant="outline">
-                                  {question.difficulty}
+                                <Badge className={difficultyColors[question.difficulty ?? 'medium']} variant="outline">
+                                  <span className="capitalize">{question.difficulty}</span>
                                 </Badge>
                               </div>
                               <p className="text-sm text-muted-foreground">
@@ -492,28 +492,28 @@ export default function InterviewReportPage() {
                               {(answer.clarity_score != null || answer.structure_score != null ||
                                 answer.relevance_score != null || answer.depth_score != null ||
                                 answer.confidence_score != null) && (
-                                <div>
-                                  <h4 className="text-xs font-semibold mb-2">Score Breakdown</h4>
-                                  <div className="grid grid-cols-5 gap-2">
-                                    {[
-                                      { label: 'Clarity', score: answer.clarity_score },
-                                      { label: 'Structure', score: answer.structure_score },
-                                      { label: 'Relevance', score: answer.relevance_score },
-                                      { label: 'Depth', score: answer.depth_score },
-                                      { label: 'Confidence', score: answer.confidence_score },
-                                    ].map(({ label, score }) => (
-                                      score != null && (
-                                        <div key={label} className="text-center p-2 bg-background rounded border">
-                                          <div className={`text-sm font-bold ${getScoreColor(score)}`}>
-                                            {score.toFixed(1)}
+                                  <div>
+                                    <h4 className="text-xs font-semibold mb-2">Score Breakdown</h4>
+                                    <div className="grid grid-cols-5 gap-2">
+                                      {[
+                                        { label: 'Clarity', score: answer.clarity_score },
+                                        { label: 'Structure', score: answer.structure_score },
+                                        { label: 'Relevance', score: answer.relevance_score },
+                                        { label: 'Depth', score: answer.depth_score },
+                                        { label: 'Confidence', score: answer.confidence_score },
+                                      ].map(({ label, score }) => (
+                                        score != null && (
+                                          <div key={label} className="text-center p-2 bg-background rounded border">
+                                            <div className={`text-sm font-bold ${getScoreColor(score)}`}>
+                                              {score.toFixed(1)}
+                                            </div>
+                                            <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
                                           </div>
-                                          <p className="text-xs text-muted-foreground mt-0.5">{label}</p>
-                                        </div>
-                                      )
-                                    ))}
+                                        )
+                                      ))}
+                                    </div>
                                   </div>
-                                </div>
-                              )}
+                                )}
 
                               {/* Detailed Feedback */}
                               {answer.feedback ? (

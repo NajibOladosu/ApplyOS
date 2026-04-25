@@ -5,8 +5,8 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
-import { getStatusFlowData, type TimeRange } from '@/lib/services/analytics'
+import { createClient as createSupabaseServerClient } from '@/shared/db/supabase/server'
+import { getStatusFlowData, type TimeRange } from '@/modules/analytics/services/analytics.service'
 
 export const dynamic = 'force-dynamic'
 

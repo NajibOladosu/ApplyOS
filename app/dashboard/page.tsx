@@ -4,14 +4,14 @@ import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { MetricsCard } from "@/components/analytics/MetricsCard"
-import { TimelineChart } from "@/components/analytics/TimelineChart"
-import { ConversionFunnel } from "@/components/analytics/ConversionFunnel"
-import { SankeyChart } from "@/components/analytics/SankeyChart"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
+import { Button } from "@/shared/ui/button"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
+import { MetricsCard } from "@/modules/analytics/components/MetricsCard"
+import { TimelineChart } from "@/modules/analytics/components/TimelineChart"
+import { ConversionFunnel } from "@/modules/analytics/components/ConversionFunnel"
+import { SankeyChart } from "@/modules/analytics/components/SankeyChart"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -25,25 +25,25 @@ import {
   Award,
   Target,
 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
-import { getApplications, getApplicationStats } from "@/lib/services/applications"
-import { getDocuments } from "@/lib/services/documents"
+import { createClient } from "@/shared/db/supabase/client"
+import { getApplications, getApplicationStats } from "@/modules/applications/services/application.service"
+import { getDocuments } from "@/modules/documents/services/document.service"
 import type { Application } from "@/types/database"
-import type { TimeRange } from "@/lib/services/analytics"
+import type { TimeRange } from "@/modules/analytics/services/analytics.service"
 
 const statusConfig = {
-  draft: { label: "Draft", variant: "outline" as const },
-  submitted: { label: "Submitted", variant: "info" as const },
-  in_review: { label: "In Review", variant: "warning" as const },
+  draft: { label: "Draft", variant: "secondary" as const },
+  submitted: { label: "Submitted", variant: "secondary" as const },
+  in_review: { label: "In Review", variant: "info" as const },
   interview: { label: "Interview", variant: "success" as const },
   offer: { label: "Offer", variant: "default" as const },
   rejected: { label: "Rejected", variant: "destructive" as const },
 }
 
 const priorityConfig = {
-  low: { color: "bg-green-500" },
-  medium: { color: "bg-yellow-500" },
-  high: { color: "bg-red-500" },
+  low: { color: "bg-primary/60" },
+  medium: { color: "bg-yellow-500" }, // Keep yellow as warning, or make generic. Let's keep yellow for contrast.
+  high: { color: "bg-destructive" },
 }
 
 interface AnalyticsData {
@@ -101,13 +101,21 @@ export default function DashboardPage() {
 
   const fetchData = async () => {
     try {
-      const [applicationsData, statsData, documentsData] = await Promise.all([
+      const [applicationsResult, statsResult, documentsResult] = await Promise.allSettled([
         getApplications(),
         getApplicationStats(),
         getDocuments()
       ])
 
-      setStats(statsData)
+      const applicationsData = applicationsResult.status === 'fulfilled' ? applicationsResult.value : []
+      const statsData = statsResult.status === 'fulfilled' ? statsResult.value : null
+      const documentsData = documentsResult.status === 'fulfilled' ? documentsResult.value : []
+
+      if (applicationsResult.status === 'rejected') console.error('Error fetching applications:', applicationsResult.reason)
+      if (statsResult.status === 'rejected') console.error('Error fetching stats:', statsResult.reason)
+      if (documentsResult.status === 'rejected') console.error('Error fetching documents:', documentsResult.reason)
+
+      if (statsData) setStats(statsData)
       setDocumentsCount(documentsData.length)
       setRecentApplications(applicationsData.slice(0, 4))
 
@@ -161,25 +169,25 @@ export default function DashboardPage() {
       title: "Total Applications",
       value: stats.total.toString(),
       icon: FileText,
-      color: "text-blue-500",
+      color: "text-foreground",
     },
     {
       title: "In Review",
       value: stats.pending.toString(),
       icon: Clock,
-      color: "text-yellow-500",
+      color: "text-muted-foreground",
     },
     {
       title: "Upcoming Deadlines",
       value: stats.upcomingDeadlines.toString(),
       icon: AlertCircle,
-      color: "text-red-500",
+      color: "text-destructive",
     },
     {
       title: "Documents Uploaded",
       value: documentsCount.toString(),
       icon: CheckCircle,
-      color: "text-primary",
+      color: "text-foreground",
     },
   ]
 
@@ -190,7 +198,7 @@ export default function DashboardPage() {
           {/* Header */}
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold mb-2">Dashboard</h1>
+              <h1 className="text-2xl sm:text-3xl font-bold mb-2 tracking-tight">Dashboard</h1>
               <p className="text-sm sm:text-base text-muted-foreground">
                 Welcome back! Here's an overview of your applications.
               </p>
@@ -199,13 +207,13 @@ export default function DashboardPage() {
               <TabsList className="grid grid-cols-2 w-full sm:w-auto">
                 <TabsTrigger
                   value="overview"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   Overview
                 </TabsTrigger>
                 <TabsTrigger
                   value="analytics"
-                  className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                  className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
                 >
                   Analytics
                 </TabsTrigger>
@@ -239,7 +247,7 @@ export default function DashboardPage() {
                         <CardTitle className="text-xs sm:text-sm font-medium">
                           {stat.title}
                         </CardTitle>
-                        <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${stat.color}`} />
+                        <Icon className={`h-3.5 w-3.5 sm:h-4 sm:w-4 ${stat.color} opacity-90 stroke-[1.5]`} />
                       </CardHeader>
                       <CardContent className="p-4 sm:p-6 pt-0">
                         <div className="text-xl sm:text-2xl font-bold">{stat.value}</div>
@@ -309,8 +317,8 @@ export default function DashboardPage() {
                         <Link href={`/applications/${app.id}`}>
                           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-3 sm:p-4 rounded-lg border border-border hover:border-primary/40 transition-all cursor-pointer">
                             <div className="flex items-center gap-3 sm:gap-4 flex-1 min-w-0">
-                              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
+                              <div className="h-9 w-9 sm:h-10 sm:w-10 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                                <Briefcase className="h-4 w-4 sm:h-5 sm:w-5 text-foreground" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <h4 className="text-sm sm:text-base font-medium truncate">{app.title}</h4>
@@ -504,10 +512,10 @@ export default function DashboardPage() {
                             {analyticsData.byPriority.map((item) => {
                               const priorityColor =
                                 item.priority === 'High'
-                                  ? 'bg-red-500'
+                                  ? 'bg-destructive'
                                   : item.priority === 'Medium'
                                     ? 'bg-yellow-500'
-                                    : 'bg-blue-500'
+                                    : 'bg-primary/60'
 
                               return (
                                 <div key={item.priority}>

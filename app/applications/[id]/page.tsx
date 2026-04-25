@@ -3,11 +3,11 @@
 import { useEffect, useState, useRef } from "react"
 import { useParams, useRouter, useSearchParams } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
-import { Textarea } from "@/components/ui/textarea"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Badge } from "@/shared/ui/badge"
+import { Textarea } from "@/shared/ui/textarea"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
 import { motion } from "framer-motion"
 import {
   ArrowLeft,
@@ -26,26 +26,36 @@ import {
   Mic,
   FileText,
   Trash2,
+  MessageSquareText,
+  Mail,
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote } from "@/types/database"
-import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/lib/services/applications"
-import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/lib/services/questions"
-import { getDocuments } from "@/lib/services/documents"
-import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/lib/services/notes"
-import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/lib/services/interviews"
-import { EditApplicationModal } from "@/components/modals/edit-application-modal"
-import { EditQuestionsModal } from "@/components/modals/edit-questions-modal"
+import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/modules/applications/services/application.service"
+import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/modules/interviews/services/question.service"
+import { getDocuments } from "@/modules/documents/services/document.service"
+import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/modules/notes/services/note.service"
+import { getInterviewSessions, deleteInterviewSession, getSessionWithQuestionsAndAnswers } from "@/modules/interviews/services/interview.service"
+import { EditApplicationModal } from "@/modules/applications/components/modals/edit-application-modal"
+import { EditQuestionsModal } from "@/modules/interviews/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
-import { NoteModal } from "@/components/modals/note-modal"
-import { NewInterviewModal } from "@/components/modals/new-interview-modal"
-import { InterviewReportModal } from "@/components/modals/interview-report-modal"
-import { NotesCardView } from "@/components/notes/notes-card-view"
-import { NotesTimelineView } from "@/components/notes/notes-timeline-view"
-import { InterviewModeWrapper } from "@/components/interview/interview-mode-wrapper"
+import { NoteModal } from "@/modules/notes/components/modals/note-modal"
+import { NewInterviewModal } from "@/modules/interviews/components/modals/new-interview-modal"
+import { InterviewReportModal } from "@/modules/interviews/components/modals/interview-report-modal"
+import { NotesCardView } from "@/modules/notes/components/notes-card-view"
+import { NotesTimelineView } from "@/modules/notes/components/notes-timeline-view"
+import { RegenerateContextModal } from "@/components/modals/regenerate-context-modal"
 import type { InterviewSession } from "@/types/database"
-import { AnalysisTab } from "@/components/applications/analysis-tab"
+import dynamic from "next/dynamic"
+
+const InterviewModeWrapper = dynamic(() => import("@/modules/interviews/components/interview-mode-wrapper").then(mod => mod.InterviewModeWrapper), {
+  loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+})
+
+const AnalysisTab = dynamic(() => import("@/modules/applications/components/analysis-tab").then(mod => mod.AnalysisTab), {
+  loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
+})
 
 export default function ApplicationDetailPage() {
   const params = useParams()
@@ -92,6 +102,8 @@ export default function ApplicationDetailPage() {
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const [viewingReportSessionId, setViewingReportSessionId] = useState<string | null>(null)
   const [reportData, setReportData] = useState<any | null>(null)
+  const [showRegenerateModal, setShowRegenerateModal] = useState(false)
+  const [pendingRegenerationTarget, setPendingRegenerationTarget] = useState<string | "all" | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
   const coverLetterTextareaRef = useRef<HTMLTextAreaElement | null>(null)
 
@@ -173,13 +185,19 @@ export default function ApplicationDetailPage() {
 
   const handleRegenerate = async (questionId?: string) => {
     if (!application) return
+    setPendingRegenerationTarget(questionId || "all")
+    setShowRegenerateModal(true)
+  }
+
+  const handleConfirmRegeneration = async (extraContext?: string) => {
+    if (!application || !pendingRegenerationTarget) return
+
+    const questionId = pendingRegenerationTarget === "all" ? undefined : pendingRegenerationTarget
 
     try {
-      if (!questionId) {
-        setRegenerating("all")
-      } else {
-        setRegenerating(questionId)
-      }
+      setRegenerating(pendingRegenerationTarget)
+      // Close modal immediately so we show the loading state on buttons
+      setShowRegenerateModal(false)
 
       const response = await fetch("/api/questions/regenerate", {
         method: "POST",
@@ -188,7 +206,8 @@ export default function ApplicationDetailPage() {
         },
         body: JSON.stringify({
           applicationId: application.id,
-          ...(questionId && { questionId }), // Only include questionId if provided (for single question)
+          questionId,
+          extraContext,
         }),
       })
 
@@ -221,6 +240,7 @@ export default function ApplicationDetailPage() {
       setError("Failed to regenerate answers. Please try again.")
     } finally {
       setRegenerating(null)
+      setPendingRegenerationTarget(null)
     }
   }
 
@@ -282,8 +302,42 @@ export default function ApplicationDetailPage() {
     }
   }
 
-  const handleStatusChange = (newStatus: Application["status"]) => {
+  const handleStatusChange = async (newStatus: Application["status"]) => {
+    if (!application) return
+    setIsSavingChanges(true)
+
+    // Optimistic update
     setPendingStatus(newStatus)
+    setApplication(prev => prev ? { ...prev, status: newStatus } : null)
+
+    try {
+      const previousStatus = application.status
+      await updateApplication(application.id, { status: newStatus })
+
+      // Send status update email notification
+      try {
+        await fetch('/api/notifications/send-status-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            applicationId: application.id,
+            applicationTitle: application.title,
+            previousStatus,
+            newStatus: newStatus,
+          }),
+        })
+      } catch (emailErr) {
+        console.error('Failed to send status update email:', emailErr)
+      }
+    } catch (err) {
+      console.error("Error saving status change:", err)
+      // Revert on error
+      setPendingStatus(application.status)
+      setApplication(prev => prev ? { ...prev, status: application.status } : null)
+      setError("Failed to update status")
+    } finally {
+      setIsSavingChanges(false)
+    }
   }
 
   const toggleDocumentSelection = (docId: string) => {
@@ -292,18 +346,48 @@ export default function ApplicationDetailPage() {
     )
   }
 
-  const addSelectedDocuments = () => {
+  const addSelectedDocuments = async () => {
+    if (!application) return
+    setIsSavingChanges(true)
+
     const newSelectedIds = [
       ...new Set([...selectedDocumentIds, ...pendingDocumentIds]),
     ]
+
+    // Optimistic update
     setSelectedDocumentIds(newSelectedIds)
-    // Don't update initial state here - only when saving
     setPendingDocumentIds([])
     setShowDocumentModal(false)
+
+    try {
+      await updateApplicationDocuments(application.id, newSelectedIds)
+      setInitialSelectedDocumentIds(newSelectedIds)
+    } catch (err) {
+      console.error("Error saving documents:", err)
+      // Revert logic would depend on complexity, for now just log
+      setError("Failed to update documents")
+    } finally {
+      setIsSavingChanges(false)
+    }
   }
 
-  const removeDocument = (docId: string) => {
-    setSelectedDocumentIds((prev) => prev.filter((id) => id !== docId))
+  const removeDocument = async (docId: string) => {
+    if (!application) return
+
+    const newSelectedIds = selectedDocumentIds.filter((id) => id !== docId)
+
+    // Optimistic update
+    setSelectedDocumentIds(newSelectedIds)
+
+    try {
+      await updateApplicationDocuments(application.id, newSelectedIds)
+      setInitialSelectedDocumentIds(newSelectedIds)
+    } catch (err) {
+      console.error("Error removing document:", err)
+      setError("Failed to remove document")
+      // Revert if needed
+      setSelectedDocumentIds(selectedDocumentIds)
+    }
   }
 
   const hasChanges = () => {
@@ -585,9 +669,9 @@ export default function ApplicationDetailPage() {
   }
 
   const priorityColor: Record<Application["priority"], string> = {
-    low: "bg-green-500",
+    low: "bg-primary",
     medium: "bg-yellow-500",
-    high: "bg-red-500",
+    high: "bg-destructive",
   }
 
   return (
@@ -618,59 +702,39 @@ export default function ApplicationDetailPage() {
               )}
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            {hasChanges() && (
-              <Button
-                onClick={saveChanges}
-                disabled={isSavingChanges}
-                className="glow-effect flex-1 sm:flex-none"
-              >
-                {isSavingChanges ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
-                  </>
-                ) : (
-                  "Save Changes"
-                )}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() => setShowEditModal(true)}
-              className="flex-1 sm:flex-none"
-            >
-              <Edit className="mr-2 h-4 w-4" />
-              Manage
-            </Button>
-          </div>
         </div>
 
         {/* Application Info (Static) */}
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle>Application Information</CardTitle>
+            <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="h-8 w-8 text-muted-foreground hover:text-primary">
+              <Edit className="h-4 w-4" />
+              <span className="sr-only">Edit Application</span>
+            </Button>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
               {application.company && (
                 <div>
                   <p className="text-sm text-muted-foreground mb-1">Company/University</p>
-                  <span className="text-sm font-medium">
-                    {application.company}
-                  </span>
+                  <div className="h-[38px] flex items-center">
+                    <span className="text-sm font-medium truncate">
+                      {application.company}
+                    </span>
+                  </div>
                 </div>
               )}
               <div>
-                <p className="text-sm text-muted-foreground mb-2">Status</p>
+                <p className="text-sm text-muted-foreground mb-1">Status</p>
                 <div className="relative inline-block w-full">
                   <button
                     onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="w-full flex items-center justify-between px-3 py-2 rounded-md border border-input hover:bg-muted transition-colors text-sm font-medium"
+                    className="w-full h-[38px] flex items-center justify-between px-3 py-2 rounded-md border border-input hover:bg-muted transition-colors text-sm font-medium"
                   >
-                    <Badge variant={statusVariant[pendingStatus || application.status]}>
+                    <span className="capitalize">
                       {statusLabel[pendingStatus || application.status]}
-                    </Badge>
+                    </span>
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </button>
                   {statusDropdownOpen && (
@@ -694,7 +758,7 @@ export default function ApplicationDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Priority</p>
-                <div className="flex items-center space-x-2">
+                <div className="h-[38px] flex items-center space-x-2">
                   <div className={`h-2 w-2 rounded-full ${priorityColor[application.priority]}`} />
                   <span className="text-sm font-medium capitalize">
                     {application.priority}
@@ -703,7 +767,7 @@ export default function ApplicationDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Deadline</p>
-                <div className="flex items-center space-x-2">
+                <div className="h-[38px] flex items-center space-x-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
                     {application.deadline
@@ -714,9 +778,11 @@ export default function ApplicationDetailPage() {
               </div>
               <div>
                 <p className="text-sm text-muted-foreground mb-1">Type</p>
-                <Badge variant="outline" className="capitalize">
-                  {application.type}
-                </Badge>
+                <div className="h-[38px] flex items-center">
+                  <Badge variant="outline" className="capitalize">
+                    {application.type}
+                  </Badge>
+                </div>
               </div>
             </div>
 
@@ -873,33 +939,33 @@ export default function ApplicationDetailPage() {
             <TabsList className="grid grid-cols-5 w-full sm:w-auto">
               <TabsTrigger
                 value="questions"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Questions
               </TabsTrigger>
               <TabsTrigger
-                value="interview"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
-              >
-                Interview
-              </TabsTrigger>
-              <TabsTrigger
                 value="cover-letter"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Cover Letter
               </TabsTrigger>
               <TabsTrigger
+                value="analysis"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+              >
+                Analysis
+              </TabsTrigger>
+              <TabsTrigger
                 value="notes"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
                 Notes
               </TabsTrigger>
               <TabsTrigger
-                value="analysis"
-                className="data-[state=active]:bg-primary data-[state=active]:text-black"
+                value="interview"
+                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
               >
-                Analysis
+                Interview
               </TabsTrigger>
             </TabsList>
           </div>
@@ -908,7 +974,10 @@ export default function ApplicationDetailPage() {
           <TabsContent value="questions" className="space-y-6 mt-0">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold">Application Questions</h2>
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <MessageSquareText className="h-6 w-6 text-foreground dark:text-primary" />
+                  Application Questions
+                </h2>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     variant="outline"
@@ -1065,9 +1134,206 @@ export default function ApplicationDetailPage() {
             </div>
           </TabsContent>
 
-          {/* Interview Tab */}
-          <TabsContent value="interview" className="space-y-6 mt-0">
+          {/* Cover Letter Tab */}
+          <TabsContent value="cover-letter" className="space-y-6 mt-0">
             <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <Mail className="h-6 w-6 text-foreground dark:text-primary" />
+                  Cover Letter
+                </h2>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateCoverLetter}
+                  disabled={generatingCoverLetter}
+                >
+                  {generatingCoverLetter ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Generating...
+                    </>
+                  ) : (
+                    <>
+                      <Sparkles className="mr-2 h-4 w-4" />
+                      Generate Cover Letter
+                    </>
+                  )}
+                </Button>
+              </div>
+
+              {application?.ai_cover_letter && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <Card>
+                    <CardHeader className="p-4 sm:p-6">
+                      <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-4 sm:p-6">
+                      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                        {/* AI-Generated Cover Letter */}
+                        <div className="flex-1 flex flex-col">
+                          <div className="flex items-center space-x-2 mb-2">
+                            <Sparkles className="h-4 w-4 text-primary" />
+                            <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+                          </div>
+                          <Textarea
+                            value={application.ai_cover_letter || ""}
+                            className="resize-none flex-1 min-h-[400px]"
+                            readOnly
+                            placeholder="No AI-generated cover letter yet."
+                          />
+                        </div>
+
+                        {/* Copy Button */}
+                        <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
+                          <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
+                            disabled={savingCoverLetter}
+                            className="glow-effect hover:bg-primary group"
+                            title="Copy AI cover letter to your edited cover letter"
+                          >
+                            <Copy className="h-4 w-4 text-primary group-hover:text-background" />
+                          </Button>
+                        </div>
+
+                        {/* Your Edited Cover Letter */}
+                        <div className="flex-1 flex flex-col">
+                          <p className="text-xs text-muted-foreground mb-2">
+                            Your edited cover letter (saved privately for this application)
+                          </p>
+                          <Textarea
+                            ref={coverLetterTextareaRef}
+                            defaultValue={application.manual_cover_letter || ""}
+                            className="resize-none flex-1 min-h-[400px]"
+                            onBlur={(e) =>
+                              e.target.value !== (application.manual_cover_letter || "")
+                                ? handleSaveManualCoverLetter(e.target.value)
+                                : undefined
+                            }
+                            disabled={savingCoverLetter}
+                          />
+                          {savingCoverLetter && (
+                            <p className="text-xs text-muted-foreground mt-1">
+                              Saving...
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              )}
+            </div>
+          </TabsContent>
+
+          {/* Analysis Tab */}
+          <TabsContent value="analysis" className="mt-6">
+            <AnalysisTab
+              application={application}
+              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
+            />
+          </TabsContent>
+
+          {/* Notes Tab */}
+          <TabsContent value="notes" className="space-y-6 mt-0">
+            <div className="space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                  <StickyNote className="h-6 w-6 text-foreground dark:text-primary" />
+                  Notes
+                </h2>
+                <div className="flex flex-wrap gap-2">
+                  <div className="flex items-center gap-1 border border-input rounded-lg p-1">
+                    <Button
+                      variant={notesViewType === "card" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => {
+                        setNotesViewType("card")
+                        localStorage.setItem(`notes-view-${id}`, "card")
+                      }}
+                      className="text-xs"
+                    >
+                      Card View
+                    </Button>
+                    <Button
+                      variant={notesViewType === "timeline" ? "default" : "ghost"}
+                      size="sm"
+                      onClick={() => {
+                        setNotesViewType("timeline")
+                        localStorage.setItem(`notes-view-${id}`, "timeline")
+                      }}
+                      className="text-xs"
+                    >
+                      Timeline
+                    </Button>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
+                      setNotesSortOrder(newOrder)
+                      localStorage.setItem(`notes-sort-${id}`, newOrder)
+                    }}
+                    title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
+                  >
+                    <ArrowUpDown className="h-4 w-4 mr-2" />
+                    {notesSortOrder === "newest" ? "Newest" : "Oldest"}
+                  </Button>
+                  <Button
+                    onClick={handleNewNote}
+                    className="glow-effect flex-1 sm:flex-none"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add Note
+                  </Button>
+                </div>
+              </div>
+
+              {notesLoading ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                </div>
+              ) : (() => {
+                // Sort notes based on notesSortOrder
+                const sortedNotes = [...notes].sort((a, b) => {
+                  // Keep pinned notes first
+                  if (a.is_pinned !== b.is_pinned) {
+                    return a.is_pinned ? -1 : 1
+                  }
+                  // Then sort by date
+                  const dateA = new Date(a.created_at).getTime()
+                  const dateB = new Date(b.created_at).getTime()
+                  return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
+                })
+
+                return notesViewType === "card" ? (
+                  <NotesCardView
+                    notes={sortedNotes}
+                    onEdit={handleEditNote}
+                    onDelete={handleDeleteNote}
+                    onTogglePin={handleTogglePinNote}
+                  />
+                ) : (
+                  <NotesTimelineView
+                    notes={sortedNotes}
+                    onEdit={handleEditNote}
+                    onDelete={handleDeleteNote}
+                    onTogglePin={handleTogglePinNote}
+                  />
+                )
+              })()}
+            </div>
+          </TabsContent>
+
+          {/* Interview Tab */}
+          <TabsContent value="interview" className="mt-0">
+            <div>
               {selectedSessionId ? (
                 // Show session detail when a session is selected
                 <InterviewModeWrapper
@@ -1088,7 +1354,7 @@ export default function ApplicationDetailPage() {
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                     <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                      <Mic className="h-6 w-6" />
+                      <Mic className="h-6 w-6 text-foreground dark:text-primary" />
                       Mock Interview
                     </h2>
                     <Button
@@ -1112,7 +1378,6 @@ export default function ApplicationDetailPage() {
                             Get real-time feedback and improve your responses.
                           </p>
                           <Button
-                            size="lg"
                             className="glow-effect"
                             onClick={() => setShowNewInterviewModal(true)}
                           >
@@ -1244,7 +1509,7 @@ export default function ApplicationDetailPage() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-black glow-effect group/btn transition-all"
+                                      className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-primary-foreground glow-effect group/btn transition-all"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         handleViewReport(session.id)
@@ -1289,200 +1554,6 @@ export default function ApplicationDetailPage() {
               )}
             </div>
           </TabsContent>
-
-          {/* Cover Letter Tab */}
-          <TabsContent value="cover-letter" className="space-y-6 mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold">Cover Letter</h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateCoverLetter}
-                  disabled={generatingCoverLetter}
-                >
-                  {generatingCoverLetter ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Cover Letter
-                    </>
-                  )}
-                </Button>
-              </div>
-
-              {application?.ai_cover_letter && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-                        {/* AI-Generated Cover Letter */}
-                        <div className="flex-1 flex flex-col">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            <p className="text-sm font-medium">AI-Generated Cover Letter</p>
-                          </div>
-                          <Textarea
-                            value={application.ai_cover_letter || ""}
-                            className="resize-none flex-1 min-h-[400px]"
-                            readOnly
-                            placeholder="No AI-generated cover letter yet."
-                          />
-                        </div>
-
-                        {/* Copy Button */}
-                        <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
-                            disabled={savingCoverLetter}
-                            className="glow-effect hover:bg-primary group"
-                            title="Copy AI cover letter to your edited cover letter"
-                          >
-                            <Copy className="h-4 w-4 text-primary group-hover:text-background" />
-                          </Button>
-                        </div>
-
-                        {/* Your Edited Cover Letter */}
-                        <div className="flex-1 flex flex-col">
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Your edited cover letter (saved privately for this application)
-                          </p>
-                          <Textarea
-                            ref={coverLetterTextareaRef}
-                            defaultValue={application.manual_cover_letter || ""}
-                            className="resize-none flex-1 min-h-[400px]"
-                            onBlur={(e) =>
-                              e.target.value !== (application.manual_cover_letter || "")
-                                ? handleSaveManualCoverLetter(e.target.value)
-                                : undefined
-                            }
-                            disabled={savingCoverLetter}
-                          />
-                          {savingCoverLetter && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Saving...
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Notes Tab */}
-          <TabsContent value="notes" className="space-y-6 mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  <StickyNote className="h-6 w-6" />
-                  Notes
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <div className="flex items-center gap-1 border border-input rounded-lg p-1">
-                    <Button
-                      variant={notesViewType === "card" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => {
-                        setNotesViewType("card")
-                        localStorage.setItem(`notes-view-${id}`, "card")
-                      }}
-                      className="text-xs"
-                    >
-                      Card View
-                    </Button>
-                    <Button
-                      variant={notesViewType === "timeline" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => {
-                        setNotesViewType("timeline")
-                        localStorage.setItem(`notes-view-${id}`, "timeline")
-                      }}
-                      className="text-xs"
-                    >
-                      Timeline
-                    </Button>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
-                      setNotesSortOrder(newOrder)
-                      localStorage.setItem(`notes-sort-${id}`, newOrder)
-                    }}
-                    title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
-                  >
-                    <ArrowUpDown className="h-4 w-4 mr-2" />
-                    {notesSortOrder === "newest" ? "Newest" : "Oldest"}
-                  </Button>
-                  <Button
-                    onClick={handleNewNote}
-                    className="glow-effect flex-1 sm:flex-none"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Note
-                  </Button>
-                </div>
-              </div>
-
-              {notesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (() => {
-                // Sort notes based on notesSortOrder
-                const sortedNotes = [...notes].sort((a, b) => {
-                  // Keep pinned notes first
-                  if (a.is_pinned !== b.is_pinned) {
-                    return a.is_pinned ? -1 : 1
-                  }
-                  // Then sort by date
-                  const dateA = new Date(a.created_at).getTime()
-                  const dateB = new Date(b.created_at).getTime()
-                  return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
-                })
-
-                return notesViewType === "card" ? (
-                  <NotesCardView
-                    notes={sortedNotes}
-                    onEdit={handleEditNote}
-                    onDelete={handleDeleteNote}
-                    onTogglePin={handleTogglePinNote}
-                  />
-                ) : (
-                  <NotesTimelineView
-                    notes={sortedNotes}
-                    onEdit={handleEditNote}
-                    onDelete={handleDeleteNote}
-                    onTogglePin={handleTogglePinNote}
-                  />
-                )
-              })()}
-            </div>
-          </TabsContent>
-
-          {/* Analysis Tab */}
-          <TabsContent value="analysis" className="mt-6">
-            <AnalysisTab
-              application={application}
-              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
-            />
-          </TabsContent>
         </Tabs>
 
       </div>
@@ -1498,9 +1569,9 @@ export default function ApplicationDetailPage() {
         initialNote={
           editingNote
             ? {
-              content: editingNote.content,
-              category: editingNote.category,
-              is_pinned: editingNote.is_pinned,
+              content: editingNote!.content,
+              category: editingNote!.category,
+              is_pinned: editingNote!.is_pinned,
             }
             : undefined
         }
@@ -1630,7 +1701,18 @@ export default function ApplicationDetailPage() {
         onConfirm={handleDeleteInterview}
         onCancel={() => setSessionToDelete(null)}
         isLoading={!!deletingSessionId}
-        variant="destructive"
+      />
+
+      {/* Regenerate Context Modal */}
+      <RegenerateContextModal
+        isOpen={showRegenerateModal}
+        onClose={() => {
+          setShowRegenerateModal(false)
+          setPendingRegenerationTarget(null)
+        }}
+        onConfirm={handleConfirmRegeneration}
+        isRegeneratingAll={pendingRegenerationTarget === "all"}
+        isLoading={regenerating !== null} // Wait, actually we close modal before regenerating, so this might not be needed for loading state HERE, but good for safety
       />
     </DashboardLayout >
   )

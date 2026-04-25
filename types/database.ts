@@ -135,8 +135,9 @@ export type QuestionCategory =
   | 'behavioral_teamwork'
   | 'behavioral_conflict'
   | 'behavioral_failure'
+  | 'technical_coding'
   | 'technical_system_design'
-  | 'technical_concepts'
+  | 'technical_algorithms'
   | 'company_culture'
   | 'company_values'
   | 'resume_specific'
@@ -162,6 +163,7 @@ export interface InterviewFeedback {
   weaknesses: string[]
   suggestions: string[]
   tone_analysis?: string  // Analysis of communication style and delivery
+  rubric?: Record<string, number>  // Optional per-dimension rubric scores
 }
 
 export interface ScoreBreakdown {

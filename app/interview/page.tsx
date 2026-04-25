@@ -2,9 +2,9 @@
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Badge } from "@/shared/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
 import { motion } from "framer-motion"
 import {
   Mic,
@@ -18,10 +18,10 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { InterviewSession, Application } from "@/types/database"
-import { createClient } from "@/lib/supabase/client"
-import { Button } from "@/components/ui/button"
-import { useToast } from "@/components/ui/use-toast"
-import { ConfirmDialog } from "@/components/ui/confirm-dialog"
+import { createClient } from "@/shared/db/supabase/client"
+import { Button } from "@/shared/ui/button"
+import { useToast } from "@/shared/ui/use-toast"
+import { ConfirmDialog } from "@/shared/ui/confirm-dialog"
 
 interface SessionWithApplication extends InterviewSession {
   application: Application | null
@@ -201,7 +201,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Total Sessions</CardDescription>
@@ -222,7 +222,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.1 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Questions Answered</CardDescription>
@@ -243,7 +243,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.2 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Average Score</CardDescription>
@@ -269,7 +269,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.3 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Time Spent</CardDescription>
@@ -292,7 +292,7 @@ export default function InterviewPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: 0.4 }}
               >
-                <Card>
+                <Card className="h-full">
                   <CardHeader className="pb-3">
                     <div className="flex items-center justify-between">
                       <CardDescription>Improvement</CardDescription>

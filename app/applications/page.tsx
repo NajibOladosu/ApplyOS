@@ -2,10 +2,10 @@
 
 import { useState, useEffect } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Badge } from "@/shared/ui/badge"
 import { motion } from "framer-motion"
 import {
   Plus,
@@ -18,19 +18,19 @@ import {
   Loader2,
 } from "lucide-react"
 import Link from "next/link"
-import { getApplications, deleteApplication } from "@/lib/services/applications"
+import { getApplications, deleteApplication } from "@/modules/applications/services/application.service"
 import type { Application } from "@/types/database"
-import { AddApplicationModal } from "@/components/modals/add-application-modal"
+import { AddApplicationModal } from "@/modules/applications/components/modals/add-application-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 
 const statusConfig = {
-  draft: { label: "Draft", variant: "outline" as const, color: "bg-muted" },
-  submitted: { label: "Submitted", variant: "info" as const, color: "bg-blue-500" },
-  in_review: { label: "In Review", variant: "warning" as const, color: "bg-yellow-500" },
-  interview: { label: "Interview", variant: "success" as const, color: "bg-green-500" },
-  offer: { label: "Offer", variant: "default" as const, color: "bg-primary" },
-  rejected: { label: "Rejected", variant: "destructive" as const, color: "bg-destructive" },
+  draft: { label: "Draft", variant: "secondary" as const, color: "bg-zinc-800/80 text-muted-foreground backdrop-blur-sm border-0" },
+  submitted: { label: "Submitted", variant: "secondary" as const, color: "bg-zinc-800/80 text-zinc-300 backdrop-blur-sm border-0" },
+  in_review: { label: "In Review", variant: "secondary" as const, color: "bg-zinc-800/80 text-sky-300 backdrop-blur-sm border-0" },
+  interview: { label: "Interview", variant: "default" as const, color: "bg-primary text-primary-foreground" },
+  offer: { label: "Offer", variant: "default" as const, color: "bg-primary text-primary-foreground ring-2 ring-primary/20" },
+  rejected: { label: "Rejected", variant: "secondary" as const, color: "bg-zinc-800/80 text-destructive/80 line-through backdrop-blur-sm border-0" },
 }
 
 const priorityConfig = {
@@ -216,8 +216,8 @@ export default function ApplicationsPage() {
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                       <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
-                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                          <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-primary" />
+                        <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
+                          <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
                         </div>
 
                         <div className="flex-1 min-w-0">

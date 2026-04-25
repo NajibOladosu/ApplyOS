@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import RetryQueueService from '@/lib/ai/retry-queue'
-import { parseDocument } from '@/lib/ai'
-import { AIRateLimitError } from '@/lib/ai/model-manager'
+import { createClient } from '@/shared/db/supabase/server'
+import RetryQueueService from '@/shared/infrastructure/ai/retry-queue'
+import { parseDocument } from '@/shared/infrastructure/ai'
+import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 
 /**
  * Cron Job: Retry AI tasks that were rate limited

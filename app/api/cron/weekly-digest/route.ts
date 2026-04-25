@@ -6,10 +6,10 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
-import { sendEmailDirectly } from '@/lib/email';
-import { weeklyDigestEmailTemplate } from '@/lib/email/templates/weekly-digest';
-import { emailConfig } from '@/lib/email/config';
+import { createClient } from '@/shared/db/supabase/server';
+import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { weeklyDigestEmailTemplate } from '@/shared/infrastructure/email/templates/weekly-digest';
+import { emailConfig } from '@/shared/infrastructure/email/config';
 
 export const dynamic = 'force-dynamic'
 

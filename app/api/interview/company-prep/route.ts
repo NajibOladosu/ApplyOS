@@ -1,12 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/lib/supabase/server'
-import { generateCompanySpecificQuestions } from '@/lib/ai'
+import { createClient } from '@/shared/db/supabase/server'
+import { generateCompanySpecificQuestions } from '@/shared/infrastructure/ai'
 import {
   createInterviewSession,
   createQuestionsForSession,
   getCompanyTemplate,
   incrementTemplateUsage,
-} from '@/lib/services/interviews'
+} from '@/modules/interviews/services/interview.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { QuestionCategory } from '@/types/database'
 
