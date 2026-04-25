@@ -1,7 +1,9 @@
 import { createClient } from '@/lib/supabase/client'
-import type { EditorBlock } from '@/components/applications/resume-editor'
+import type { EditorBlock, TemplateId } from '@/components/applications/editor/types'
 
-export type TemplateId = 'modern' | 'classic' | 'compact' | 'two-column' | 'photo-header'
+export type { TemplateId } from '@/components/applications/editor/types'
+
+
 export type SourceFormat = 'pdf' | 'docx' | 'txt' | 'json'
 
 export interface DetectedLayout {
