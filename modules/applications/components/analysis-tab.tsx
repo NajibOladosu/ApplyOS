@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
+import dynamic from "next/dynamic"
 import type { Application, Document } from "@/types/database"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
@@ -20,6 +21,12 @@ import {
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/shared/lib/utils"
+import type { ResumeAnalysisResult } from "./resume-feedback"
+
+const ResumeEditor = dynamic(
+    () => import("./resume-editor").then((mod) => mod.ResumeEditor),
+    { ssr: false }
+)
 
 interface AnalysisTabProps {
     application: Application
@@ -147,6 +154,21 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
         })
     }
 
+    if (viewMode === "editor" && selectedDocument) {
+        return (
+            <ResumeEditor
+                documentUrl={selectedDocument.file_url}
+                analysis={analysis}
+                parsedData={selectedDocument.parsed_data}
+                extractedText={selectedDocument.extracted_text}
+                applicationId={application.id}
+                documentId={selectedDocument.id}
+                onBack={() => setViewMode("analysis")}
+                fileName={selectedDocument.file_name}
+            />
+        )
+    }
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Section */}
@@ -207,21 +229,17 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                             )}
                         </div>
 
-                        <Button
-                            onClick={handleAnalyze}
-                            disabled={!selectedDocumentId || !documents.find(d => d.id === selectedDocumentId) || isAnalyzing}
-                            className="w-full glow-effect relative overflow-hidden group"
-                        >
-                            {isAnalyzing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Analyzing...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
-                                    Run Analysis
-                                </>
+                        <div className="flex flex-col sm:flex-row gap-2 w-full md:w-auto">
+                            {selectedDocumentId && (
+                                <Button
+                                    size="lg"
+                                    variant="outline"
+                                    onClick={() => setViewMode("editor")}
+                                    className="w-full md:w-auto min-w-[160px]"
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Resume
+                                </Button>
                             )}
 
                             <Button

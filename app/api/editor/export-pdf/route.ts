@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/shared/db/supabase/server"
 import { renderResumeHTML } from "@/lib/editor/render-html"
-import type { TemplateId } from "@/components/applications/editor/types"
+import type { TemplateId } from "@/modules/applications/components/editor/types"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
