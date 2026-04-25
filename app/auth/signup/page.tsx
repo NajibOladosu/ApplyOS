@@ -4,10 +4,10 @@ import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useSearchParams } from "next/navigation"
 import { motion } from "framer-motion"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { createClient } from "@/lib/supabase/client"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { createClient } from "@/shared/db/supabase/client"
 import { Chrome, Shield, AlertTriangle } from "lucide-react"
 import { validatePassword, getPasswordStrength } from "@/lib/password-security"
 
@@ -160,12 +160,10 @@ function SignupContent() {
         <div className="text-center mb-8">
           <Link href="/" className="inline-block">
             <div className="flex items-center justify-center space-x-2 mb-4">
-              <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center glow-effect p-2">
-                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-              </div>
+              <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-12 w-auto" />
               <span className="text-3xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+                <span className="text-foreground">OS</span>
               </span>
             </div>
           </Link>
@@ -277,7 +275,7 @@ function SignupContent() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-primary text-[#0a0a0a] font-bold hover:bg-primary/90" disabled={loading || checkingPassword}>
+              <Button type="submit" className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading || checkingPassword}>
                 {checkingPassword ? "Checking password..." : loading ? "Creating account..." : "Create Account"}
               </Button>
 

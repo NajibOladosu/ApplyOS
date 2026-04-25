@@ -2,21 +2,24 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import { useTheme } from "next-themes"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Badge } from "@/shared/ui/badge"
 import {
   Bell,
   Download,
   Key,
   Palette,
-  Globe,
   Loader2,
-  X,
+  Sun,
+  Moon,
+  Monitor,
+  Chrome,
 } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import {
   Dialog,
@@ -25,7 +28,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogFooter,
-} from "@/components/ui/dialog"
+} from "@/shared/ui/dialog"
 
 type NotificationPrefs = {
   email_notifications: boolean
@@ -40,6 +43,7 @@ type AiSettings = {
 export default function SettingsPage() {
   const supabase = createClient()
   const router = useRouter()
+  const { theme, setTheme } = useTheme()
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -430,23 +434,9 @@ export default function SettingsPage() {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowPasswordModal(true)}
+                className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
               >
                 Change
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Key className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-muted-foreground">
-                    Enable MFA in your Supabase auth settings or integrated IdP.
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                Configure via Auth Provider
               </Button>
             </div>
           </CardContent>
@@ -478,6 +468,39 @@ export default function SettingsPage() {
           </CardContent>
         </Card>
 
+        {/* Browser Extension */}
+        <Card>
+          <CardHeader>
+            <CardTitle>Browser Extension</CardTitle>
+            <CardDescription>
+              Install the Chrome extension to easily save jobs from any website.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-3">
+                <Chrome className="h-5 w-5 text-muted-foreground" />
+                <div>
+                  <p className="font-medium">Chrome Extension</p>
+                  <p className="text-sm text-muted-foreground">
+                    Download the latest release and install it in Chrome.
+                  </p>
+                </div>
+              </div>
+              <Button asChild variant="outline" size="sm">
+                <a
+                  href="https://chromewebstore.google.com/detail/gikepikgajfppgebbgcikhocdeejandg?utm_source=item-share-cb"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Download
+                  <Download className="ml-2 h-4 w-4" />
+                </a>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Appearance */}
         <Card>
           <CardHeader>
@@ -493,11 +516,39 @@ export default function SettingsPage() {
                 <div>
                   <p className="font-medium">Theme</p>
                   <p className="text-sm text-muted-foreground">
-                    Dark theme is enabled by default for this workspace.
+                    Choose between light and dark mode
                   </p>
                 </div>
               </div>
-              <Badge variant="default">Dark</Badge>
+              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
+                <Button
+                  variant={theme === 'light' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTheme('light')}
+                  className="gap-2"
+                >
+                  <Sun className="h-4 w-4" />
+                  Light
+                </Button>
+                <Button
+                  variant={theme === 'dark' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTheme('dark')}
+                  className="gap-2"
+                >
+                  <Moon className="h-4 w-4" />
+                  Dark
+                </Button>
+                <Button
+                  variant={theme === 'system' ? 'default' : 'ghost'}
+                  size="sm"
+                  onClick={() => setTheme('system')}
+                  className="gap-2"
+                >
+                  <Monitor className="h-4 w-4" />
+                  System
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>

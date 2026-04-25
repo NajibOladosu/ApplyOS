@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 import {
   LayoutDashboard,
@@ -68,24 +68,22 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
         initial={{ x: -256 }}
         animate={{ x: isOpen ? 0 : -256 }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-secondary/50 backdrop-blur-xl md:static md:transform-none md:translate-x-0 md:z-auto"
+        className="fixed left-0 top-0 z-40 h-screen w-64 border-r border-border bg-card backdrop-blur-xl md:static md:transform-none md:translate-x-0 md:z-auto"
       >
         <div className="flex h-full flex-col">
           {/* Logo */}
           <div className="flex h-16 flex-shrink-0 items-center border-b border-border px-6 justify-between">
             <Link href="/dashboard" className="flex items-center space-x-2" onClick={handleNavClick}>
-              <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center flex-shrink-0 p-1.5">
-                <img src="/logo-icon.svg" alt="A" className="w-full h-full" />
-              </div>
+              <img src="/ApplyOS%20Logo.webp" alt="ApplyOS" className="h-8 w-auto" />
               <span className="text-xl font-bold font-mono">
                 <span className="text-primary">Apply</span>
-                <span className="text-white">OS</span>
+                <span className="text-foreground">OS</span>
               </span>
             </Link>
             {/* Close button for mobile */}
             <button
               onClick={onClose}
-              className="md:hidden p-2 hover:bg-accent/10 rounded-lg transition-colors"
+              className="md:hidden p-2 hover:bg-accent rounded-lg transition-colors"
               aria-label="Close menu"
             >
               <X className="h-5 w-5" />
@@ -110,8 +108,8 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                     className={cn(
                       "flex items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium transition-all",
                       isActive
-                        ? "bg-primary/10 text-primary border border-primary/20 glow-effect"
-                        : "text-muted-foreground hover:bg-accent/10 hover:text-foreground"
+                        ? "bg-background text-foreground shadow-sm"
+                        : "text-muted-foreground hover:bg-background hover:text-foreground"
                     )}
                   >
                     <Icon className="h-5 w-5 flex-shrink-0" />
@@ -133,7 +131,7 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
           <div className="flex-shrink-0 border-t border-border p-4">
             <button
               onClick={handleLogout}
-              className="flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive/10 hover:text-destructive"
+              className="flex w-full items-center space-x-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-all hover:bg-destructive hover:text-white"
             >
               <LogOut className="h-5 w-5 flex-shrink-0" />
               <span>Logout</span>

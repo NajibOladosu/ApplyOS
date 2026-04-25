@@ -7,8 +7,8 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@supabase/supabase-js';
-import { sendEmailDirectly } from '@/lib/email';
-import { emailConfig } from '@/lib/email/config';
+import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { emailConfig } from '@/shared/infrastructure/email/config';
 
 export const dynamic = 'force-dynamic'
 
@@ -157,22 +157,32 @@ export async function POST(request: NextRequest) {
       padding: 20px;
     }
     .header {
-      background: linear-gradient(135deg, #00FF88 0%, #00CC66 100%);
-      color: #000;
+      background-color: #151515;
+      background-image: linear-gradient(135deg, #151515 0%, #1A1A1A 100%);
+      color: #ffffff;
       padding: 40px 20px;
       text-align: center;
       border-radius: 12px 12px 0 0;
+      border-bottom: 1px solid #333333;
     }
     .header h1 {
-      font-size: 28px;
+      font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.5px;
-      margin: 0 0 8px 0;
+      margin: 10px 0 0 0;
+      color: #18BB70;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     }
     .header-subtitle {
       font-size: 14px;
-      color: #1A1A1A;
-      margin: 0;
+      color: #B5B5B5;
+      margin: 10px 0 0 0;
+    }
+    .logo-container {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
     }
     .content {
       background-color: #101010;
@@ -189,7 +199,7 @@ export async function POST(request: NextRequest) {
     }
     .button {
       display: inline-block;
-      background-color: #00FF88;
+      background-color: #18BB70;
       color: #000 !important;
       padding: 12px 24px;
       border-radius: 6px;
@@ -254,7 +264,7 @@ export async function POST(request: NextRequest) {
       margin: 0 0 10px 0;
     }
     .footer-link {
-      color: #00FF88;
+      color: #18BB70;
       text-decoration: none;
       font-weight: 600;
     }
@@ -266,8 +276,11 @@ export async function POST(request: NextRequest) {
 <body>
   <div class="container">
     <div class="header">
-      <h1>⏰ Deadline Reminder</h1>
-      <p class="header-subtitle">Don't miss your deadline</p>
+      <div class="logo-container">
+        <img src="${emailConfig.appUrl}/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
+        <h1>ApplyOS</h1>
+      </div>
+      <p class="header-subtitle">⏰ Deadline Reminder</p>
     </div>
     <div class="content">
       <p>Hi,</p>

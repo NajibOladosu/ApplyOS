@@ -25,8 +25,10 @@ extension/
 
 # markdown: ignore all .md files except README.md
 *.md
+!.github/*
 !README.md
-!DELIVERABILITY.md
+!CONTRIBUTING.md
+!CODE_OF_CONDUCT.md
 
 # debug
 npm-debug.log*
@@ -38,6 +40,7 @@ yarn-error.log*
 .env
 /Trackly
 /archive
+/extension
 
 # vercel
 .vercel
@@ -46,9 +49,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 .git-filter-repo.py
-trackly-weekday-auto-publisher.json
 applyos-weekday-auto-publisher.json
 backfill-screenshots.js
 analyze-screenshots.js
 Call_Gemini_Image_Generation_API.json
 applyos_social_media_manager.json
+list-gemini-models.js

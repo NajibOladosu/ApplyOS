@@ -2,16 +2,16 @@
 
 import { useEffect, useState, useRef } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
+import { Input } from "@/shared/ui/input"
+import { Badge } from "@/shared/ui/badge"
 import { User, Mail, Calendar, Github, Linkedin, Loader2, Edit2, Upload, Download } from "lucide-react"
-import { createClient } from "@/lib/supabase/client"
+import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { PromptModal } from "@/components/modals/prompt-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
-import { ImportApplicationsModal } from "@/components/modals/import-applications-modal"
+import { ImportApplicationsModal } from "@/modules/applications/components/modals/import-applications-modal"
 
 interface Profile {
   id: string
@@ -69,7 +69,13 @@ export default function ProfilePage() {
 
         const p = data as Profile
         setProfile(p)
-        setName(p.name || user.user_metadata?.name || user.email || "")
+        // Priority: Google full_name > database name > metadata name
+        const fullName =
+          user.user_metadata?.full_name ||
+          p.name ||
+          user.user_metadata?.name ||
+          ""
+        setName(fullName)
         setAvatarUrl(p.avatar_url || user.user_metadata?.avatar_url || "")
       } catch (err) {
         console.error("Error loading profile:", err)
@@ -256,20 +262,25 @@ export default function ProfilePage() {
                 <button
                   onClick={() => fileInputRef.current?.click()}
                   disabled={uploadingAvatar}
-                  className="relative h-32 w-32 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden glow-effect flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-50"
+                  className="relative h-32 w-32 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden shadow-lg shadow-primary/20 flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-50"
                   title="Click to change avatar"
                 >
-                  {avatarUrl ? (
+                  {/* Always show initials as fallback */}
+                  <span className="text-4xl font-bold text-primary-foreground select-none">
+                    {initials}
+                  </span>
+                  {/* Show image on top if available */}
+                  {avatarUrl && (
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={avatarUrl}
-                      alt="User avatar"
-                      className="h-full w-full object-cover"
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover rounded-full"
+                      onError={(e) => {
+                        // Hide broken image to show initials beneath
+                        (e.target as HTMLImageElement).style.display = 'none'
+                      }}
                     />
-                  ) : (
-                    <span className="text-4xl font-bold text-slate-700 select-none">
-                      {initials}
-                    </span>
                   )}
                   {/* Edit Icon Overlay */}
                   <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
@@ -295,7 +306,6 @@ export default function ProfilePage() {
                     id="name"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
-                    placeholder="Your name"
                   />
                 </div>
 
@@ -353,8 +363,8 @@ export default function ProfilePage() {
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                  <Calendar className="h-6 w-6 text-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Member Since</p>
@@ -367,8 +377,8 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <User className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                  <User className="h-6 w-6 text-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Plan</p>
@@ -377,12 +387,12 @@ export default function ProfilePage() {
               </div>
 
               <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-                  <Mail className="h-6 w-6 text-primary" />
+                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
+                  <Mail className="h-6 w-6 text-foreground" />
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Email Status</p>
-                  <Badge variant="success">Verified</Badge>
+                  <Badge variant="default">Verified</Badge>
                 </div>
               </div>
             </div>
@@ -410,8 +420,8 @@ export default function ProfilePage() {
                 Import from CSV
               </Button>
               {importSuccess && (
-                <div className="bg-green-500/10 border border-green-500/30 p-3 rounded-lg">
-                  <p className="text-sm text-green-600">{importSuccess}</p>
+                <div className="bg-primary/10 border border-primary/30 p-3 rounded-lg">
+                  <p className="text-sm text-primary font-medium">{importSuccess}</p>
                 </div>
               )}
             </div>
@@ -468,8 +478,8 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex-1 min-w-0">
                 <p className="font-medium">Delete Account</p>
                 <p className="text-sm text-muted-foreground">
                   This will delete your ApplyOS profile, applications, questions,
@@ -480,6 +490,7 @@ export default function ProfilePage() {
               <Button
                 variant="destructive"
                 onClick={() => setShowDeletePrompt(true)}
+                className="flex-shrink-0 whitespace-nowrap"
               >
                 Delete Account
               </Button>

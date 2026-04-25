@@ -2,8 +2,8 @@
 
 import { useState, useCallback } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Button } from "@/shared/ui/button"
 import { motion } from "framer-motion"
 import { Upload, FileText, CheckCircle, X } from "lucide-react"
 import { useDropzone } from "react-dropzone"
@@ -125,11 +125,10 @@ export default function UploadPage() {
           <CardContent className="p-4 sm:p-6 pt-0">
             <div
               {...getRootProps()}
-              className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center cursor-pointer transition-all ${
-                isDragActive
-                  ? "border-primary bg-primary/5"
-                  : "border-border hover:border-primary/40"
-              }`}
+              className={`border-2 border-dashed rounded-lg p-8 sm:p-12 text-center cursor-pointer transition-all ${isDragActive
+                ? "border-primary bg-primary/5"
+                : "border-zinc-300 dark:border-zinc-700 bg-zinc-50/50 dark:bg-zinc-900/50 hover:border-primary/40"
+                }`}
             >
               <input {...getInputProps()} />
               <div className="h-12 w-12 sm:h-16 sm:w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-3 sm:mb-4">
@@ -215,7 +214,6 @@ export default function UploadPage() {
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <Card>
             <CardContent className="pt-6">
-              <div className="text-4xl mb-2">📄</div>
               <h3 className="font-semibold mb-1">Auto Analysis</h3>
               <p className="text-sm text-muted-foreground">
                 Our AI automatically extracts education, experience, and skills
@@ -224,7 +222,6 @@ export default function UploadPage() {
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <div className="text-4xl mb-2">🔒</div>
               <h3 className="font-semibold mb-1">Secure Storage</h3>
               <p className="text-sm text-muted-foreground">
                 All documents are encrypted and stored securely
@@ -233,7 +230,6 @@ export default function UploadPage() {
           </Card>
           <Card>
             <CardContent className="pt-6">
-              <div className="text-4xl mb-2">⚡</div>
               <h3 className="font-semibold mb-1">Fast Processing</h3>
               <p className="text-sm text-muted-foreground">
                 Get AI-powered insights in seconds

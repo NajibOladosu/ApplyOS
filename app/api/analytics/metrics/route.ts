@@ -4,7 +4,7 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient as createSupabaseServerClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseServerClient } from '@/shared/db/supabase/server'
 import {
   getApplicationMetrics,
   getTimelineTrends,
@@ -13,7 +13,7 @@ import {
   getApplicationsByPriority,
   getStatusFlowData,
   type TimeRange,
-} from '@/lib/services/analytics'
+} from '@/modules/analytics/services/analytics.service'
 
 export const dynamic = 'force-dynamic'
 
