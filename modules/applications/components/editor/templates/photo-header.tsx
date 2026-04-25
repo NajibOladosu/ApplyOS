@@ -1,7 +1,7 @@
 "use client"
 
 import { EditorContent, type Editor } from "@tiptap/react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/lib/utils"
 import { User as UserIcon } from "lucide-react"
 
 interface Props {

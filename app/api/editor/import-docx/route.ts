@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
+import { createClient } from "@/shared/db/supabase/server"
 import { docxBufferToTipTap } from "@/lib/editor/docx-import"
 
 export const runtime = "nodejs"

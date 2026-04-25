@@ -1,4 +1,4 @@
-import type { TemplateId } from "@/components/applications/editor/types"
+import type { TemplateId } from "@/modules/applications/components/editor/types"
 
 export interface DetectedLayout {
     columnCount: 1 | 2

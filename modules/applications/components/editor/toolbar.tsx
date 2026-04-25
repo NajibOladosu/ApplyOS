@@ -1,7 +1,7 @@
 "use client"
 
 import type { Editor } from "@tiptap/react"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/ui/button"
 import {
     Bold,
     Italic,
@@ -22,14 +22,14 @@ import {
     Sparkles,
     Wand2,
 } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/lib/utils"
 import {
     Select,
     SelectContent,
     SelectItem,
     SelectTrigger,
     SelectValue,
-} from "@/components/ui/select"
+} from "@/shared/ui/select"
 import { TEMPLATES, type TemplateId } from "./types"
 
 interface ToolbarProps {

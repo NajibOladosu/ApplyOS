@@ -3,9 +3,9 @@
 import { useMemo, useState } from "react"
 import type { JSONContent } from "@tiptap/core"
 import { diffWords } from "diff"
-import { Button } from "@/components/ui/button"
+import { Button } from "@/shared/ui/button"
 import { Check, X, Loader2, Sparkles } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { cn } from "@/shared/lib/utils"
 
 interface DiffModalProps {
     open: boolean

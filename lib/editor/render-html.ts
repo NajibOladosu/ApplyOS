@@ -2,7 +2,7 @@ import { generateHTML } from "@tiptap/html"
 import type { JSONContent } from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
 import TextAlign from "@tiptap/extension-text-align"
-import type { TemplateId } from "@/components/applications/editor/types"
+import type { TemplateId } from "@/modules/applications/components/editor/types"
 
 // Server-side schema must mirror the editor's schema so generateHTML produces
 // identical markup. Placeholder is editor-only (decoration), excluded here.

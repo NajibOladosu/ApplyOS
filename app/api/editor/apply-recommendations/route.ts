@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
-import { createClient } from "@/lib/supabase/server"
-import { callGeminiWithFallback } from "@/lib/ai"
+import { createClient } from "@/shared/db/supabase/server"
+import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 export const runtime = "nodejs"

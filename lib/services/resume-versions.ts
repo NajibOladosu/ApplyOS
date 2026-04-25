@@ -1,7 +1,7 @@
-import { createClient } from '@/lib/supabase/client'
-import type { EditorBlock, TemplateId } from '@/components/applications/editor/types'
+import { createClient } from '@/shared/db/supabase/client'
+import type { EditorBlock, TemplateId } from '@/modules/applications/components/editor/types'
 
-export type { TemplateId } from '@/components/applications/editor/types'
+export type { TemplateId } from '@/modules/applications/components/editor/types'
 
 
 export type SourceFormat = 'pdf' | 'docx' | 'txt' | 'json'
