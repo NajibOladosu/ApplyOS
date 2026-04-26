@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { notFound } from 'next/navigation'
 import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Badge } from '@/shared/ui/badge'
@@ -9,6 +10,12 @@ import { convertToGeminiFormat, convertFromGeminiFormat } from '@/lib/gemini-liv
 import type { ConnectionState } from '@/lib/gemini-live/types'
 
 export default function TestLivePage() {
+  // Debug-only page: hide entirely outside development to avoid exposing
+  // the Live API token-fetch surface in production.
+  if (process.env.NODE_ENV === 'production') {
+    notFound()
+  }
+
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [messages, setMessages] = useState<string[]>([])
   const [client, setClient] = useState<GeminiLiveClient | null>(null)

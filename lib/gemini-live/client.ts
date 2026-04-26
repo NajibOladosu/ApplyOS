@@ -185,9 +185,13 @@ export class GeminiLiveClient {
    */
   private sendSetup(): void {
     // Note: Raw WebSocket JSON uses snake_case, not camelCase
+    // Model is required from server (see SPECIALIZED_MODELS.LIVE_AUDIO in model-manager.ts).
+    if (!this.config.model) {
+      throw new Error('Gemini Live model is required — set via server config (SPECIALIZED_MODELS.LIVE_AUDIO)')
+    }
     const setupMessage: any = {
       setup: {
-        model: this.config.model || 'models/gemini-2.5-flash-native-audio-preview-09-2025',
+        model: this.config.model,
         generation_config: {
           response_modalities: ['AUDIO'],
           speech_config: {

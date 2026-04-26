@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { callGeminiWithFallback } from '@/shared/infrastructure/ai'
+import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null
+const aiConfigured = !!process.env.GEMINI_API_KEY
 
 export const dynamic = 'force-dynamic'
 
@@ -89,7 +88,7 @@ export async function POST(request: NextRequest) {
     if (rateLimitResponse) return rateLimitResponse
 
     // Check if Gemini AI is configured
-    if (!genAI) {
+    if (!aiConfigured) {
       return NextResponse.json(
         {
           error: 'AI service not configured. Please add Gemini API key to enable question extraction.',
@@ -175,8 +174,6 @@ export async function POST(request: NextRequest) {
 
     // Use Gemini to extract questions
     try {
-      const model = genAI.getGenerativeModel({ model: 'models/gemini-2.5-flash-lite' })
-
       const prompt = `You are an AI assistant that extracts open-ended application questions from job postings and scholarship pages.
 
 Below is the text content extracted from a job/scholarship posting webpage:
@@ -244,9 +241,7 @@ IMPORTANT:
 
 Extract ALL the open-ended questions found on this page:`
 
-      const result = await model.generateContent(prompt)
-      const response = await result.response
-      let text = response.text().trim()
+      let text = (await callGeminiWithFallback(prompt, 'SIMPLE')).trim()
 
       console.log(`Gemini response length: ${text.length} characters`)
 
@@ -295,6 +290,13 @@ Extract ALL the open-ended questions found on this page:`
         questions: validQuestions,
       })
     } catch (error) {
+      if (error instanceof AIRateLimitError) {
+        const retryAfter = Math.max(1, Math.ceil((error.nextAvailableTime - Date.now()) / 1000))
+        return NextResponse.json(
+          { error: error.message, retryAfter, questions: [] },
+          { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+        )
+      }
       console.error('Error extracting questions with AI:', error)
       return NextResponse.json(
         {
