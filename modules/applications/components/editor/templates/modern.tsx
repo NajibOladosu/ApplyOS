@@ -2,6 +2,8 @@
 
 import { EditorContent, type Editor } from "@tiptap/react"
 import { cn } from "@/shared/lib/utils"
+import type { DocSettings } from "../types"
+import { DEFAULT_DOC_SETTINGS } from "../types"
 
 const A4_WIDTH_MM = 210
 const A4_HEIGHT_MM = 297
@@ -10,16 +12,21 @@ interface ModernTemplateProps {
     editor: Editor | null
     pageNumber?: number
     totalPages?: number
+    docSettings?: DocSettings
 }
 
-export function ModernTemplate({ editor, pageNumber, totalPages }: ModernTemplateProps) {
+export function ModernTemplate({ editor, pageNumber, totalPages, docSettings }: ModernTemplateProps) {
+    const settings = docSettings ?? DEFAULT_DOC_SETTINGS
     return (
         <div
             className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 relative resume-template-modern"
             style={{
                 width: `${A4_WIDTH_MM}mm`,
                 minHeight: `${A4_HEIGHT_MM}mm`,
-                padding: '20mm',
+                paddingTop: `${settings.marginTopMm}mm`,
+                paddingRight: `${settings.marginRightMm}mm`,
+                paddingBottom: `${settings.marginBottomMm}mm`,
+                paddingLeft: `${settings.marginLeftMm}mm`,
                 boxSizing: 'border-box',
                 backgroundImage:
                     'repeating-linear-gradient(to bottom, transparent 0, transparent calc(297mm - 2px), rgba(15,23,42,0.08) calc(297mm - 2px), rgba(15,23,42,0.08) 297mm)',

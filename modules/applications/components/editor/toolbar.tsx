@@ -27,7 +27,7 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/shared/ui/select"
-import { TEMPLATES, type TemplateId } from "./types"
+import { TEMPLATES, FONT_FAMILY_OPTIONS, FONT_SIZE_OPTIONS, type TemplateId } from "./types"
 
 interface ToolbarProps {
     editor: Editor | null
@@ -94,6 +94,25 @@ export function EditorToolbar({
 
     const isHeading = (level: 1 | 2 | 3) => editor.isActive('heading', { level })
 
+    const activeFontFamily = (editor.getAttributes('textStyle').fontFamily as string | undefined) ?? ''
+    const activeFontSize = (editor.getAttributes('textStyle').fontSize as string | undefined) ?? ''
+
+    const setFontFamily = (value: string) => {
+        if (value === '__unset__') {
+            editor.chain().focus().unsetFontFamily().run()
+        } else {
+            editor.chain().focus().setFontFamily(value).run()
+        }
+    }
+
+    const setFontSize = (value: string) => {
+        if (value === '__unset__') {
+            editor.chain().focus().unsetFontSize().run()
+        } else {
+            editor.chain().focus().setFontSize(value).run()
+        }
+    }
+
     return (
         <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 overflow-x-auto">
             <Select value={templateId} onValueChange={(v) => onTemplateChange(v as TemplateId)}>
@@ -103,6 +122,34 @@ export function EditorToolbar({
                 <SelectContent>
                     {Object.values(TEMPLATES).map(t => (
                         <SelectItem key={t.id} value={t.id}>{t.label}</SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
+            <Divider />
+
+            <Select value={activeFontFamily || ''} onValueChange={setFontFamily}>
+                <SelectTrigger className="w-[140px] sm:w-[160px] h-9 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
+                    <SelectValue placeholder="Font" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="__unset__">Default</SelectItem>
+                    {FONT_FAMILY_OPTIONS.map(opt => (
+                        <SelectItem key={opt.value} value={opt.value} style={{ fontFamily: opt.value }}>
+                            {opt.label}
+                        </SelectItem>
+                    ))}
+                </SelectContent>
+            </Select>
+
+            <Select value={activeFontSize || ''} onValueChange={setFontSize}>
+                <SelectTrigger className="w-[80px] h-9 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
+                    <SelectValue placeholder="Size" />
+                </SelectTrigger>
+                <SelectContent>
+                    <SelectItem value="__unset__">Default</SelectItem>
+                    {FONT_SIZE_OPTIONS.map(s => (
+                        <SelectItem key={s} value={s}>{s}</SelectItem>
                     ))}
                 </SelectContent>
             </Select>
