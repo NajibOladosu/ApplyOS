@@ -1,5 +1,6 @@
 "use client"
 
+import { useState } from "react"
 import type { Editor } from "@tiptap/react"
 import {
     Bold,
@@ -27,12 +28,25 @@ import {
     SelectTrigger,
     SelectValue,
 } from "@/shared/ui/select"
-import { TEMPLATES, FONT_FAMILY_OPTIONS, FONT_SIZE_OPTIONS, type TemplateId } from "./types"
+import {
+    Dialog,
+    DialogContent,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/shared/ui/dialog"
+import { Input } from "@/shared/ui/input"
+import { Label } from "@/shared/ui/label"
+import { Button } from "@/shared/ui/button"
+import { TEMPLATES, FONT_FAMILY_OPTIONS, FONT_SIZE_OPTIONS, type DocSettings, type TemplateId } from "./types"
+import { PageSetupDialog } from "./page-setup-dialog"
 
 interface ToolbarProps {
     editor: Editor | null
     templateId: TemplateId
     onTemplateChange: (id: TemplateId) => void
+    docSettings: DocSettings
+    onDocSettingsChange: (next: Partial<DocSettings>) => void
 }
 
 const ToolbarButton = ({
@@ -72,22 +86,82 @@ const Group = ({ children }: { children: React.ReactNode }) => (
 
 const Divider = () => <div className="h-5 w-px bg-border mx-1" />
 
-const promptForLink = (editor: Editor) => {
-    const previous = editor.getAttributes('link').href as string | undefined
-    const url = window.prompt('URL', previous ?? 'https://')
-    if (url === null) return
-    if (url === '') {
-        editor.chain().focus().extendMarkRange('link').unsetLink().run()
-        return
+function LinkDialog({
+    editor,
+    open,
+    onOpenChange,
+}: {
+    editor: Editor
+    open: boolean
+    onOpenChange: (open: boolean) => void
+}) {
+    const existing = (editor.getAttributes('link').href as string | undefined) ?? ''
+    const [url, setUrl] = useState(existing || 'https://')
+
+    const apply = () => {
+        const trimmed = url.trim()
+        if (!trimmed) {
+            editor.chain().focus().extendMarkRange('link').unsetLink().run()
+        } else {
+            editor.chain().focus().extendMarkRange('link').setLink({ href: trimmed }).run()
+        }
+        onOpenChange(false)
     }
-    editor.chain().focus().extendMarkRange('link').setLink({ href: url }).run()
+
+    const remove = () => {
+        editor.chain().focus().extendMarkRange('link').unsetLink().run()
+        onOpenChange(false)
+    }
+
+    return (
+        <Dialog open={open} onOpenChange={(next) => {
+            onOpenChange(next)
+            if (next) setUrl(existing || 'https://')
+        }}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>{existing ? 'Edit link' : 'Insert link'}</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-2 pt-2">
+                    <Label htmlFor="link-url">URL</Label>
+                    <Input
+                        id="link-url"
+                        type="url"
+                        value={url}
+                        onChange={(e) => setUrl(e.target.value)}
+                        placeholder="https://example.com"
+                        autoFocus
+                        onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                                e.preventDefault()
+                                apply()
+                            }
+                        }}
+                    />
+                </div>
+                <DialogFooter className="gap-2 sm:gap-2">
+                    {existing && (
+                        <Button variant="outline" onClick={remove} className="mr-auto">
+                            Remove link
+                        </Button>
+                    )}
+                    <Button variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+                    <Button onClick={apply}>{existing ? 'Update' : 'Insert'}</Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
+    )
 }
 
 export function EditorToolbar({
     editor,
     templateId,
     onTemplateChange,
+    docSettings,
+    onDocSettingsChange,
 }: ToolbarProps) {
+    const [linkDialogOpen, setLinkDialogOpen] = useState(false)
+
     if (!editor) {
         return <div className="flex items-center gap-2 px-2 h-10" />
     }
@@ -115,6 +189,10 @@ export function EditorToolbar({
 
     return (
         <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 overflow-x-auto">
+            <PageSetupDialog settings={docSettings} onChange={onDocSettingsChange} />
+
+            <Divider />
+
             <Select value={templateId} onValueChange={(v) => onTemplateChange(v as TemplateId)}>
                 <SelectTrigger className="w-[120px] sm:w-[150px] h-9 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
                     <SelectValue placeholder="Template" />
@@ -227,7 +305,7 @@ export function EditorToolbar({
                     <Strikethrough className="h-4 w-4" />
                 </ToolbarButton>
                 <ToolbarButton
-                    onClick={() => promptForLink(editor)}
+                    onClick={() => setLinkDialogOpen(true)}
                     isActive={editor.isActive('link')}
                     title="Link"
                 >
@@ -282,6 +360,12 @@ export function EditorToolbar({
                     <ListOrdered className="h-4 w-4" />
                 </ToolbarButton>
             </Group>
+
+            <LinkDialog
+                editor={editor}
+                open={linkDialogOpen}
+                onOpenChange={setLinkDialogOpen}
+            />
         </div>
     )
 }
