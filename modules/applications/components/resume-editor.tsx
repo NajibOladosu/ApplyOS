@@ -13,7 +13,16 @@ import {
     Sparkles,
     Wand2,
     Trash2,
+    ChevronDown,
+    FileText,
+    FileType2,
 } from "lucide-react"
+import {
+    DropdownMenu,
+    DropdownMenuContent,
+    DropdownMenuItem,
+    DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu"
 import {
     Select,
     SelectContent,
@@ -461,11 +470,11 @@ export function ResumeEditor({
         }
     }
 
-    const handleExport = async () => {
+    const handleExport = async (format: 'pdf' | 'docx') => {
         if (!editor) return
         setIsExporting(true)
         try {
-            const endpoint = sourceFormat === 'docx'
+            const endpoint = format === 'docx'
                 ? '/api/editor/export-docx'
                 : '/api/editor/export-pdf'
 
@@ -487,14 +496,13 @@ export function ResumeEditor({
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             const baseName = fileName.replace(/\.(pdf|docx?|txt|json)$/i, "")
-            const ext = sourceFormat === 'docx' ? 'docx' : 'pdf'
             a.href = url
-            a.download = `${baseName}_edited.${ext}`
+            a.download = `${baseName}_edited.${format}`
             document.body.appendChild(a)
             a.click()
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
-            toast({ title: `Exported as ${ext.toUpperCase()}` })
+            toast({ title: `Exported as ${format.toUpperCase()}` })
         } catch (err: any) {
             console.error("Export error:", err)
             toast({
@@ -596,18 +604,30 @@ export function ResumeEditor({
                             <Wand2 className="h-3.5 w-3.5 xl:mr-1.5" />
                             <span className="hidden xl:inline">Apply Recommendations</span>
                         </Button>
-                        <Button
-                            onClick={handleExport}
-                            disabled={isExporting}
-                            className="glow-effect font-semibold h-9 px-3 sm:px-4 bg-primary text-primary-foreground hover:bg-primary/90"
-                        >
-                            {isExporting ? (
-                                <Loader2 className="h-4 w-4 animate-spin lg:mr-2" />
-                            ) : (
-                                <Download className="h-4 w-4 lg:mr-2" />
-                            )}
-                            <span className="hidden lg:inline">Download {sourceFormat === 'docx' ? 'DOCX' : 'PDF'}</span>
-                        </Button>
+                        <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                                <Button
+                                    disabled={isExporting}
+                                    className="glow-effect font-semibold h-9 px-3 sm:px-4 bg-primary text-primary-foreground hover:bg-primary/90"
+                                >
+                                    {isExporting ? (
+                                        <Loader2 className="h-4 w-4 animate-spin lg:mr-2" />
+                                    ) : (
+                                        <Download className="h-4 w-4 lg:mr-2" />
+                                    )}
+                                    <span className="hidden lg:inline">Download</span>
+                                    <ChevronDown className="h-3.5 w-3.5 ml-1 opacity-80" />
+                                </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-44">
+                                <DropdownMenuItem onClick={() => handleExport('pdf')} className="cursor-pointer">
+                                    <FileText className="h-4 w-4 mr-2" /> Download as PDF
+                                </DropdownMenuItem>
+                                <DropdownMenuItem onClick={() => handleExport('docx')} className="cursor-pointer">
+                                    <FileType2 className="h-4 w-4 mr-2" /> Download as DOCX
+                                </DropdownMenuItem>
+                            </DropdownMenuContent>
+                        </DropdownMenu>
                     </div>
                 </div>
 
