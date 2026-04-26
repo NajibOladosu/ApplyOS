@@ -54,7 +54,7 @@ const ToolbarButton = ({
         disabled={disabled}
         title={title}
         className={cn(
-            "h-8 w-8 flex items-center justify-center rounded-sm transition-colors",
+            "h-9 w-9 flex items-center justify-center rounded-sm transition-colors",
             "text-muted-foreground hover:text-primary hover:bg-primary/10",
             "disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent",
             isActive && "bg-primary/15 text-primary",
@@ -95,9 +95,9 @@ export function EditorToolbar({
     const isHeading = (level: 1 | 2 | 3) => editor.isActive('heading', { level })
 
     return (
-        <div className="flex items-center flex-wrap gap-2 px-3 py-2">
+        <div className="flex items-center flex-wrap gap-1.5 sm:gap-2 px-2 sm:px-3 py-2.5 sm:py-3 overflow-x-auto">
             <Select value={templateId} onValueChange={(v) => onTemplateChange(v as TemplateId)}>
-                <SelectTrigger className="w-[150px] h-8 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
+                <SelectTrigger className="w-[120px] sm:w-[150px] h-9 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
                     <SelectValue placeholder="Template" />
                 </SelectTrigger>
                 <SelectContent>

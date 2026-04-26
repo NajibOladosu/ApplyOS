@@ -12,6 +12,7 @@ import {
     Loader2,
     Sparkles,
     Wand2,
+    Trash2,
 } from "lucide-react"
 import {
     Select,
@@ -141,23 +142,37 @@ export function ResumeEditor({
         const load = async () => {
             try {
                 const fetched = await resumeVersionsService.getVersions(documentId)
-                const appScoped = fetched.filter(v => !v.application_id || v.application_id === applicationId)
+                const appScoped = fetched.filter(v => v.application_id === applicationId)
                 setVersions(appScoped)
 
                 let initialDoc: ResumeDoc = emptyDoc()
                 let initialTemplate: TemplateId = 'modern'
                 let initialVersionId: string | null = null
+                let needsExtraction = false
+
+                const docFromVersion = (v: typeof fetched[number]): ResumeDoc | null => {
+                    if (v.content_json) return v.content_json as ResumeDoc
+                    if (v.blocks && Array.isArray(v.blocks) && v.blocks.length > 0) {
+                        return blocksToTipTap(v.blocks as EditorBlock[])
+                    }
+                    return null
+                }
 
                 if (appScoped.length > 0) {
                     const latest = appScoped[0]
                     initialVersionId = latest.id
                     initialTemplate = latest.template_id ?? 'modern'
-                    if (latest.content_json) {
-                        initialDoc = latest.content_json as ResumeDoc
-                    } else if (latest.blocks && Array.isArray(latest.blocks) && latest.blocks.length > 0) {
-                        initialDoc = blocksToTipTap(latest.blocks as EditorBlock[])
-                    }
+                    const doc = docFromVersion(latest)
+                    if (doc) initialDoc = doc
+                } else if (fetched.length > 0) {
+                    // Reuse any prior version's content (e.g., from another application
+                    // using the same document) so extraction runs once per document.
+                    const reusable = fetched.find(v => docFromVersion(v) !== null) ?? fetched[0]
+                    const doc = docFromVersion(reusable)
+                    if (doc) initialDoc = doc
+                    initialTemplate = reusable.template_id ?? 'modern'
                 } else {
+                    needsExtraction = true
                     if (sourceFormat === 'pdf') {
                         try {
                             const layoutRes = await fetch('/api/editor/detect-layout', {
@@ -177,7 +192,7 @@ export function ResumeEditor({
                     }
                 }
 
-                if (appScoped.length === 0 && sourceFormat === 'docx') {
+                if (needsExtraction && sourceFormat === 'docx') {
                     try {
                         const res = await fetch('/api/editor/import-docx', {
                             method: 'POST',
@@ -195,7 +210,7 @@ export function ResumeEditor({
                     } catch (err) {
                         console.warn("DOCX import error, falling back to text parse:", err)
                     }
-                } else if (appScoped.length === 0 && extractedText && extractedText.trim().length > 50) {
+                } else if (needsExtraction && extractedText && extractedText.trim().length > 50) {
                     try {
                         const res = await fetch('/api/editor/parse-text', {
                             method: 'POST',
@@ -228,7 +243,7 @@ export function ResumeEditor({
                         source_format: sourceFormat,
                         parent_document_id: documentId,
                     })
-                    setVersions([created, ...appScoped])
+                    setVersions([created])
                     setCurrentVersionId(created.id)
                 } else {
                     setCurrentVersionId(initialVersionId)
@@ -272,6 +287,39 @@ export function ResumeEditor({
             })
         } finally {
             setIsSaving(false)
+        }
+    }
+
+    const handleDeleteVersion = async (id: string) => {
+        const v = versions.find(x => x.id === id)
+        if (!v) return
+        const confirmed = window.confirm(`Delete "${v.version_name}"? This cannot be undone.`)
+        if (!confirmed) return
+        try {
+            await resumeVersionsService.deleteVersion(id)
+            const remaining = versions.filter(x => x.id !== id)
+            setVersions(remaining)
+            if (currentVersionId === id) {
+                if (remaining.length > 0 && editor) {
+                    const next = remaining[0]
+                    const doc = (next.content_json as ResumeDoc | null) ??
+                        (next.blocks ? blocksToTipTap(next.blocks as EditorBlock[]) : emptyDoc())
+                    editor.commands.setContent(doc)
+                    setCurrentVersionId(next.id)
+                    if (next.template_id) setTemplateId(next.template_id)
+                } else {
+                    setCurrentVersionId(null)
+                    if (editor) editor.commands.setContent(emptyDoc())
+                }
+            }
+            toast({ title: "Version deleted" })
+        } catch (err: any) {
+            console.error("Delete version failed:", err)
+            toast({
+                title: "Failed to delete version",
+                description: err?.message ?? "Unknown error",
+                variant: "destructive",
+            })
         }
     }
 
@@ -471,32 +519,46 @@ export function ResumeEditor({
     }
 
     return (
-        <div className="flex flex-col h-[calc(100vh-140px)] bg-background rounded-lg border border-border overflow-hidden">
-            <div className="border-b border-border bg-card z-20 sticky top-0">
-                <div className="flex items-center flex-wrap gap-3 px-4 py-2.5 min-h-14">
+        <div className="flex flex-col h-[calc(100vh-140px)] bg-white dark:bg-background rounded-lg border border-border overflow-hidden">
+            <div className="border-b border-border bg-white dark:bg-card z-20 sticky top-0">
+                <div className="flex items-center flex-wrap gap-2 sm:gap-3 px-3 sm:px-5 py-3 sm:py-4 min-h-16 sm:min-h-[68px]">
                     <Button
                         variant="ghost"
                         size="sm"
                         onClick={onBack}
-                        className="font-medium text-muted-foreground hover:text-primary hover:bg-muted"
+                        className="font-medium text-muted-foreground hover:text-primary hover:bg-muted px-2 sm:px-3"
                     >
-                        <ArrowLeft className="h-4 w-4 mr-2" /> Back
+                        <ArrowLeft className="h-4 w-4 lg:mr-2" /> <span className="hidden lg:inline">Back</span>
                     </Button>
-                    <div className="h-6 w-px bg-border" />
+                    <div className="hidden sm:block h-6 w-px bg-border" />
                     <div className="flex items-center gap-2">
-                        <History className="h-4 w-4 text-muted-foreground shrink-0" />
+                        <History className="hidden sm:block h-4 w-4 text-muted-foreground shrink-0" />
                         <Select
                             value={currentVersionId ?? undefined}
                             onValueChange={handleSwitchVersion}
                         >
-                            <SelectTrigger className="w-[180px] h-8 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
+                            <SelectTrigger className="w-[120px] sm:w-[180px] h-9 font-medium bg-muted/40 border-border text-foreground hover:border-primary">
                                 <SelectValue placeholder="Select version" />
                             </SelectTrigger>
                             <SelectContent>
                                 {versions.length === 0 ? (
                                     <div className="px-2 py-1.5 text-xs text-muted-foreground">No saved versions yet</div>
                                 ) : versions.map(v => (
-                                    <SelectItem key={v.id} value={v.id}>{v.version_name}</SelectItem>
+                                    <div key={v.id} className="flex items-center pr-1 group">
+                                        <SelectItem value={v.id} className="flex-1">{v.version_name}</SelectItem>
+                                        <button
+                                            type="button"
+                                            onPointerDown={(e) => {
+                                                e.preventDefault()
+                                                e.stopPropagation()
+                                                handleDeleteVersion(v.id)
+                                            }}
+                                            className="opacity-60 hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                            title={`Delete ${v.version_name}`}
+                                        >
+                                            <Trash2 className="h-3.5 w-3.5" />
+                                        </button>
+                                    </div>
                                 ))}
                             </SelectContent>
                         </Select>
@@ -505,50 +567,51 @@ export function ResumeEditor({
                             size="sm"
                             onClick={handleNewVersion}
                             disabled={isSaving}
-                            className="h-8 px-3 border-dashed font-medium bg-muted/40 border-primary/30 text-foreground hover:bg-muted hover:border-primary"
+                            className="h-9 px-2 sm:px-3 border-dashed font-medium bg-muted/40 border-primary/30 text-foreground hover:bg-muted hover:border-primary"
                         >
-                            {isSaving ? <Loader2 className="h-3 w-3 mr-2 animate-spin" /> : <Save className="h-3 w-3 mr-2" />}
-                            Capture
+                            {isSaving ? <Loader2 className="h-3 w-3 lg:mr-2 animate-spin" /> : <Save className="h-3 w-3 lg:mr-2" />}
+                            <span className="hidden lg:inline">Capture</span>
                         </Button>
                     </div>
 
-                    <div className="ml-auto flex items-center gap-2 flex-wrap">
+                    <div className="ml-auto flex items-center gap-1.5 sm:gap-2 flex-wrap">
                         <Button
                             size="sm"
                             variant="outline"
                             onClick={handleAIRewriteSelection}
                             disabled={isRewriting || selectionEmpty}
-                            className="h-8 font-medium bg-muted/40 border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary disabled:opacity-50"
+                            className="h-9 px-2 sm:px-3 font-medium bg-muted/40 border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary disabled:opacity-50"
                             title={selectionEmpty ? "Select text in the editor to rewrite" : "Rewrite selected text with AI"}
                         >
-                            <Sparkles className="h-3.5 w-3.5 mr-1.5" /> Ask AI
+                            <Sparkles className="h-3.5 w-3.5 lg:mr-1.5" /> <span className="hidden lg:inline">Ask AI</span>
                         </Button>
                         <Button
                             size="sm"
                             variant="outline"
                             onClick={handleApplyRecommendations}
                             disabled={!analysis?.recommendations?.length || isRewriting}
-                            className="h-8 font-medium bg-muted/40 border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary disabled:opacity-50"
+                            className="h-9 px-2 sm:px-3 font-medium bg-muted/40 border-primary/40 text-foreground hover:bg-primary/10 hover:border-primary hover:text-primary disabled:opacity-50"
                             title={analysis?.recommendations?.length ? "Rewrite resume to address analysis recommendations" : "Run analysis first to enable bulk apply"}
                         >
-                            <Wand2 className="h-3.5 w-3.5 mr-1.5" /> Apply Recommendations
+                            <Wand2 className="h-3.5 w-3.5 xl:mr-1.5" />
+                            <span className="hidden xl:inline">Apply Recommendations</span>
                         </Button>
                         <Button
                             onClick={handleExport}
                             disabled={isExporting}
-                            className="glow-effect font-semibold h-9 bg-primary text-primary-foreground hover:bg-primary/90"
+                            className="glow-effect font-semibold h-9 px-3 sm:px-4 bg-primary text-primary-foreground hover:bg-primary/90"
                         >
                             {isExporting ? (
-                                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                                <Loader2 className="h-4 w-4 animate-spin lg:mr-2" />
                             ) : (
-                                <Download className="h-4 w-4 mr-2" />
+                                <Download className="h-4 w-4 lg:mr-2" />
                             )}
-                            Download {sourceFormat === 'docx' ? 'DOCX' : 'PDF'}
+                            <span className="hidden lg:inline">Download {sourceFormat === 'docx' ? 'DOCX' : 'PDF'}</span>
                         </Button>
                     </div>
                 </div>
 
-                <div className="border-t border-border bg-card">
+                <div className="border-t border-border bg-white dark:bg-card">
                     <EditorToolbar
                         editor={editor}
                         templateId={templateId}
@@ -557,7 +620,7 @@ export function ResumeEditor({
                 </div>
             </div>
 
-            <div className="flex-1 overflow-auto custom-scrollbar bg-background bg-[radial-gradient(circle_at_50%_0%,rgba(0,255,136,0.04),transparent_60%)]">
+            <div className="flex-1 overflow-auto custom-scrollbar bg-white dark:bg-background dark:bg-[radial-gradient(circle_at_50%_0%,rgba(0,255,136,0.04),transparent_60%)]">
                 {isRewriting && (
                     <div className="fixed inset-0 bg-background/60 backdrop-blur-sm z-50 flex items-center justify-center pointer-events-none">
                         <div className="bg-card p-5 rounded-2xl shadow-2xl flex items-center gap-4 border border-primary/30 animate-in zoom-in duration-300">
@@ -567,7 +630,7 @@ export function ResumeEditor({
                     </div>
                 )}
 
-                <div className="min-w-min py-12 px-6 flex flex-col items-center gap-8">
+                <div className="min-w-min py-6 sm:py-12 px-3 sm:px-6 flex flex-col items-center gap-8">
                     <div className="flex-shrink-0">
                         {renderTemplate(templateId, { editor })}
                     </div>
@@ -590,13 +653,13 @@ export function ResumeEditor({
                 onAcceptPartial={(merged) => acceptDiff(merged)}
             />
 
-            <div className="h-8 border-t border-border bg-card px-4 flex items-center justify-between text-[11px] text-muted-foreground uppercase tracking-widest font-medium">
-                <div className="flex items-center gap-4">
-                    <span>Document: {fileName}</span>
-                    <span>Source: {sourceFormat.toUpperCase()}</span>
-                    <span>Version: {currentVersionId ? versions.find(v => v.id === currentVersionId)?.version_name : 'Unsaved'}</span>
+            <div className="h-8 border-t border-border bg-white dark:bg-card px-3 sm:px-4 flex items-center justify-between text-[10px] sm:text-[11px] text-muted-foreground uppercase tracking-widest font-medium gap-2">
+                <div className="flex items-center gap-2 sm:gap-4 min-w-0 overflow-hidden">
+                    <span className="truncate max-w-[120px] sm:max-w-none">{fileName}</span>
+                    <span className="hidden md:inline">Source: {sourceFormat.toUpperCase()}</span>
+                    <span className="hidden lg:inline truncate">Version: {currentVersionId ? versions.find(v => v.id === currentVersionId)?.version_name : 'Unsaved'}</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 shrink-0">
                     {isSaving ? (
                         <>
                             <Loader2 className="h-3 w-3 animate-spin" />

@@ -32,30 +32,43 @@ export async function POST(req: NextRequest) {
             return new NextResponse("Forbidden", { status: 403 })
         }
 
+        const fallbackLayout = {
+            columnCount: 1,
+            hasPhoto: false,
+            hasSidebar: false,
+            confidence: 0.5,
+            suggestedTemplate: 'modern' as const,
+        }
+
         const isPdf =
             (doc.file_type ?? "").includes("pdf") ||
             (doc.file_url ?? "").toLowerCase().endsWith(".pdf")
 
         if (!isPdf) {
-            return NextResponse.json({
-                layout: {
-                    columnCount: 1,
-                    hasPhoto: false,
-                    hasSidebar: false,
-                    confidence: 0.5,
-                    suggestedTemplate: 'modern',
-                },
-            })
+            return NextResponse.json({ layout: fallbackLayout })
         }
 
-        const fileResponse = await fetch(doc.file_url)
-        if (!fileResponse.ok) {
-            return new NextResponse(`Failed to fetch document: ${fileResponse.status}`, {
-                status: 502,
-            })
+        // Storage bucket is private — extract path from public URL and download
+        // through the auth'd client instead of fetching the URL directly.
+        const url: string = doc.file_url ?? ""
+        const marker = "/storage/v1/object/public/documents/"
+        const idx = url.indexOf(marker)
+        let buffer: Buffer | null = null
+
+        if (idx >= 0) {
+            const path = decodeURIComponent(url.slice(idx + marker.length))
+            const { data: blob, error: dlErr } = await supabase.storage
+                .from("documents")
+                .download(path)
+            if (!dlErr && blob) {
+                buffer = Buffer.from(await blob.arrayBuffer())
+            }
         }
-        const arrayBuffer = await fileResponse.arrayBuffer()
-        const buffer = Buffer.from(arrayBuffer)
+
+        if (!buffer) {
+            // Storage path unparseable or download failed; degrade gracefully.
+            return NextResponse.json({ layout: fallbackLayout })
+        }
 
         const layout = await detectPdfLayout(buffer)
         return NextResponse.json({ layout })
