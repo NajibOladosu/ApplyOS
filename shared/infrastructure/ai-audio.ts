@@ -4,7 +4,9 @@
  * Handles audio transcription and conversation using Gemini 2.5 Flash Native Audio Dialog
  */
 
+import 'server-only'
 import { GoogleGenerativeAI } from '@google/generative-ai'
+import { SPECIALIZED_MODELS } from '@/shared/infrastructure/ai/model-manager'
 
 // Initialize Gemini API
 const apiKey = process.env.GEMINI_API_KEY
@@ -41,10 +43,10 @@ export async function transcribeAudio(
   config: AudioTranscriptionConfig
 ): Promise<TranscriptionResult> {
   try {
-    // Use Gemini 2.5 Flash for transcription
-    // Note: Native audio dialog model may not be available yet, using flash as fallback
+    // Audio transcription requires a multimodal model — kept centralized in SPECIALIZED_MODELS
+    // because the text-only fallback chain in ModelManager cannot accept inlineData parts.
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash'
+      model: SPECIALIZED_MODELS.AUDIO_TRANSCRIPTION
     })
 
     const prompt = 'Transcribe this audio accurately. Return only the transcribed text, no additional commentary.'
@@ -104,7 +106,7 @@ export async function createAudioDialogSession(
 ): Promise<AudioDialogSession> {
   try {
     const model = genAI.getGenerativeModel({
-      model: 'gemini-2.5-flash',
+      model: SPECIALIZED_MODELS.AUDIO_TRANSCRIPTION,
       generationConfig: {
         temperature: 0.7,
         maxOutputTokens: 1024,

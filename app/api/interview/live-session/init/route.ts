@@ -5,6 +5,8 @@ import {
   getQuestionsForSession,
 } from '@/modules/interviews/services/interview.service'
 import { generateSystemInstruction } from '@/lib/gemini-live/system-prompts'
+import { SPECIALIZED_MODELS } from '@/shared/infrastructure/ai/model-manager'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -53,6 +55,14 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    // Rate-limit token issuance — prevents abuse if a session ID leaks
+    const rateLimitResponse = await rateLimitMiddleware(
+      request,
+      RATE_LIMITS.ai,
+      async () => user.id
+    )
+    if (rateLimitResponse) return rateLimitResponse
 
     // Parse request body
     const body = await request.json()
@@ -203,21 +213,23 @@ export async function POST(request: NextRequest) {
       },
     ]
 
-    // Model configuration
-    const model = 'models/gemini-2.5-flash-native-audio-preview-09-2025'
+    // Model configuration (centralized in SPECIALIZED_MODELS)
+    const model = SPECIALIZED_MODELS.LIVE_AUDIO
 
     // SECURITY NOTE: The Gemini Live WebSocket API requires a key in the URL query string
-    // for the client-side WebSocket connection. There is currently no ephemeral token support
-    // in the SDK for this use case.
+    // for the client-side WebSocket connection. The current `@google/generative-ai` SDK
+    // does not expose ephemeral token issuance for this use case.
     //
     // MITIGATIONS IN PLACE:
-    // - GEMINI_LIVE_API_KEY should be a SEPARATE key from GEMINI_API_KEY, restricted to
-    //   only the "Generative Language API" in Google Cloud Console.
-    // - This endpoint requires authentication (line 53) — only your users can request it.
+    // - GEMINI_LIVE_API_KEY MUST be a SEPARATE key from GEMINI_API_KEY, restricted in
+    //   Google Cloud Console to only the "Generative Language API".
+    // - This endpoint requires authentication (above) — only signed-in users can fetch.
+    // - Rate-limited per user (RATE_LIMITS.ai) to bound abuse if a key leaks.
     // - Add HTTP referrer restrictions in Google Cloud Console for this key.
     //
-    // TODO: When Google adds ephemeral token support for the Live API, replace this
-    // with ephemeral tokens (short-lived, per-session, non-reusable).
+    // PLANNED MIGRATION (P1+): Switch to `@google/genai` SDK and use
+    // `auth_tokens.create` to mint short-lived (≤1h), per-session, single-use ephemeral
+    // tokens. Track in TODO_UPSTASH_UPGRADE.md or a follow-up issue.
     const token = process.env.GEMINI_LIVE_API_KEY
 
     console.log('Live session token prepared for model:', model)
