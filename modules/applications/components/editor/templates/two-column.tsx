@@ -2,11 +2,14 @@
 
 import { EditorContent, type Editor } from "@tiptap/react"
 import { cn } from "@/shared/lib/utils"
+import type { DocSettings } from "../types"
+import { DEFAULT_DOC_SETTINGS } from "../types"
 
 interface Props {
     editor: Editor | null
     pageNumber?: number
     totalPages?: number
+    docSettings?: DocSettings
 }
 
 /**
@@ -14,14 +17,18 @@ interface Props {
  * simple; H1 spans both columns so the name + contact stay full-width while the
  * body flows across two columns.
  */
-export function TwoColumnTemplate({ editor, pageNumber, totalPages }: Props) {
+export function TwoColumnTemplate({ editor, pageNumber, totalPages, docSettings }: Props) {
+    const settings = docSettings ?? DEFAULT_DOC_SETTINGS
     return (
         <div
             className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 relative resume-template-two-column"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
-                padding: '20mm',
+                paddingTop: `${settings.marginTopMm}mm`,
+                paddingRight: `${settings.marginRightMm}mm`,
+                paddingBottom: `${settings.marginBottomMm}mm`,
+                paddingLeft: `${settings.marginLeftMm}mm`,
                 boxSizing: 'border-box',
                 fontFamily: 'Inter, -apple-system, sans-serif',
                 backgroundImage:

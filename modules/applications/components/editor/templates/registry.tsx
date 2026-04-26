@@ -2,7 +2,7 @@
 
 import type { ReactElement } from "react"
 import type { Editor } from "@tiptap/react"
-import type { TemplateId } from "../types"
+import type { DocSettings, TemplateId } from "../types"
 import { ModernTemplate } from "./modern"
 import { ClassicTemplate } from "./classic"
 import { CompactTemplate } from "./compact"
@@ -14,6 +14,7 @@ export interface TemplateRendererProps {
     pageNumber?: number
     totalPages?: number
     photoUrl?: string | null
+    docSettings?: DocSettings
 }
 
 export type TemplateRenderer = (props: TemplateRendererProps) => ReactElement
