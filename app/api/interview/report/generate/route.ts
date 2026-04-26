@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
+import { callGeminiWithFallback } from '@/shared/infrastructure/ai'
+import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -93,10 +94,6 @@ export async function POST(request: NextRequest) {
       return await getExistingReport(supabase, sessionId, session, questions)
     }
 
-    // Initialize Gemini API
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!)
-    const model = genAI.getGenerativeModel({ model: 'gemini-2.5-flash-lite' })
-
     // Extract user responses (filter for user turns only)
     const userTurns = turns.filter((t) => t.speaker === 'user')
 
@@ -185,8 +182,7 @@ SCORING GUIDELINES:
 
 Be honest with your scoring. Don't inflate or deflate scores.`
 
-        const result = await model.generateContent(prompt)
-        const responseText = result.response.text()
+        const responseText = await callGeminiWithFallback(prompt, 'SIMPLE')
 
         // Parse JSON response (strip markdown if present)
         const jsonMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/) || [null, responseText]
@@ -226,6 +222,9 @@ Be honest with your scoring. Don't inflate or deflate scores.`
 
         console.log(`Scored Q${i + 1}: ${evaluation.overall_score}/10`)
       } catch (error: any) {
+        if (error instanceof AIRateLimitError) {
+          throw error
+        }
         console.error(`Error scoring question ${i + 1}:`, error)
         // Continue with other questions
       }
@@ -264,6 +263,13 @@ Be honest with your scoring. Don't inflate or deflate scores.`
       { status: 200 }
     )
   } catch (error: any) {
+    if (error instanceof AIRateLimitError) {
+      const retryAfter = Math.max(1, Math.ceil((error.nextAvailableTime - Date.now()) / 1000))
+      return NextResponse.json(
+        { error: error.message, retryAfter },
+        { status: 429, headers: { 'Retry-After': String(retryAfter) } }
+      )
+    }
     console.error('Error generating interview report:', error)
     return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
   }

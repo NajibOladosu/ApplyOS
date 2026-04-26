@@ -67,6 +67,7 @@
     "react-dropzone": "^14.2.3",
     "react-pdf": "^10.3.0",
     "recharts": "^2.15.4",
+    "server-only": "^0.0.1",
     "simplex-noise": "^4.0.3",
     "tailwind-merge": "^2.3.0",
     "tailwindcss-animate": "^1.0.7",

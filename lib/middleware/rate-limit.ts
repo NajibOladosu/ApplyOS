@@ -10,6 +10,7 @@
  * See TODO_UPSTASH_UPGRADE.md for migration guide.
  */
 
+import 'server-only'
 import { NextRequest, NextResponse } from 'next/server'
 
 // Rate limit configuration
