@@ -625,7 +625,7 @@ export function ResumeEditor({
                             className="h-9 px-2 sm:px-3 border-dashed font-medium bg-muted/40 border-primary/30 text-foreground hover:bg-muted hover:border-primary"
                         >
                             {isSaving ? <Loader2 className="h-3 w-3 lg:mr-2 animate-spin" /> : <Save className="h-3 w-3 lg:mr-2" />}
-                            <span className="hidden lg:inline">Capture</span>
+                            <span className="hidden lg:inline">Save Version</span>
                         </Button>
                     </div>
 
