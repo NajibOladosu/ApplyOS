@@ -55,23 +55,34 @@ Rules:
 
         const response = await callGeminiWithFallback(prompt, 'COMPLEX')
 
-        // Parse response
-        let jsonText = response
-        const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
+        let jsonText = response.trim()
+        const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/)
         if (codeBlockMatch) {
             jsonText = codeBlockMatch[1].trim()
         }
 
-        const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
-        if (!jsonMatch) {
-            throw new Error("No valid JSON in response")
+        const start = jsonText.indexOf("{")
+        const end = jsonText.lastIndexOf("}")
+        if (start === -1 || end === -1 || end <= start) {
+            console.error("[parse-text] No JSON object in response:", jsonText.slice(0, 200))
+            return NextResponse.json({ blocks: [] })
         }
 
-        const parsed = JSON.parse(jsonMatch[0])
+        let parsed: { blocks?: unknown }
+        try {
+            parsed = JSON.parse(jsonText.slice(start, end + 1))
+        } catch (parseErr) {
+            console.error("[parse-text] JSON parse failed:", parseErr)
+            return NextResponse.json({ blocks: [] })
+        }
+
+        if (!parsed.blocks || !Array.isArray(parsed.blocks)) {
+            return NextResponse.json({ blocks: [] })
+        }
 
         return NextResponse.json(parsed)
     } catch (error: any) {
         console.error("AI Parse Error:", error)
-        return new NextResponse(error.message || "Internal Server Error", { status: 500 })
+        return NextResponse.json({ blocks: [] }, { status: 200 })
     }
 }
