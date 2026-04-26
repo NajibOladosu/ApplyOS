@@ -45,7 +45,6 @@ import type { TemplateId, EditorBlock, ResumeDoc, DocSettings } from "./editor/t
 import { DEFAULT_DOC_SETTINGS } from "./editor/types"
 import { EditorToolbar } from "./editor/toolbar"
 import { DiffModal } from "./editor/diff-modal"
-import { PageSetupDialog } from "./editor/page-setup-dialog"
 
 // Re-export legacy types so existing imports keep working until callers migrate.
 export type { EditorBlock, BlockType, BlockStyles } from "./editor/types"
@@ -679,20 +678,14 @@ export function ResumeEditor({
                     </div>
                 </div>
 
-                <div className="border-t border-border bg-white dark:bg-card flex items-center">
-                    <div className="flex-1 min-w-0">
-                        <EditorToolbar
-                            editor={editor}
-                            templateId={templateId}
-                            onTemplateChange={handleTemplateChange}
-                        />
-                    </div>
-                    <div className="px-2 sm:px-3 shrink-0">
-                        <PageSetupDialog
-                            settings={docSettings}
-                            onChange={updateDocSettings}
-                        />
-                    </div>
+                <div className="border-t border-border bg-white dark:bg-card">
+                    <EditorToolbar
+                        editor={editor}
+                        templateId={templateId}
+                        onTemplateChange={handleTemplateChange}
+                        docSettings={docSettings}
+                        onDocSettingsChange={updateDocSettings}
+                    />
                 </div>
             </div>
 
