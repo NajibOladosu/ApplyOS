@@ -44,6 +44,16 @@ ApplyOS is a comprehensive full-stack web application that revolutionizes how yo
 - **On-Demand Regeneration** - Re-analyze documents and regenerate summaries anytime
 - **Multi-format Support** - PDF, TXT, JSON, and DOCX files supported
 
+### Advanced Resume Editor
+
+- **Block-Based Editing** - Dynamic content-editable system allowing granular modifications of extracted resume data
+- **Multiple Templates** - Choose from Classic, Modern, Compact, Photo-Header, and Two-Column layouts
+- **AI Integration** - Built-in AI text rewriting and bulk application of ATS recommendations
+- **Rich Formatting Controls** - Customizable fonts, document margins, page setup, and inline linking
+- **Multi-Page Support** - Auto-flowing content across A4 pages with visual page break indicators
+- **Import & Export** - Import DOCX files and export beautifully formatted PDFs (client-side) and DOCX files
+- **Version History** - Save and restore different versions of your resume tailored for specific applications
+
 ### Interview Practice System
 
 - **Multiple Interview Modes**:
