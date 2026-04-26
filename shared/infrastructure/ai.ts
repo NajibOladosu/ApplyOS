@@ -1,3 +1,4 @@
+import 'server-only'
 import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { DocumentReport } from '@/types/database'
 import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
