@@ -3,12 +3,15 @@
 import { EditorContent, type Editor } from "@tiptap/react"
 import { cn } from "@/shared/lib/utils"
 import { User as UserIcon } from "lucide-react"
+import type { DocSettings } from "../types"
+import { DEFAULT_DOC_SETTINGS } from "../types"
 
 interface Props {
     editor: Editor | null
     pageNumber?: number
     totalPages?: number
     photoUrl?: string | null
+    docSettings?: DocSettings
 }
 
 /**
@@ -17,13 +20,16 @@ interface Props {
  * The first H1 is styled inside the banner-style stripe via CSS, while the
  * avatar lives in a separate non-editable slot — visual only.
  */
-export function PhotoHeaderTemplate({ editor, pageNumber, totalPages, photoUrl }: Props) {
+export function PhotoHeaderTemplate({ editor, pageNumber, totalPages, photoUrl, docSettings }: Props) {
+    const settings = docSettings ?? DEFAULT_DOC_SETTINGS
     return (
         <div
             className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 relative resume-template-photo-header"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
+                paddingTop: `${settings.marginTopMm}mm`,
+                paddingBottom: `${settings.marginBottomMm}mm`,
                 boxSizing: 'border-box',
                 fontFamily: 'Manrope, -apple-system, sans-serif',
                 backgroundImage:
@@ -39,7 +45,10 @@ export function PhotoHeaderTemplate({ editor, pageNumber, totalPages, photoUrl }
                 </div>
             )}
 
-            <div className="flex items-center gap-6 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b-4 border-emerald-600 px-[20mm] py-6 rounded-t-none">
+            <div
+                className="flex items-center gap-6 bg-gradient-to-r from-emerald-50 to-emerald-100 border-b-4 border-emerald-600 py-6 rounded-t-none"
+                style={{ paddingLeft: `${settings.marginLeftMm}mm`, paddingRight: `${settings.marginRightMm}mm` }}
+            >
                 <div className="flex-shrink-0 h-24 w-24 rounded-full bg-white ring-2 ring-emerald-600 flex items-center justify-center overflow-hidden">
                     {photoUrl ? (
                         // eslint-disable-next-line @next/next/no-img-element
@@ -53,7 +62,10 @@ export function PhotoHeaderTemplate({ editor, pageNumber, totalPages, photoUrl }
                 </div>
             </div>
 
-            <div className="px-[20mm] py-6">
+            <div
+                className="py-6"
+                style={{ paddingLeft: `${settings.marginLeftMm}mm`, paddingRight: `${settings.marginRightMm}mm` }}
+            >
                 <EditorContent
                     editor={editor}
                     className={cn(

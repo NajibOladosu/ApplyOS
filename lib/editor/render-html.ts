@@ -1,11 +1,33 @@
 import { generateHTML } from "@tiptap/html"
-import type { JSONContent } from "@tiptap/core"
+import { Extension, type JSONContent } from "@tiptap/core"
 import StarterKit from "@tiptap/starter-kit"
 import TextAlign from "@tiptap/extension-text-align"
-import type { TemplateId } from "@/modules/applications/components/editor/types"
+import { TextStyle } from "@tiptap/extension-text-style"
+import { FontFamily } from "@tiptap/extension-font-family"
+import type { DocSettings, TemplateId } from "@/modules/applications/components/editor/types"
 
-// Server-side schema must mirror the editor's schema so generateHTML produces
-// identical markup. Placeholder is editor-only (decoration), excluded here.
+const FontSize = Extension.create({
+    name: 'fontSize',
+    addOptions() {
+        return { types: ['textStyle'] as string[] }
+    },
+    addGlobalAttributes() {
+        return [{
+            types: this.options.types,
+            attributes: {
+                fontSize: {
+                    default: null,
+                    parseHTML: (element: HTMLElement) => element.style.fontSize?.replace(/['"]+/g, '') || null,
+                    renderHTML: (attributes: { fontSize?: string | null }) => {
+                        if (!attributes.fontSize) return {}
+                        return { style: `font-size: ${attributes.fontSize}` }
+                    },
+                },
+            },
+        }]
+    },
+})
+
 const renderExtensions = [
     StarterKit.configure({
         heading: { levels: [1, 2, 3] },
@@ -15,6 +37,9 @@ const renderExtensions = [
         types: ['heading', 'paragraph'],
         alignments: ['left', 'center', 'right', 'justify'],
     }),
+    TextStyle,
+    FontFamily.configure({ types: ['textStyle'] }),
+    FontSize,
 ]
 
 /**
@@ -26,14 +51,20 @@ interface RenderOpts {
     contentJson: JSONContent
     templateId: TemplateId
     fileName?: string
+    docSettings?: DocSettings
 }
 
-const baseStyles = `
+const baseStylesFor = (s?: DocSettings) => {
+    const top = s?.marginTopMm ?? 20
+    const right = s?.marginRightMm ?? 20
+    const bottom = s?.marginBottomMm ?? 20
+    const left = s?.marginLeftMm ?? 20
+    return `
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap');
 
 @page {
     size: A4;
-    margin: 20mm 20mm 20mm 20mm;
+    margin: ${top}mm ${right}mm ${bottom}mm ${left}mm;
 }
 
 * { box-sizing: border-box; }
@@ -61,6 +92,7 @@ u { text-decoration: underline; }
 a { color: #1d4ed8; text-decoration: underline; }
 h1, h2, h3 { page-break-after: avoid; }
 `.trim()
+}
 
 const templateStyles: Record<TemplateId, string> = {
     'modern': `
@@ -103,9 +135,9 @@ const templateStyles: Record<TemplateId, string> = {
     `,
 }
 
-export const renderResumeHTML = ({ contentJson, templateId, fileName }: RenderOpts): string => {
+export const renderResumeHTML = ({ contentJson, templateId, fileName, docSettings }: RenderOpts): string => {
     const bodyHTML = generateHTML(contentJson, renderExtensions)
-    const styles = `${baseStyles}\n${templateStyles[templateId] ?? templateStyles['modern']}`
+    const styles = `${baseStylesFor(docSettings)}\n${templateStyles[templateId] ?? templateStyles['modern']}`
 
     return `<!DOCTYPE html>
 <html lang="en">

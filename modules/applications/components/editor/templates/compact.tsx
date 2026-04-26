@@ -2,21 +2,28 @@
 
 import { EditorContent, type Editor } from "@tiptap/react"
 import { cn } from "@/shared/lib/utils"
+import type { DocSettings } from "../types"
+import { DEFAULT_DOC_SETTINGS } from "../types"
 
 interface Props {
     editor: Editor | null
     pageNumber?: number
     totalPages?: number
+    docSettings?: DocSettings
 }
 
-export function CompactTemplate({ editor, pageNumber, totalPages }: Props) {
+export function CompactTemplate({ editor, pageNumber, totalPages, docSettings }: Props) {
+    const settings = docSettings ?? { ...DEFAULT_DOC_SETTINGS, marginTopMm: 15, marginBottomMm: 15, marginLeftMm: 18, marginRightMm: 18 }
     return (
         <div
             className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 relative resume-template-compact"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
-                padding: '15mm 18mm',
+                paddingTop: `${settings.marginTopMm}mm`,
+                paddingRight: `${settings.marginRightMm}mm`,
+                paddingBottom: `${settings.marginBottomMm}mm`,
+                paddingLeft: `${settings.marginLeftMm}mm`,
                 boxSizing: 'border-box',
                 fontFamily: 'Inter, -apple-system, sans-serif',
                 backgroundImage:

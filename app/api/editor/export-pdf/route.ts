@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { renderResumeHTML } from "@/lib/editor/render-html"
-import type { TemplateId } from "@/modules/applications/components/editor/types"
+import type { DocSettings, TemplateId } from "@/modules/applications/components/editor/types"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -49,10 +49,11 @@ export async function POST(req: NextRequest) {
         }
 
         const body = await req.json()
-        const { contentJson, templateId, fileName } = body as {
+        const { contentJson, templateId, fileName, docSettings } = body as {
             contentJson?: any
             templateId?: TemplateId
             fileName?: string
+            docSettings?: DocSettings
         }
 
         if (!contentJson) {
@@ -63,7 +64,13 @@ export async function POST(req: NextRequest) {
             contentJson,
             templateId: templateId ?? "modern",
             fileName,
+            docSettings,
         })
+
+        const top = `${docSettings?.marginTopMm ?? 20}mm`
+        const right = `${docSettings?.marginRightMm ?? 20}mm`
+        const bottom = `${docSettings?.marginBottomMm ?? 20}mm`
+        const left = `${docSettings?.marginLeftMm ?? 20}mm`
 
         const browser = await launchBrowser()
         try {
@@ -72,7 +79,7 @@ export async function POST(req: NextRequest) {
             const pdf = await page.pdf({
                 format: "A4",
                 printBackground: true,
-                margin: { top: "20mm", right: "20mm", bottom: "20mm", left: "20mm" },
+                margin: { top, right, bottom, left },
                 preferCSSPageSize: true,
             })
 

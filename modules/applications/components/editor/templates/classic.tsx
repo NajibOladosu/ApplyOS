@@ -2,21 +2,28 @@
 
 import { EditorContent, type Editor } from "@tiptap/react"
 import { cn } from "@/shared/lib/utils"
+import type { DocSettings } from "../types"
+import { DEFAULT_DOC_SETTINGS } from "../types"
 
 interface Props {
     editor: Editor | null
     pageNumber?: number
     totalPages?: number
+    docSettings?: DocSettings
 }
 
-export function ClassicTemplate({ editor, pageNumber, totalPages }: Props) {
+export function ClassicTemplate({ editor, pageNumber, totalPages, docSettings }: Props) {
+    const settings = docSettings ?? DEFAULT_DOC_SETTINGS
     return (
         <div
             className="bg-white shadow-[0_8px_30px_rgb(0,0,0,0.12)] ring-1 ring-gray-200 relative resume-template-classic"
             style={{
                 width: '210mm',
                 minHeight: '297mm',
-                padding: '20mm',
+                paddingTop: `${settings.marginTopMm}mm`,
+                paddingRight: `${settings.marginRightMm}mm`,
+                paddingBottom: `${settings.marginBottomMm}mm`,
+                paddingLeft: `${settings.marginLeftMm}mm`,
                 boxSizing: 'border-box',
                 fontFamily: '"Source Serif Pro", Georgia, serif',
                 backgroundImage:
