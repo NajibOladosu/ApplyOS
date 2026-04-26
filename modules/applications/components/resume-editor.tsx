@@ -41,9 +41,11 @@ import {
 import { buildExtensions } from "./editor/extensions"
 import { blocksToTipTap, emptyDoc } from "./editor/blocks-to-tiptap"
 import { renderTemplate } from "./editor/templates/registry"
-import type { TemplateId, EditorBlock, ResumeDoc } from "./editor/types"
+import type { TemplateId, EditorBlock, ResumeDoc, DocSettings } from "./editor/types"
+import { DEFAULT_DOC_SETTINGS } from "./editor/types"
 import { EditorToolbar } from "./editor/toolbar"
 import { DiffModal } from "./editor/diff-modal"
+import { PageSetupDialog } from "./editor/page-setup-dialog"
 
 // Re-export legacy types so existing imports keep working until callers migrate.
 export type { EditorBlock, BlockType, BlockStyles } from "./editor/types"
@@ -90,8 +92,46 @@ export function ResumeEditor({
     const [diffProposed, setDiffProposed] = useState<ResumeDoc | null>(null)
     const [diffLoading, setDiffLoading] = useState(false)
     const [selectionEmpty, setSelectionEmpty] = useState(true)
+    const [docSettings, setDocSettings] = useState<DocSettings>(DEFAULT_DOC_SETTINGS)
 
     const sourceFormat = useMemo(() => detectSourceFormat(fileName), [fileName])
+
+    const settingsStorageKey = useMemo(
+        () => `resume-doc-settings:${documentId}:${applicationId}`,
+        [documentId, applicationId],
+    )
+
+    useEffect(() => {
+        if (typeof window === 'undefined') return
+        try {
+            const raw = window.localStorage.getItem(settingsStorageKey)
+            if (raw) {
+                const parsed = JSON.parse(raw) as Partial<DocSettings>
+                setDocSettings({
+                    marginTopMm: parsed.marginTopMm ?? DEFAULT_DOC_SETTINGS.marginTopMm,
+                    marginRightMm: parsed.marginRightMm ?? DEFAULT_DOC_SETTINGS.marginRightMm,
+                    marginBottomMm: parsed.marginBottomMm ?? DEFAULT_DOC_SETTINGS.marginBottomMm,
+                    marginLeftMm: parsed.marginLeftMm ?? DEFAULT_DOC_SETTINGS.marginLeftMm,
+                })
+            }
+        } catch {
+            // ignore corrupt storage
+        }
+    }, [settingsStorageKey])
+
+    const updateDocSettings = useCallback((next: Partial<DocSettings>) => {
+        setDocSettings(prev => {
+            const merged = { ...prev, ...next }
+            if (typeof window !== 'undefined') {
+                try {
+                    window.localStorage.setItem(settingsStorageKey, JSON.stringify(merged))
+                } catch {
+                    // ignore quota errors
+                }
+            }
+            return merged
+        })
+    }, [settingsStorageKey])
 
     const editor = useEditor({
         extensions: buildExtensions(),
@@ -485,11 +525,19 @@ export function ResumeEditor({
                     contentJson: editor.getJSON(),
                     templateId,
                     fileName,
+                    docSettings,
                 }),
             })
 
             if (!res.ok) {
-                throw new Error(`Export failed: ${res.status}`)
+                let errMsg = `Export failed: ${res.status}`
+                try {
+                    const errBody = await res.json()
+                    if (errBody?.error) errMsg = errBody.error
+                } catch {
+                    // ignore non-JSON body
+                }
+                throw new Error(errMsg)
             }
 
             const blob = await res.blob()
@@ -631,12 +679,20 @@ export function ResumeEditor({
                     </div>
                 </div>
 
-                <div className="border-t border-border bg-white dark:bg-card">
-                    <EditorToolbar
-                        editor={editor}
-                        templateId={templateId}
-                        onTemplateChange={handleTemplateChange}
-                    />
+                <div className="border-t border-border bg-white dark:bg-card flex items-center">
+                    <div className="flex-1 min-w-0">
+                        <EditorToolbar
+                            editor={editor}
+                            templateId={templateId}
+                            onTemplateChange={handleTemplateChange}
+                        />
+                    </div>
+                    <div className="px-2 sm:px-3 shrink-0">
+                        <PageSetupDialog
+                            settings={docSettings}
+                            onChange={updateDocSettings}
+                        />
+                    </div>
                 </div>
             </div>
 
@@ -652,7 +708,7 @@ export function ResumeEditor({
 
                 <div className="min-w-min py-6 sm:py-12 px-3 sm:px-6 flex flex-col items-center gap-8">
                     <div className="flex-shrink-0">
-                        {renderTemplate(templateId, { editor })}
+                        {renderTemplate(templateId, { editor, docSettings })}
                     </div>
                 </div>
             </div>
