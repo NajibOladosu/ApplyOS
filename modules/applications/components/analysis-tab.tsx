@@ -1,6 +1,7 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
+import dynamic from "next/dynamic"
 import type { Application, Document } from "@/types/database"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
@@ -12,28 +13,24 @@ import {
     AlertTriangle,
     CheckCircle,
     FileText,
-    ArrowRight,
     Target,
     XCircle,
     Lightbulb,
-    Search,
-    ScanSearch
+    ScanSearch,
+    Edit
 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { cn } from "@/shared/lib/utils"
+import type { ResumeAnalysisResult } from "./resume-feedback"
+
+const ResumeEditor = dynamic(
+    () => import("./resume-editor").then((mod) => mod.ResumeEditor),
+    { ssr: false }
+)
 
 interface AnalysisTabProps {
     application: Application
     documents: Document[]
-}
-
-type ResumeAnalysisResult = {
-    score: number           // 0-100
-    matchingKeywords: string[]
-    missingKeywords: string[]
-    strengths: string[]
-    weaknesses: string[]
-    recommendations: string[]
 }
 
 export function AnalysisTab({ application, documents }: AnalysisTabProps) {
@@ -43,7 +40,13 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
     const [isAnalyzing, setIsAnalyzing] = useState(false)
     const [analysis, setAnalysis] = useState<ResumeAnalysisResult | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [viewMode, setViewMode] = useState<"analysis" | "editor">("analysis")
     const [analysisCache, setAnalysisCache] = useState<Record<string, ResumeAnalysisResult>>({})
+
+    const selectedDocument = useMemo(() =>
+        documents.find(d => d.id === selectedDocumentId),
+        [documents, selectedDocumentId]
+    )
 
     // Initialize cache from documents
     useEffect(() => {
@@ -151,6 +154,21 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
         })
     }
 
+    if (viewMode === "editor" && selectedDocument) {
+        return (
+            <ResumeEditor
+                documentUrl={selectedDocument.file_url}
+                analysis={analysis}
+                parsedData={selectedDocument.parsed_data}
+                extractedText={selectedDocument.extracted_text}
+                applicationId={application.id}
+                documentId={selectedDocument.id}
+                onBack={() => setViewMode("analysis")}
+                fileName={selectedDocument.file_name}
+            />
+        )
+    }
+
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
             {/* Header Section */}
@@ -169,13 +187,13 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
             {/* Control Panel */}
             <Card className="border-primary/20 bg-muted/10">
                 <CardContent className="pt-6">
-                    <div className="flex flex-col gap-4">
-                        <div className="w-full space-y-2">
+                    <div className="flex flex-col lg:flex-row gap-4 items-stretch">
+                        <div className="flex-1 min-w-0 space-y-2">
                             <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
                                 Select Resume
                             </label>
                             {documents.length > 0 ? (
-                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                     {documents.map((doc) => (
                                         <div
                                             key={doc.id}
@@ -211,23 +229,36 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                             )}
                         </div>
 
-                        <Button
-                            onClick={handleAnalyze}
-                            disabled={!selectedDocumentId || !documents.find(d => d.id === selectedDocumentId) || isAnalyzing}
-                            className="w-full glow-effect relative overflow-hidden group"
-                        >
-                            {isAnalyzing ? (
-                                <>
-                                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Analyzing...
-                                </>
-                            ) : (
-                                <>
-                                    <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
-                                    Run Analysis
-                                </>
+                        <div className="flex flex-col gap-2 lg:w-56 lg:self-end lg:pb-0">
+                            {selectedDocumentId && (
+                                <Button
+                                    variant="outline"
+                                    onClick={() => setViewMode("editor")}
+                                    className="w-full justify-center"
+                                >
+                                    <Edit className="mr-2 h-4 w-4" />
+                                    Edit Resume
+                                </Button>
                             )}
-                        </Button>
+
+                            <Button
+                                onClick={handleAnalyze}
+                                disabled={!selectedDocumentId || isAnalyzing || !application.job_description}
+                                className="w-full justify-center glow-effect relative overflow-hidden group"
+                            >
+                                {isAnalyzing ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                                        Analyzing...
+                                    </>
+                                ) : (
+                                    <>
+                                        <Sparkles className="mr-2 h-4 w-4 group-hover:animate-pulse" />
+                                        {analysis ? "Re-Analyze" : "Run Analysis"}
+                                    </>
+                                )}
+                            </Button>
+                        </div>
                     </div>
 
                     {error && (
