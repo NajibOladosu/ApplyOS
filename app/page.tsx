@@ -17,6 +17,7 @@ import {
   Chrome
 } from "lucide-react"
 import { BlogSettingsButton } from "@/components/blog-settings-button"
+import { CookiePreferencesLink } from "@/components/cookie-preferences-link"
 
 const features = [
   {
@@ -347,6 +348,7 @@ export default function Home() {
               <ul className="text-muted-foreground space-y-2">
                 <li><Link href="/privacy" className="hover:text-primary transition-colors">Privacy Protocol</Link></li>
                 <li><Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link></li>
+                <li><CookiePreferencesLink /></li>
                 <li><a href="https://blog.applyos.io" target="_blank" rel="noopener noreferrer" className="hover:text-primary transition-colors">Blog</a></li>
                 <li className="text-muted-foreground/50">v1.0.4-stable</li>
               </ul>

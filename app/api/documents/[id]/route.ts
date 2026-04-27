@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/shared/db/supabase/server"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import type { Document } from "@/types/database"
 
 export const dynamic = "force-dynamic"
@@ -11,7 +12,7 @@ type RouteContext = {
 }
 
 export async function GET(
-  _req: Request,
+  req: NextRequest,
   context: RouteContext
 ) {
   const { id } = await context.params
@@ -31,6 +32,9 @@ export async function GET(
     if (userError || !user) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(req, RATE_LIMITS.general, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     const { data, error } = await supabase
       .from("documents")

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { detectPdfLayout } from "@/lib/editor/layout-detect"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -13,6 +14,9 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return new NextResponse("Unauthorized", { status: 401 })
         }
+
+        const rateLimitResponse = await rateLimitMiddleware(req, RATE_LIMITS.ai, async () => user.id)
+        if (rateLimitResponse) return rateLimitResponse
 
         const { documentId } = await req.json()
         if (!documentId) {

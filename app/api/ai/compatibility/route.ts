@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
 import { createClient } from "@/shared/db/supabase/server"
 import { getAnalyzedDocuments, buildContextFromDocument } from "@/modules/documents/services/document.service"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 export const dynamic = 'force-dynamic'
 
@@ -13,6 +14,9 @@ export async function POST(req: NextRequest) {
         if (authError || !user) {
             return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
         }
+
+        const rateLimitResponse = await rateLimitMiddleware(req, RATE_LIMITS.ai, async () => user.id)
+        if (rateLimitResponse) return rateLimitResponse
 
         const { jobDescription, documentId } = await req.json()
 
