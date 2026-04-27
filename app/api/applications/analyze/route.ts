@@ -3,6 +3,7 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { analyzeResumeMatch } from '@/shared/infrastructure/ai'
 import { buildContextFromDocument } from '@/modules/documents/services/document.service'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -31,6 +32,9 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized', details: authError }, { status: 401 })
         }
+
+        const rateLimitResponse = await rateLimitMiddleware(req, RATE_LIMITS.ai, async () => user.id)
+        if (rateLimitResponse) return rateLimitResponse
 
         const body = await req.json()
         const { applicationId, documentId } = body

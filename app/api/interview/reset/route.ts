@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { resetInterviewSession, getInterviewSession } from '@/modules/interviews/services/interview.service'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -16,6 +17,9 @@ export async function POST(request: NextRequest) {
       console.error('Auth error in reset route:', authError)
       return NextResponse.json({ error: 'Unauthorized', details: authError?.message }, { status: 401 })
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.general, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     const body = await request.json()
     const { sessionId } = body

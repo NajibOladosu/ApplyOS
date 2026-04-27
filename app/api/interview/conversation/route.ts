@@ -4,6 +4,7 @@ import { GoogleGenerativeAI } from '@google/generative-ai'
 import { ConversationManager, generateIntroductionPrompt, generateQuestionPrompt, generateConclusionPrompt, shouldAskFollowUp } from '@/modules/interviews/services/conversation.service'
 import { getQuestionsForSession, getInterviewSession, updateInterviewSession, createQuestionsForSession } from '@/modules/interviews/services/interview.service'
 import { generateInterviewQuestions, callGeminiWithFallback } from '@/shared/infrastructure/ai'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { QuestionCategory } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
                 { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
         }
+
+        const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.ai, async () => user.id)
+        if (rateLimitResponse) return rateLimitResponse
 
         const body = await request.json()
         const { sessionId, action, userResponse } = body
