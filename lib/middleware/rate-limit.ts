@@ -12,6 +12,7 @@
 
 import 'server-only'
 import { NextRequest, NextResponse } from 'next/server'
+import { checkRateLimitUpstash, isUpstashConfigured } from './rate-limit-upstash'
 
 // Rate limit configuration
 export interface RateLimitConfig {
@@ -182,15 +183,19 @@ export async function rateLimitMiddleware(
   config: RateLimitConfig,
   getUserId?: () => Promise<string | undefined>
 ): Promise<NextResponse | null> {
-  // Get user ID if getUserId function is provided
   let userId: string | undefined
   if (getUserId) {
     try {
       userId = await getUserId()
     } catch (error) {
       console.error('Error getting user ID for rate limiting:', error)
-      // Continue with IP-based rate limiting
     }
+  }
+
+  if (isUpstashConfigured()) {
+    const result = await checkRateLimitUpstash(request, config, userId)
+    if (result !== 'fallback') return result
+    // Upstash unavailable — fall through to in-memory
   }
 
   return checkRateLimit(request, config, userId)

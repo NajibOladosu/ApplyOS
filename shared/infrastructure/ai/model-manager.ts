@@ -114,9 +114,10 @@ export class ModelManager {
       const tracker = rateLimitTracker.get(model)
       if (!tracker) continue
 
-      // Check if model is available
+      // Skip models the live API does not advertise (validator fails open if cache empty)
+      if (!isModelAvailableSync(model)) continue
+
       if (!tracker.limitedUntil || tracker.limitedUntil <= now) {
-        // Clear the rate limit if time has passed
         tracker.limitedUntil = null
         tracker.retryAfter = null
         return model
@@ -124,6 +125,13 @@ export class ModelManager {
     }
 
     return null
+  }
+
+  /**
+   * Warm the validator cache. Safe to call at boot or before first AI request.
+   */
+  static async warmValidatorCache(): Promise<void> {
+    await getValidatedModels()
   }
 
   /**

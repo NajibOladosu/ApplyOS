@@ -15,61 +15,8 @@ const nextConfig = {
         // Apply security headers to all routes
         source: '/(.*)',
         headers: [
-          // ============================================================
-          // CONTENT SECURITY POLICY (CSP)
-          // ============================================================
-          // Prevents XSS, code injection, and unauthorized resource loading
-          {
-            key: 'Content-Security-Policy',
-            value: [
-              // Default: only allow same-origin resources
-              "default-src 'self'",
-
-              // Scripts: Allow self, inline scripts (Next.js requires), and eval for development
-              process.env.NODE_ENV === 'production'
-                ? "script-src 'self' 'unsafe-inline'"
-                : "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-
-              // Styles: Allow self and inline styles (Tailwind CSS requires)
-              "style-src 'self' 'unsafe-inline'",
-
-              // Images: Allow self, data URIs, and Supabase Storage
-              "img-src 'self' data: blob: https://hvmaerptxgeldviarcuj.supabase.co",
-
-              // Fonts: Allow self and data URIs
-              "font-src 'self' data:",
-
-              // API connections: Allow self, Supabase API, Google Gemini API, and Gemini Live WebSocket
-              "connect-src 'self' https://hvmaerptxgeldviarcuj.supabase.co https://*.supabase.co https://generativelanguage.googleapis.com wss://hvmaerptxgeldviarcuj.supabase.co wss://generativelanguage.googleapis.com",
-
-              // Forms: Only allow same-origin form submissions
-              "form-action 'self'",
-
-              // Frames: Completely disallow embedding in iframes
-              "frame-ancestors 'none'",
-
-              // Base URI: Only allow same-origin base URIs
-              "base-uri 'self'",
-
-              // Objects: Disallow plugins (Flash, Java, etc.)
-              "object-src 'none'",
-
-              // Media: Allow self and blob URLs (for video/audio)
-              "media-src 'self' blob:",
-
-              // Workers: Allow self and blob URLs
-              "worker-src 'self' blob:",
-
-              // Manifests: Allow self
-              "manifest-src 'self'",
-            ]
-              .filter(Boolean)
-              .join('; '),
-          },
-
-          // ============================================================
-          // ADDITIONAL SECURITY HEADERS
-          // ============================================================
+          // Content-Security-Policy is set per-request in middleware.ts
+          // (uses a nonce + 'strict-dynamic' to drop 'unsafe-inline' for scripts).
 
           // Prevent clickjacking attacks
           {

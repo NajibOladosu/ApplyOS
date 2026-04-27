@@ -1,5 +1,6 @@
 import type { Metadata } from "next"
 import { Manrope, Crimson_Text } from "next/font/google"
+import { headers } from "next/headers"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ThemeProvider } from "@/components/theme-provider"
@@ -52,13 +53,15 @@ export const metadata: Metadata = {
   },
 }
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
+  const nonce = (await headers()).get('x-nonce') ?? undefined
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>{nonce ? <meta name="csp-nonce" content={nonce} /> : null}</head>
       <body className={`${manrope.className} ${crimsonText.variable}`} suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
