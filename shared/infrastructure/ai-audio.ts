@@ -5,16 +5,16 @@
  */
 
 import 'server-only'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { SPECIALIZED_MODELS } from '@/shared/infrastructure/ai/model-manager'
+import { getGeminiClient } from '@/shared/infrastructure/ai/client'
 
-// Initialize Gemini API
-const apiKey = process.env.GEMINI_API_KEY
-if (!apiKey) {
-  throw new Error('GEMINI_API_KEY environment variable is not set')
+function requireClient() {
+  const client = getGeminiClient()
+  if (!client) {
+    throw new Error('GEMINI_API_KEY environment variable is not set')
+  }
+  return client
 }
-
-const genAI = new GoogleGenerativeAI(apiKey)
 
 /**
  * Transcription result from Gemini
@@ -45,7 +45,7 @@ export async function transcribeAudio(
   try {
     // Audio transcription requires a multimodal model — kept centralized in SPECIALIZED_MODELS
     // because the text-only fallback chain in ModelManager cannot accept inlineData parts.
-    const model = genAI.getGenerativeModel({
+    const model = requireClient().getGenerativeModel({
       model: SPECIALIZED_MODELS.AUDIO_TRANSCRIPTION
     })
 
@@ -105,7 +105,7 @@ export async function createAudioDialogSession(
   systemPrompt: string
 ): Promise<AudioDialogSession> {
   try {
-    const model = genAI.getGenerativeModel({
+    const model = requireClient().getGenerativeModel({
       model: SPECIALIZED_MODELS.AUDIO_TRANSCRIPTION,
       generationConfig: {
         temperature: 0.7,

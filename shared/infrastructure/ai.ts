@@ -1,8 +1,9 @@
 import 'server-only'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import type { DocumentReport } from '@/types/database'
 import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 import { queueManager } from '@/shared/infrastructure/ai/queue-manager'
+import { getGenerativeModel, isGeminiConfigured } from '@/shared/infrastructure/ai/client'
+import { classifyError, logAICall } from '@/shared/infrastructure/ai/telemetry'
 
 /**
  * Token optimization configurations per complexity level
@@ -31,88 +32,73 @@ const GENERATION_CONFIGS = {
   },
 } as const
 
-const genAI = process.env.GEMINI_API_KEY
-  ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-  : null
-
 /**
  * Extract retry-after header value from error response
  */
-function getRetryAfterFromError(error: any): string | null {
+function getRetryAfterFromError(error: any, status: number | null): string | null {
   if (!error) return null
 
-  // Try various error formats
   if (error.headers?.['retry-after']) {
     return error.headers['retry-after']
   }
 
-  // 503 Service Unavailable - model is overloaded
-  if (error?.status === 503 || error?.message?.includes('503') || error?.message?.includes('overloaded')) {
-    return '120' // 2 minutes for overload
-  }
-
-  if (error?.status === 429 || error?.message?.includes('429')) {
-    // Rate limit error detected
-    return '60' // Default 60 seconds
-  }
+  if (status === 503) return '120'
+  if (status === 429) return '60'
 
   return null
 }
 
 /**
- * Check if error is a rate limit or service unavailable error
- */
-function isRateLimitError(error: any): boolean {
-  const errorStr = String(error?.message || error?.toString() || '').toLowerCase()
-  const hasRateLimitIndicator =
-    errorStr.includes('429') ||
-    errorStr.includes('rate limit') ||
-    errorStr.includes('quota exceeded') ||
-    errorStr.includes('503') ||
-    errorStr.includes('service unavailable') ||
-    errorStr.includes('overloaded')
-
-  // Also check for status code 503
-  if (error?.status === 503) {
-    return true
-  }
-
-  return hasRateLimitIndicator
-}
-
-/**
  * Helper to call Gemini with fallback logic and token optimization
- * 
+ *
  * Features:
- * - Automatic model fallback when rate limited
+ * - Automatic model fallback when rate limited or on 5xx
+ * - 4xx errors fail fast (non-retryable)
  * - Token-optimized generation configs per complexity
  * - Queue integration when all models are exhausted
+ * - Structured JSON telemetry per call
  */
 export async function callGeminiWithFallback(
   prompt: string,
   complexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX' = 'MEDIUM'
 ): Promise<string> {
+  const startedAt = Date.now()
+  const fallbackPath: string[] = []
   let lastError: Error | null = null
   let attemptCount = 0
-  const maxAttempts = 10 // Prevent infinite loops
+  let retries = 0
+  const maxAttempts = 10
 
-  // Try available models in order of preference
   while (attemptCount < maxAttempts) {
     attemptCount++
     const model = ModelManager.getAvailableModel(complexity)
 
     if (!model) {
-      // No models available - queue the request instead of throwing error
       const nextAvailableTime = ModelManager.getNextAvailableTime()
       const now = Date.now()
       const waitSeconds = Math.ceil((nextAvailableTime - now) / 1000)
 
-      // If queue is enabled and we haven't exceeded wait time
-      if (waitSeconds <= 120) { // Max 2 minute wait
+      if (waitSeconds <= 120) {
         console.log(`[AI] All models rate limited. Waiting ${waitSeconds}s for next available...`)
         await new Promise(resolve => setTimeout(resolve, Math.min(waitSeconds * 1000, 10000)))
-        continue // Retry after wait
+        continue
       }
+
+      logAICall({
+        ts: new Date().toISOString(),
+        event: 'ai.call',
+        complexity,
+        model: null,
+        attempt: attemptCount,
+        total_attempts: attemptCount,
+        latency_ms: Date.now() - startedAt,
+        retries,
+        fallback_path: fallbackPath,
+        status: 'rate_limited',
+        error_class: 'AIRateLimitError',
+        error_message: 'all models rate limited',
+        prompt_chars: prompt.length,
+      })
 
       throw new AIRateLimitError(
         nextAvailableTime,
@@ -121,38 +107,88 @@ export async function callGeminiWithFallback(
       )
     }
 
-    try {
-      // Use token-optimized generation config for this complexity level
-      const generationConfig = GENERATION_CONFIGS[complexity]
+    fallbackPath.push(model)
 
-      const genModel = genAI!.getGenerativeModel({
-        model,
-        generationConfig,
-      })
+    try {
+      const generationConfig = GENERATION_CONFIGS[complexity]
+      const genModel = getGenerativeModel(model, generationConfig)
 
       const result = await genModel.generateContent(prompt)
       const response = await result.response
       const text = response.text()
 
+      logAICall({
+        ts: new Date().toISOString(),
+        event: 'ai.call',
+        complexity,
+        model,
+        attempt: attemptCount,
+        total_attempts: attemptCount,
+        latency_ms: Date.now() - startedAt,
+        retries,
+        fallback_path: fallbackPath,
+        status: 'success',
+        prompt_chars: prompt.length,
+        response_chars: text.length,
+      })
+
       return text
     } catch (error) {
-      console.error(`[AI] Error with model ${model}:`, error)
       lastError = error as Error
+      const classified = classifyError(error)
+      console.error(`[AI] Error with model ${model} (${classified.category}, status=${classified.status}):`, classified.message)
 
-      if (isRateLimitError(error)) {
-        const retryAfter = getRetryAfterFromError(error)
+      if (classified.category === 'rate_limit') {
+        const retryAfter = getRetryAfterFromError(error, classified.status)
         ModelManager.markModelRateLimited(model, retryAfter)
+        retries++
         console.warn(`[AI] Model ${model} hit rate limit, trying fallback...`)
-        // Continue to next iteration to try another model
         continue
       }
 
-      // For non-rate-limit errors, rethrow
+      if (classified.category === 'server_error') {
+        retries++
+        console.warn(`[AI] Model ${model} server error (${classified.status}), trying fallback...`)
+        continue
+      }
+
+      logAICall({
+        ts: new Date().toISOString(),
+        event: 'ai.call',
+        complexity,
+        model,
+        attempt: attemptCount,
+        total_attempts: attemptCount,
+        latency_ms: Date.now() - startedAt,
+        retries,
+        fallback_path: fallbackPath,
+        status: 'client_error',
+        http_status: classified.status,
+        error_class: (error as any)?.name || 'Error',
+        error_message: classified.message,
+        prompt_chars: prompt.length,
+      })
+
       throw error
     }
   }
 
-  // If we exhausted all attempts
+  logAICall({
+    ts: new Date().toISOString(),
+    event: 'ai.call',
+    complexity,
+    model: fallbackPath[fallbackPath.length - 1] ?? null,
+    attempt: attemptCount,
+    total_attempts: attemptCount,
+    latency_ms: Date.now() - startedAt,
+    retries,
+    fallback_path: fallbackPath,
+    status: 'failed',
+    error_class: lastError?.name,
+    error_message: lastError?.message,
+    prompt_chars: prompt.length,
+  })
+
   throw lastError || new Error('Failed to get AI response after maximum attempts')
 }
 
@@ -174,7 +210,7 @@ export async function generateAnswer(
     extraInstructions?: string
   }
 ): Promise<string> {
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     return 'AI answer generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
@@ -228,7 +264,7 @@ export async function generateCoverLetter(
     extraInstructions?: string
   }
 ): Promise<string> {
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     return 'AI cover letter generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
@@ -330,7 +366,7 @@ export async function parseDocument(fileContent: string): Promise<ParsedDocument
     raw_highlights: [],
   }
 
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     return empty
   }
 
@@ -516,7 +552,7 @@ export async function generateDocumentReport(input: {
     categories: [],
   }
 
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     console.warn('Gemini API key not configured for generateDocumentReport')
     defaultReport.overallAssessment =
       'Report generation is unavailable because AI is not configured for this deployment.'
@@ -764,7 +800,7 @@ export async function generateInterviewQuestions(params: {
   }
   estimated_duration_seconds: number
 }>> {
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -942,7 +978,7 @@ export async function generateResumeGrillQuestions(params: {
   }
   estimated_duration_seconds: number
 }>> {
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1103,7 +1139,7 @@ export async function generateCompanySpecificQuestions(params: {
   evaluation_criteria: any
   estimated_duration_seconds: number
 }>> {
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1231,7 +1267,7 @@ export async function evaluateInterviewAnswer(params: {
     tone_analysis?: string
   }
 }> {
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1404,7 +1440,7 @@ export async function analyzeResumeMatch(
   resumeText: string,
   jobDescription: string
 ): Promise<ResumeAnalysisResult> {
-  if (!genAI) {
+  if (!isGeminiConfigured()) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
