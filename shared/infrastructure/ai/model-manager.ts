@@ -10,6 +10,8 @@
  * - Diversified fallback chains across model families
  */
 
+import { isModelAvailableSync, getValidatedModels } from './model-validator'
+
 type TaskComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX'
 
 /**
