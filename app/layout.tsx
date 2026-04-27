@@ -5,7 +5,6 @@ import { AuthProvider } from "@/contexts/AuthContext"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ToastProvider } from "@/shared/ui/use-toast"
 import { AnalyticsGate } from "@/components/analytics-gate"
-import { CookieConsentBanner } from "@/components/cookie-consent-banner"
 
 const manrope = Manrope({ subsets: ["latin"] })
 const crimsonText = Crimson_Text({
@@ -70,7 +69,6 @@ export default function RootLayout({
           <AuthProvider>
             <ToastProvider>
               {children}
-              <CookieConsentBanner />
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
