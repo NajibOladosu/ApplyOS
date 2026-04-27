@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { createApplication } from '@/modules/applications/services/application.service'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 interface ApplicationToImport {
   title: string
@@ -24,6 +25,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.upload, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     const { applications, skipDuplicates } = await request.json() as {
       applications: ApplicationToImport[]

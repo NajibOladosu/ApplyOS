@@ -1,5 +1,6 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/shared/db/supabase/server";
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit";
 
 /**
  * Secure account deletion endpoint.
@@ -18,7 +19,7 @@ import { createClient } from "@/shared/db/supabase/server";
 
 export const dynamic = 'force-dynamic'
 
-export async function POST() {
+export async function POST(request: NextRequest) {
   console.log(`\n${'='.repeat(60)}`);
   console.log(`🗑️  ACCOUNT DELETION STARTED`);
   console.log(`${'='.repeat(60)}`);
@@ -53,6 +54,9 @@ export async function POST() {
 
     const userId = user.id;
     console.log(`   ✓ User authenticated: ${userId}`);
+
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.auth, async () => userId);
+    if (rateLimitResponse) return rateLimitResponse;
 
     // Step 1: Delete from public.users; cascades will remove related data
     console.log(`3️⃣  Deleting user profile and related data...`);

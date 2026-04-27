@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseServerClient } from '@/shared/db/supabase/server'
 import { sendEmailDirectly } from '@/shared/infrastructure/email'
 import { feedbackNotificationTemplate, feedbackNotificationSubject } from '@/shared/infrastructure/email/templates/feedback-notification'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { FeedbackType } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
@@ -23,6 +24,9 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.general, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     // Parse request body
     const { type, title, description } = await request.json()

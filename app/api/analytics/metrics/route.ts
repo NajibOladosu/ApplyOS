@@ -14,6 +14,7 @@ import {
   getStatusFlowData,
   type TimeRange,
 } from '@/modules/analytics/services/analytics.service'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -34,6 +35,9 @@ export async function GET(request: NextRequest) {
       console.log('Unauthorized - no user found')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.general, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     // Get time range from query params
     const searchParams = request.nextUrl.searchParams

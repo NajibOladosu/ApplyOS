@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { getQuestionsForSession } from '@/modules/interviews/services/interview.service'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export async function POST(request: NextRequest) {
     try {
@@ -12,6 +13,9 @@ export async function POST(request: NextRequest) {
         if (!user) {
             return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
         }
+
+        const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.ai, async () => user.id)
+        if (rateLimitResponse) return rateLimitResponse
 
         const body = await request.json()
         const {

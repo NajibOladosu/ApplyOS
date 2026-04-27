@@ -4,8 +4,8 @@ import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
 import { ThemeProvider } from "@/components/theme-provider"
 import { ToastProvider } from "@/shared/ui/use-toast"
-import { SpeedInsights } from "@vercel/speed-insights/next"
-import { Analytics } from "@vercel/analytics/next"
+import { AnalyticsGate } from "@/components/analytics-gate"
+import { CookieConsentBanner } from "@/components/cookie-consent-banner"
 
 const manrope = Manrope({ subsets: ["latin"] })
 const crimsonText = Crimson_Text({
@@ -70,11 +70,11 @@ export default function RootLayout({
           <AuthProvider>
             <ToastProvider>
               {children}
+              <CookieConsentBanner />
             </ToastProvider>
           </AuthProvider>
         </ThemeProvider>
-        <SpeedInsights />
-        <Analytics />
+        <AnalyticsGate />
       </body>
     </html>
   )

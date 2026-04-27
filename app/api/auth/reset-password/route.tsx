@@ -1,14 +1,18 @@
 import { createClient } from '@/shared/db/supabase/server'
 import { createClient as createAdminClient } from '@supabase/supabase-js'
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { render } from '@react-email/render'
 import ResetPasswordTemplate from '@/emails/reset-password'
 import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport'
 import { getEmailConfig } from '@/shared/infrastructure/email/config'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { Database } from '@/types/supabase'
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
     try {
+        const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.auth)
+        if (rateLimitResponse) return rateLimitResponse
+
         const { email } = await request.json()
 
         if (!email) {

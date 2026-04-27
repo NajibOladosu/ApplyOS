@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 
 /**
  * Handles avatar upload.
@@ -35,6 +36,9 @@ export async function POST(req: NextRequest) {
         { status: 401 }
       )
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(req, RATE_LIMITS.upload, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     const formData = await req.formData()
     const file = formData.get("file")

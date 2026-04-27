@@ -1,10 +1,14 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { generateCSVTemplate } from '@/modules/documents/lib/csv-utils'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.general)
+    if (rateLimitResponse) return rateLimitResponse
+
     const csvContent = generateCSVTemplate()
 
     return new NextResponse(csvContent, {

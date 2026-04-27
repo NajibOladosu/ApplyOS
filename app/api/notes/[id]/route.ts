@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
+import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,6 +16,9 @@ export async function PATCH(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.general, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     const body = await request.json()
     const { content, category, is_pinned } = body
@@ -62,6 +66,9 @@ export async function DELETE(
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
+
+    const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.general, async () => user.id)
+    if (rateLimitResponse) return rateLimitResponse
 
     // Verify the note belongs to the user
     const { data: note, error: noteError } = await supabase
