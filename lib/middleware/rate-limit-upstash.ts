@@ -2,8 +2,8 @@
  * Upstash Redis Rate Limiting (REST API, no SDK dependency)
  *
  * Distributed fixed-window rate limiter that calls Upstash REST API directly
- * via fetch. Used by `rate-limit.ts` when UPSTASH_REDIS_REST_URL +
- * UPSTASH_REDIS_REST_TOKEN env vars are set.
+ * via fetch. Used by `rate-limit.ts` when UPSTASH_KV_REST_API_URL +
+ * UPSTASH_KV_REST_API_TOKEN env vars are set.
  *
  * Strategy: pipelined INCR + PEXPIRE (only set TTL when count == 1).
  * Window resets at TTL expiry. Sufficient for API throttling.
@@ -24,8 +24,8 @@ interface UpstashConfig {
 }
 
 function readUpstashConfig(): UpstashConfig | null {
-  const url = process.env.UPSTASH_REDIS_REST_URL
-  const token = process.env.UPSTASH_REDIS_REST_TOKEN
+  const url = process.env.UPSTASH_KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL
+  const token = process.env.UPSTASH_KV_REST_API_TOKEN || process.env.UPSTASH_REDIS_REST_TOKEN
   if (!url || !token) return null
   return { url: url.replace(/\/$/, ''), token }
 }
