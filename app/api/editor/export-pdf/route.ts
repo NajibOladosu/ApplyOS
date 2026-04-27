@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { renderResumeHTML } from "@/lib/editor/render-html"
+import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import type { DocSettings, TemplateId } from "@/modules/applications/components/editor/types"
 
 export const runtime = "nodejs"
@@ -47,6 +48,9 @@ export async function POST(req: NextRequest) {
         if (!user) {
             return new NextResponse("Unauthorized", { status: 401 })
         }
+
+        const rateLimitResponse = await rateLimitMiddleware(req, RATE_LIMITS.general, async () => user.id)
+        if (rateLimitResponse) return rateLimitResponse
 
         const body = await req.json()
         const { contentJson, templateId, fileName, docSettings } = body as {
