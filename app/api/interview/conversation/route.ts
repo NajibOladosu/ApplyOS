@@ -1,18 +1,14 @@
 import { NextRequest } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
-import { GoogleGenerativeAI } from '@google/generative-ai'
 import { ConversationManager, generateIntroductionPrompt, generateQuestionPrompt, generateConclusionPrompt, shouldAskFollowUp } from '@/modules/interviews/services/conversation.service'
 import { getQuestionsForSession, getInterviewSession, updateInterviewSession, createQuestionsForSession } from '@/modules/interviews/services/interview.service'
 import { generateInterviewQuestions, callGeminiWithFallback } from '@/shared/infrastructure/ai'
+import { isGeminiConfigured } from '@/shared/infrastructure/ai/client'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { QuestionCategory } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
-
-const genAI = process.env.GEMINI_API_KEY
-    ? new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
-    : null
 
 /**
  * POST /api/interview/conversation
@@ -25,7 +21,7 @@ const genAI = process.env.GEMINI_API_KEY
  * - userResponse?: string (required for 'respond' action)
  */
 export async function POST(request: NextRequest) {
-    if (!genAI) {
+    if (!isGeminiConfigured()) {
         return new Response(
             JSON.stringify({ error: 'AI is not configured' }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
