@@ -140,7 +140,7 @@ export async function callGeminiWithFallback(
 
       if (classified.category === 'rate_limit') {
         const retryAfter = getRetryAfterFromError(error, classified.status)
-        ModelManager.markModelRateLimited(model, retryAfter)
+        ModelManager.markModelRateLimited(model, retryAfter, classified.message)
         retries++
         console.warn(`[AI] Model ${model} hit rate limit, trying fallback...`)
         continue
