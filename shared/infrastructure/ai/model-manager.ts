@@ -44,31 +44,29 @@ const MODEL_TIERS: Record<TaskComplexity, ModelTier> = {
   SIMPLE: {
     complexity: 'SIMPLE',
     models: [
-      'models/gemini-2.5-flash-lite',      // Primary: fast, cheap (30 RPM)
-      'models/gemini-flash-lite-latest',   // Latest alias fallback
-      'models/gemini-2.5-flash',           // Upgrade fallback if lite exhausted
-      'models/gemini-3-flash-preview',     // Gemini 3 fallback
+      'models/gemini-2.5-flash-lite',
+      'models/gemini-flash-lite-latest',
+      'models/gemini-3.1-flash-lite-preview',
+      'models/gemini-2.5-flash',
     ],
   },
   MEDIUM: {
     complexity: 'MEDIUM',
     models: [
-      'models/gemini-2.5-flash',           // Primary (15 RPM)
-      'models/gemini-flash-latest',        // Latest alias
-      'models/gemini-3-flash-preview',     // Gemini 3 fallback
-      'models/gemini-2.5-flash-lite',      // Downgrade fallback
-      'models/gemini-flash-lite-latest',   // Latest lite fallback
+      'models/gemini-2.5-flash',
+      'models/gemini-flash-latest',
+      'models/gemini-3-flash-preview',
+      'models/gemini-2.5-flash-lite',
     ],
   },
   COMPLEX: {
     complexity: 'COMPLEX',
     models: [
-      'models/gemini-2.5-pro',             // Primary for quality (2 RPM)
-      'models/gemini-pro-latest',          // Latest alias
-      'models/gemini-3-pro-preview',       // Gemini 3 Pro fallback
-      'models/gemini-2.5-flash',           // Quality fallback (still good)
-      'models/gemini-3-flash-preview',     // Gemini 3 Flash fallback
-      'models/gemini-flash-latest',        // Last resort
+      'models/gemini-2.5-flash',
+      'models/gemini-flash-latest',
+      'models/gemini-3-flash-preview',
+      'models/gemini-2.5-flash-lite',
+      'models/gemini-flash-lite-latest',
     ],
   },
 }
@@ -154,17 +152,30 @@ export class ModelManager {
 
   /**
    * Mark a model as rate limited
-   * Parses retry-after header if provided
+   * Parses retry-after header if provided.
+   * If errorMessage indicates the API key has zero quota for this model
+   * (free-tier `limit: 0`), block for 24h so the fallback chain stops
+   * burning attempts on a model the key cannot use.
    */
-  static markModelRateLimited(model: string, retryAfterHeader?: string | null): void {
+  static markModelRateLimited(
+    model: string,
+    retryAfterHeader?: string | null,
+    errorMessage?: string | null
+  ): void {
     const tracker = rateLimitTracker.get(model)
     if (!tracker) return
 
     const now = Date.now()
     let retryAfterMs = 60000 // Default 1 minute
 
-    // Try to parse retry-after header
-    if (retryAfterHeader) {
+    const zeroQuota = !!errorMessage && /limit:\s*0\b/i.test(errorMessage)
+
+    if (zeroQuota) {
+      retryAfterMs = 24 * 60 * 60 * 1000 // 24h — daily quota exhausted / not granted
+      console.warn(
+        `[Model Manager] Model ${model} reports zero quota for this API key — disabling for 24h`
+      )
+    } else if (retryAfterHeader) {
       // Retry-After can be in seconds or HTTP-date format
       const seconds = parseInt(retryAfterHeader, 10)
       if (!isNaN(seconds) && seconds > 0) {
