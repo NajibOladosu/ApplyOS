@@ -737,10 +737,10 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       </AnimatePresence>
 
       <div className="w-full flex flex-col items-center">
-        {/* AI Orb - Responsive and Large (behind other elements) */}
+        {/* AI Orb */}
         <div
-          className="relative flex items-center justify-center shrink-0 z-0"
-          style={{ width: '50vw', height: '50vw', maxWidth: '700px', maxHeight: '700px' }}
+          className="relative flex items-center justify-center shrink-0"
+          style={{ width: '47.5vw', height: '47.5vw', maxWidth: '665px', maxHeight: '665px' }}
         >
           <AIOrb mode={orbMode} audioLevel={audioLevel} />
         </div>
@@ -765,8 +765,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         {/* User Transcription (Speech) */}
 
 
-        {/* Start/End Interview Button - overlaps onto orb area */}
-        <div className="flex flex-col items-center gap-4 z-10 -mt-32">
+        {/* Start/End Interview Button */}
+        <div className="flex flex-col items-center gap-4 mt-6">
           {interviewState === 'idle' && (
             <Button
               onClick={startInterview}

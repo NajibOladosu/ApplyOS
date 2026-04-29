@@ -59,13 +59,19 @@ export async function POST(request: NextRequest) {
     // Verify session belongs to user
     const { data: session } = await supabase
       .from('interview_sessions')
-      .select('user_id, status')
+      .select('user_id, status, conversation_started_at')
       .eq('id', sessionId)
       .single()
 
     if (!session || session.user_id !== user.id) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 403 })
     }
+
+    const endedAt = new Date()
+    const startedAt = session.conversation_started_at ? new Date(session.conversation_started_at) : null
+    const totalDurationSeconds = startedAt
+      ? Math.max(0, Math.round((endedAt.getTime() - startedAt.getTime()) / 1000))
+      : 0
 
     // Save any remaining buffered turns
     let turnsSaved = 0
@@ -101,9 +107,10 @@ export async function POST(request: NextRequest) {
       .from('interview_sessions')
       .update({
         status: 'completed',
-        completed_at: new Date().toISOString(),
-        conversation_ended_at: new Date().toISOString(),
+        completed_at: endedAt.toISOString(),
+        conversation_ended_at: endedAt.toISOString(),
         answered_questions: transcript.filter((t: any) => t.speaker === 'user').length,
+        total_duration_seconds: totalDurationSeconds,
       })
       .eq('id', sessionId)
 
