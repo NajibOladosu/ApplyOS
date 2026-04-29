@@ -104,8 +104,8 @@ export function InterviewModeWrapper({ sessionId, onComplete, onBack }: Intervie
                             onClick={() => setMode('conversation')}
                             className="group relative cursor-pointer"
                         >
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-primary to-primary/50 rounded-2xl opacity-0 group-hover:opacity-100 blur transition duration-300 group-hover:duration-200" />
-                            <Card className="relative h-full bg-card border-border hover:border-primary/50 transition-all duration-300">
+                            <div className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-[0_0_20px_4px_rgba(0,255,136,0.28)]" />
+                            <Card className="relative h-full bg-card border-border hover:border-primary/60 transition-all duration-300">
                                 <div className="p-8 space-y-6">
                                     {/* Icon & Badge */}
                                     <div className="flex items-start justify-between">
@@ -162,7 +162,7 @@ export function InterviewModeWrapper({ sessionId, onComplete, onBack }: Intervie
                             onClick={() => setMode('text')}
                             className="group relative cursor-pointer"
                         >
-                            <div className="absolute -inset-0.5 bg-gradient-to-r from-muted-foreground/50 to-muted-foreground/20 rounded-2xl opacity-0 group-hover:opacity-100 blur transition duration-300" />
+                            <div className="absolute -inset-1 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none shadow-[0_0_20px_4px_rgba(255,255,255,0.28)]" />
                             <Card className="relative h-full bg-card border-border hover:border-muted-foreground/50 transition-all duration-300">
                                 <div className="p-8 space-y-6">
                                     {/* Icon & Badge */}
