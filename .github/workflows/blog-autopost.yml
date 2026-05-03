@@ -1,0 +1,51 @@
+name: Blog Autopost
+
+on:
+  schedule:
+    # Mon + Thu at 14:00 UTC (~10am ET / 3pm BST)
+    - cron: '0 14 * * 1'
+    - cron: '0 14 * * 4'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install deps
+        run: npm ci --no-audit --no-fund
+
+      - name: Generate post
+        id: gen
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: node scripts/generate-blog-post.mjs
+
+      - name: Configure git
+        run: |
+          git config user.name "applyos-bot"
+          git config user.email "bot@applyos.io"
+
+      - name: Commit + push
+        env:
+          POST_PATH: ${{ steps.gen.outputs.path }}
+          POST_TITLE: ${{ steps.gen.outputs.title }}
+          POST_SLUG: ${{ steps.gen.outputs.slug }}
+        run: |
+          git add -- "$POST_PATH"
+          git commit -m "blog: $POST_TITLE" -m "Auto-generated post: $POST_SLUG"
+          git push origin HEAD:main
