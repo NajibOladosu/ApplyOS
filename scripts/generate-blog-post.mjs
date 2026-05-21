@@ -5,7 +5,7 @@ import matter from 'gray-matter'
 
 const BLOG_DIR = path.join(process.cwd(), 'content', 'blog')
 const COVER_DIR_PUBLIC = '/blog'
-const MODEL = 'gemini-2.0-flash'
+const MODEL = 'gemini-2.5-flash'
 const API_KEY = process.env.GEMINI_API_KEY
 const SITE = 'https://blog.applyos.io'
 
@@ -101,8 +101,9 @@ async function callGemini(prompt) {
       contents: [{ role: 'user', parts: [{ text: prompt }] }],
       generationConfig: {
         temperature: 0.85,
-        maxOutputTokens: 4096,
+        maxOutputTokens: 8192,
         responseMimeType: 'application/json',
+        thinkingConfig: { thinkingBudget: 0 },
       },
     }),
   })
