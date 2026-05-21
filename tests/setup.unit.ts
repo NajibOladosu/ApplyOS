@@ -1,6 +1,8 @@
 import '@testing-library/jest-dom'
 import { vi, afterEach } from 'vitest'
 
+vi.mock('server-only', () => ({}))
+
 vi.stubGlobal(
   'IntersectionObserver',
   vi.fn(() => ({
