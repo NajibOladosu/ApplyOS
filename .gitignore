@@ -15,6 +15,7 @@
 # production
 /build
 extension/
+/docs
 
 # misc
 .DS_Store
