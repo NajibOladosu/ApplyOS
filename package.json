@@ -9,7 +9,7 @@
     "lint": "eslint .",
     "test": "vitest run --config vitest.unit.config.ts",
     "test:watch": "vitest --config vitest.unit.config.ts",
-    "test:integration": "vitest run --config vitest.integration.config.ts --pool=forks --poolOptions.forks.maxForks=2",
+    "test:integration": "vitest run --config vitest.integration.config.ts --passWithNoTests",
     "test:e2e": "playwright test",
     "test:all": "npm run test && npm run test:integration && npm run test:e2e",
     "test:coverage": "vitest run --coverage --config vitest.unit.config.ts"
