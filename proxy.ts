@@ -54,19 +54,33 @@ export async function proxy(request: NextRequest) {
   requestHeaders.set('content-security-policy', csp)
 
   // ============================================================
-  // CORS FOR API ROUTES
+  // CORS FOR API ROUTES — allowlist (no wildcard)
   // ============================================================
-  // Handle preflight requests for browser extension and other cross-origin callers
+  const allowedOrigins = new Set<string>([
+    'https://www.applyos.io',
+    'https://applyos.io',
+    'https://blog.applyos.io',
+  ])
+  if (!isProd) {
+    allowedOrigins.add('http://localhost:3000')
+    allowedOrigins.add('http://localhost:3001')
+    allowedOrigins.add('http://blog.localhost:3000')
+  }
+  const reqOrigin = request.headers.get('origin') || ''
+  const allowOrigin = allowedOrigins.has(reqOrigin) ? reqOrigin : ''
+
   if (pathname.startsWith('/api/')) {
     if (request.method === 'OPTIONS') {
-      return new NextResponse(null, {
-        status: 200,
-        headers: {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        },
-      })
+      const corsHeaders: Record<string, string> = {
+        'Access-Control-Allow-Methods': 'GET, POST, PUT, DELETE, OPTIONS',
+        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+        'Vary': 'Origin',
+      }
+      if (allowOrigin) {
+        corsHeaders['Access-Control-Allow-Origin'] = allowOrigin
+        corsHeaders['Access-Control-Allow-Credentials'] = 'true'
+      }
+      return new NextResponse(null, { status: 204, headers: corsHeaders })
     }
   }
 
@@ -213,11 +227,15 @@ export async function proxy(request: NextRequest) {
   response.headers.set('Referrer-Policy', 'strict-origin-when-cross-origin') // Control referrer information
   response.headers.set('Permissions-Policy', 'camera=(), microphone=(self), geolocation=()') // Restrict browser features (allow microphone for voice interviews)
 
-  // Add CORS headers for API routes
+  // Add CORS headers for API routes (allowlisted origins only — no wildcard)
   if (pathname.startsWith('/api/')) {
-    response.headers.set('Access-Control-Allow-Origin', '*')
-    response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
-    response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    response.headers.set('Vary', 'Origin')
+    if (allowOrigin) {
+      response.headers.set('Access-Control-Allow-Origin', allowOrigin)
+      response.headers.set('Access-Control-Allow-Credentials', 'true')
+      response.headers.set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS')
+      response.headers.set('Access-Control-Allow-Headers', 'Content-Type, Authorization')
+    }
   }
 
   // HSTS (HTTP Strict Transport Security) - only in production with HTTPS
