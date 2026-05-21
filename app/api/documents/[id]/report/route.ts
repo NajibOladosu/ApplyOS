@@ -127,6 +127,12 @@ export async function POST(
     let textContent = extracted_text || ""
 
     if (!textContent && file_url) {
+      if (!isOwnedStorageUrl(file_url)) {
+        return NextResponse.json(
+          { error: "Document file URL is not from a trusted storage host" },
+          { status: 400 }
+        )
+      }
       try {
         const fileResponse = await fetch(file_url)
         if (fileResponse.ok) {
