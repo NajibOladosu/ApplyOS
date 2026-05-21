@@ -4,6 +4,7 @@ import { generateDocumentReport } from "@/shared/infrastructure/ai"
 import { extractTextFromPDF } from "@/modules/documents/lib/pdf-utils"
 import type { DocumentReport } from "@/types/database"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+import { isOwnedStorageUrl } from "@/lib/security/url-validator"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
