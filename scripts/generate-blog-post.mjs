@@ -4,6 +4,7 @@ import path from 'node:path'
 import matter from 'gray-matter'
 
 const BLOG_DIR = path.join(process.cwd(), 'content', 'blog')
+const HISTORY_FILE = path.join(BLOG_DIR, '.post-history.json')
 const COVER_DIR_PUBLIC = '/blog'
 const MODEL = 'gemini-2.5-flash'
 const API_KEY = process.env.GEMINI_API_KEY
@@ -14,9 +15,27 @@ if (!API_KEY) {
   process.exit(1)
 }
 
+function readHistory() {
+  if (!fs.existsSync(HISTORY_FILE)) return []
+  try {
+    const raw = fs.readFileSync(HISTORY_FILE, 'utf8')
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed : []
+  } catch (err) {
+    console.warn(`Could not parse ${HISTORY_FILE}: ${err.message}. Starting empty.`)
+    return []
+  }
+}
+
+function appendHistory(entry) {
+  const history = readHistory()
+  history.push(entry)
+  fs.writeFileSync(HISTORY_FILE, JSON.stringify(history, null, 2) + '\n', 'utf8')
+}
+
 function readExistingPosts() {
   const files = fs.readdirSync(BLOG_DIR).filter((f) => f.endsWith('.mdx'))
-  return files.map((filename) => {
+  const fromFiles = files.map((filename) => {
     const slug = filename.replace('.mdx', '')
     const raw = fs.readFileSync(path.join(BLOG_DIR, filename), 'utf8')
     const { data, content } = matter(raw)
@@ -27,8 +46,29 @@ function readExistingPosts() {
       tags: data.tags || [],
       date: data.date,
       firstHeading: (content.match(/^#\s+(.+)$/m) || [])[1] || '',
+      targetKeyword: '',
     }
   })
+
+  const bySlug = new Map(fromFiles.map((p) => [p.slug, p]))
+  for (const h of readHistory()) {
+    if (!h.slug) continue
+    const existing = bySlug.get(h.slug)
+    if (existing) {
+      if (!existing.targetKeyword && h.targetKeyword) existing.targetKeyword = h.targetKeyword
+    } else {
+      bySlug.set(h.slug, {
+        slug: h.slug,
+        title: h.title || '',
+        excerpt: h.excerpt || '',
+        tags: h.tags || [],
+        date: h.date || '',
+        firstHeading: '',
+        targetKeyword: h.targetKeyword || '',
+      })
+    }
+  }
+  return [...bySlug.values()]
 }
 
 function slugify(title) {
@@ -43,10 +83,10 @@ function slugify(title) {
 
 function buildPrompt(existing) {
   const inventory = existing
-    .map(
-      (p) =>
-        `- ${p.slug} | "${p.title}" | tags: ${p.tags.join(', ')} | excerpt: ${p.excerpt}`
-    )
+    .map((p) => {
+      const kw = p.targetKeyword ? ` | keyword: ${p.targetKeyword}` : ''
+      return `- ${p.slug} | "${p.title}" | tags: ${(p.tags || []).join(', ')}${kw} | excerpt: ${p.excerpt}`
+    })
     .join('\n')
 
   const today = new Date().toISOString().slice(0, 10)
@@ -92,7 +132,9 @@ Output STRICT JSON only, no markdown fences, with this exact shape:
 Today's date: ${today}.`
 }
 
-async function callGemini(prompt) {
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
+
+async function callGeminiOnce(prompt) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent?key=${API_KEY}`
   const res = await fetch(url, {
     method: 'POST',
@@ -109,13 +151,36 @@ async function callGemini(prompt) {
   })
 
   if (!res.ok) {
-    throw new Error(`Gemini ${res.status}: ${await res.text()}`)
+    const body = await res.text()
+    const err = new Error(`Gemini ${res.status}: ${body}`)
+    err.status = res.status
+    err.retryable = res.status === 429 || res.status === 500 || res.status === 503 || res.status === 504
+    throw err
   }
 
   const json = await res.json()
   const text = json?.candidates?.[0]?.content?.parts?.[0]?.text
   if (!text) throw new Error(`Empty Gemini response: ${JSON.stringify(json)}`)
   return text
+}
+
+async function callGeminiWithRetry(prompt, maxAttempts = 4) {
+  let lastErr
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    try {
+      const text = await callGeminiOnce(prompt)
+      return extractJson(text)
+    } catch (err) {
+      lastErr = err
+      const isParseErr = err instanceof SyntaxError
+      const retryable = isParseErr || err.retryable
+      if (!retryable || attempt === maxAttempts) throw err
+      const delay = Math.min(2000 * 2 ** (attempt - 1), 15000)
+      console.warn(`Attempt ${attempt} failed (${err.message.slice(0, 120)}). Retrying in ${delay}ms.`)
+      await sleep(delay)
+    }
+  }
+  throw lastErr
 }
 
 function extractJson(raw) {
@@ -158,8 +223,7 @@ async function main() {
 
   console.log(`Generating post. ${existing.length} existing posts to avoid.`)
 
-  const raw = await callGemini(prompt)
-  const parsed = extractJson(raw)
+  const parsed = await callGeminiWithRetry(prompt)
 
   const required = ['title', 'slug', 'excerpt', 'tags', 'body']
   for (const k of required) {
@@ -185,6 +249,15 @@ async function main() {
     throw new Error(`File already exists: ${outPath}`)
   }
   fs.writeFileSync(outPath, mdx, 'utf8')
+
+  appendHistory({
+    slug,
+    title: parsed.title,
+    excerpt: parsed.excerpt,
+    tags: parsed.tags.slice(0, 5),
+    date,
+    targetKeyword: parsed.targetKeyword || '',
+  })
 
   console.log(`Wrote ${outPath}`)
   console.log(`Title: ${parsed.title}`)
