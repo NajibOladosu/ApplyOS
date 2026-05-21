@@ -60,7 +60,9 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
       parser.on("pdfParser_dataError", (error: any) => {
         console.error("pdf2json parser error:", error)
-        reject(error)
+        // Resolve with empty string on parse errors so callers get a graceful
+        // fallback instead of an unhandled rejection (e.g. garbage buffers).
+        resolve("")
       })
 
       // Parse the PDF buffer.
