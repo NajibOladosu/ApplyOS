@@ -12,7 +12,8 @@
     "test:integration": "vitest run --config vitest.integration.config.ts --passWithNoTests",
     "test:e2e": "playwright test",
     "test:all": "npm run test && npm run test:integration && npm run test:e2e",
-    "test:coverage": "vitest run --coverage --config vitest.unit.config.ts"
+    "test:coverage": "vitest run --coverage --config vitest.unit.config.ts",
+    "test:nuke": "tsx tests/helpers/nuke-test-data.ts"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
@@ -99,6 +100,7 @@
     "pdf-lib": "^1.17.1",
     "postcss": "^8.4.38",
     "tailwindcss": "^3.4.3",
+    "tsx": "^4.22.3",
     "typescript": "^5.4.0",
     "vitest": "^4.0.18"
   },
