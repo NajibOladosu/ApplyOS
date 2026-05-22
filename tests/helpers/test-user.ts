@@ -53,6 +53,14 @@ export async function createTestUser(): Promise<TestUser> {
 
 export async function deleteTestUser(user: TestUser): Promise<void> {
   await supabaseAdmin.from('notifications').delete().eq('user_id', user.id)
+  // Pre-clean child rows before deleting applications (handles cases where ON DELETE CASCADE
+  // is not enforced by the DB engine or has not propagated yet)
+  const { data: ownedApps } = await supabaseAdmin.from('applications').select('id').eq('user_id', user.id)
+  const appIds = (ownedApps || []).map((a) => a.id)
+  if (appIds.length > 0) {
+    await supabaseAdmin.from('application_notes').delete().in('application_id', appIds)
+    await supabaseAdmin.from('questions').delete().in('application_id', appIds)
+  }
   await supabaseAdmin.from('applications').delete().eq('user_id', user.id)
   await supabaseAdmin.from('documents').delete().eq('user_id', user.id)
   await supabaseAdmin.from('users').delete().eq('id', user.id)
