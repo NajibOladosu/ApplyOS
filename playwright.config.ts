@@ -1,4 +1,10 @@
 import { defineConfig, devices } from '@playwright/test'
+import { config as dotenvConfig } from 'dotenv'
+import path from 'path'
+
+// Load .env.local so test workers have access to Supabase credentials
+dotenvConfig({ path: path.join(__dirname, '.env.local') })
+dotenvConfig({ path: path.join(__dirname, '.env') })
 
 const PORT = Number(process.env.E2E_PORT || 3100)
 const BASE_URL = `http://localhost:${PORT}`
