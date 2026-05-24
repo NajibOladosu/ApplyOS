@@ -29,19 +29,24 @@ function makeReq(path: string, method: string = 'GET', body?: unknown): NextRequ
     init.body = JSON.stringify(body)
     init.headers = { 'content-type': 'application/json' }
   }
-  return new NextRequest(`http://localhost${path}`, init)
+  return new NextRequest(`http://localhost${path}`, init as ConstructorParameters<typeof NextRequest>[1])
 }
 
 // Helper: call a handler and assert response is non-500 and gated.
+// `handler` and `ctx` are intentionally loose — route handler signatures vary
+// (some take just NextRequest, some take a RouteContext with typed params),
+// and this smoke layer just verifies non-crash behavior across all routes.
+/* eslint-disable @typescript-eslint/no-explicit-any */
+type AnyHandler = (req: NextRequest, ctx?: any) => Promise<Response>
 async function assertGated(
-  handler: ((req: NextRequest, ctx?: { params: Promise<unknown> }) => Promise<Response>),
+  handler: any,
   path: string,
   method: string = 'GET',
   body?: unknown,
-  ctx?: { params: Promise<unknown> }
+  ctx?: any
 ): Promise<Response> {
   const req = makeReq(path, method, body)
-  const res = await handler(req, ctx)
+  const res = await (handler as AnyHandler)(req, ctx)
   expect(res.status, `${method} ${path} should not crash`).toBeLessThan(500)
   return res
 }
