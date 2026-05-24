@@ -103,6 +103,7 @@ export async function POST(request: NextRequest) {
 
         // Prepare email data
         const emailData = {
+          userId,
           userName: userData.user.user_metadata?.name || userData.user.email?.split('@')[0] || 'User',
           weekStart,
           weekEnd,

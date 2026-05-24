@@ -9,6 +9,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@supabase/supabase-js';
 import { sendEmailDirectly } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
+import { signUnsubscribeToken } from '@/shared/infrastructure/email/unsubscribe-token';
 
 export const dynamic = 'force-dynamic'
 
@@ -131,6 +132,10 @@ export async function POST(request: NextRequest) {
                 : daysUntil <= 3
                   ? '#f97316'
                   : '#eab308';
+            const unsubscribeUrl = `${emailConfig.appUrl}/api/email/unsubscribe?token=${signUnsubscribeToken({
+              userId: app.user_id,
+              category: 'deadline_reminders',
+            })}`;
 
             const emailHtml = `
 <!DOCTYPE html>
@@ -313,6 +318,8 @@ export async function POST(request: NextRequest) {
       <p class="footer-text">© ${new Date().getFullYear()} ApplyOS. All rights reserved.</p>
       <p class="footer-text">
         <a href="${emailConfig.appUrl}/settings" class="footer-link">Manage email preferences</a>
+        &middot;
+        <a href="${unsubscribeUrl}" class="footer-link">Unsubscribe</a>
       </p>
       <p class="footer-text">
         Questions? Contact <a href="mailto:support@applyos.io" class="footer-link">support@applyos.io</a>
