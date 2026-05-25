@@ -114,10 +114,33 @@ export async function POST(request: NextRequest) {
     }
     const validUrl = urlCheck.url
 
+    // Inline SSRF barrier (defense in depth + makes the sanitizer visible to static analysis).
+    // Re-parse the validated URL and explicitly check protocol + hostname against a blocklist.
+    // isPublicHttpUrl already did this with DNS resolution; this duplicates the protocol and
+    // literal-hostname checks so CodeQL can see them in the same scope as the fetch().
+    const reparsed = new URL(validUrl.href)
+    if (reparsed.protocol !== 'http:' && reparsed.protocol !== 'https:') {
+      return NextResponse.json({ error: 'Invalid URL: blocked protocol' }, { status: 400 })
+    }
+    const hostnameLower = reparsed.hostname.toLowerCase()
+    if (
+      hostnameLower === 'localhost' ||
+      hostnameLower === '127.0.0.1' ||
+      hostnameLower === '0.0.0.0' ||
+      hostnameLower === '::1' ||
+      hostnameLower === '169.254.169.254' ||
+      hostnameLower === 'metadata.google.internal' ||
+      hostnameLower.endsWith('.local') ||
+      hostnameLower.endsWith('.internal') ||
+      hostnameLower.endsWith('.localhost')
+    ) {
+      return NextResponse.json({ error: 'Invalid URL: blocked host' }, { status: 400 })
+    }
+
     // Fetch the URL content
     let htmlContent: string
     try {
-      const response = await fetch(validUrl.toString(), {
+      const response = await fetch(reparsed.href, {
         redirect: 'error',
         headers: {
           'User-Agent':
