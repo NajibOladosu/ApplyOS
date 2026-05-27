@@ -3,7 +3,11 @@
  * All emails should be wrapped with this for consistent styling
  */
 
-export const baseTemplate = (content: string, year: number = new Date().getFullYear()) => `
+export const baseTemplate = (
+  content: string,
+  year: number = new Date().getFullYear(),
+  unsubscribeUrl?: string,
+) => `
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -159,7 +163,11 @@ export const baseTemplate = (content: string, year: number = new Date().getFullY
     <div class="footer">
       <p>© ${year} ApplyOS. All rights reserved.</p>
       <p>
-        <a href="[[APP_URL]]/settings" style="color: #6b7280; text-decoration: none;">Manage email preferences</a>
+        <a href="[[APP_URL]]/settings" style="color: #6b7280; text-decoration: none;">Manage email preferences</a>${
+          unsubscribeUrl
+            ? ` &middot; <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: none;">Unsubscribe</a>`
+            : ''
+        }
       </p>
     </div>
   </div>

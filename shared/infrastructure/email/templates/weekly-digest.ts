@@ -5,12 +5,17 @@
 
 import { baseTemplate } from './base';
 import { WeeklyDigestEmailData } from '../types';
+import { signUnsubscribeToken } from '../unsubscribe-token';
 
 export const weeklyDigestEmailTemplate = (
   data: WeeklyDigestEmailData,
   appUrl: string
 ) => {
   const weekRange = `${data.weekStart.toLocaleDateString()} - ${data.weekEnd.toLocaleDateString()}`;
+  const unsubscribeUrl = `${appUrl}/api/email/unsubscribe?token=${signUnsubscribeToken({
+    userId: data.userId,
+    category: 'weekly_digest',
+  })}`;
 
   const applicationsHtml =
     data.applications.length > 0
@@ -103,7 +108,7 @@ export const weeklyDigestEmailTemplate = (
     </p>
   `;
 
-  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
+  return baseTemplate(content, undefined, unsubscribeUrl).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const weeklyDigestEmailSubject = () => 'Your ApplyOS Weekly Summary 📊';

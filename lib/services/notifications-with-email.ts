@@ -6,6 +6,20 @@
 import { createClient } from '@/shared/db/supabase/server';
 import { sendEmailDirectly } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
+import { signUnsubscribeToken } from '@/shared/infrastructure/email/unsubscribe-token';
+
+function buildUnsubscribeFooter(unsubscribeUrl: string): string {
+  return `
+    <div style="background-color: #f3f4f6; padding: 24px 30px; text-align: center; border-top: 1px solid #e5e7eb; font-size: 12px; color: #6b7280;">
+      <p style="margin: 0 0 8px 0;">© ${new Date().getFullYear()} ApplyOS. All rights reserved.</p>
+      <p style="margin: 0;">
+        <a href="${emailConfig.appUrl}/settings" style="color: #6b7280; text-decoration: none;">Manage email preferences</a>
+        &middot;
+        <a href="${unsubscribeUrl}" style="color: #6b7280; text-decoration: none;">Unsubscribe</a>
+      </p>
+    </div>
+  `;
+}
 
 interface NotificationOptions {
   type: 'info' | 'success' | 'warning' | 'error' | 'deadline' | 'status_update';
@@ -253,6 +267,7 @@ export async function createStatusUpdateNotification(
               </p>
             </div>
           </div>
+          ${buildUnsubscribeFooter(`${emailConfig.appUrl}/api/email/unsubscribe?token=${signUnsubscribeToken({ userId, category: 'status_updates' })}`)}
         </div>
       </body>
     </html>
@@ -380,6 +395,7 @@ export async function createDeadlineNotification(
               </p>
             </div>
           </div>
+          ${buildUnsubscribeFooter(`${emailConfig.appUrl}/api/email/unsubscribe?token=${signUnsubscribeToken({ userId, category: 'deadline_reminders' })}`)}
         </div>
       </body>
     </html>
