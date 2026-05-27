@@ -3,6 +3,7 @@ import { createClient } from '@/shared/db/supabase/server'
 import RetryQueueService from '@/shared/infrastructure/ai/retry-queue'
 import { parseDocument } from '@/shared/infrastructure/ai'
 import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
+import { isAuthorizedCronRequest } from '@/lib/security/cron-auth'
 
 /**
  * Cron Job: Retry AI tasks that were rate limited
@@ -158,9 +159,8 @@ async function retryGenerateAnswer(
 
 export async function POST(req: NextRequest) {
   try {
-    // Verify cron secret
-    const cronSecret = req.headers.get('x-vercel-cron-secret')
-    if (cronSecret !== process.env.CRON_SECRET) {
+    // Verify cron secret (timing-safe, accepts Bearer or x-vercel-cron-secret)
+    if (!isAuthorizedCronRequest(req)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 

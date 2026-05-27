@@ -15,6 +15,7 @@
 # production
 /build
 extension/
+/docs
 
 # misc
 .DS_Store
@@ -46,6 +47,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# local security audit reports
+.gstack/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -56,3 +60,8 @@ analyze-screenshots.js
 Call_Gemini_Image_Generation_API.json
 applyos_social_media_manager.json
 list-gemini-models.js
+
+# playwright
+/test-results
+/playwright-report
+/playwright/.cache
