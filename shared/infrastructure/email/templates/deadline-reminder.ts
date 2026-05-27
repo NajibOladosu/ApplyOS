@@ -5,6 +5,7 @@
 
 import { baseTemplate } from './base';
 import { DeadlineReminderEmailData } from '../types';
+import { signUnsubscribeToken } from '../unsubscribe-token';
 
 const getUrgencyEmoji = (daysUntil: number): string => {
   if (daysUntil === 1) return '🔴';
@@ -24,6 +25,10 @@ export const deadlineReminderEmailTemplate = (
   data: DeadlineReminderEmailData,
   appUrl: string
 ) => {
+  const unsubscribeUrl = `${appUrl}/api/email/unsubscribe?token=${signUnsubscribeToken({
+    userId: data.userId,
+    category: 'deadline_reminders',
+  })}`;
   const applicationsList = data.applications
     .map(
       (app) => `
@@ -71,7 +76,7 @@ export const deadlineReminderEmailTemplate = (
     </p>
   `;
 
-  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
+  return baseTemplate(content, undefined, unsubscribeUrl).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const deadlineReminderEmailSubject = (count: number) =>

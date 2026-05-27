@@ -5,6 +5,7 @@
 
 import { baseTemplate } from './base';
 import { StatusUpdateEmailData } from '../types';
+import { signUnsubscribeToken } from '../unsubscribe-token';
 
 const getStatusBadgeClass = (status: string): string => {
   const statusMap: Record<string, string> = {
@@ -36,6 +37,10 @@ export const statusUpdateEmailTemplate = (
 ) => {
   const statusBadgeClass = getStatusBadgeClass(data.newStatus);
   const statusEmoji = getStatusEmoji(data.newStatus);
+  const unsubscribeUrl = `${appUrl}/api/email/unsubscribe?token=${signUnsubscribeToken({
+    userId: data.userId,
+    category: 'status_updates',
+  })}`;
 
   const content = `
     <h2>Application Status Updated ${statusEmoji}</h2>
@@ -76,7 +81,7 @@ export const statusUpdateEmailTemplate = (
     </p>
   `;
 
-  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
+  return baseTemplate(content, undefined, unsubscribeUrl).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const statusUpdateEmailSubject = (applicationTitle: string, newStatus: string) =>
