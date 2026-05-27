@@ -1,0 +1,63 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>
+endobj
+4 0 obj
+<< /Length 527 >>
+stream
+BT
+/F1 16 Tf
+72 720 Td
+(Hello from sample CV) Tj
+0 -24 Td
+/F1 12 Tf
+(John Doe) Tj
+0 -18 Td
+(john.doe@example.com) Tj
+0 -36 Td
+/F1 13 Tf
+(Skills) Tj
+0 -18 Td
+/F1 10 Tf
+(TypeScript  JavaScript  Python  SQL) Tj
+0 -18 Td
+(Next.js  React  Node.js  Express) Tj
+0 -36 Td
+/F1 13 Tf
+(EXPERIENCE) Tj
+0 -18 Td
+/F1 10 Tf
+(Senior Software Engineer  Acme Corp 2021-Present) Tj
+0 -18 Td
+(Software Engineer  Widgets Inc 2019-2021) Tj
+0 -36 Td
+/F1 13 Tf
+(EDUCATION) Tj
+0 -18 Td
+/F1 10 Tf
+(BSc Computer Science  State University 2015-2019) Tj
+ET
+endstream
+endobj
+5 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding >>
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000819 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+916
+%%EOF
