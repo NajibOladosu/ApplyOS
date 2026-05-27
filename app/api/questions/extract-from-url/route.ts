@@ -3,6 +3,7 @@ import { createClient } from '@/shared/db/supabase/server'
 import { callGeminiWithFallback } from '@/shared/infrastructure/ai'
 import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
+import { isPublicHttpUrl } from '@/lib/security/url-validator'
 
 const aiConfigured = !!process.env.GEMINI_API_KEY
 
@@ -106,21 +107,48 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'URL is required' }, { status: 400 })
     }
 
-    // Validate URL format
-    let validUrl: URL
-    try {
-      validUrl = new URL(url)
-      if (!validUrl.protocol.startsWith('http')) {
-        throw new Error('Invalid protocol')
-      }
-    } catch (error) {
-      return NextResponse.json({ error: 'Invalid URL format' }, { status: 400 })
+    // Validate URL is public + http(s) + not resolving to private/internal range (SSRF guard)
+    const urlCheck = await isPublicHttpUrl(url)
+    if (!urlCheck.ok) {
+      return NextResponse.json({ error: `Invalid URL: ${urlCheck.reason}` }, { status: 400 })
+    }
+    const validUrl = urlCheck.url
+
+    // Inline SSRF barrier (defense in depth + makes the sanitizer visible to static analysis).
+    // Re-parse the validated URL and explicitly check protocol + hostname against a blocklist.
+    // isPublicHttpUrl already did this with DNS resolution; this duplicates the protocol and
+    // literal-hostname checks so CodeQL can see them in the same scope as the fetch().
+    const reparsed = new URL(validUrl.href)
+    if (reparsed.protocol !== 'http:' && reparsed.protocol !== 'https:') {
+      return NextResponse.json({ error: 'Invalid URL: blocked protocol' }, { status: 400 })
+    }
+    const hostnameLower = reparsed.hostname.toLowerCase()
+    if (
+      hostnameLower === 'localhost' ||
+      hostnameLower === '127.0.0.1' ||
+      hostnameLower === '0.0.0.0' ||
+      hostnameLower === '::1' ||
+      hostnameLower === '169.254.169.254' ||
+      hostnameLower === 'metadata.google.internal' ||
+      hostnameLower.endsWith('.local') ||
+      hostnameLower.endsWith('.internal') ||
+      hostnameLower.endsWith('.localhost')
+    ) {
+      return NextResponse.json({ error: 'Invalid URL: blocked host' }, { status: 400 })
     }
 
     // Fetch the URL content
     let htmlContent: string
     try {
-      const response = await fetch(url, {
+      // lgtm [js/request-forgery]
+      // CodeQL [js/request-forgery]: URL is validated by isPublicHttpUrl() (which
+      // performs protocol + literal-hostname + DNS-resolution checks against
+      // private/internal ranges) AND by the inline barrier above. Both must pass
+      // before this fetch executes. Static taint analysis cannot trace through
+      // the async validator, but the runtime guarantees are equivalent to an
+      // explicit hostname allowlist.
+      const response = await fetch(reparsed.href, {
+        redirect: 'error',
         headers: {
           'User-Agent':
             'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
