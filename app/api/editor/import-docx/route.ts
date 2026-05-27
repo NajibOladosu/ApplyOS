@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { docxBufferToTipTap } from "@/lib/editor/docx-import"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+import { isOwnedStorageUrl } from "@/lib/security/url-validator"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -50,6 +51,10 @@ export async function POST(req: NextRequest) {
 
         if (!isDocx) {
             return new NextResponse("Document is not a DOCX file", { status: 400 })
+        }
+
+        if (!isOwnedStorageUrl(doc.file_url)) {
+            return new NextResponse("Document file URL is not from a trusted storage host", { status: 400 })
         }
 
         const fileResponse = await fetch(doc.file_url)
