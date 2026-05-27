@@ -60,12 +60,24 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
       parser.on("pdfParser_dataError", (error: any) => {
         console.error("pdf2json parser error:", error)
-        reject(error)
+        // Resolve with empty string on parse errors so callers get a graceful
+        // fallback instead of an unhandled rejection (e.g. garbage buffers).
+        resolve("")
       })
 
-      // Parse the PDF buffer
+      // Parse the PDF buffer.
+      // pdf2json v4 reconstructs the buffer via Buffer.from(buf.buffer, 0, buf.byteLength)
+      // when buf.buffer.byteLength !== buf.byteLength (which is always true for Node's
+      // pool-allocated Buffers). This causes it to read from offset 0 of the shared pool
+      // ArrayBuffer instead of our actual data. Fix: ensure the buffer has its own
+      // ArrayBuffer by using Buffer.allocUnsafeSlow (byteOffset=0, byteLength=length).
+      let parsableBuffer = buffer
+      if (buffer.buffer.byteLength !== buffer.byteLength) {
+        parsableBuffer = Buffer.allocUnsafeSlow(buffer.length)
+        buffer.copy(parsableBuffer)
+      }
       try {
-        parser.parseBuffer(buffer)
+        parser.parseBuffer(parsableBuffer)
       } catch (error) {
         console.error("Error parsing PDF buffer:", error)
         reject(error)
