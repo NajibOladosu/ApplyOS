@@ -76,6 +76,28 @@ export async function deleteApplication(id: string) {
   if (error) throw error
 }
 
+export async function deleteApplications(ids: string[]) {
+  if (ids.length === 0) return
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('applications')
+    .delete()
+    .in('id', ids)
+
+  if (error) throw error
+}
+
+export async function updateApplicationsStatus(ids: string[], status: ApplicationStatus) {
+  if (ids.length === 0) return
+  const supabase = createClient()
+  const { error } = await supabase
+    .from('applications')
+    .update({ status })
+    .in('id', ids)
+
+  if (error) throw error
+}
+
 export async function getApplicationStats() {
   const supabase = createClient()
   const { data: applications, error } = await supabase
