@@ -1,0 +1,8 @@
+version: 2
+
+secret:
+  # Skip secret scanning in test fixtures and helpers.
+  # These files contain disposable passwords for unit testing the
+  # password-strength validator; they are never used in production.
+  ignored-paths:
+    - tests/**

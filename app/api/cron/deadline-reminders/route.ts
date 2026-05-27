@@ -10,6 +10,7 @@ import { createClient as createServerClient } from '@supabase/supabase-js';
 import { sendEmailDirectly } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import { signUnsubscribeToken } from '@/shared/infrastructure/email/unsubscribe-token';
+import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 
 export const dynamic = 'force-dynamic'
 
@@ -21,9 +22,8 @@ export const dynamic = 'force-dynamic'
  */
 export async function POST(request: NextRequest) {
   try {
-    // Verify request is from Vercel Cron or authorized source
-    const authHeader = request.headers.get('authorization');
-    if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
+    // Verify request is from Vercel Cron or authorized source (timing-safe)
+    if (!isAuthorizedCronRequest(request)) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
