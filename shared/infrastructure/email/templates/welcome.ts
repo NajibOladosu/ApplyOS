@@ -5,8 +5,13 @@
 
 import { baseTemplate } from './base';
 import { WelcomeEmailData } from '../types';
+import { signUnsubscribeToken } from '../unsubscribe-token';
 
 export const welcomeEmailTemplate = (data: WelcomeEmailData, appUrl: string) => {
+  const unsubscribeUrl = `${appUrl}/api/email/unsubscribe?token=${signUnsubscribeToken({
+    userId: data.userId,
+    category: 'all',
+  })}`;
   const content = `
     <h2>Welcome to ApplyOS, ${data.userName}! 👋</h2>
 
@@ -44,7 +49,7 @@ export const welcomeEmailTemplate = (data: WelcomeEmailData, appUrl: string) => 
     </p>
   `;
 
-  return baseTemplate(content).replace(/\[\[APP_URL\]\]/g, appUrl);
+  return baseTemplate(content, undefined, unsubscribeUrl).replace(/\[\[APP_URL\]\]/g, appUrl);
 };
 
 export const welcomeEmailSubject = () => 'Welcome to ApplyOS! 🎉';

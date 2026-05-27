@@ -53,6 +53,7 @@ export async function POST(request: NextRequest) {
     // Generate welcome email
     const htmlBody = welcomeEmailTemplate(
       {
+        userId: user.id,
         userName,
         userEmail,
       },
