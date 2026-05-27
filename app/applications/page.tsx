@@ -18,11 +18,17 @@ import {
   Loader2,
 } from "lucide-react"
 import Link from "next/link"
-import { getApplications, deleteApplication } from "@/modules/applications/services/application.service"
-import type { Application } from "@/types/database"
+import {
+  getApplications,
+  deleteApplication,
+  deleteApplications,
+  updateApplicationsStatus,
+} from "@/modules/applications/services/application.service"
+import type { Application, ApplicationStatus } from "@/types/database"
 import { AddApplicationModal } from "@/modules/applications/components/modals/add-application-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
+import { BulkActionToolbar } from "@/modules/applications/components/bulk-action-toolbar"
 import {
   daysUntilDeadline,
   urgencyTier,
@@ -66,6 +72,9 @@ export default function ApplicationsPage() {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
   const [sortBy, setSortBy] = useState<SortKey>("newest")
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
+  const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
+  const [bulkLoading, setBulkLoading] = useState(false)
 
   useEffect(() => {
     fetchApplications()
@@ -107,6 +116,56 @@ export default function ApplicationsPage() {
   const handleCancelDelete = () => {
     setDeleteConfirmOpen(false)
     setDeletingId(null)
+  }
+
+  const toggleSelect = (id: string) => {
+    setSelectedIds((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  const toggleSelectAll = () => {
+    if (selectedIds.size === filteredApplications.length) {
+      setSelectedIds(new Set())
+    } else {
+      setSelectedIds(new Set(filteredApplications.map((a) => a.id)))
+    }
+  }
+
+  const handleBulkDelete = async () => {
+    setBulkLoading(true)
+    try {
+      const ids = Array.from(selectedIds)
+      await deleteApplications(ids)
+      setApplications((apps) => apps.filter((a) => !selectedIds.has(a.id)))
+      setSelectedIds(new Set())
+      setBulkDeleteConfirmOpen(false)
+    } catch (error) {
+      console.error('Bulk delete failed:', error)
+      setDeleteError('Failed to delete the selected applications. Please try again.')
+    } finally {
+      setBulkLoading(false)
+    }
+  }
+
+  const handleBulkStatusChange = async (status: ApplicationStatus) => {
+    const ids = Array.from(selectedIds)
+    setBulkLoading(true)
+    try {
+      await updateApplicationsStatus(ids, status)
+      setApplications((apps) =>
+        apps.map((a) => (selectedIds.has(a.id) ? { ...a, status } : a))
+      )
+      setSelectedIds(new Set())
+    } catch (error) {
+      console.error('Bulk status update failed:', error)
+      setDeleteError('Failed to update status for the selected applications.')
+    } finally {
+      setBulkLoading(false)
+    }
   }
 
   const filteredApplications = applications
@@ -231,6 +290,43 @@ export default function ApplicationsPage() {
           </CardContent>
         </Card>
 
+        {/* Bulk Action Toolbar */}
+        <BulkActionToolbar
+          selectedCount={selectedIds.size}
+          onClear={() => setSelectedIds(new Set())}
+          onDelete={() => setBulkDeleteConfirmOpen(true)}
+          onStatusChange={handleBulkStatusChange}
+          disabled={bulkLoading}
+        />
+
+        {/* Select-all toggle */}
+        {filteredApplications.length > 0 && (
+          <div className="flex items-center gap-2 px-1">
+            <input
+              type="checkbox"
+              className="h-4 w-4 rounded border-zinc-700 bg-zinc-900 cursor-pointer"
+              checked={
+                selectedIds.size > 0 &&
+                selectedIds.size === filteredApplications.length
+              }
+              ref={(el) => {
+                if (el) {
+                  el.indeterminate =
+                    selectedIds.size > 0 &&
+                    selectedIds.size < filteredApplications.length
+                }
+              }}
+              onChange={toggleSelectAll}
+              aria-label="Select all applications"
+            />
+            <span className="text-xs text-muted-foreground">
+              {selectedIds.size > 0
+                ? `${selectedIds.size} of ${filteredApplications.length} selected`
+                : 'Select all'}
+            </span>
+          </div>
+        )}
+
         {/* Applications Grid */}
         <div className="grid grid-cols-1 gap-4">
           {filteredApplications.length === 0 ? (
@@ -261,10 +357,22 @@ export default function ApplicationsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.05 }}
               >
-                <Card className="hover:border-primary/40 transition-all">
+                <Card
+                  className={`hover:border-primary/40 transition-all ${
+                    selectedIds.has(app.id) ? 'border-primary/60 bg-primary/5' : ''
+                  }`}
+                >
                   <CardContent className="p-4 sm:p-6">
                     <div className="flex flex-col sm:flex-row sm:items-start gap-4">
                       <div className="flex items-start gap-3 sm:gap-4 flex-1 min-w-0">
+                        <input
+                          type="checkbox"
+                          className="h-4 w-4 mt-2 rounded border-zinc-700 bg-zinc-900 cursor-pointer shrink-0"
+                          checked={selectedIds.has(app.id)}
+                          onChange={() => toggleSelect(app.id)}
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label={`Select ${app.title}`}
+                        />
                         <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
                           <Briefcase className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
                         </div>
@@ -375,6 +483,19 @@ export default function ApplicationsPage() {
         onConfirm={handleConfirmDelete}
         onCancel={handleCancelDelete}
         isLoading={deleteLoading}
+      />
+
+      {/* Bulk Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={bulkDeleteConfirmOpen}
+        title={`Delete ${selectedIds.size} application${selectedIds.size !== 1 ? 's' : ''}?`}
+        description="This action cannot be undone."
+        confirmText="Delete all"
+        cancelText="Cancel"
+        variant="destructive"
+        onConfirm={handleBulkDelete}
+        onCancel={() => setBulkDeleteConfirmOpen(false)}
+        isLoading={bulkLoading}
       />
 
       {/* Delete Error Modal */}
