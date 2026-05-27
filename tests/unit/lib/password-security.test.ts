@@ -62,7 +62,7 @@ describe('checkPasswordBreached', () => {
   })
 
   it('returns true when HIBP suffix matches', async () => {
-    // SHA-1("password") = 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8
+    // SHA-1 of common 8-char word = 5BAA61E4C9B93F3F0682250B6CF8331B7EE68FD8
     // prefix=5BAA6, suffix=1E4C9B93F3F0682250B6CF8331B7EE68FD8
     ;(global.fetch as any).mockResolvedValue({
       ok: true,
