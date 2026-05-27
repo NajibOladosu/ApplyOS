@@ -4,6 +4,7 @@ import { generateDocumentReport } from "@/shared/infrastructure/ai"
 import { extractTextFromPDF } from "@/modules/documents/lib/pdf-utils"
 import type { DocumentReport } from "@/types/database"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+import { isOwnedStorageUrl } from "@/lib/security/url-validator"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -126,6 +127,12 @@ export async function POST(
     let textContent = extracted_text || ""
 
     if (!textContent && file_url) {
+      if (!isOwnedStorageUrl(file_url)) {
+        return NextResponse.json(
+          { error: "Document file URL is not from a trusted storage host" },
+          { status: 400 }
+        )
+      }
       try {
         const fileResponse = await fetch(file_url)
         if (fileResponse.ok) {
