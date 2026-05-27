@@ -72,6 +72,7 @@ export default function ApplicationDetailPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
   const [regenerating, setRegenerating] = useState<string | "all" | null>(null)
+  const [regenerateProgress, setRegenerateProgress] = useState<{ current: number; total: number } | null>(null)
   const [extracting, setExtracting] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [pendingStatus, setPendingStatus] = useState<Application["status"] | null>(null)
@@ -199,29 +200,98 @@ export default function ApplicationDetailPage() {
       // Close modal immediately so we show the loading state on buttons
       setShowRegenerateModal(false)
 
-      const response = await fetch("/api/questions/regenerate", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          applicationId: application.id,
-          questionId,
-          extraContext,
-        }),
-      })
+      if (!questionId) {
+        // Bulk regen: stream answers as they arrive
+        setRegenerateProgress({ current: 0, total: 0 })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        console.error("Error regenerating answer:", errorData.error)
-        setError(errorData.error || "Failed to regenerate answers")
-        return
-      }
+        const res = await fetch("/api/questions/regenerate/stream", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ applicationId: application.id, extraContext }),
+        })
 
-      const data = await response.json()
-      if (data.questions && data.questions.length > 0) {
-        if (questionId) {
-          // Update single question
+        if (!res.ok || !res.body) {
+          setError("Failed to start streaming regeneration")
+          return
+        }
+
+        const reader = res.body.getReader()
+        const decoder = new TextDecoder()
+        let buffer = ""
+
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+
+          const events = buffer.split("\n\n")
+          buffer = events.pop() || ""
+
+          for (const evt of events) {
+            const trimmed = evt.trim()
+            if (!trimmed) continue
+            const lines = trimmed.split("\n")
+            const eventLine = lines.find((l) => l.startsWith("event: "))
+            const dataLine = lines.find((l) => l.startsWith("data: "))
+            if (!eventLine || !dataLine) continue
+            const name = eventLine.slice(7).trim()
+            let data: unknown
+            try {
+              data = JSON.parse(dataLine.slice(6))
+            } catch {
+              continue
+            }
+
+            if (name === "start") {
+              const startData = data as { total: number }
+              setRegenerateProgress({ current: 0, total: startData.total })
+            } else if (name === "answer") {
+              const updated = data as Question
+              setQuestions((prev) =>
+                prev.map((q) => (q.id === updated.id ? updated : q))
+              )
+              setRegenerateProgress((p) =>
+                p ? { ...p, current: p.current + 1 } : null
+              )
+            } else if (name === "error") {
+              const errData = data as { questionId: string; message: string }
+              console.error(
+                "Question regen failed:",
+                errData.questionId,
+                errData.message
+              )
+              setRegenerateProgress((p) =>
+                p ? { ...p, current: p.current + 1 } : null
+              )
+            } else if (name === "done") {
+              const summary = data as { successCount: number; total: number }
+              if (summary.successCount === 0 && summary.total > 0) {
+                setError("Failed to regenerate any answers")
+              }
+            }
+          }
+        }
+      } else {
+        // Single question: keep existing non-streaming endpoint
+        const response = await fetch("/api/questions/regenerate", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            applicationId: application.id,
+            questionId,
+            extraContext,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          console.error("Error regenerating answer:", errorData.error)
+          setError(errorData.error || "Failed to regenerate answers")
+          return
+        }
+
+        const data = await response.json()
+        if (data.questions && data.questions.length > 0) {
           setQuestions((prev) =>
             prev.map((q) => {
               const updated = data.questions.find(
@@ -230,9 +300,6 @@ export default function ApplicationDetailPage() {
               return updated || q
             })
           )
-        } else {
-          // Update all questions
-          setQuestions(data.questions)
         }
       }
     } catch (err) {
@@ -241,6 +308,7 @@ export default function ApplicationDetailPage() {
     } finally {
       setRegenerating(null)
       setPendingRegenerationTarget(null)
+      setRegenerateProgress(null)
     }
   }
 
@@ -1017,7 +1085,9 @@ export default function ApplicationDetailPage() {
                     {regenerating === "all" ? (
                       <>
                         <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                        Generating...
+                        {regenerateProgress && regenerateProgress.total > 0
+                          ? `Generating ${regenerateProgress.current}/${regenerateProgress.total}...`
+                          : "Generating..."}
                       </>
                     ) : (
                       <>
