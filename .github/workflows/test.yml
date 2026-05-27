@@ -1,0 +1,129 @@
+name: Test
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  unit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run test
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        if: always()
+        with:
+          name: unit-coverage
+          path: coverage/
+          retention-days: 14
+
+  integration:
+    runs-on: ubuntu-latest
+    needs: unit
+    timeout-minutes: 20
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.TEST_GEMINI_API_KEY }}
+      CRON_SECRET: ${{ secrets.TEST_CRON_SECRET }}
+    steps:
+      - name: Check required secrets
+        id: secrets
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || \
+             [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || \
+             [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "TEST_* secrets not configured — integration job will be skipped."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: steps.secrets.outputs.configured == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.secrets.outputs.configured == 'true'
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - if: steps.secrets.outputs.configured == 'true'
+        run: npm ci
+      - name: Pre-sweep test data
+        if: steps.secrets.outputs.configured == 'true'
+        run: npm run test:nuke
+        continue-on-error: true
+      - name: Run integration tests
+        if: steps.secrets.outputs.configured == 'true'
+        run: npm run test:integration
+      - name: Post-sweep test data
+        if: always() && steps.secrets.outputs.configured == 'true'
+        run: npm run test:nuke
+        continue-on-error: true
+
+  e2e:
+    runs-on: ubuntu-latest
+    needs: unit
+    timeout-minutes: 30
+    env:
+      NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.TEST_SUPABASE_URL }}
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.TEST_SUPABASE_ANON_KEY }}
+      SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.TEST_SUPABASE_SERVICE_ROLE_KEY }}
+      GEMINI_API_KEY: ${{ secrets.TEST_GEMINI_API_KEY }}
+      CRON_SECRET: ${{ secrets.TEST_CRON_SECRET }}
+    steps:
+      - name: Check required secrets
+        id: secrets
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || \
+             [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ] || \
+             [ -z "$SUPABASE_SERVICE_ROLE_KEY" ]; then
+            echo "TEST_* secrets not configured — e2e job will be skipped."
+            echo "configured=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "configured=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        if: steps.secrets.outputs.configured == 'true'
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        if: steps.secrets.outputs.configured == 'true'
+        with:
+          node-version: '24'
+          cache: 'npm'
+      - if: steps.secrets.outputs.configured == 'true'
+        run: npm ci
+      - if: steps.secrets.outputs.configured == 'true'
+        run: npx playwright install --with-deps chromium
+      - if: steps.secrets.outputs.configured == 'true'
+        run: npm run build
+      - name: Run E2E tests
+        if: steps.secrets.outputs.configured == 'true'
+        run: npm run test:e2e
+      - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        if: failure() && steps.secrets.outputs.configured == 'true'
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+      - name: Cleanup test data
+        if: always() && steps.secrets.outputs.configured == 'true'
+        run: npm run test:nuke
+        continue-on-error: true

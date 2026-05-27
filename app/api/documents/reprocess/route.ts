@@ -5,6 +5,7 @@ import { extractTextFromPDF } from "@/modules/documents/lib/pdf-utils"
 import { extractTextFromDOCX } from "@/modules/documents/lib/docx-utils"
 import type { Document } from "@/types/database"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+import { isOwnedStorageUrl } from "@/lib/security/url-validator"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -161,6 +162,13 @@ export async function POST(request: NextRequest) {
       console.log(`Extracting text for document ${id} (force=${force}, hasStored=${!!document.extracted_text})`)
 
       try {
+        // SSRF guard: file_url is owner-writable via RLS UPDATE; verify it points at our storage host
+        if (!isOwnedStorageUrl(document.file_url)) {
+          return NextResponse.json(
+            { error: "Document file URL is not from a trusted storage host" },
+            { status: 400 }
+          )
+        }
         // Handle private buckets by creating a signed URL
         // Extract path from public URL: .../storage/v1/object/public/documents/path/to/file
         let downloadUrl = document.file_url;
