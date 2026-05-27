@@ -35,6 +35,7 @@ export interface EmailSendOptions {
 }
 
 export interface WelcomeEmailData {
+  userId: string;
   userName: string;
   userEmail: string;
 }
@@ -46,6 +47,7 @@ export interface VerificationEmailData {
 }
 
 export interface StatusUpdateEmailData {
+  userId: string;
   userName: string;
   applicationTitle: string;
   company?: string;
@@ -56,6 +58,7 @@ export interface StatusUpdateEmailData {
 }
 
 export interface DeadlineReminderEmailData {
+  userId: string;
   userName: string;
   applications: Array<{
     title: string;
@@ -67,6 +70,7 @@ export interface DeadlineReminderEmailData {
 }
 
 export interface WeeklyDigestEmailData {
+  userId: string;
   userName: string;
   weekStart: Date;
   weekEnd: Date;
