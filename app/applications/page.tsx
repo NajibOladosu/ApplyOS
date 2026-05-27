@@ -29,6 +29,22 @@ import { AddApplicationModal } from "@/modules/applications/components/modals/ad
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { BulkActionToolbar } from "@/modules/applications/components/bulk-action-toolbar"
+import {
+  daysUntilDeadline,
+  urgencyTier,
+  urgencyLabel,
+  type UrgencyTier,
+} from "@/modules/applications/lib/deadline"
+
+type SortKey = "newest" | "deadline" | "priority"
+
+const urgencyClass: Record<UrgencyTier, string> = {
+  overdue: "text-red-400 bg-red-500/10 border-red-500/30",
+  critical: "text-orange-400 bg-orange-500/10 border-orange-500/30",
+  soon: "text-yellow-400 bg-yellow-500/10 border-yellow-500/30",
+  later: "text-muted-foreground",
+  none: "text-muted-foreground",
+}
 
 const statusConfig = {
   draft: { label: "Draft", variant: "secondary" as const, color: "bg-zinc-800/80 text-muted-foreground backdrop-blur-sm border-0" },
@@ -55,6 +71,7 @@ export default function ApplicationsPage() {
   const [deleteError, setDeleteError] = useState<string | null>(null)
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [deleteLoading, setDeleteLoading] = useState(false)
+  const [sortBy, setSortBy] = useState<SortKey>("newest")
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
@@ -151,13 +168,29 @@ export default function ApplicationsPage() {
     }
   }
 
-  const filteredApplications = applications.filter((app) => {
-    const matchesSearch =
-      app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (app.company && app.company.toLowerCase().includes(searchQuery.toLowerCase()))
-    const matchesStatus = selectedStatus === "all" || app.status === selectedStatus
-    return matchesSearch && matchesStatus
-  })
+  const filteredApplications = applications
+    .filter((app) => {
+      const matchesSearch =
+        app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        (app.company && app.company.toLowerCase().includes(searchQuery.toLowerCase()))
+      const matchesStatus = selectedStatus === "all" || app.status === selectedStatus
+      return matchesSearch && matchesStatus
+    })
+    .sort((a, b) => {
+      if (sortBy === "newest") {
+        return new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+      }
+      if (sortBy === "deadline") {
+        const da = daysUntilDeadline(a.deadline)
+        const db = daysUntilDeadline(b.deadline)
+        if (da === null && db === null) return 0
+        if (da === null) return 1
+        if (db === null) return -1
+        return da - db
+      }
+      const priorityOrder = { high: 0, medium: 1, low: 2 } as const
+      return priorityOrder[a.priority] - priorityOrder[b.priority]
+    })
 
   if (loading) {
     return (
@@ -200,7 +233,8 @@ export default function ApplicationsPage() {
                 />
               </div>
 
-              <div className="flex gap-2 flex-wrap">
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <div className="flex gap-2 flex-wrap">
                 <Button
                   variant={selectedStatus === "all" ? "default" : "outline"}
                   onClick={() => setSelectedStatus("all")}
@@ -236,6 +270,21 @@ export default function ApplicationsPage() {
                 >
                   Interview
                 </Button>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">Sort:</span>
+                  <select
+                    className="text-sm bg-zinc-900 border border-zinc-700 rounded-md px-2 py-1.5 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                    value={sortBy}
+                    onChange={(e) => setSortBy(e.target.value as SortKey)}
+                    aria-label="Sort applications"
+                  >
+                    <option value="newest">Newest first</option>
+                    <option value="deadline">Deadline (soonest)</option>
+                    <option value="priority">Priority (high first)</option>
+                  </select>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -340,14 +389,33 @@ export default function ApplicationsPage() {
                           </div>
 
                           <div className="flex flex-wrap items-center gap-2 sm:gap-4 text-xs sm:text-sm text-muted-foreground mb-3">
-                            <div className="flex items-center gap-1.5 sm:gap-2">
-                              <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
-                              <span>
-                                {app.deadline
-                                  ? `Deadline: ${new Date(app.deadline).toLocaleDateString()}`
-                                  : 'No deadline'}
-                              </span>
-                            </div>
+                            {(() => {
+                              const days = daysUntilDeadline(app.deadline)
+                              const tier = urgencyTier(days)
+                              const isPill = tier === "overdue" || tier === "critical" || tier === "soon"
+                              const baseClass = "flex items-center gap-1.5 sm:gap-2"
+                              const wrapperClass = isPill
+                                ? `${baseClass} px-2 py-0.5 rounded border ${urgencyClass[tier]} font-medium`
+                                : `${baseClass} ${urgencyClass[tier]}`
+                              return (
+                                <div className={wrapperClass}>
+                                  <Calendar className="h-3.5 w-3.5 sm:h-4 sm:w-4" />
+                                  <span>
+                                    {urgencyLabel(days)}
+                                    {app.deadline && tier !== "later" && (
+                                      <span className="ml-1 opacity-70 font-normal">
+                                        · {new Date(app.deadline).toLocaleDateString()}
+                                      </span>
+                                    )}
+                                    {app.deadline && tier === "later" && (
+                                      <span className="ml-1">
+                                        ({new Date(app.deadline).toLocaleDateString()})
+                                      </span>
+                                    )}
+                                  </span>
+                                </div>
+                              )
+                            })()}
                             <Badge variant="outline" className="capitalize text-xs">
                               {app.type}
                             </Badge>
