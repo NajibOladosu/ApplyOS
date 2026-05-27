@@ -1,0 +1,38 @@
+name: ApplyOS CodeQL config
+
+# Scope analysis to first-party source code.
+# Browser extension is bundled separately; build artifacts and fixtures
+# shouldn't drive security findings.
+paths:
+  - app
+  - lib
+  - modules
+  - shared
+  - components
+  - contexts
+  - types
+  - middleware.ts
+
+paths-ignore:
+  - tests
+  - extension
+  - scripts
+  - public
+  - emails
+  - supabase
+
+# Use the standard + extended security queries.
+queries:
+  - uses: security-extended
+
+# Query-level filter:
+# js/request-forgery flags app/api/questions/extract-from-url/route.ts because
+# the analyzer cannot trace through the async isPublicHttpUrl() validator.
+# The route has three independent SSRF defenses:
+#   1. isPublicHttpUrl()  — protocol + DNS resolution + private IP ranges
+#   2. Inline barrier      — re-parse + literal hostname blocklist
+#   3. redirect: 'error'   — prevent redirect-based bypass
+# Documented in app/api/questions/extract-from-url/route.ts with reasoning.
+query-filters:
+  - exclude:
+      id: js/request-forgery

@@ -101,7 +101,12 @@ export async function GET(request: Request) {
 
     // Get intent and returnTo from cookies, with fallbacks to query params for backward compatibility
     const intent = cookies['auth_intent'] || requestUrl.searchParams.get('intent') || 'login'
-    const returnTo = cookies['auth_returnTo'] ? decodeURIComponent(cookies['auth_returnTo']) : requestUrl.searchParams.get('returnTo')
+    const returnToRaw = cookies['auth_returnTo'] ? decodeURIComponent(cookies['auth_returnTo']) : requestUrl.searchParams.get('returnTo')
+    // Open-redirect guard: only accept same-origin, single-leading-slash paths (not //evil.com, not full URLs)
+    const returnTo =
+      returnToRaw && returnToRaw.startsWith('/') && !returnToRaw.startsWith('//') && !returnToRaw.startsWith('/\\')
+        ? returnToRaw
+        : null
 
     console.log(`🔐 Auth callback: Code=${code ? 'present' : 'missing'}, Intent=${intent}, ReturnTo=${returnTo || 'none'}`)
 

@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
 
     console.log(`   Environment variables:`);
-    console.log(`   - SUPABASE_SERVICE_ROLE_KEY: ${serviceRoleKey ? '✓ (' + serviceRoleKey.length + ' chars)' : '✗ MISSING'}`);
+    console.log(`   - SUPABASE_SERVICE_ROLE_KEY: ${serviceRoleKey ? '✓ configured' : '✗ MISSING'}`);
     console.log(`   - NEXT_PUBLIC_SUPABASE_URL: ${supabaseUrl ? '✓' : '✗ MISSING'}`);
 
     if (!serviceRoleKey) {
