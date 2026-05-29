@@ -288,26 +288,36 @@ export async function generateCoverLetter(
     return 'AI cover letter generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
+  const hasBackground = Boolean(context.resume || context.experience || context.education)
+
   const prompt = `You are helping a candidate write a professional cover letter for a job or scholarship application. Write the cover letter AS IF you are the candidate.
 
 Application: ${applicationTitle}${company ? ` at ${company}` : ''}
 
 ${context.jobDescription ? `Position/Opportunity Description:\n${context.jobDescription}\n\n` : ''}Candidate's Background:
-${context.resume ? `Resume/Profile:\n${context.resume}` : '(No resume provided)'}
+${hasBackground ? `Resume/Profile:\n${context.resume || ''}` : '(No background provided)'}
 
 ${context.extraInstructions ? `Additional Instructions from User:\n${context.extraInstructions}\n` : ''}
 
-Important Instructions:
+Grounding Rules (MOST IMPORTANT — never violate these):
+- Use ONLY facts stated in the candidate's background above. Do NOT invent
+  employers, job titles, dates, locations, projects, certifications, or skills
+  that are not explicitly present.
+- Never state a quantified achievement (percentages, dollar amounts, headcount,
+  rankings, durations) unless that exact figure appears in the background.
+- If the background lacks detail, write a sincere letter about motivation and
+  fit using only what is provided. Do NOT fabricate experience to sound
+  impressive. A truthful, motivation-led letter is better than an invented one.
+${hasBackground ? '' : '- No background was provided, so focus on genuine interest in the position and general strengths without inventing any concrete experience.\n'}
+Style Instructions:
 - Write the cover letter in first person (as the candidate)
 - Do NOT use templates, placeholders like [Your Name], [Company Name], or bracketed sections
 - Do NOT include a date, address block, or signature line
 - Start directly with the opening paragraph (e.g., "I am writing to express my strong interest...")
 - Do NOT say "Here's a cover letter" or provide meta-commentary
-- Assume all provided information is the candidate's ACTUAL background
-- Write a direct, authentic cover letter that the candidate can use immediately
-- Make it specific to the candidate's actual experience and the position
+- Treat the provided background as the candidate's ACTUAL, real history
 - Structure: Opening paragraph (express interest), 2-3 body paragraphs (highlight relevant experience and skills), closing paragraph (express enthusiasm and call to action)
-- Professional, compelling, and persuasive tone
+- Professional, compelling, and persuasive — but truthful over impressive
 - Between 250-350 words
 - Focus on why the candidate is a great fit for this specific position
 
