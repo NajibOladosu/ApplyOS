@@ -39,7 +39,7 @@ beforeEach(() => {
   vi.clearAllMocks()
 })
 
-import { parseDocument, generateAnswer } from '@/shared/infrastructure/ai'
+import { parseDocument, generateAnswer, generateCoverLetter } from '@/shared/infrastructure/ai'
 
 function mockGeminiResponse(text: string) {
   mockGenerateContent.mockResolvedValueOnce({
@@ -155,5 +155,32 @@ describe('generateAnswer', () => {
     await generateAnswer('Why X?', { resume: 'I worked at Acme' })
     const promptArg = mockGenerateContent.mock.calls[0][0]
     expect(promptArg).not.toContain('Previously answered questions')
+  })
+})
+
+describe('generateCoverLetter', () => {
+  it('includes anti-hallucination grounding rules in the prompt', async () => {
+    mockGeminiResponse('Dear Hiring Manager, ...')
+    await generateCoverLetter('Software Engineer', 'Acme', { resume: 'I worked at Acme' })
+    const promptArg = mockGenerateContent.mock.calls[0][0]
+    expect(promptArg).toContain('Grounding Rules')
+    expect(promptArg).toMatch(/Do NOT invent/i)
+    expect(promptArg).toMatch(/quantified achievement/i)
+  })
+
+  it('switches to the no-background path when no background is given', async () => {
+    mockGeminiResponse('letter')
+    await generateCoverLetter('Scholarship', null, {})
+    const promptArg = mockGenerateContent.mock.calls[0][0]
+    expect(promptArg).toContain('(No background provided)')
+    expect(promptArg).toMatch(/genuine interest/i)
+  })
+
+  it('passes résumé context into the prompt', async () => {
+    mockGeminiResponse('letter')
+    await generateCoverLetter('Dev', 'Globex', { resume: 'I shipped feature X' })
+    const promptArg = mockGenerateContent.mock.calls[0][0]
+    expect(promptArg).toContain('I shipped feature X')
+    expect(promptArg).toContain('Globex')
   })
 })
