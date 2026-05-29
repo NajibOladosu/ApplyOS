@@ -116,4 +116,44 @@ describe('generateAnswer', () => {
     const promptArg = mockGenerateContent.mock.calls[0][0]
     expect(promptArg).toContain('I worked at Acme')
   })
+
+  it('includes anti-hallucination grounding rules in every prompt', async () => {
+    mockGeminiResponse('answer')
+    await generateAnswer('Why X?', { resume: 'I worked at Acme' })
+    const promptArg = mockGenerateContent.mock.calls[0][0]
+    expect(promptArg).toContain('Grounding Rules')
+    expect(promptArg).toMatch(/Do NOT invent/i)
+    // Forbid fabricated quantified achievements
+    expect(promptArg).toMatch(/quantified achievement/i)
+  })
+
+  it('switches to the no-background path when no resume/experience/education given', async () => {
+    mockGeminiResponse('answer')
+    await generateAnswer('Why do you want this scholarship?', {})
+    const promptArg = mockGenerateContent.mock.calls[0][0]
+    expect(promptArg).toContain('(No background provided)')
+    expect(promptArg).toMatch(/keep the answer general/i)
+  })
+
+  it('injects previously answered questions for cross-question coherence', async () => {
+    mockGeminiResponse('answer')
+    await generateAnswer('What are your weaknesses?', {
+      resume: 'I worked at Acme',
+      previousAnswers: [
+        { question: 'What are your strengths?', answer: 'I lead teams well.' },
+      ],
+    })
+    const promptArg = mockGenerateContent.mock.calls[0][0]
+    expect(promptArg).toContain('Previously answered questions')
+    expect(promptArg).toContain('What are your strengths?')
+    expect(promptArg).toContain('I lead teams well.')
+    expect(promptArg).toMatch(/do NOT repeat the same anecdotes/i)
+  })
+
+  it('omits the previous-answers block when none are provided', async () => {
+    mockGeminiResponse('answer')
+    await generateAnswer('Why X?', { resume: 'I worked at Acme' })
+    const promptArg = mockGenerateContent.mock.calls[0][0]
+    expect(promptArg).not.toContain('Previously answered questions')
+  })
 })

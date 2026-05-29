@@ -125,9 +125,14 @@ export async function POST(req: NextRequest) {
       )
 
       let successCount = 0
+      // Coherence: accumulate answered pairs so each answer builds on the prior ones.
+      const answeredPairs: { question: string; answer: string }[] = []
       for (const q of questionList) {
         try {
-          const answer = await generateAnswer(q.question_text, context)
+          const answer = await generateAnswer(q.question_text, {
+            ...context,
+            previousAnswers: answeredPairs,
+          })
           const { data: saved, error: updateError } = await supabase
             .from("questions")
             .update({ ai_answer: answer })
@@ -138,6 +143,7 @@ export async function POST(req: NextRequest) {
             throw new Error(updateError?.message || "Update failed")
           }
           successCount++
+          answeredPairs.push({ question: q.question_text, answer })
           controller.enqueue(encoder.encode(sseEvent("answer", saved)))
         } catch (err) {
           controller.enqueue(
