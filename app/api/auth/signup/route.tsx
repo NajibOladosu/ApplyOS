@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
     const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey);
 
     // Try to create user with admin API (doesn't send confirmation email automatically)
-    let data: any;
+    let data: { user: { id: string; email?: string | null; user_metadata?: Record<string, unknown> } | null };
     let userExisted = false;
 
     const { data: createData, error: createError } = await adminClient.auth.admin.createUser({

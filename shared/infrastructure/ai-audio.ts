@@ -88,7 +88,7 @@ export async function transcribeAudio(
  */
 export interface AudioDialogSession {
   sessionId: string
-  chat: any // Gemini chat session
+  chat: unknown // Gemini chat session
   conversationHistory: ConversationTurn[]
 }
 
@@ -144,7 +144,8 @@ export async function sendAudioToDialog(
 }> {
   try {
     // Send audio to Gemini
-    const result = await session.chat.sendMessage([
+    const chat = session.chat as { sendMessage: (input: unknown) => Promise<{ response: { text: () => string } }> }
+    const result = await chat.sendMessage([
       {
         inlineData: {
           mimeType,

@@ -38,6 +38,7 @@ export function PromptModal({
 
   useEffect(() => {
     if (isOpen) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- reset input when modal opens
       setValue("")
     }
   }, [isOpen])

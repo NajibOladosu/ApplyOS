@@ -53,7 +53,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const uniqueUserIds = [...new Set(usersData.map((u: any) => u.user_id))];
+    const uniqueUserIds = [...new Set(usersData.map((u) => u.user_id))];
     let digestsSent = 0;
 
     // Send digest to each user
@@ -107,13 +107,13 @@ export async function POST(request: NextRequest) {
           userName: userData.user.user_metadata?.name || userData.user.email?.split('@')[0] || 'User',
           weekStart,
           weekEnd,
-          applications: updatedThisWeek.map((app: any) => ({
+          applications: updatedThisWeek.map((app) => ({
             title: app.title,
             company: app.company || 'Unknown',
             status: app.status,
             updatedAt: new Date(app.updated_at),
           })),
-          upcomingDeadlines: upcomingDeadlines.map((app: any) => {
+          upcomingDeadlines: upcomingDeadlines.map((app) => {
             const deadline = new Date(app.deadline);
             const daysUntil = Math.ceil(
               (deadline.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
@@ -128,7 +128,7 @@ export async function POST(request: NextRequest) {
           totalApplications: applications?.length || 0,
           newApplicationsThisWeek: updatedThisWeek.length,
           statusChangeCount: updatedThisWeek.filter(
-            (app: any) => app.status_changed === true
+            (app) => (app as { status_changed?: boolean }).status_changed === true
           ).length,
         };
 

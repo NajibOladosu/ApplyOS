@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
         const { applicationId, documentId, contentJson, recommendations } = await req.json() as {
             applicationId?: string
             documentId?: string
-            contentJson?: any
+            contentJson?: unknown
             recommendations?: string[]
         }
 
@@ -107,7 +107,7 @@ ${JSON.stringify(contentJson)}
             return new NextResponse("AI returned invalid JSON", { status: 502 })
         }
 
-        let parsed: { contentJson?: any }
+        let parsed: { contentJson?: { type?: string } }
         try {
             parsed = JSON.parse(objectMatch[0])
         } catch {
@@ -119,10 +119,10 @@ ${JSON.stringify(contentJson)}
         }
 
         return NextResponse.json({ contentJson: parsed.contentJson })
-    } catch (error: any) {
+    } catch (error) {
         console.error("[Apply Recommendations] Error:", error)
         return new NextResponse(
-            JSON.stringify({ error: error.message || "Internal Server Error" }),
+            JSON.stringify({ error: error instanceof Error ? error.message : "Internal Server Error" }),
             { status: 500, headers: { "Content-Type": "application/json" } },
         )
     }

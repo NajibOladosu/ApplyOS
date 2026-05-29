@@ -13,7 +13,14 @@ export default [
       "build.log",
       "fix-imports.js",
       "fix-paths.js",
+      "public/**/*.min.*",
     ],
+  },
+  {
+    files: ["app/api/**/*.{ts,tsx}"],
+    rules: {
+      "react-hooks/error-boundaries": "off",
+    },
   },
   {
     files: ["tests/**/*.{ts,tsx}", "**/*.test.{ts,tsx}", "**/__tests__/**/*.{ts,tsx}"],

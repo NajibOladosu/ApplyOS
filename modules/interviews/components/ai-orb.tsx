@@ -43,6 +43,7 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
   }
 
   useMemo(() => {
+    // eslint-disable-next-line react-hooks/refs -- geometry buffer cached on a ref to avoid recreating per frame
     geometryRef.current = new THREE.SphereGeometry(1.5, 64, 64)
   }, [])
 
@@ -93,6 +94,7 @@ function OrbMesh({ mode, audioLevel = 0 }: OrbProps) {
 
   return (
     <group>
+      {/* eslint-disable-next-line react-hooks/refs -- geometry built in useMemo, read by react-three-fiber */}
       <mesh ref={meshRef} geometry={geometryRef.current || undefined}>
         <meshBasicMaterial
           wireframe
@@ -115,6 +117,7 @@ export function AIOrb({ mode, audioLevel = 0, className = '' }: AIOrbProps) {
   const [mounted, setMounted] = useState(false)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- mount guard to defer 3D canvas to client
     setMounted(true)
   }, [])
 

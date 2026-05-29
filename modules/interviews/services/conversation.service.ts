@@ -1,6 +1,6 @@
 import { createClient } from '@/shared/db/supabase/client'
 import type { SupabaseClient } from '@supabase/supabase-js'
-import type { ConversationTurn, InterviewSession, InterviewQuestion } from '@/types/database'
+import type { ConversationTurn, ConversationTurnMetadata, InterviewSession, InterviewQuestion } from '@/types/database'
 
 // ============================================================================
 // CONVERSATION TURNS
@@ -26,7 +26,7 @@ export async function createConversationTurn(
         content: string
         audio_url?: string
         audio_duration_seconds?: number
-        metadata?: Record<string, any>
+        metadata?: ConversationTurnMetadata
     },
     supabaseClient?: SupabaseClient
 ): Promise<ConversationTurn> {
@@ -130,7 +130,7 @@ export class ConversationManager {
         }
     }
 
-    async addTurn(speaker: 'ai' | 'user', content: string, metadata?: Record<string, any>): Promise<ConversationTurn> {
+    async addTurn(speaker: 'ai' | 'user', content: string, metadata?: ConversationTurnMetadata): Promise<ConversationTurn> {
         const turnNumber = this.state.turns.length + 1
 
         const turn = await createConversationTurn(

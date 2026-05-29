@@ -27,7 +27,9 @@ interface InlineMarks {
     href?: string
 }
 
-const collectMarks = (marks: any[] | undefined): InlineMarks => {
+type TipTapMark = NonNullable<JSONContent["marks"]>[number]
+
+const collectMarks = (marks: TipTapMark[] | undefined): InlineMarks => {
     const out: InlineMarks = {}
     if (!marks) return out
     for (const m of marks) {
@@ -45,7 +47,7 @@ const inlineToRuns = (nodes: JSONContent[] | undefined): TextRun[] => {
     const runs: TextRun[] = []
     for (const node of nodes) {
         if (node.type === 'text' && typeof node.text === 'string') {
-            const marks = collectMarks(node.marks as any[])
+            const marks = collectMarks(node.marks)
             runs.push(new TextRun({
                 text: node.text,
                 bold: marks.bold,
@@ -89,7 +91,7 @@ const flattenList = (
             if (child.type === 'paragraph') {
                 out.push(new Paragraph({
                     children: inlineToRuns(child.content),
-                    alignment: alignmentFor((child.attrs as any)?.textAlign),
+                    alignment: alignmentFor(child.attrs?.textAlign),
                     numbering: { reference: listType === 'bullet' ? 'bullet-list' : 'ordered-list', level },
                 }))
             } else if (child.type === 'bulletList') {
@@ -103,16 +105,16 @@ const flattenList = (
 
 const docNodeToParagraphs = (node: JSONContent): Paragraph[] => {
     if (node.type === 'heading') {
-        const level = (node.attrs as any)?.level ?? 2
+        const level = node.attrs?.level ?? 2
         return [new Paragraph({
             heading: headingFor(level),
-            alignment: alignmentFor((node.attrs as any)?.textAlign),
+            alignment: alignmentFor(node.attrs?.textAlign),
             children: inlineToRuns(node.content),
         })]
     }
     if (node.type === 'paragraph') {
         return [new Paragraph({
-            alignment: alignmentFor((node.attrs as any)?.textAlign),
+            alignment: alignmentFor(node.attrs?.textAlign),
             children: inlineToRuns(node.content),
         })]
     }

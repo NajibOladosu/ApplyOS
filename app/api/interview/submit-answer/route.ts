@@ -121,10 +121,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error submitting interview answer:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to submit answer' },
+      { error: error instanceof Error ? error.message : 'Failed to submit answer' },
       { status: 500 }
     )
   }

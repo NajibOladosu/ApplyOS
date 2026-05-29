@@ -85,7 +85,7 @@ Rules:
         }
 
         return NextResponse.json(parsed)
-    } catch (error: any) {
+    } catch (error) {
         console.error("AI Parse Error:", error)
         return NextResponse.json({ blocks: [] }, { status: 200 })
     }

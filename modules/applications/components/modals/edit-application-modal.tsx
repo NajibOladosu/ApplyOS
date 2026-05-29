@@ -8,7 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { X, Loader2 } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { updateApplication } from "@/modules/applications/services/application.service"
-import type { Application } from "@/types/database"
+import type { Application, ApplicationPriority, ApplicationType } from "@/types/database"
 import { AlertModal } from "@/components/modals/alert-modal"
 
 interface EditApplicationModalProps {
@@ -58,8 +58,8 @@ export function EditApplicationModal({
         title,
         company: company || null,
         url: url || null,
-        type: type as any,
-        priority: priority as any,
+        type: type as ApplicationType,
+        priority: priority as ApplicationPriority,
         deadline: deadline ? new Date(deadline).toISOString() : null,
         job_description: jobDescription || null,
       })

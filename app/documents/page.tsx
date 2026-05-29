@@ -194,15 +194,8 @@ export default function DocumentsPage() {
           d.id === doc.id
             ? {
               ...d,
-              // Store report in-memory for display; detail page uses API for source of truth.
-              // We attach it under a synthetic field to avoid conflicting with typed Document.
-              parsed_data: {
-                ...(d.parsed_data as any),
-              },
-              // store report metadata on the object for UI usage
+              parsed_data: { ...(d.parsed_data ?? {}) } as typeof d.parsed_data,
               ...(payload.report !== undefined && {
-                // cast via any to avoid changing the generated types
-                ...(d as any),
                 report: payload.report,
                 report_generated_at: payload.report_generated_at,
               }),
@@ -424,59 +417,59 @@ export default function DocumentsPage() {
 
                   <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
                     {/* AI Analysis summary */}
-                    {doc.parsed_data && typeof doc.parsed_data === "object" && (
+                    {doc.parsed_data && (
                       <div className="mb-4">
                         <div className="flex flex-wrap items-center gap-2 mb-3">
                           {/* Education */}
-                          {Array.isArray((doc.parsed_data as any).education) && (doc.parsed_data as any).education.length > 0 && (
+                          {Array.isArray(doc.parsed_data.education) && doc.parsed_data.education.length > 0 && (
                             <Badge variant="secondary" className="text-xs">
-                              {(doc.parsed_data as any).education.length} {(doc.parsed_data as any).education.length === 1 ? 'Education' : 'Educations'}
+                              {doc.parsed_data.education.length} {doc.parsed_data.education.length === 1 ? 'Education' : 'Educations'}
                             </Badge>
                           )}
 
                           {/* Experience */}
-                          {Array.isArray((doc.parsed_data as any).experience) && (doc.parsed_data as any).experience.length > 0 && (
+                          {Array.isArray(doc.parsed_data.experience) && doc.parsed_data.experience.length > 0 && (
                             <Badge variant="secondary" className="text-xs">
-                              {(doc.parsed_data as any).experience.length} {(doc.parsed_data as any).experience.length === 1 ? 'Experience' : 'Experiences'}
+                              {doc.parsed_data.experience.length} {doc.parsed_data.experience.length === 1 ? 'Experience' : 'Experiences'}
                             </Badge>
                           )}
 
                           {/* Projects */}
-                          {Array.isArray((doc.parsed_data as any).projects) && (doc.parsed_data as any).projects.length > 0 && (
+                          {Array.isArray(doc.parsed_data.projects) && doc.parsed_data.projects.length > 0 && (
                             <Badge variant="secondary" className="text-xs">
-                              {(doc.parsed_data as any).projects.length} {(doc.parsed_data as any).projects.length === 1 ? 'Project' : 'Projects'}
+                              {doc.parsed_data.projects.length} {doc.parsed_data.projects.length === 1 ? 'Project' : 'Projects'}
                             </Badge>
                           )}
 
                           {/* Skills */}
-                          {(doc.parsed_data as any).skills && (
-                            ((doc.parsed_data as any).skills.technical?.length || 0) +
-                            ((doc.parsed_data as any).skills.soft?.length || 0) +
-                            ((doc.parsed_data as any).skills.other?.length || 0) > 0
+                          {doc.parsed_data.skills && (
+                            (doc.parsed_data.skills.technical?.length || 0) +
+                            (doc.parsed_data.skills.soft?.length || 0) +
+                            (doc.parsed_data.skills.other?.length || 0) > 0
                           ) && (
                               <Badge variant="secondary" className="text-xs">
                                 {(
-                                  ((doc.parsed_data as any).skills.technical?.length || 0) +
-                                  ((doc.parsed_data as any).skills.soft?.length || 0) +
-                                  ((doc.parsed_data as any).skills.other?.length || 0)
+                                  (doc.parsed_data.skills.technical?.length || 0) +
+                                  (doc.parsed_data.skills.soft?.length || 0) +
+                                  (doc.parsed_data.skills.other?.length || 0)
                                 )} Skills
                               </Badge>
                             )}
                         </div>
 
                         {/* Inline report display if available */}
-                        {(doc as any).report && (
+                        {doc.report && (
                           <div className="rounded-md bg-muted/60 p-2.5 mb-2.5">
                             <div className="flex items-center justify-between mb-1.5">
                               <p className="text-xs font-medium text-muted-foreground">
-                                {((doc as any).report as DocumentReport).documentType}
+                                {doc.report.documentType}
                               </p>
                               <span className="text-xs font-bold text-primary">
-                                {((doc as any).report as DocumentReport).overallScore}/10
+                                {doc.report.overallScore}/10
                               </span>
                             </div>
                             <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                              {((doc as any).report as DocumentReport).overallAssessment}
+                              {doc.report.overallAssessment}
                             </p>
                           </div>
                         )}

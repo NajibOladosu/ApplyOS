@@ -7,7 +7,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/sha
 import { Badge } from '@/shared/ui/badge'
 import { GeminiLiveClient } from '@/lib/gemini-live/client'
 import { convertToGeminiFormat, convertFromGeminiFormat } from '@/lib/gemini-live/audio-processor'
-import type { ConnectionState } from '@/lib/gemini-live/types'
+import type { ConnectionState, ContentPart } from '@/lib/gemini-live/types'
+
+interface TestTurn {
+  turn_number: number
+  speaker: 'ai' | 'user'
+  content: string
+  timestamp: string
+  metadata?: Record<string, unknown>
+}
 
 export default function TestLivePage() {
   // Debug-only page: hide entirely outside development to avoid exposing
@@ -24,11 +32,11 @@ export default function TestLivePage() {
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt')
 
   // Turn buffering state
-  const [turnBuffer, setTurnBuffer] = useState<any[]>([])
+  const [turnBuffer, setTurnBuffer] = useState<TestTurn[]>([])
   const [turnCount, setTurnCount] = useState(0)
   const FLUSH_THRESHOLD = 8 // Flush every 8 turns
 
-  const mediaRecorderRef = useRef<MediaRecorder | null>(null)
+  const mediaRecorderRef = useRef<ScriptProcessorNode | null>(null)
   const audioContextRef = useRef<AudioContext | null>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const userAudioBufferRef = useRef<string>('') // Buffer user speech
@@ -45,7 +53,7 @@ export default function TestLivePage() {
   }
 
   // Add turn to buffer and flush if threshold reached
-  const addTurn = async (speaker: 'ai' | 'user', content: string, metadata?: Record<string, any>) => {
+  const addTurn = async (speaker: 'ai' | 'user', content: string, metadata?: Record<string, unknown>) => {
     const turn = {
       turn_number: turnCount + 1,
       speaker,
@@ -68,7 +76,7 @@ export default function TestLivePage() {
   }
 
   // Flush buffered turns to database
-  const flushTurns = async (turns: any[]) => {
+  const flushTurns = async (turns: TestTurn[]) => {
     if (!sessionId || turns.length === 0) return
 
     try {
@@ -86,8 +94,8 @@ export default function TestLivePage() {
 
       const result = await response.json()
       addMessage(`✅ Flushed ${result.saved} turns successfully`)
-    } catch (error: any) {
-      addMessage(`❌ Flush error: ${error.message}`)
+    } catch (error) {
+      addMessage(`❌ Flush error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -106,9 +114,9 @@ export default function TestLivePage() {
       setMicPermission('granted')
       addMessage('✅ Microphone access granted')
       return stream
-    } catch (error: any) {
+    } catch (error) {
       setMicPermission('denied')
-      addMessage(`❌ Microphone access denied: ${error.message}`)
+      addMessage(`❌ Microphone access denied: ${error instanceof Error ? error.message : String(error)}`)
       throw error
     }
   }
@@ -167,7 +175,7 @@ export default function TestLivePage() {
               console.log('Parts:', content.modelTurn.parts)
 
               // Handle text response
-              const textPart = content.modelTurn.parts.find((p: any) => 'text' in p)
+              const textPart = content.modelTurn.parts.find((p: ContentPart) => 'text' in p)
               if (textPart && 'text' in textPart) {
                 addMessage(`💬 AI: ${textPart.text.substring(0, 100)}...`)
 
@@ -176,7 +184,7 @@ export default function TestLivePage() {
               }
 
               // Handle audio response
-              const audioPart = content.modelTurn.parts.find((p: any) => 'inlineData' in p)
+              const audioPart = content.modelTurn.parts.find((p: ContentPart) => 'inlineData' in p)
               console.log('Audio part found:', audioPart)
               if (audioPart && 'inlineData' in audioPart && audioPart.inlineData?.data) {
                 addMessage(`🔊 Playing AI audio response...`)
@@ -200,8 +208,8 @@ export default function TestLivePage() {
       addMessage('🔄 Connecting to Gemini Live API...')
       await wsClient.connect()
       setClient(wsClient)
-    } catch (error: any) {
-      addMessage(`❌ Connection failed: ${error.message}`)
+    } catch (error) {
+      addMessage(`❌ Connection failed: ${error instanceof Error ? error.message : String(error)}`)
       setConnectionState('error')
     }
   }
@@ -268,7 +276,7 @@ export default function TestLivePage() {
           if (Math.random() < 0.1) {
             addMessage(`📤 Streaming audio (${pcm16.length} samples)`)
           }
-        } catch (error: any) {
+        } catch (error) {
           console.error('Audio processing error:', error)
         }
       }
@@ -279,19 +287,19 @@ export default function TestLivePage() {
 
       // Store references for cleanup
       audioContextRef.current = audioContext
-      mediaRecorderRef.current = processor as any // Store processor in mediaRecorderRef
+      mediaRecorderRef.current = processor // Store processor in mediaRecorderRef
 
       setIsRecording(true)
       addMessage('✅ Recording started - speak now!')
-    } catch (error: any) {
-      addMessage(`❌ Recording failed: ${error.message}`)
+    } catch (error) {
+      addMessage(`❌ Recording failed: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
   const stopRecording = () => {
     if (mediaRecorderRef.current && isRecording) {
       // Disconnect and cleanup ScriptProcessor
-      const processor = mediaRecorderRef.current as any
+      const processor = mediaRecorderRef.current
       if (processor.disconnect) {
         processor.disconnect()
       }
@@ -387,9 +395,9 @@ export default function TestLivePage() {
         const totalDuration = audioQueueRef.current.reduce((sum, buf) => sum + buf.duration, 0)
         console.log(`Queued ${audioQueueRef.current.length} chunks, total: ${totalDuration.toFixed(1)}s`)
       }
-    } catch (error: any) {
+    } catch (error) {
       console.error('Audio playback error:', error)
-      addMessage(`❌ Audio playback error: ${error.message}`)
+      addMessage(`❌ Audio playback error: ${error instanceof Error ? error.message : String(error)}`)
     }
   }
 
@@ -551,13 +559,13 @@ export default function TestLivePage() {
             <h3 className="font-semibold text-sm">Phase 2: Audio Testing Instructions</h3>
             <ol className="text-sm space-y-1 list-decimal list-inside">
               <li>Create an interview session and copy the session ID</li>
-              <li>Paste session ID and click "Connect"</li>
-              <li>Click "Request Microphone" to grant microphone access</li>
-              <li>Click "Start Recording" and speak a question or message</li>
+              <li>Paste session ID and click &quot;Connect&quot;</li>
+              <li>Click &quot;Request Microphone&quot; to grant microphone access</li>
+              <li>Click &quot;Start Recording&quot; and speak a question or message</li>
               <li>Watch the log for audio chunks being sent</li>
               <li>AI will respond with both text and audio</li>
               <li>Audio response will auto-play</li>
-              <li>Click "Stop Recording" when done</li>
+              <li>Click &quot;Stop Recording&quot; when done</li>
             </ol>
           </div>
         </CardContent>

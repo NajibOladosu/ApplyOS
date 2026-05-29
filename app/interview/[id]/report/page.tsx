@@ -293,7 +293,7 @@ export default function InterviewReportPage() {
                 <div className="pt-2">
                   {session.answered_questions === 0 ? (
                     <p className="text-sm text-muted-foreground">
-                      Interview not started yet. Click "Go to Interview" to begin.
+                      Interview not started yet. Click &quot;Go to Interview&quot; to begin.
                     </p>
                   ) : (
                     <p className="text-sm text-muted-foreground">

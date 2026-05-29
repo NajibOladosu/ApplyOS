@@ -268,7 +268,7 @@ export async function requestMicrophoneAccess(): Promise<MediaStream | null> {
     console.error('   Safari: Safari → Settings → Websites → Microphone → Allow')
 
     const error = new Error('Microphone permission is blocked by browser. Please check your browser settings.')
-      ; (error as any).name = 'PermissionBlockedError'
+    error.name = 'PermissionBlockedError'
     throw error
   }
 

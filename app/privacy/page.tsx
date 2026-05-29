@@ -119,7 +119,7 @@ export default function PrivacyPolicy() {
                     ApplyOS uses Google Gemini AI to analyze your documents and generate answers. When you use AI features:
                   </p>
                   <ul className="space-y-2 list-disc list-inside ml-4 text-muted-foreground">
-                    <li>Your document content is sent to Google's Gemini API for processing</li>
+                    <li>Your document content is sent to Google&apos;s Gemini API for processing</li>
                     <li>Google processes this data according to their own privacy policy</li>
                     <li>We cache extracted text and AI-generated results in our secure database</li>
                     <li>You can disable AI features and delete your data at any time</li>
@@ -190,7 +190,7 @@ export default function PrivacyPolicy() {
 
                 {/* Children's Privacy */}
                 <section className="glass-effect rounded-lg p-8">
-                  <h2 className="text-2xl font-bold text-primary mb-4">Children's Privacy</h2>
+                  <h2 className="text-2xl font-bold text-primary mb-4">Children&apos;s Privacy</h2>
                   <p className="text-muted-foreground leading-relaxed">
                     ApplyOS is not intended for users under the age of 13. We do not knowingly collect personal information
                     from children under 13. If you believe we have collected information from a child under 13, please contact
@@ -203,7 +203,7 @@ export default function PrivacyPolicy() {
                   <h2 className="text-2xl font-bold text-primary mb-4">Changes to This Privacy Policy</h2>
                   <p className="text-muted-foreground leading-relaxed">
                     We may update our Privacy Policy from time to time. We will notify you of any changes by posting the new
-                    Privacy Policy on this page and updating the "Last updated" date. You are advised to review this Privacy
+                    Privacy Policy on this page and updating the &quot;Last updated&quot; date. You are advised to review this Privacy
                     Policy periodically for any changes.
                   </p>
                 </section>

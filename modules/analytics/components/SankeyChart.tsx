@@ -1,13 +1,17 @@
 'use client'
 
 import { useEffect, useRef } from 'react'
-import { sankey, sankeyLinkHorizontal, SankeyGraph, SankeyNode, SankeyLink } from 'd3-sankey'
+import { sankey, sankeyLinkHorizontal, SankeyGraph, SankeyNode } from 'd3-sankey'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 
 interface SankeyData {
   nodes: Array<{ name: string; value?: number }>
   links: Array<{ source: number; target: number; value: number }>
 }
+
+type NodeProps = { name: string; value?: number }
+type LinkProps = Record<never, never>
+type SankeyNodeDatum = SankeyNode<NodeProps, LinkProps>
 
 interface SankeyChartProps {
   data: SankeyData
@@ -91,7 +95,7 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
     }
 
     // Create Sankey generator
-    const sankeyGenerator = sankey<SankeyNode<{ name: string }, {}>, SankeyLink<SankeyNode<{ name: string }, {}>, {}>>()
+    const sankeyGenerator = sankey<NodeProps, LinkProps>()
       .nodeWidth(15)
       .nodePadding(20)
       .extent([
@@ -100,7 +104,7 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
       ])
 
     // Generate layout
-    const graph: SankeyGraph<{ name: string }, {}> = sankeyGenerator({
+    const graph: SankeyGraph<NodeProps, LinkProps> = sankeyGenerator({
       nodes: data.nodes.map(d => ({ ...d })),
       links: data.links.map(d => ({ ...d })),
     })
@@ -131,7 +135,7 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
 
         // Tooltip
         const title = document.createElementNS('http://www.w3.org/2000/svg', 'title')
-        title.textContent = `${(link.source as any).name} → ${(link.target as any).name}: ${link.value}`
+        title.textContent = `${(link.source as SankeyNodeDatum).name} → ${(link.target as SankeyNodeDatum).name}: ${link.value}`
         path.appendChild(title)
 
         g.appendChild(path)
@@ -145,7 +149,7 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
       rect.setAttribute('y', String(node.y0 || 0))
       rect.setAttribute('width', String((node.x1 || 0) - (node.x0 || 0)))
       rect.setAttribute('height', String((node.y1 || 0) - (node.y0 || 0)))
-      rect.setAttribute('fill', STATUS_COLORS[(node as any).name] || '#64748b')
+      rect.setAttribute('fill', STATUS_COLORS[node.name] || '#64748b')
       rect.setAttribute('rx', '3')
 
       // Add hover effect
@@ -163,7 +167,7 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
 
       // Tooltip
       const title = document.createElementNS('http://www.w3.org/2000/svg', 'title')
-      title.textContent = `${(node as any).name}: ${displayValue}`
+      title.textContent = `${node.name}: ${displayValue}`
       rect.appendChild(title)
 
       g.appendChild(rect)
@@ -180,7 +184,7 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
       text.setAttribute('font-size', '12')
       text.setAttribute('fill', 'currentColor')
       text.setAttribute('class', 'fill-foreground')
-      text.textContent = `${(node as any).name} (${displayValue})`
+      text.textContent = `${node.name} (${displayValue})`
 
       g.appendChild(text)
     })

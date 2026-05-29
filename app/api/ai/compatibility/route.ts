@@ -102,8 +102,8 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json(data)
 
-    } catch (e: any) {
+    } catch (e) {
         console.error('Compatibility check error:', e)
-        return NextResponse.json({ error: e.message || 'Internal Server Error' }, { status: 500 })
+        return NextResponse.json({ error: e instanceof Error ? e.message : 'Internal Server Error' }, { status: 500 })
     }
 }

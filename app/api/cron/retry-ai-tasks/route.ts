@@ -20,12 +20,27 @@ import { isAuthorizedCronRequest } from '@/lib/security/cron-auth'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
+interface AIRetryTask {
+  id: string
+  task_type: string
+  task_data: {
+    documentId?: string
+    extractedText?: string
+    questionId?: string
+  }
+}
+
 async function retryParseDocument(
   supabaseClient: Awaited<ReturnType<typeof createClient>>,
-  task: any
+  task: AIRetryTask
 ): Promise<boolean> {
   try {
     const { documentId, extractedText } = task.task_data
+
+    if (!extractedText) {
+      console.warn(`[Retry] Missing extracted text for document ${documentId}`)
+      return false
+    }
 
     // Retry the parse operation
     const parsed = await parseDocument(extractedText)
@@ -96,7 +111,7 @@ async function retryParseDocument(
 
 async function retryGenerateReport(
   supabaseClient: Awaited<ReturnType<typeof createClient>>,
-  task: any
+  task: AIRetryTask
 ): Promise<boolean> {
   try {
     const { documentId } = task.task_data
@@ -128,7 +143,7 @@ async function retryGenerateReport(
 
 async function retryGenerateAnswer(
   supabaseClient: Awaited<ReturnType<typeof createClient>>,
-  task: any
+  task: AIRetryTask
 ): Promise<boolean> {
   try {
     const { questionId } = task.task_data
@@ -185,7 +200,7 @@ export async function POST(req: NextRequest) {
     let failureCount = 0
 
     // Process each task
-    for (const task of pendingTasks) {
+    for (const task of pendingTasks as AIRetryTask[]) {
       try {
         let success = false
 

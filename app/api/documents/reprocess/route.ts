@@ -127,8 +127,8 @@ export async function POST(request: NextRequest) {
           id: document.id,
           message: "Analysis already completed",
           analysis_status: "success",
-          parsed_data: (document as any).parsed_data ?? null,
-          parsed_at: (document as any).parsed_at ?? null,
+          parsed_data: document.parsed_data ?? null,
+          parsed_at: document.parsed_at ?? null,
           from_cache: true,
         },
         { status: 200 }

@@ -88,9 +88,9 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
           // All answered, show last question
           setCurrentQuestionIndex(questionsWithAnswers.length - 1)
         }
-      } catch (err: any) {
+      } catch (err) {
         console.error("Error loading interview session:", err)
-        setError(err.message || "Failed to load interview session")
+        setError(err instanceof Error ? err.message : "Failed to load interview session")
       } finally {
         setLoading(false)
       }
@@ -165,13 +165,14 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
       // Reload session to update statistics
       const updatedSession = await getInterviewSession(sessionId)
       setSession(updatedSession)
-    } catch (err: any) {
+    } catch (err) {
       console.error("Error submitting answer:", err)
-      setError(err.message || "Failed to submit answer")
+      const message = err instanceof Error ? err.message : "Failed to submit answer"
+      setError(message)
 
       toast({
         title: "Submission Failed",
-        description: err.message || "Failed to submit answer. Please try again.",
+        description: message || "Failed to submit answer. Please try again.",
         variant: "destructive",
         duration: 5000,
       })
@@ -335,7 +336,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
             </div>
             <CardTitle className="text-center text-2xl">Interview Complete!</CardTitle>
             <CardDescription className="text-center">
-              Great job! You've answered all {questions.length} questions.
+              Great job! You&apos;ve answered all {questions.length} questions.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
@@ -722,7 +723,7 @@ export function InterviewSessionDetail({ sessionId, onComplete, onBack }: Interv
                     {currentFeedback.feedback.tone_analysis && (
                       <div className="pb-4 border-b">
                         <h4 className="text-sm font-semibold mb-2">Tone Analysis</h4>
-                        <p className="text-sm text-muted-foreground italic">"{currentFeedback.feedback.tone_analysis}"</p>
+                        <p className="text-sm text-muted-foreground italic">&quot;{currentFeedback.feedback.tone_analysis}&quot;</p>
                       </div>
                     )}
 

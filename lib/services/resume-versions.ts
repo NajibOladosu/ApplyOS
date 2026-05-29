@@ -21,7 +21,7 @@ export interface ResumeVersion {
     application_id: string | null
     version_name: string
     blocks: EditorBlock[] | null
-    content_json: any | null
+    content_json: unknown | null
     template_id: TemplateId
     source_format: SourceFormat
     is_starred: boolean
@@ -37,7 +37,7 @@ export interface SaveVersionParams {
     application_id?: string | null
     version_name: string
     blocks?: EditorBlock[] | null
-    content_json?: any | null
+    content_json?: unknown | null
     template_id?: TemplateId
     source_format?: SourceFormat
     parent_document_id?: string | null

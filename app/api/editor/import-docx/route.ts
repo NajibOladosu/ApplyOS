@@ -69,10 +69,10 @@ export async function POST(req: NextRequest) {
         const json = await docxBufferToTipTap(buffer)
 
         return NextResponse.json({ contentJson: json })
-    } catch (error: any) {
+    } catch (error) {
         console.error("[DOCX Import] Error:", error)
         return new NextResponse(
-            JSON.stringify({ error: error.message || "DOCX import failed" }),
+            JSON.stringify({ error: error instanceof Error ? error.message : "DOCX import failed" }),
             { status: 500, headers: { "Content-Type": "application/json" } },
         )
     }

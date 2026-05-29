@@ -274,7 +274,7 @@ function LoginContent() {
                 </p>
                 <div className="p-3 bg-muted rounded-lg border border-border">
                   <p className="text-xs text-muted-foreground">
-                    Didn't receive the email? Check your spam folder or click below to resend it.
+                    Didn&apos;t receive the email? Check your spam folder or click below to resend it.
                   </p>
                 </div>
 

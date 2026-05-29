@@ -111,7 +111,16 @@ export function NewInterviewModal({
 
     try {
       let endpoint = ''
-      let body: any = {
+      const body: {
+        applicationId: string
+        difficulty: Difficulty
+        questionCount: number
+        companySlug?: string
+        customizeForJob?: boolean
+        documentId?: string
+        sessionType?: SessionType
+        companyName?: string
+      } = {
         applicationId,
         difficulty,
         questionCount: count,
@@ -148,9 +157,9 @@ export function NewInterviewModal({
 
       onSuccess(data.session.id)
       handleClose()
-    } catch (error: any) {
+    } catch (error) {
       console.error('Error creating interview:', error)
-      setErrorMessage(error.message || 'Failed to create interview session')
+      setErrorMessage(error instanceof Error ? error.message : 'Failed to create interview session')
     } finally {
       setLoading(false)
     }

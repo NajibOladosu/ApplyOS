@@ -7,7 +7,7 @@ export interface LiveSessionConfig {
   token: string
   model?: string
   systemInstruction?: string
-  tools?: any[]
+  tools?: unknown[]
 }
 
 export interface AudioChunk {
@@ -50,7 +50,7 @@ export interface ServerContent {
 export interface ToolCall {
   functionCalls?: Array<{
     name: string
-    args: Record<string, any>
+    args: Record<string, unknown>
   }>
 }
 
@@ -67,12 +67,12 @@ export interface SetupMessage {
         }
       }
     }
-    outputAudioTranscription?: {}  // AI speech transcription
-    inputAudioTranscription?: {}   // User speech transcription
+    outputAudioTranscription?: Record<string, never>  // AI speech transcription
+    inputAudioTranscription?: Record<string, never>   // User speech transcription
     systemInstruction?: {
       parts: Array<{ text: string }>
     }
-    tools?: any[]
+    tools?: unknown[]
   }
 }
 
@@ -87,7 +87,7 @@ export interface ClientMessage {
   }
   toolResponse?: {
     functionResponses: Array<{
-      response: Record<string, any>
+      response: Record<string, unknown>
       id: string
     }>
   }

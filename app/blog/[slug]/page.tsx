@@ -62,18 +62,18 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
     // Define custom components for MDX
     const components = {
-        h1: (props: any) => <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />,
-        h2: (props: any) => <h2 className="text-2xl font-bold mt-8 mb-4" {...props} />,
-        h3: (props: any) => <h3 className="text-xl font-bold mt-6 mb-3" {...props} />,
-        p: (props: any) => <p className="text-muted-foreground leading-relaxed my-4" {...props} />,
-        a: (props: any) => <a className="text-primary hover:underline" {...props} />,
-        ul: (props: any) => <ul className="list-disc list-inside my-4 space-y-2" {...props} />,
-        ol: (props: any) => <ol className="list-decimal list-inside my-4 space-y-2" {...props} />,
-        li: (props: any) => <li className="ml-4 text-muted-foreground" {...props} />,
-        blockquote: (props: any) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4 text-muted-foreground" {...props} />,
-        hr: (props: any) => <hr className="my-8 border-border" {...props} />,
-        pre: (props: any) => <pre className="bg-secondary/50 p-4 rounded-lg overflow-x-auto my-4 text-sm" {...props} />,
-        code: (props: any) => <code className="bg-secondary/50 px-1 py-0.5 rounded text-sm font-mono" {...props} />,
+        h1: (props: React.ComponentPropsWithoutRef<'h1'>) => <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />,
+        h2: (props: React.ComponentPropsWithoutRef<'h2'>) => <h2 className="text-2xl font-bold mt-8 mb-4" {...props} />,
+        h3: (props: React.ComponentPropsWithoutRef<'h3'>) => <h3 className="text-xl font-bold mt-6 mb-3" {...props} />,
+        p: (props: React.ComponentPropsWithoutRef<'p'>) => <p className="text-muted-foreground leading-relaxed my-4" {...props} />,
+        a: (props: React.ComponentPropsWithoutRef<'a'>) => <a className="text-primary hover:underline" {...props} />,
+        ul: (props: React.ComponentPropsWithoutRef<'ul'>) => <ul className="list-disc list-inside my-4 space-y-2" {...props} />,
+        ol: (props: React.ComponentPropsWithoutRef<'ol'>) => <ol className="list-decimal list-inside my-4 space-y-2" {...props} />,
+        li: (props: React.ComponentPropsWithoutRef<'li'>) => <li className="ml-4 text-muted-foreground" {...props} />,
+        blockquote: (props: React.ComponentPropsWithoutRef<'blockquote'>) => <blockquote className="border-l-4 border-primary/50 pl-4 italic my-4 text-muted-foreground" {...props} />,
+        hr: (props: React.ComponentPropsWithoutRef<'hr'>) => <hr className="my-8 border-border" {...props} />,
+        pre: (props: React.ComponentPropsWithoutRef<'pre'>) => <pre className="bg-secondary/50 p-4 rounded-lg overflow-x-auto my-4 text-sm" {...props} />,
+        code: (props: React.ComponentPropsWithoutRef<'code'>) => <code className="bg-secondary/50 px-1 py-0.5 rounded text-sm font-mono" {...props} />,
     }
 
     const shareUrl = `https://blog.applyos.io/${slug}`

@@ -13,6 +13,32 @@ interface ConversationTurn {
     timestamp: string
 }
 
+// Minimal Web Speech API types (not in the standard TS DOM lib)
+interface SpeechRecognitionAlternative {
+    transcript: string
+}
+interface SpeechRecognitionResult {
+    0: SpeechRecognitionAlternative
+}
+interface SpeechRecognitionEvent {
+    results: ArrayLike<SpeechRecognitionResult>
+}
+interface SpeechRecognitionErrorEvent {
+    error: string
+}
+interface SpeechRecognitionInstance {
+    continuous: boolean
+    interimResults: boolean
+    lang: string
+    onstart: (() => void) | null
+    onend: (() => void) | null
+    onresult: ((event: SpeechRecognitionEvent) => void) | null
+    onerror: ((event: SpeechRecognitionErrorEvent) => void) | null
+    start: () => void
+    stop: () => void
+}
+type SpeechRecognitionConstructor = new () => SpeechRecognitionInstance
+
 interface ConversationalInterviewProps {
     sessionId: string
     onComplete: () => void
@@ -31,7 +57,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const audioChunksRef = useRef<Blob[]>([])
-    const recognitionRef = useRef<any>(null)
+    const recognitionRef = useRef<SpeechRecognitionInstance | null>(null)
     const silenceTimerRef = useRef<NodeJS.Timeout | null>(null)
     const transcriptRef = useRef<HTMLDivElement>(null)
     const synthRef = useRef<SpeechSynthesisUtterance | null>(null)
@@ -42,7 +68,9 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
     // Initialize speech recognition
     useEffect(() => {
         if (typeof window !== 'undefined' && 'webkitSpeechRecognition' in window) {
-            const SpeechRecognition = (window as any).webkitSpeechRecognition
+            const SpeechRecognition = (window as unknown as {
+                webkitSpeechRecognition: SpeechRecognitionConstructor
+            }).webkitSpeechRecognition
             const recognition = new SpeechRecognition()
             recognition.continuous = true
             recognition.interimResults = true
@@ -65,9 +93,9 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
                 }
             }
 
-            recognition.onresult = (event: any) => {
+            recognition.onresult = (event: SpeechRecognitionEvent) => {
                 const transcript = Array.from(event.results)
-                    .map((result: any) => result[0])
+                    .map((result: SpeechRecognitionResult) => result[0])
                     .map((result) => result.transcript)
                     .join('')
 
@@ -88,7 +116,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
                 }, 2000)
             }
 
-            recognition.onerror = (event: any) => {
+            recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
                 console.error('Speech recognition error:', event.error)
                 if (event.error !== 'no-speech') {
                     setError('Speech recognition error. Please try again.')
@@ -180,8 +208,8 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
 
             // Automatically start listening for user's ready response
             startRecording()
-        } catch (err: any) {
-            setError(err.message || 'Failed to start interview')
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to start interview')
             setOrbState('idle')
         }
     }
@@ -201,10 +229,10 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
                 // State updates will happen in onstart
             }
             setError(null)
-        } catch (err: any) {
+        } catch (err) {
             console.error('Failed to start recording:', err)
             // If it's already started, we're good
-            if (err.name !== 'InvalidStateError') {
+            if (!(err instanceof Error) || err.name !== 'InvalidStateError') {
                 setError('Failed to start recording')
             }
         }
@@ -275,8 +303,8 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
                 // Continue listening for next response
                 startRecording()
             }
-        } catch (err: any) {
-            setError(err.message || 'Failed to process response')
+        } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to process response')
             setOrbState('idle')
         }
     }
@@ -298,7 +326,7 @@ export function ConversationalInterview({ sessionId, onComplete }: Conversationa
             })
 
             onComplete()
-        } catch (err: any) {
+        } catch (err) {
             console.error('Failed to end interview:', err)
             onComplete()
         }

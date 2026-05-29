@@ -3,6 +3,8 @@ import { createClient } from '@/shared/db/supabase/server'
 import { callGeminiWithFallback } from '@/shared/infrastructure/ai'
 import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
+import type { InterviewSession, InterviewQuestion, InterviewAnswer } from '@/types/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -104,7 +106,7 @@ export async function POST(request: NextRequest) {
     console.log(`Generating report for session ${sessionId}: ${userTurns.length} user responses, ${questions.length} questions`)
 
     // Score each answer
-    const answers: any[] = []
+    const answers: InterviewAnswer[] = []
     let totalScore = 0
 
     for (let i = 0; i < Math.min(userTurns.length, questions.length); i++) {
@@ -225,7 +227,7 @@ Be honest with your scoring. Don't inflate or deflate scores.`
         totalScore += evaluation.overall_score
 
         console.log(`Scored Q${i + 1}: ${evaluation.overall_score}/10`)
-      } catch (error: any) {
+      } catch (error) {
         if (error instanceof AIRateLimitError) {
           throw error
         }
@@ -266,7 +268,7 @@ Be honest with your scoring. Don't inflate or deflate scores.`
       },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
     if (error instanceof AIRateLimitError) {
       const retryAfter = Math.max(1, Math.ceil((error.nextAvailableTime - Date.now()) / 1000))
       return NextResponse.json(
@@ -275,14 +277,14 @@ Be honest with your scoring. Don't inflate or deflate scores.`
       )
     }
     console.error('Error generating interview report:', error)
-    return NextResponse.json({ error: error.message || 'Internal server error' }, { status: 500 })
+    return NextResponse.json({ error: error instanceof Error ? error.message : 'Internal server error' }, { status: 500 })
   }
 }
 
 /**
  * Helper function to get existing report
  */
-async function getExistingReport(supabase: any, sessionId: string, session: any, questions: any[]) {
+async function getExistingReport(supabase: SupabaseClient, sessionId: string, session: InterviewSession, questions: InterviewQuestion[]) {
   const { data: answers } = await supabase
     .from('interview_answers')
     .select('*')

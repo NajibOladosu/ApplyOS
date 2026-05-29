@@ -104,11 +104,11 @@ export async function POST(request: NextRequest) {
       throw error
     }
 
-  } catch (error: any) {
+  } catch (error) {
     return NextResponse.json(
       {
-        error: error.message || 'Failed to transcribe audio',
-        details: process.env.NODE_ENV === 'development' ? error.stack : undefined
+        error: error instanceof Error ? error.message : 'Failed to transcribe audio',
+        details: process.env.NODE_ENV === 'development' && error instanceof Error ? error.stack : undefined
       },
       { status: 500 }
     )

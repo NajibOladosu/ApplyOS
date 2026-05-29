@@ -9,6 +9,7 @@ export function AnalyticsGate() {
   const [consent, setConsent] = useState<ConsentState | null>(null)
 
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- consent lives in localStorage, only readable after mount
     setConsent(readConsent())
     const handler = (e: Event) => {
       const detail = (e as CustomEvent<ConsentState | null>).detail

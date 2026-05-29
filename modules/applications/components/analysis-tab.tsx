@@ -114,9 +114,9 @@ export function AnalysisTab({ application, documents }: AnalysisTabProps) {
                 ...prev,
                 [selectedDocumentId]: data.analysis
             }))
-        } catch (err: any) {
+        } catch (err) {
             console.error('Analysis error:', err)
-            setError(err.message || 'An unexpected error occurred during analysis.')
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred during analysis.')
         } finally {
             setIsAnalyzing(false)
         }

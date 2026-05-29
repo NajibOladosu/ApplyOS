@@ -106,7 +106,7 @@ export const ResetPasswordTemplate: React.FC<ResetPasswordProps> = ({
                                 lineHeight: '1.6',
                             }}
                         >
-                            We received a request to reset the password for your ApplyOS account. If you didn't make this request, you can safely ignore this email.
+                            We received a request to reset the password for your ApplyOS account. If you didn&apos;t make this request, you can safely ignore this email.
                         </Text>
 
                         {/* Reset button */}
@@ -130,7 +130,7 @@ export const ResetPasswordTemplate: React.FC<ResetPasswordProps> = ({
                                 textAlign: 'center',
                             }}
                         >
-                            If the button above doesn't work, copy and paste this link into your browser:
+                            If the button above doesn&apos;t work, copy and paste this link into your browser:
                         </Text>
                         <Text
                             style={{

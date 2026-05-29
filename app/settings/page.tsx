@@ -86,7 +86,7 @@ export default function SettingsPage() {
         }
         setUser(user)
 
-        const meta = (user.user_metadata || {}) as any
+        const meta = (user.user_metadata || {}) as Record<string, unknown>
 
         setNotificationPrefs({
           email_notifications:

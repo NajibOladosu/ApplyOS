@@ -1,3 +1,6 @@
+import type { ParsedDocument } from "@/shared/infrastructure/ai"
+import type { ResumeAnalysisResult } from "@/modules/applications/components/resume-feedback"
+
 export type ApplicationStatus = 'draft' | 'submitted' | 'in_review' | 'interview' | 'offer' | 'rejected'
 export type ApplicationPriority = 'low' | 'medium' | 'high'
 export type ApplicationType = 'job' | 'scholarship' | 'internship' | 'other'
@@ -67,7 +70,7 @@ export interface Document {
   file_url: string
   file_type: string | null
   file_size: number | null
-  parsed_data: any
+  parsed_data: ParsedDocument | null
   version: number
   created_at: string
   updated_at: string
@@ -78,7 +81,7 @@ export interface Document {
   parsed_at: string | null
   application_id: string | null
   extracted_text: string | null
-  analysis_result: any | null // Using any for now to avoid circular deps or complexity, or define ResumeAnalysisResult here
+  analysis_result: ResumeAnalysisResult | null
 }
 
 export interface Notification {
@@ -290,6 +293,12 @@ export interface ConversationTurn {
   audio_url: string | null
   audio_duration_seconds: number | null
   timestamp: string
-  metadata: Record<string, any> | null
+  metadata: ConversationTurnMetadata | null
   created_at: string
+}
+
+export interface ConversationTurnMetadata {
+  type?: string
+  questionNumber?: number
+  [key: string]: unknown
 }

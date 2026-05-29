@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { createApplication } from '@/modules/applications/services/application.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
+import type { ApplicationPriority } from '@/types/database'
 
 interface ApplicationToImport {
   title: string
@@ -53,8 +54,8 @@ export async function POST(request: NextRequest) {
           title: app.title,
           company: app.company,
           url: app.url,
-          priority: app.priority as any,
-          type: app.type as any,
+          priority: app.priority as ApplicationPriority | undefined,
+          type: app.type,
           deadline: app.deadline,
           job_description: app.job_description,
         })

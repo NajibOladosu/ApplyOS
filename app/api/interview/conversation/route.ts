@@ -5,7 +5,8 @@ import { getQuestionsForSession, getInterviewSession, updateInterviewSession, cr
 import { generateInterviewQuestions, callGeminiWithFallback } from '@/shared/infrastructure/ai'
 import { isGeminiConfigured } from '@/shared/infrastructure/ai/client'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
-import type { QuestionCategory } from '@/types/database'
+import type { QuestionCategory, InterviewSession } from '@/types/database'
+import type { SupabaseClient } from '@supabase/supabase-js'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -81,8 +82,8 @@ export async function POST(request: NextRequest) {
             try {
                 // Generate questions using AI
                 const aiQuestions = await generateInterviewQuestions({
-                    sessionType: session.session_type as any,
-                    difficulty: (session.difficulty || 'medium') as any,
+                    sessionType: session.session_type as 'behavioral' | 'technical' | 'mixed',
+                    difficulty: (session.difficulty || 'medium') as 'easy' | 'medium' | 'hard',
                     questionCount: session.total_questions || 5, // Use user-selected count
                     jobDescription: application?.job_description || undefined,
                     companyName: session.company_name || application?.company || undefined,
@@ -143,16 +144,16 @@ export async function POST(request: NextRequest) {
                     { status: 400, headers: { 'Content-Type': 'application/json' } }
                 )
         }
-    } catch (error: any) {
+    } catch (error) {
         console.error('Error in conversation API:', error)
         return new Response(
-            JSON.stringify({ error: error.message || 'Internal server error' }),
+            JSON.stringify({ error: error instanceof Error ? error.message : 'Internal server error' }),
             { status: 500, headers: { 'Content-Type': 'application/json' } }
         )
     }
 }
 
-async function handleStart(session: any, manager: ConversationManager, supabase: any) {
+async function handleStart(session: InterviewSession, manager: ConversationManager, supabase: SupabaseClient) {
     // Check if conversation already started
     const state = manager.getState()
     const existingIntro = state.turns.find(t => t.metadata?.type === 'introduction')
@@ -198,7 +199,7 @@ async function handleStart(session: any, manager: ConversationManager, supabase:
     )
 }
 
-async function handleRespond(session: any, manager: ConversationManager, userResponse: string, supabase: any) {
+async function handleRespond(session: InterviewSession, manager: ConversationManager, userResponse: string, supabase: SupabaseClient) {
     console.log('handleRespond started', { sessionId: session.id, userResponseLength: userResponse.length })
     const state = manager.getState()
 
@@ -363,7 +364,7 @@ async function handleRespond(session: any, manager: ConversationManager, userRes
     }
 }
 
-async function handleEnd(session: any, manager: ConversationManager, supabase: any) {
+async function handleEnd(session: InterviewSession, manager: ConversationManager, supabase: SupabaseClient) {
     // Save transcript and mark as abandoned
     await manager.saveTranscript()
 

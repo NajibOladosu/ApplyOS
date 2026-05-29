@@ -41,7 +41,7 @@ export class GeminiLiveClient {
     event: K,
     handler: GeminiLiveClientEvents[K]
   ): void {
-    this.events[event] = handler as any
+    this.events[event] = handler as never
   }
 
   /**
@@ -189,7 +189,7 @@ export class GeminiLiveClient {
     if (!this.config.model) {
       throw new Error('Gemini Live model is required — set via server config (SPECIALIZED_MODELS.LIVE_AUDIO)')
     }
-    const setupMessage: any = {
+    const setupMessage: { setup: Record<string, unknown> } = {
       setup: {
         model: this.config.model,
         generation_config: {

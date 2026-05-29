@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { createApplication } from "@/modules/applications/services/application.service"
 import { createQuestion } from "@/modules/interviews/services/question.service"
 import { AlertModal } from "@/components/modals/alert-modal"
+import type { ApplicationPriority } from "@/types/database"
 
 interface AddApplicationModalProps {
   isOpen: boolean
@@ -76,7 +77,7 @@ export function AddApplicationModal({ isOpen, onClose, onSuccess }: AddApplicati
         company: company || undefined,
         url,
         type,
-        priority: priority as any,
+        priority: priority as ApplicationPriority,
         deadline: deadline || undefined,
         job_description: notes || undefined,
       })

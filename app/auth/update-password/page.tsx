@@ -14,13 +14,10 @@ import { validatePassword, getPasswordStrength } from "@/lib/password-security"
 export default function UpdatePasswordPage() {
     const [password, setPassword] = useState("")
     const [confirmPassword, setConfirmPassword] = useState("")
-    const [loading, setLoading] = useState(false)
+    const [loading, setLoading] = useState(true)
     const [error, setError] = useState("")
     const [success, setSuccess] = useState(false)
-    const [passwordStrength, setPasswordStrength] = useState<{
-        score: 0 | 1 | 2 | 3 | 4
-        label: string
-    } | null>(null)
+    const passwordStrength = password.length > 0 ? getPasswordStrength(password) : null
     const [checkingPassword, setCheckingPassword] = useState(false)
 
     const router = useRouter()
@@ -29,9 +26,6 @@ export default function UpdatePasswordPage() {
     useEffect(() => {
         let authListener: { subscription: { unsubscribe: () => void } } | null = null;
         let timeoutTimer: NodeJS.Timeout;
-
-        // Start with loading true
-        setLoading(true);
 
         const setupAuth = async () => {
             // 1. Check if we already have a session
@@ -107,16 +101,6 @@ export default function UpdatePasswordPage() {
             clearTimeout(timeoutTimer)
         }
     }, [supabase.auth])
-
-    // Update password strength indicator as user types
-    useEffect(() => {
-        if (password.length > 0) {
-            const strength = getPasswordStrength(password)
-            setPasswordStrength(strength)
-        } else {
-            setPasswordStrength(null)
-        }
-    }, [password])
 
     const handleUpdatePassword = async (e: React.FormEvent) => {
         e.preventDefault()

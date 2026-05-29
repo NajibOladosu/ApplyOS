@@ -25,6 +25,7 @@ export function BlogSettingsButton() {
     const { theme, setTheme } = useTheme()
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- mount guard + localStorage consent read
         setMounted(true)
         const initial = readConsent()
         setConsent(initial)

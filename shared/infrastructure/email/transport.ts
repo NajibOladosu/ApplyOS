@@ -25,7 +25,7 @@ export const getTransporter = () => {
   }
 
   const emailConfig = getEmailConfig();
-  const transportOptions: any = {
+  const transportOptions: Record<string, unknown> = {
     host: emailConfig.smtp.host,
     port: emailConfig.smtp.port,
     secure: emailConfig.smtp.secure,

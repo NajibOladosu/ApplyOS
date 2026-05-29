@@ -161,7 +161,7 @@ export default function FeedbackPage() {
             <CardHeader>
               <CardTitle>Send us your feedback</CardTitle>
               <CardDescription>
-                Choose a category and tell us what's on your mind. We read all feedback and use it to improve ApplyOS.
+                Choose a category and tell us what&apos;s on your mind. We read all feedback and use it to improve ApplyOS.
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -246,7 +246,7 @@ export default function FeedbackPage() {
                 {/* Info */}
                 <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
                   <p className="text-xs text-muted-foreground">
-                    <strong>Tip:</strong> Be specific about what you're reporting or suggesting. This helps us understand and address your feedback better.
+                    <strong>Tip:</strong> Be specific about what you&apos;re reporting or suggesting. This helps us understand and address your feedback better.
                   </p>
                 </div>
               </form>

@@ -128,11 +128,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       // Connect
       await wsClient.connect()
       setClient(wsClient)
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err))
+      setError(errorObj.message)
       setConnectionState('error')
       setOrbState('idle')
-      onError?.(err)
+      onError?.(errorObj)
     }
   }
 
@@ -197,9 +198,9 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
       setIsRecording(true)
       setOrbState('user')
-    } catch (err: any) {
+    } catch (err) {
       setMicPermission('denied')
-      setError(`Microphone access denied: ${err.message}`)
+      setError(`Microphone access denied: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -368,8 +369,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
       setConnectionState('disconnected')
       setOrbState('idle')
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
     }
   }
 
