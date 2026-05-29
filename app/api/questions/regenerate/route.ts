@@ -195,7 +195,15 @@ export async function POST(req: NextRequest) {
 
       try {
         console.log("Generating answer for question:", questionId)
-        const answer = await generateAnswer(target.question_text, context)
+        // Coherence: feed the other questions' existing answers so a single
+        // regeneration stays consistent with the rest of the application.
+        const priorAnswers = questionList
+          .filter((q) => q.id !== target.id && q.ai_answer)
+          .map((q) => ({ question: q.question_text, answer: q.ai_answer as string }))
+        const answer = await generateAnswer(target.question_text, {
+          ...context,
+          previousAnswers: priorAnswers,
+        })
         console.log("Generated answer, length:", answer.length)
         const { data: saved, error: updateError } = await supabase
           .from("questions")
@@ -223,10 +231,15 @@ export async function POST(req: NextRequest) {
     } else {
       // Regenerate all questions
       console.log("Regenerating all questions:", { count: questionList.length, contextKeys: Object.keys(context).filter(k => context[k as keyof typeof context]) })
+      // Coherence: accumulate answered pairs so each answer builds on the prior ones.
+      const answeredPairs: { question: string; answer: string }[] = []
       for (const q of questionList) {
         try {
           console.log("Generating answer for question:", q.id)
-          const answer = await generateAnswer(q.question_text, context)
+          const answer = await generateAnswer(q.question_text, {
+            ...context,
+            previousAnswers: answeredPairs,
+          })
           console.log("Generated answer, length:", answer.length)
           const { data: saved, error: updateError } = await supabase
             .from("questions")
@@ -240,6 +253,7 @@ export async function POST(req: NextRequest) {
           }
           console.log("Question updated:", saved.id)
           updatedQuestions.push(saved)
+          answeredPairs.push({ question: q.question_text, answer })
         } catch (error) {
           console.error("Error regenerating answer for question:", q.id, {
             message: error instanceof Error ? error.message : String(error),

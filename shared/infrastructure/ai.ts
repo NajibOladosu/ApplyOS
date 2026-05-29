@@ -208,32 +208,52 @@ export async function generateAnswer(
     education?: string
     jobDescription?: string
     extraInstructions?: string
+    previousAnswers?: { question: string; answer: string }[]
   }
 ): Promise<string> {
   if (!isGeminiConfigured()) {
     return 'AI answer generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
+  const hasBackground = Boolean(context.resume || context.experience || context.education)
+
+  const previousAnswersBlock =
+    context.previousAnswers && context.previousAnswers.length > 0
+      ? `Previously answered questions for THIS application (keep the narrative consistent, do NOT repeat the same anecdotes or phrasing, and draw on different strengths where possible):
+${context.previousAnswers.map((p) => `Q: ${p.question}\nA: ${p.answer}`).join('\n\n')}
+
+`
+      : ''
+
   const prompt = `You are helping a candidate answer a job or scholarship application question. Your job is to write the answer AS IF you are the candidate.
 
 Question: ${question}
 
 ${context.jobDescription ? `Position/Opportunity Description:\n${context.jobDescription}\n\n` : ''}Candidate's Background:
-${context.resume ? `Resume/Profile:\n${context.resume}` : '(No resume provided)'}
+${hasBackground ? `Resume/Profile:\n${context.resume || ''}` : '(No background provided)'}
 
-${context.extraInstructions ? `Additional Instructions from User:\n${context.extraInstructions}\n` : ''}
+${previousAnswersBlock}${context.extraInstructions ? `Additional Instructions from User:\n${context.extraInstructions}\n` : ''}
 
-Important Instructions:
+Grounding Rules (MOST IMPORTANT — never violate these):
+- Use ONLY facts stated in the candidate's background above. Do NOT invent
+  employers, job titles, dates, locations, projects, certifications, or skills
+  that are not explicitly present.
+- Never state a quantified achievement (percentages, dollar amounts, headcount,
+  rankings, durations) unless that exact figure appears in the background.
+- If the background does not contain enough detail to answer concretely, write
+  an honest, general answer using only what is provided. Do NOT fabricate
+  specifics to sound impressive. A truthful general answer is better than an
+  invented detailed one.
+${hasBackground ? '' : '- No background was provided, so keep the answer general and motivational without inventing any concrete experience.\n'}
+Style Instructions:
 - Write the answer in first person (as the candidate responding)
 - Do NOT provide templates, disclaimers, or bracketed placeholders
 - Do NOT say "Here's a template answer" or "Replace X with your own Y"
 - Do NOT prefix with explanations or caveats
-- Assume all provided information is the candidate's ACTUAL background
-- Write a direct, authentic response that the candidate can use
-- Make it specific to the candidate's actual experience
+- Treat the provided background as the candidate's ACTUAL, real history
 - Between 100-200 words
-- Professional and compelling
-- If specific instructions were provided above, PRIORITIZE them while maintaining a professional tone
+- Professional and compelling, but truthful over impressive
+- If specific user instructions were provided above, PRIORITIZE them while staying within the grounding rules
 
 Answer (write as if you are the candidate):`
 
