@@ -3,6 +3,7 @@ import { createClient } from "@/shared/db/supabase/server"
 import { renderResumeHTML } from "@/lib/editor/render-html"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import type { DocSettings, TemplateId } from "@/modules/applications/components/editor/types"
+import type { JSONContent } from "@tiptap/core"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -54,7 +55,7 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json()
         const { contentJson, templateId, fileName, docSettings } = body as {
-            contentJson?: any
+            contentJson?: JSONContent
             templateId?: TemplateId
             fileName?: string
             docSettings?: DocSettings
@@ -99,10 +100,10 @@ export async function POST(req: NextRequest) {
         } finally {
             await browser.close()
         }
-    } catch (error: any) {
+    } catch (error) {
         console.error("[PDF Export] Error:", error)
         return new NextResponse(
-            JSON.stringify({ error: error.message || "PDF export failed" }),
+            JSON.stringify({ error: error instanceof Error ? error.message : "PDF export failed" }),
             { status: 500, headers: { "Content-Type": "application/json" } },
         )
     }

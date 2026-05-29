@@ -13,7 +13,7 @@ interface RetryTask {
   id?: string
   userId: string
   taskType: TaskType
-  taskData: Record<string, any>
+  taskData: Record<string, unknown>
   scheduledRetryTime: Date
   attemptCount?: number
   maxAttempts?: number
@@ -72,7 +72,7 @@ export class RetryQueueService {
   /**
    * Get pending tasks that are ready to retry
    */
-  static async getPendingTasks(limit: number = 10): Promise<any[]> {
+  static async getPendingTasks(limit: number = 10): Promise<unknown[]> {
     try {
       const now = new Date()
 
@@ -240,7 +240,7 @@ export class RetryQueueService {
   /**
    * Get tasks for a specific user
    */
-  static async getTasksByUser(userId: string, limit: number = 50): Promise<any[]> {
+  static async getTasksByUser(userId: string, limit: number = 50): Promise<unknown[]> {
     try {
       const { data, error } = await this.supabase
         .from('ai_retry_queue')

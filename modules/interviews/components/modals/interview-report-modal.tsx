@@ -5,11 +5,23 @@ import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Badge } from '@/shared/ui/badge'
 import { X, TrendingUp, TrendingDown, Minus, RotateCw } from 'lucide-react'
+import type { InterviewSession, InterviewQuestion, InterviewAnswer, InterviewFeedback } from '@/types/database'
+
+// The feedback payload returned by the report API may include an
+// `areas_for_improvement` list in addition to the stored feedback shape.
+type ReportFeedback = InterviewFeedback & { areas_for_improvement?: string[] }
+type ReportAnswer = Omit<InterviewAnswer, 'feedback'> & { feedback: ReportFeedback }
+
+export interface InterviewReportData {
+    session: InterviewSession
+    questions: InterviewQuestion[]
+    answers: ReportAnswer[]
+}
 
 interface InterviewReportModalProps {
     isOpen: boolean
     onClose: () => void
-    reportData: any
+    reportData: InterviewReportData | null
     sessionId: string
     onRetake?: () => void
 }
@@ -127,8 +139,8 @@ export function InterviewReportModal({
                         {/* Questions and Answers */}
                         <div className="space-y-4">
                             <h3 className="text-lg font-semibold">Question-by-Question Breakdown</h3>
-                            {questions.map((question: any, index: number) => {
-                                const answer = answers.find((a: any) => a.question_id === question.id)
+                            {questions.map((question: InterviewQuestion, index: number) => {
+                                const answer = answers.find((a: ReportAnswer) => a.question_id === question.id)
                                 if (!answer) return null
 
                                 const questionScore = answer.score || 0

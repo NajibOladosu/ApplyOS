@@ -4,6 +4,7 @@ import Placeholder from "@tiptap/extension-placeholder"
 import { TextStyle } from "@tiptap/extension-text-style"
 import { FontFamily } from "@tiptap/extension-font-family"
 import { Extension } from "@tiptap/core"
+import type { CommandProps } from "@tiptap/core"
 
 declare module '@tiptap/core' {
     interface Commands<ReturnType> {
@@ -36,9 +37,9 @@ const FontSize = Extension.create({
     },
     addCommands() {
         return {
-            setFontSize: (size: string) => ({ chain }: any) =>
+            setFontSize: (size: string) => ({ chain }: CommandProps) =>
                 chain().setMark('textStyle', { fontSize: size }).run(),
-            unsetFontSize: () => ({ chain }: any) =>
+            unsetFontSize: () => ({ chain }: CommandProps) =>
                 chain().setMark('textStyle', { fontSize: null }).removeEmptyTextStyle().run(),
         }
     },

@@ -33,6 +33,7 @@ import {
 import { useToast } from "@/shared/ui/use-toast"
 import { useDebounceCallback } from "usehooks-ts"
 import { type ResumeAnalysisResult } from "./resume-feedback"
+import type { ParsedDocument } from "@/shared/infrastructure/ai"
 import {
     resumeVersionsService,
     type ResumeVersion,
@@ -52,7 +53,7 @@ export type { EditorBlock, BlockType, BlockStyles } from "./editor/types"
 interface ResumeEditorProps {
     documentUrl: string
     analysis: ResumeAnalysisResult | null
-    parsedData: any
+    parsedData: ParsedDocument | null
     extractedText: string | null
     applicationId: string
     documentId: string
@@ -326,11 +327,11 @@ export function ResumeEditor({
             setVersions([created, ...versions])
             setCurrentVersionId(created.id)
             toast({ title: "Saved as new version" })
-        } catch (err: any) {
+        } catch (err) {
             console.error("Capture failed:", err)
             toast({
                 title: "Failed to save version",
-                description: err?.message ?? "Unknown error",
+                description: err instanceof Error ? err.message : "Unknown error",
                 variant: "destructive",
             })
         } finally {
@@ -361,11 +362,11 @@ export function ResumeEditor({
                 }
             }
             toast({ title: "Version deleted" })
-        } catch (err: any) {
+        } catch (err) {
             console.error("Delete version failed:", err)
             toast({
                 title: "Failed to delete version",
-                description: err?.message ?? "Unknown error",
+                description: err instanceof Error ? err.message : "Unknown error",
                 variant: "destructive",
             })
         }
@@ -469,11 +470,11 @@ export function ResumeEditor({
             } else {
                 throw new Error("AI returned no content")
             }
-        } catch (err: any) {
+        } catch (err) {
             setDiffOpen(false)
             toast({
                 title: "Failed to apply recommendations",
-                description: err.message,
+                description: err instanceof Error ? err.message : String(err),
                 variant: "destructive",
             })
         } finally {
@@ -483,7 +484,7 @@ export function ResumeEditor({
 
     const acceptDiff = async (mergedDoc: ResumeDoc) => {
         if (!editor) return
-        editor.commands.setContent(mergedDoc as any)
+        editor.commands.setContent(mergedDoc as unknown as JSONContent)
         setDiffOpen(false)
         setDiffProposed(null)
         setDiffOriginal(null)
@@ -550,11 +551,11 @@ export function ResumeEditor({
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
             toast({ title: `Exported as ${format.toUpperCase()}` })
-        } catch (err: any) {
+        } catch (err) {
             console.error("Export error:", err)
             toast({
                 title: "Export failed",
-                description: err.message,
+                description: err instanceof Error ? err.message : String(err),
                 variant: "destructive",
             })
         } finally {

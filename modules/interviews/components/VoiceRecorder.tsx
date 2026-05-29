@@ -142,9 +142,9 @@ export function VoiceRecorder({
           <div className="mt-4 p-4 bg-gray-50 rounded-lg text-left text-sm text-gray-700">
             <p className="font-medium mb-2">To enable microphone access:</p>
             <ol className="list-decimal list-inside space-y-1">
-              <li>Click the lock/info icon in your browser's address bar</li>
-              <li>Find "Microphone" in the permissions list</li>
-              <li>Change it to "Allow" or "Ask"</li>
+              <li>Click the lock/info icon in your browser&apos;s address bar</li>
+              <li>Find &quot;Microphone&quot; in the permissions list</li>
+              <li>Change it to &quot;Allow&quot; or &quot;Ask&quot;</li>
               <li>Reload the page and try again</li>
             </ol>
           </div>

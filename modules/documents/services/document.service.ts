@@ -166,7 +166,7 @@ export async function deleteDocument(id: string, fileUrl: string) {
  * - enforce auth/ownership via RLS
  * - update analysis_status / parsed_at / summary, etc.
  */
-export async function updateDocumentParsedData(id: string, parsedData: any) {
+export async function updateDocumentParsedData(id: string, parsedData: ParsedDocument) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from("documents")

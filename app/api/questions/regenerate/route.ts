@@ -92,7 +92,7 @@ export async function POST(req: NextRequest) {
     console.log("Questions retrieved:", { count: questionList.length, questionIds: questionList.map(q => q.id) })
 
     // Build context from selected documents and application info
-    let context: {
+    const context: {
       resume?: string
       experience?: string
       education?: string

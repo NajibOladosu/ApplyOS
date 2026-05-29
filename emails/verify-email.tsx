@@ -130,7 +130,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                 textAlign: 'center',
               }}
             >
-              If the button above doesn't work, copy and paste this link into your browser:
+              If the button above doesn&apos;t work, copy and paste this link into your browser:
             </Text>
             <Text
               style={{
@@ -168,7 +168,7 @@ export const VerifyEmailTemplate: React.FC<VerifyEmailProps> = ({
                 lineHeight: '1.5',
               }}
             >
-              <strong>Security Note:</strong> This verification link expires in 24 hours. If you didn't create this account, please ignore this email.
+              <strong>Security Note:</strong> This verification link expires in 24 hours. If you didn&apos;t create this account, please ignore this email.
             </Text>
 
             {/* Features preview */}

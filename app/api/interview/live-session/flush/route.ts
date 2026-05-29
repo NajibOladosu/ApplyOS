@@ -82,9 +82,9 @@ export async function POST(request: NextRequest) {
           supabase
         )
         savedCount++
-      } catch (error: any) {
+      } catch (error) {
         console.error(`Failed to save turn ${turn.turn_number}:`, error)
-        errors.push(`Turn ${turn.turn_number}: ${error.message}`)
+        errors.push(`Turn ${turn.turn_number}: ${error instanceof Error ? error.message : String(error)}`)
       }
     }
 
@@ -105,10 +105,10 @@ export async function POST(request: NextRequest) {
       { saved: savedCount },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error flushing conversation turns:', error)
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: error instanceof Error ? error.message : 'Internal server error' },
       { status: 500 }
     )
   }

@@ -39,11 +39,12 @@ export interface ClassifiedError {
 
 const RATE_LIMIT_STATUSES = new Set([429, 503])
 
-export function classifyError(error: any): ClassifiedError {
-  const message = String(error?.message ?? error?.toString() ?? '')
+export function classifyError(error: unknown): ClassifiedError {
+  const e = error as { message?: unknown; status?: unknown; toString?: () => string } | null | undefined
+  const message = String(e?.message ?? e?.toString?.() ?? '')
   const lower = message.toLowerCase()
 
-  let status: number | null = typeof error?.status === 'number' ? error.status : null
+  let status: number | null = typeof e?.status === 'number' ? e.status : null
   if (status == null) {
     const match = lower.match(/\b(4\d{2}|5\d{2})\b/)
     if (match) status = parseInt(match[1], 10)

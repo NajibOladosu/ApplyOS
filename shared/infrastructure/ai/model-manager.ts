@@ -227,7 +227,7 @@ export class ModelManager {
    */
   static getStatus(): Record<string, { limited: boolean; limitedUntil: number | null; availableIn: string }> {
     const now = Date.now()
-    const status: Record<string, any> = {}
+    const status: Record<string, { limited: boolean; limitedUntil: number | null; availableIn: string }> = {}
 
     rateLimitTracker.forEach((tracker) => {
       const isLimited = !!tracker.limitedUntil && tracker.limitedUntil > now

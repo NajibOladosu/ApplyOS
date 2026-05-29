@@ -43,8 +43,8 @@ export async function POST(req: NextRequest) {
         const rewritten = await callGeminiWithFallback(prompt, 'SIMPLE')
 
         return NextResponse.json({ rewritten: rewritten.trim() })
-    } catch (error: any) {
+    } catch (error) {
         console.error("AI Rewrite Error:", error)
-        return new NextResponse(error.message || "Internal Server Error", { status: 500 })
+        return new NextResponse(error instanceof Error ? error.message : "Internal Server Error", { status: 500 })
     }
 }

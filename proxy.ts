@@ -125,7 +125,7 @@ export async function proxy(request: NextRequest) {
   // ============================================================
   // MAIN APP ROUTING (existing logic)
   // ============================================================
-  let response = NextResponse.next({
+  const response = NextResponse.next({
     request: {
       headers: requestHeaders,
     },

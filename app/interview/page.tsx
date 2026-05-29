@@ -63,7 +63,11 @@ export default function InterviewPage() {
 
       if (error) throw error
 
-      const mappedSessions = (sessionsData || []).map((session: any) => ({
+      const mappedSessions = (sessionsData || []).map((session: SessionWithApplication & {
+        db_total_questions?: number | null
+        db_answered_questions?: number | null
+        db_average_score?: number | null
+      }) => ({
         ...session,
         total_questions: session.db_total_questions ?? session.total_questions,
         answered_questions: session.db_answered_questions ?? session.answered_questions,

@@ -176,7 +176,7 @@ export default function NotificationsPage() {
                         <p className="text-xs text-muted-foreground">
                           {notification.created_at
                             ? new Date(
-                                notification.created_at as any
+                                notification.created_at
                               ).toLocaleString()
                             : ""}
                         </p>
@@ -197,7 +197,7 @@ export default function NotificationsPage() {
               </div>
               <h3 className="text-lg font-semibold mb-2">No notifications</h3>
               <p className="text-muted-foreground">
-                You're all caught up! New notifications will appear here.
+                You&apos;re all caught up! New notifications will appear here.
               </p>
             </CardContent>
           </Card>

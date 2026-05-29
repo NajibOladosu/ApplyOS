@@ -36,7 +36,8 @@ export async function POST(request: NextRequest) {
             .eq('email', email)
             .limit(1)
 
-        const userName = (users as any[] && (users as any[]).length > 0 && (users as any[])[0].name) || email.split('@')[0]
+        const userRow = (users as unknown as Array<{ name?: string | null }> | null)?.[0]
+        const userName = userRow?.name || email.split('@')[0]
 
         // If no user found, return success immediately to prevent enumeration
         // and strictly ensure we DO NOT send an email

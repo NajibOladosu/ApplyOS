@@ -96,6 +96,7 @@ export function DiffModal({
     const [accepted, setAccepted] = useState<Set<number>>(new Set())
 
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- reset accepted selection when change set updates
         setAccepted(new Set(changes.map((_, i) => i)))
     }, [changes])
 

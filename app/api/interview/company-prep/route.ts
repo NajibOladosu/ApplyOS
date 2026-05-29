@@ -8,7 +8,7 @@ import {
   incrementTemplateUsage,
 } from '@/modules/interviews/services/interview.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
-import type { QuestionCategory } from '@/types/database'
+import type { QuestionCategory, IdealAnswerOutline, EvaluationCriteria } from '@/types/database'
 
 export const dynamic = 'force-dynamic'
 
@@ -100,7 +100,7 @@ export async function POST(request: NextRequest) {
     // Generate/customize questions FIRST - fail early if this fails
     console.log(`Generating ${questionCount} company-specific questions for ${template.company_name}...`)
     const aiQuestions = await generateCompanySpecificQuestions({
-      templateQuestions,
+      templateQuestions: templateQuestions as unknown as Record<string, unknown>[],
       jobDescription: customizeForJob ? application.job_description || undefined : undefined,
       questionCount: Math.min(questionCount, templateQuestions.length),
     })
@@ -132,8 +132,8 @@ export async function POST(request: NextRequest) {
         question_text: q.question_text,
         question_category: q.question_category as QuestionCategory,
         difficulty: q.difficulty as 'easy' | 'medium' | 'hard',
-        ideal_answer_outline: q.ideal_answer_outline,
-        evaluation_criteria: q.evaluation_criteria,
+        ideal_answer_outline: q.ideal_answer_outline as IdealAnswerOutline | undefined,
+        evaluation_criteria: q.evaluation_criteria as EvaluationCriteria | undefined,
         question_order: index + 1,
         estimated_duration_seconds: q.estimated_duration_seconds,
       })),
@@ -154,10 +154,10 @@ export async function POST(request: NextRequest) {
       },
       { status: 201 }
     )
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error generating company-specific questions:', error)
     return NextResponse.json(
-      { error: error.message || 'Failed to generate company-specific questions' },
+      { error: error instanceof Error ? error.message : 'Failed to generate company-specific questions' },
       { status: 500 }
     )
   }

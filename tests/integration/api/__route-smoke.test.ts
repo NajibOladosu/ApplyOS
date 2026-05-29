@@ -36,7 +36,7 @@ function makeReq(path: string, method: string = 'GET', body?: unknown): NextRequ
 // `handler` and `ctx` are intentionally loose — route handler signatures vary
 // (some take just NextRequest, some take a RouteContext with typed params),
 // and this smoke layer just verifies non-crash behavior across all routes.
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 type AnyHandler = (req: NextRequest, ctx?: any) => Promise<Response>
 async function assertGated(
   handler: any,

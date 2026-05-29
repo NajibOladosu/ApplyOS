@@ -35,11 +35,12 @@ const GENERATION_CONFIGS = {
 /**
  * Extract retry-after header value from error response
  */
-function getRetryAfterFromError(error: any, status: number | null): string | null {
-  if (!error) return null
+function getRetryAfterFromError(error: unknown, status: number | null): string | null {
+  if (!error || typeof error !== 'object') return null
 
-  if (error.headers?.['retry-after']) {
-    return error.headers['retry-after']
+  const headers = (error as { headers?: Record<string, string> }).headers
+  if (headers?.['retry-after']) {
+    return headers['retry-after']
   }
 
   if (status === 503) return '120'
@@ -164,7 +165,7 @@ export async function callGeminiWithFallback(
         fallback_path: fallbackPath,
         status: 'client_error',
         http_status: classified.status,
-        error_class: (error as any)?.name || 'Error',
+        error_class: error instanceof Error ? error.name : 'Error',
         error_message: classified.message,
         prompt_chars: prompt.length,
       })
@@ -491,14 +492,14 @@ Rules:
       return empty
     }
 
-    const obj = parsed as Record<string, any>
+    const obj = parsed as Record<string, unknown>
 
-    const normalizeArray = (value: any): string[] =>
+    const normalizeArray = (value: unknown): string[] =>
       Array.isArray(value) ? value.map((v) => String(v)).filter(Boolean) : []
 
     const normalized: ParsedDocument = {
       education: Array.isArray(obj.education)
-        ? obj.education.map((e: any) => ({
+        ? (obj.education as Record<string, unknown>[]).map((e) => ({
           institution: String(e?.institution || ''),
           degree: String(e?.degree || ''),
           field: String(e?.field || ''),
@@ -508,7 +509,7 @@ Rules:
         }))
         : [],
       experience: Array.isArray(obj.experience)
-        ? obj.experience.map((e: any) => ({
+        ? (obj.experience as Record<string, unknown>[]).map((e) => ({
           company: String(e?.company || ''),
           role: String(e?.role || ''),
           start_date: String(e?.start_date || ''),
@@ -517,7 +518,7 @@ Rules:
         }))
         : [],
       projects: Array.isArray(obj.projects)
-        ? obj.projects.map((p: any) => ({
+        ? (obj.projects as Record<string, unknown>[]).map((p) => ({
           name: String(p?.name || ''),
           description: String(p?.description || ''),
           technologies: normalizeArray(p?.technologies),
@@ -525,14 +526,17 @@ Rules:
           end_date: p?.end_date ? String(p.end_date) : undefined,
         }))
         : [],
-      skills: {
-        technical: normalizeArray(obj.skills?.technical),
-        soft: normalizeArray(obj.skills?.soft),
-        other: normalizeArray(obj.skills?.other),
-      },
+      skills: (() => {
+        const s = (obj.skills as Record<string, unknown> | undefined) ?? {}
+        return {
+          technical: normalizeArray(s.technical),
+          soft: normalizeArray(s.soft),
+          other: normalizeArray(s.other),
+        }
+      })(),
       achievements: normalizeArray(obj.achievements),
       certifications: Array.isArray(obj.certifications)
-        ? obj.certifications.map((c: any) => ({
+        ? (obj.certifications as Record<string, unknown>[]).map((c) => ({
           name: String(c?.name || ''),
           issuer: String(c?.issuer || ''),
           date: String(c?.date || ''),
@@ -770,20 +774,20 @@ MANDATORY RULES - DO NOT BREAK THESE:
       return defaultReport
     }
 
-    const obj = parsed as Record<string, any>
+    const obj = parsed as Record<string, unknown>
     const report: DocumentReport = {
       documentType: String(obj.documentType || 'Unknown'),
       overallScore: typeof obj.overallScore === 'number' ? Math.min(10, Math.max(1, obj.overallScore)) : 0,
       overallAssessment: String(obj.overallAssessment || 'Report generated'),
       categories: Array.isArray(obj.categories)
-        ? obj.categories
-          .map((cat: any) => ({
+        ? (obj.categories as Record<string, unknown>[])
+          .map((cat) => ({
             name: String(cat?.name || ''),
             score: typeof cat?.score === 'number' ? Math.min(10, Math.max(1, cat.score)) : 0,
-            strengths: Array.isArray(cat?.strengths) ? cat.strengths.map((s: any) => String(s)) : [],
-            improvements: Array.isArray(cat?.improvements) ? cat.improvements.map((i: any) => String(i)) : [],
+            strengths: Array.isArray(cat?.strengths) ? (cat.strengths as unknown[]).map((s) => String(s)) : [],
+            improvements: Array.isArray(cat?.improvements) ? (cat.improvements as unknown[]).map((i) => String(i)) : [],
           }))
-          .filter((cat: any) => cat.name.length > 0)
+          .filter((cat) => cat.name.length > 0)
         : [],
     }
 
@@ -957,9 +961,9 @@ Generate exactly ${questionCount} unique, high-quality VERBAL interview question
       'other'
     ]
 
-    parsed.questions = parsed.questions.map((q: any) => {
+    parsed.questions = (parsed.questions as Record<string, unknown>[]).map((q) => {
       // Validate category
-      if (!allValidCategories.includes(q.question_category)) {
+      if (!allValidCategories.includes(q.question_category as string)) {
         console.warn(`Invalid question category "${q.question_category}", defaulting to "other"`)
         q.question_category = 'other'
       }
@@ -1129,9 +1133,9 @@ Generate exactly ${questionCount} questions that reference ACTUAL content from t
       'other'
     ]
 
-    parsed.questions = parsed.questions.map((q: any) => {
+    parsed.questions = (parsed.questions as Record<string, unknown>[]).map((q) => {
       // Validate category
-      if (!allValidCategories.includes(q.question_category)) {
+      if (!allValidCategories.includes(q.question_category as string)) {
         console.warn(`Invalid question category "${q.question_category}", defaulting to "resume_specific"`)
         q.question_category = 'resume_specific'
       }
@@ -1157,18 +1161,20 @@ Generate exactly ${questionCount} questions that reference ACTUAL content from t
  * @param questionCount - Number of questions to select/customize
  * @returns Array of customized questions
  */
-export async function generateCompanySpecificQuestions(params: {
-  templateQuestions: Array<any>
-  jobDescription?: string
-  questionCount: number
-}): Promise<Array<{
+type CompanySpecificQuestion = {
   question_text: string
   question_category: string
   difficulty: string
-  ideal_answer_outline: any
-  evaluation_criteria: any
+  ideal_answer_outline: unknown
+  evaluation_criteria: unknown
   estimated_duration_seconds: number
-}>> {
+}
+
+export async function generateCompanySpecificQuestions(params: {
+  templateQuestions: Array<Record<string, unknown>>
+  jobDescription?: string
+  questionCount: number
+}): Promise<Array<CompanySpecificQuestion>> {
   if (!isGeminiConfigured()) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
@@ -1181,7 +1187,7 @@ export async function generateCompanySpecificQuestions(params: {
 
   // If we have enough template questions and no job description, just return them
   if (templateQuestions.length >= questionCount && !jobDescription) {
-    return templateQuestions.slice(0, questionCount)
+    return templateQuestions.slice(0, questionCount) as CompanySpecificQuestion[]
   }
 
   const prompt = `You are customizing interview questions from a company-specific question bank.
@@ -1223,12 +1229,12 @@ Return exactly ${questionCount} questions.`
     const jsonMatch = jsonText.match(/\{[\s\S]*\}$/)
     if (!jsonMatch) {
       // Fallback: just return template questions
-      return templateQuestions.slice(0, questionCount)
+      return templateQuestions.slice(0, questionCount) as CompanySpecificQuestion[]
     }
 
     const parsed = JSON.parse(jsonMatch[0])
     if (!parsed.questions || !Array.isArray(parsed.questions)) {
-      return templateQuestions.slice(0, questionCount)
+      return templateQuestions.slice(0, questionCount) as CompanySpecificQuestion[]
     }
 
     // Validate and sanitize question categories
@@ -1245,23 +1251,23 @@ Return exactly ${questionCount} questions.`
       'other'
     ]
 
-    parsed.questions = parsed.questions.map((q: any) => {
+    parsed.questions = (parsed.questions as Record<string, unknown>[]).map((q) => {
       // Validate category
-      if (!allValidCategories.includes(q.question_category)) {
+      if (!allValidCategories.includes(q.question_category as string)) {
         console.warn(`Invalid question category "${q.question_category}", defaulting to "company_culture"`)
         q.question_category = 'company_culture'
       }
       return q
     })
 
-    return parsed.questions
+    return parsed.questions as CompanySpecificQuestion[]
   } catch (error) {
     if (error instanceof AIRateLimitError) {
       throw error
     }
     console.error('Error generating company-specific questions:', error)
     // Fallback: return template questions
-    return templateQuestions.slice(0, questionCount)
+    return templateQuestions.slice(0, questionCount) as CompanySpecificQuestion[]
   }
 }
 
@@ -1279,8 +1285,8 @@ export async function evaluateInterviewAnswer(params: {
   question: string
   answer: string
   questionCategory: string
-  idealOutline?: any
-  evaluationCriteria?: any
+  idealOutline?: unknown
+  evaluationCriteria?: unknown
   answerType: 'voice' | 'text'
 }): Promise<{
   score: number
@@ -1395,7 +1401,7 @@ Be honest with your scoring. Don't inflate or deflate scores.`
 
     // Validation helper to ensure arrays are properly formatted
     // Note: Empty arrays are now allowed for strengths/weaknesses (conditional based on score)
-    const ensureArray = (arr: any, minLength: number = 0, fieldName: string = 'field'): string[] => {
+    const ensureArray = (arr: unknown, minLength: number = 0, fieldName: string = 'field'): string[] => {
       if (!Array.isArray(arr)) {
         console.warn(`[AI Evaluation] ${fieldName} is not an array, got ${typeof arr}`)
         return []
@@ -1407,7 +1413,7 @@ Be honest with your scoring. Don't inflate or deflate scores.`
     }
 
     // Ensure all scores are valid numbers
-    const ensureScore = (score: any, fieldName: string = 'score'): number => {
+    const ensureScore = (score: unknown, fieldName: string = 'score'): number => {
       const num = Number(score)
       if (isNaN(num) || num < 0 || num > 10) {
         console.warn(`[AI Evaluation] Invalid ${fieldName}: ${score}, defaulting to 0`)
@@ -1522,7 +1528,7 @@ Return ONLY valid JSON (no markdown, no code fences):
 
     const parsed = JSON.parse(jsonMatch[0])
 
-    const normalizeArray = (arr: any) => Array.isArray(arr) ? arr.map(String) : []
+    const normalizeArray = (arr: unknown) => Array.isArray(arr) ? arr.map(String) : []
 
     return {
       score: typeof parsed.score === 'number' ? Math.min(100, Math.max(0, parsed.score)) : 0,

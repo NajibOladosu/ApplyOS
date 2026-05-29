@@ -40,7 +40,11 @@ export async function getInterviewSessions(applicationId: string): Promise<Inter
 
   if (error) throw error
 
-  return (data || []).map((session: any) => ({
+  return (data || []).map((session: InterviewSession & {
+    db_total_questions?: number | null
+    db_answered_questions?: number | null
+    db_average_score?: number | null
+  }) => ({
     ...session,
     total_questions: session.db_total_questions ?? session.total_questions,
     answered_questions: session.db_answered_questions ?? session.answered_questions,
@@ -67,7 +71,11 @@ export async function getInterviewSession(
   if (error) throw error
   if (!data) throw new Error(`Interview session not found or access denied: ${sessionId}`)
 
-  const session = data as any
+  const session = data as InterviewSession & {
+    db_total_questions?: number | null
+    db_answered_questions?: number | null
+    db_average_score?: number | null
+  }
   return {
     ...session,
     total_questions: session.db_total_questions ?? session.total_questions,

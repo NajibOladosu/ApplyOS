@@ -7,18 +7,33 @@
  * - Works reliably in Node.js API routes
  */
 
+interface PdfTextRun {
+  T?: string
+}
+
+interface PdfText {
+  R?: PdfTextRun[]
+}
+
+interface PdfPage {
+  Texts?: PdfText[]
+}
+
+interface PdfParserOutput {
+  Pages?: PdfPage[]
+}
+
 export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
   try {
     // pdf2json: zero dependencies, pure JS PDF parsing
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const PDFParser = require("pdf2json")
+    const PDFParser = (await import("pdf2json")).default
 
     return new Promise((resolve, reject) => {
       const parser = new PDFParser()
       let extractedText = ""
 
       // Extract text from parsed PDF
-      parser.on("pdfParser_dataReady", (pdf: any) => {
+      parser.on("pdfParser_dataReady", (pdf: PdfParserOutput) => {
         try {
           if (pdf && pdf.Pages && Array.isArray(pdf.Pages)) {
             for (const page of pdf.Pages) {
@@ -58,7 +73,7 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
         }
       })
 
-      parser.on("pdfParser_dataError", (error: any) => {
+      parser.on("pdfParser_dataError", (error: unknown) => {
         console.error("pdf2json parser error:", error)
         // Resolve with empty string on parse errors so callers get a graceful
         // fallback instead of an unhandled rejection (e.g. garbage buffers).

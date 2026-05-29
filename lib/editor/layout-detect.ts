@@ -8,6 +8,25 @@ export interface DetectedLayout {
     suggestedTemplate: TemplateId
 }
 
+interface PdfLayoutItem {
+    x?: number
+    y?: number
+    w?: number
+    h?: number
+}
+
+interface PdfLayoutPage {
+    Width?: number
+    Height?: number
+    Texts?: PdfLayoutItem[]
+    Fills?: PdfLayoutItem[]
+    Images?: PdfLayoutItem[]
+}
+
+interface PdfLayoutData {
+    Pages?: PdfLayoutPage[]
+}
+
 const DEFAULT_LAYOUT: DetectedLayout = {
     columnCount: 1,
     hasPhoto: false,
@@ -31,10 +50,9 @@ const DEFAULT_LAYOUT: DetectedLayout = {
  */
 export async function detectPdfLayout(buffer: Buffer): Promise<DetectedLayout> {
     try {
-        // eslint-disable-next-line @typescript-eslint/no-var-requires
-        const PDFParser = require("pdf2json")
+        const PDFParser = (await import("pdf2json")).default
 
-        const pdf: any = await new Promise((resolve, reject) => {
+        const pdf: PdfLayoutData = await new Promise((resolve, reject) => {
             const parser = new PDFParser()
             parser.on("pdfParser_dataReady", resolve)
             parser.on("pdfParser_dataError", reject)

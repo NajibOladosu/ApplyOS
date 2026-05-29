@@ -6,7 +6,6 @@ import { render } from '@react-email/render'
 import VerifyEmailTemplate from '@/emails/verify-email'
 import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport'
 import { getEmailConfig } from '@/shared/infrastructure/email/config'
-import type { Database } from '@/types/supabase'
 
 // Rate limit: 5 minutes between verification email sends
 const VERIFICATION_EMAIL_RATE_LIMIT_MS = 5 * 60 * 1000
@@ -28,7 +27,7 @@ async function sendVerificationEmail(
   userId: string,
   email: string,
   userName: string,
-  adminClient: SupabaseClient<Database>
+  adminClient: SupabaseClient
 ) {
   try {
     // Generate verification token
@@ -36,7 +35,7 @@ async function sendVerificationEmail(
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000) // 24 hours
 
     // Update user with token and rate limit timestamp
-    const { error: updateError } = await (adminClient as any)
+    const { error: updateError } = await adminClient
       .from('users')
       .update({
         verification_token: verificationToken,
@@ -125,7 +124,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/auth/login?error=config', requestUrl.origin + '/'))
     }
 
-    const adminClient = createAdminClient<Database>(supabaseUrl, supabaseServiceKey)
+    const adminClient = createAdminClient(supabaseUrl, supabaseServiceKey)
 
     // Exchange code for session
     const { data, error: exchangeError } = await supabase.auth.exchangeCodeForSession(code)
@@ -145,7 +144,7 @@ export async function GET(request: Request) {
     console.log(`👤 User: ${user.email}`)
 
     // Query existing profile
-    const { data: existingProfile, error: profileError } = await (adminClient as any)
+    const { data: existingProfile, error: profileError } = await adminClient
       .from('users')
       .select('id, email_verified, name, last_verification_email_sent')
       .eq('id', user.id)

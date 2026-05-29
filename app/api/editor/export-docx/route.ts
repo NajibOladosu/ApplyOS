@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { tiptapToDocxBuffer } from "@/lib/editor/docx-export"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+import type { JSONContent } from "@tiptap/core"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
@@ -20,7 +21,7 @@ export async function POST(req: NextRequest) {
 
         const body = await req.json()
         const { contentJson, fileName } = body as {
-            contentJson?: any
+            contentJson?: JSONContent
             fileName?: string
         }
 
@@ -39,10 +40,10 @@ export async function POST(req: NextRequest) {
                 "Cache-Control": "no-store",
             },
         })
-    } catch (error: any) {
+    } catch (error) {
         console.error("[DOCX Export] Error:", error)
         return new NextResponse(
-            JSON.stringify({ error: error.message || "DOCX export failed" }),
+            JSON.stringify({ error: error instanceof Error ? error.message : "DOCX export failed" }),
             { status: 500, headers: { "Content-Type": "application/json" } },
         )
     }

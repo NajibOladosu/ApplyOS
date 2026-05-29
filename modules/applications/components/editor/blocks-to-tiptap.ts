@@ -1,14 +1,14 @@
 import type { JSONContent } from "@tiptap/react"
 import type { EditorBlock, ResumeDoc } from "./types"
 
-const textNode = (content: string, marks: { type: string; attrs?: any }[] = []): JSONContent => ({
+const textNode = (content: string, marks: { type: string; attrs?: Record<string, unknown> }[] = []): JSONContent => ({
     type: 'text',
     text: content,
     ...(marks.length > 0 ? { marks } : {}),
 })
 
 const blockMarks = (block: EditorBlock) => {
-    const marks: { type: string; attrs?: any }[] = []
+    const marks: { type: string; attrs?: Record<string, unknown> }[] = []
     if (block.styles?.bold) marks.push({ type: 'bold' })
     if (block.styles?.italic) marks.push({ type: 'italic' })
     if (block.styles?.underline) marks.push({ type: 'underline' })

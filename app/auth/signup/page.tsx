@@ -19,29 +19,17 @@ function SignupContent() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState(false)
-  const [passwordStrength, setPasswordStrength] = useState<{
-    score: 0 | 1 | 2 | 3 | 4
-    label: string
-  } | null>(null)
+  const passwordStrength = password.length > 0 ? getPasswordStrength(password) : null
   const [checkingPassword, setCheckingPassword] = useState(false)
   const supabase = createClient()
 
   useEffect(() => {
     const errorParam = searchParams.get('error')
     if (errorParam === 'already_registered') {
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- syncing error from URL param on mount
       setError('You already have an account. Please sign in instead.')
     }
   }, [searchParams])
-
-  // Update password strength indicator as user types
-  useEffect(() => {
-    if (password.length > 0) {
-      const strength = getPasswordStrength(password)
-      setPasswordStrength(strength)
-    } else {
-      setPasswordStrength(null)
-    }
-  }, [password])
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -132,11 +120,11 @@ function SignupContent() {
             </CardHeader>
             <CardContent className="space-y-4">
               <p className="text-sm text-muted-foreground">
-                We've sent you a verification link. Click the link in your email to complete your signup and access ApplyOS.
+                We&apos;ve sent you a verification link. Click the link in your email to complete your signup and access ApplyOS.
               </p>
               <div className="p-3 bg-muted rounded-lg border border-border">
                 <p className="text-xs text-muted-foreground">
-                  The link will expire in 24 hours. If you don't see the email, check your spam folder.
+                  The link will expire in 24 hours. If you don&apos;t see the email, check your spam folder.
                 </p>
               </div>
               <Button asChild className="w-full">

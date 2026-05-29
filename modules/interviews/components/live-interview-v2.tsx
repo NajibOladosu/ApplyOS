@@ -9,7 +9,8 @@ import { GeminiLiveClient } from '@/lib/gemini-live/client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
 import type { ConversationTurn } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
-import { InterviewReportModal } from '@/modules/interviews/components/modals/interview-report-modal'
+import { InterviewReportModal, type InterviewReportData } from '@/modules/interviews/components/modals/interview-report-modal'
+import type { InterviewQuestion } from '@/types/database'
 import { useRouter } from 'next/navigation'
 
 interface LiveInterviewProps {
@@ -33,7 +34,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
 
   // Report state
   const [showReportModal, setShowReportModal] = useState(false)
-  const [reportData, setReportData] = useState<any>(null)
+  const [reportData, setReportData] = useState<InterviewReportData | null>(null)
   const [generatingReport, setGeneratingReport] = useState(false)
 
   // Recording state
@@ -61,11 +62,11 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const isAITurnCompleteRef = useRef<boolean>(false)
   const userAnswerAccumulator = useRef<string>('')
 
-  const [questions, setQuestions] = useState<any[]>([])
+  const [questions, setQuestions] = useState<InterviewQuestion[]>([])
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0)
 
   // Refs for state accessible in callbacks
-  const questionsRef = useRef<any[]>([])
+  const questionsRef = useRef<InterviewQuestion[]>([])
   const currentQuestionIndexRef = useRef(0)
   const aiTurnCounterRef = useRef(0)
   const lastSaveTimeRef = useRef(0)
@@ -230,7 +231,21 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
                     weaknesses,
                     suggestions,
                     tone_analysis
-                  } = fc.args
+                  } = fc.args as {
+                    question_index: number
+                    user_response: string
+                    overall_score: number
+                    clarity_score: number
+                    structure_score: number
+                    relevance_score: number
+                    depth_score: number
+                    confidence_score: number
+                    overall_feedback: string
+                    strengths: string[]
+                    weaknesses: string[]
+                    suggestions: string[]
+                    tone_analysis: string
+                  }
                   console.log(`[Interview] AI saving answer for Q${question_index} with score ${overall_score}`)
 
                   // Call API to save with all fields
@@ -285,12 +300,13 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       await wsClient.connect()
       setClient(wsClient)
       clientRef.current = wsClient
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      const errorObj = err instanceof Error ? err : new Error(String(err))
+      setError(errorObj.message)
       setConnectionState('error')
       setInterviewState('idle')
       setOrbMode('idle')
-      onError?.(err)
+      onError?.(errorObj)
     }
   }
 
@@ -394,8 +410,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       processorRef.current = processor
 
       setIsRecording(true)
-    } catch (err: any) {
-      setError(`Microphone access denied: ${err.message}`)
+    } catch (err) {
+      setError(`Microphone access denied: ${err instanceof Error ? err.message : String(err)}`)
     }
   }
 
@@ -614,8 +630,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         await generateReport()
         onComplete?.(transcript)
       }
-    } catch (err: any) {
-      setError(err.message)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
       setInterviewState('idle')
     }
   }
@@ -640,7 +656,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setGeneratingReport(false)
       setInterviewState('completed')
       setShowReportModal(true)
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error generating report:', err)
       setError('Failed to generate report. Please try again.')
       setGeneratingReport(false)
@@ -681,7 +697,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       setError(null)
       setInterviewState('idle')
       setConnectionState('disconnected')
-    } catch (err: any) {
+    } catch (err) {
       console.error('Error resetting interview:', err)
       setError('Failed to reset interview. Please refresh the page.')
       setGeneratingReport(false)

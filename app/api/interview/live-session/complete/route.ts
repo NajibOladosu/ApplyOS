@@ -92,7 +92,7 @@ export async function POST(request: NextRequest) {
             supabase
           )
           turnsSaved++
-        } catch (error: any) {
+        } catch (error) {
           console.error(`Failed to save remaining turn ${turn.turn_number}:`, error)
           // Continue saving other turns even if one fails
         }
@@ -109,7 +109,7 @@ export async function POST(request: NextRequest) {
         status: 'completed',
         completed_at: endedAt.toISOString(),
         conversation_ended_at: endedAt.toISOString(),
-        answered_questions: transcript.filter((t: any) => t.speaker === 'user').length,
+        answered_questions: transcript.filter((t: { speaker: string }) => t.speaker === 'user').length,
         total_duration_seconds: totalDurationSeconds,
       })
       .eq('id', sessionId)
@@ -135,15 +135,16 @@ export async function POST(request: NextRequest) {
       },
       { status: 200 }
     )
-  } catch (error: any) {
+  } catch (error) {
+    const err = error as { message?: string; hint?: string; code?: string }
     console.error('Error completing interview session:', {
-      message: error.message,
-      details: error.toString(),
-      hint: error.hint || '',
-      code: error.code || '',
+      message: err.message,
+      details: String(error),
+      hint: err.hint || '',
+      code: err.code || '',
     })
     return NextResponse.json(
-      { error: error.message || 'Internal server error' },
+      { error: err.message || 'Internal server error' },
       { status: 500 }
     )
   }

@@ -42,7 +42,7 @@ import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { NoteModal } from "@/modules/notes/components/modals/note-modal"
 import { NewInterviewModal } from "@/modules/interviews/components/modals/new-interview-modal"
-import { InterviewReportModal } from "@/modules/interviews/components/modals/interview-report-modal"
+import { InterviewReportModal, type InterviewReportData } from "@/modules/interviews/components/modals/interview-report-modal"
 import { NotesCardView } from "@/modules/notes/components/notes-card-view"
 import { NotesTimelineView } from "@/modules/notes/components/notes-timeline-view"
 import { RegenerateContextModal } from "@/components/modals/regenerate-context-modal"
@@ -102,7 +102,7 @@ export default function ApplicationDetailPage() {
   const [showDeleteConfirmModal, setShowDeleteConfirmModal] = useState(false)
   const [sessionToDelete, setSessionToDelete] = useState<string | null>(null)
   const [viewingReportSessionId, setViewingReportSessionId] = useState<string | null>(null)
-  const [reportData, setReportData] = useState<any | null>(null)
+  const [reportData, setReportData] = useState<InterviewReportData | null>(null)
   const [showRegenerateModal, setShowRegenerateModal] = useState(false)
   const [pendingRegenerationTarget, setPendingRegenerationTarget] = useState<string | "all" | null>(null)
   const textareaRefs = new Map<string, HTMLTextAreaElement | null>()
@@ -128,7 +128,7 @@ export default function ApplicationDetailPage() {
 
         // Merge application-specific analysis into documents
         const docsWithAnalysis = docs.map(doc => {
-          const details = appDocDetails.find((d: any) => d.document_id === doc.id)
+          const details = appDocDetails.find((d) => d.document_id === doc.id)
           // Always return a new object to avoid mutating 'doc' if it is reused
           // Strictly use the application-specific details. If they don't exist,
           // explicitly set analysis fields to null/default to avoid showing legacy global analysis.
@@ -906,7 +906,7 @@ export default function ApplicationDetailPage() {
               {/* Selected Documents List */}
               {selectedDocumentIds.length === 0 ? (
                 <p className="text-sm text-muted-foreground italic">
-                  No documents selected yet. Click "Add Document" to select documents.
+                  No documents selected yet. Click &quot;Add Document&quot; to select documents.
                 </p>
               ) : (
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
