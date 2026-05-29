@@ -25,6 +25,15 @@ export const getTransporter = () => {
   }
 
   const emailConfig = getEmailConfig();
+
+  // After sanitizing, re-validate: a value that was only whitespace/quotes
+  // would now be empty and silently produce a 535 auth failure.
+  if (!emailConfig.smtp.auth.user || !emailConfig.smtp.auth.pass) {
+    throw new Error(
+      'SMTP credentials are empty after sanitization. Verify SMTP_USER and SMTP_PASS contain valid (non-whitespace) values.'
+    );
+  }
+
   const transportOptions: any = {
     host: emailConfig.smtp.host,
     port: emailConfig.smtp.port,
@@ -33,13 +42,17 @@ export const getTransporter = () => {
       user: emailConfig.smtp.auth.user,
       pass: emailConfig.smtp.auth.pass,
     },
-    // Connection pooling
-    pool: {
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 4000, // 4 seconds
-      rateLimit: 14, // max 14 messages per rateDelta
-    },
+    // For non-secure ports (587/25), enforce STARTTLS before authenticating so
+    // credentials are never sent over a plaintext channel (which many servers
+    // reject with a 535 auth failure).
+    requireTLS: !emailConfig.smtp.secure,
+    // Connection pooling. `pool` must be a boolean; the pool sizing options are
+    // set alongside it (previously they were nested under `pool` and ignored).
+    pool: true,
+    maxConnections: 5,
+    maxMessages: 100,
+    rateDelta: 4000, // 4 seconds
+    rateLimit: 14, // max 14 messages per rateDelta
   };
 
   transporter = nodemailer.createTransport(transportOptions as TransportOptions);
