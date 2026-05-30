@@ -1,19 +1,15 @@
 /**
  * Email Module
- * Exports all email-related functions and types
+ * Resend-backed transactional / informational / support email.
  */
 
-export { emailService, sendEmailDirectly, processPendingEmails, getEmailStats } from './service';
-export { getTransporter, verifyTransporter, sendEmailViaSMTP } from './transport';
-export { emailConfig, getEmailConfig } from './config';
+export { sendEmail, type SendEmailOptions } from './transport'
+export { emailConfig, getEmailConfig, type SenderRole } from './config'
 export type {
   EmailTemplateType,
-  EmailQueueEntry,
-  EmailSendOptions,
   WelcomeEmailData,
   VerificationEmailData,
   StatusUpdateEmailData,
   DeadlineReminderEmailData,
   WeeklyDigestEmailData,
-  EmailService,
-} from './types';
+} from './types'

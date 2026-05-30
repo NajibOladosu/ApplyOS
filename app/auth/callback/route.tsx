@@ -4,7 +4,7 @@ import { NextResponse } from 'next/server'
 import crypto from 'crypto'
 import { render } from '@react-email/render'
 import VerifyEmailTemplate from '@/emails/verify-email'
-import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport'
+import { sendEmail } from '@/shared/infrastructure/email'
 import { getEmailConfig } from '@/shared/infrastructure/email/config'
 
 // Rate limit: 5 minutes between verification email sends
@@ -67,12 +67,13 @@ async function sendVerificationEmail(
       { plainText: true }
     )
 
-    await sendEmailViaSMTP(
-      email,
-      'Verify your ApplyOS email address',
-      htmlBody,
-      textBody
-    )
+    await sendEmail({
+      to: email,
+      subject: 'Verify your ApplyOS email address',
+      html: htmlBody,
+      text: textBody,
+      from: 'noreply',
+    })
 
     console.log(`✅ Verification email sent to ${email}`)
     return true

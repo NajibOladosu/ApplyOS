@@ -4,7 +4,7 @@
  */
 
 import { createClient } from '@/shared/db/supabase/server';
-import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { sendEmail as sendResendEmail } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import { signUnsubscribeToken } from '@/shared/infrastructure/email/unsubscribe-token';
 
@@ -116,7 +116,7 @@ export async function createNotificationWithEmail(
 
     if (shouldEmail) {
       try {
-        await sendEmailDirectly(userEmail, emailSubject, emailHtml);
+        await sendResendEmail({ to: userEmail, subject: emailSubject, html: emailHtml, from: 'info' });
 
         // Update notification to mark email as sent
         const supabase = await createClient();
