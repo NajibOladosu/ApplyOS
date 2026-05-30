@@ -42,8 +42,8 @@ export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string }>
     to: opts.to,
     subject: opts.subject,
     html: opts.html,
-    text: opts.text ?? opts.html.replace(/<[^>]*>/g, ''),
-    replyTo: opts.replyTo,
+    ...(opts.text ? { text: opts.text } : {}),
+    ...(opts.replyTo ? { replyTo: opts.replyTo } : {}),
   })
 
   if (error) {
