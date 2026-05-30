@@ -1,87 +1,56 @@
 /**
  * Email Transport
- * Handles SMTP connection and email sending via Nodemailer
+ * Resend-backed delivery for transactional, informational, and support email.
  */
 
-import nodemailer from 'nodemailer';
-import type { Transporter, TransportOptions } from 'nodemailer';
-import { getEmailConfig } from './config';
+import { Resend } from 'resend'
+import { getEmailConfig, type SenderRole } from './config'
 
-let transporter: Transporter | null = null;
+let client: Resend | null = null
 
-/**
- * Get or create the email transporter
- * Uses connection pooling for efficiency
- */
-export const getTransporter = () => {
-  if (transporter) {
-    return transporter;
+function getResend(): Resend {
+  if (client) return client
+  const apiKey = process.env.RESEND_API_KEY
+  if (!apiKey) {
+    throw new Error('RESEND_API_KEY is not set. Add it to .env.local')
   }
+  client = new Resend(apiKey)
+  return client
+}
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS || !process.env.SMTP_HOST) {
-    throw new Error(
-      'SMTP credentials not configured. Set SMTP_HOST, SMTP_PORT, SMTP_USER, and SMTP_PASS in .env.local'
-    );
+function buildFrom(role: SenderRole): string {
+  const { senders, from } = getEmailConfig()
+  const address = senders[role]
+  return `${from.name} <${address}>`
+}
+
+export interface SendEmailOptions {
+  to: string | string[]
+  subject: string
+  html: string
+  text?: string
+  from?: SenderRole
+  replyTo?: string
+}
+
+export async function sendEmail(opts: SendEmailOptions): Promise<{ id: string }> {
+  const resend = getResend()
+  const from = buildFrom(opts.from ?? 'noreply')
+
+  const { data, error } = await resend.emails.send({
+    from,
+    to: opts.to,
+    subject: opts.subject,
+    html: opts.html,
+    text: opts.text ?? opts.html.replace(/<[^>]*>/g, ''),
+    replyTo: opts.replyTo,
+  })
+
+  if (error) {
+    throw new Error(`Resend send failed: ${error.message}`)
   }
-
-  const emailConfig = getEmailConfig();
-  const transportOptions: Record<string, unknown> = {
-    host: emailConfig.smtp.host,
-    port: emailConfig.smtp.port,
-    secure: emailConfig.smtp.secure,
-    auth: {
-      user: emailConfig.smtp.auth.user,
-      pass: emailConfig.smtp.auth.pass,
-    },
-    // Connection pooling
-    pool: {
-      maxConnections: 5,
-      maxMessages: 100,
-      rateDelta: 4000, // 4 seconds
-      rateLimit: 14, // max 14 messages per rateDelta
-    },
-  };
-
-  transporter = nodemailer.createTransport(transportOptions as TransportOptions);
-
-  return transporter;
-};
-
-/**
- * Verify transporter connection
- * Useful for testing configuration
- */
-export const verifyTransporter = async () => {
-  try {
-    const transport = getTransporter();
-    await transport.verify();
-    console.log('✓ Email transporter verified successfully');
-    return true;
-  } catch (error) {
-    console.error('✗ Email transporter verification failed:', error);
-    return false;
+  if (!data?.id) {
+    throw new Error('Resend send returned no id')
   }
-};
-
-/**
- * Send email via SMTP
- */
-export const sendEmailViaSMTP = async (
-  to: string,
-  subject: string,
-  htmlBody: string,
-  textBody?: string
-) => {
-  const transporter = getTransporter();
-  const emailConfig = getEmailConfig();
-
-  const mailOptions = {
-    from: `${emailConfig.from.name} <${emailConfig.from.email}>`,
-    to,
-    subject,
-    text: textBody || htmlBody.replace(/<[^>]*>/g, ''), // Fallback to plain text
-    html: htmlBody,
-  };
-
-  return transporter.sendMail(mailOptions);
-};
+  return { id: data.id }
+}

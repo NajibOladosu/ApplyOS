@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/shared/db/supabase/server';
-import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { sendEmail } from '@/shared/infrastructure/email';
 import { weeklyDigestEmailTemplate } from '@/shared/infrastructure/email/templates/weekly-digest';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
@@ -139,7 +139,7 @@ export async function POST(request: NextRequest) {
         );
         const subject = `Your ApplyOS Weekly Summary (${weekStart.toLocaleDateString()} - ${weekEnd.toLocaleDateString()})`;
 
-        await sendEmailDirectly(userData.user.email, subject, htmlBody);
+        await sendEmail({ to: userData.user.email, subject, html: htmlBody, from: 'info' });
 
         digestsSent++;
         console.log(`✓ Weekly digest sent to ${userData.user.email}`);

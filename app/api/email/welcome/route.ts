@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/shared/db/supabase/server';
-import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { sendEmail } from '@/shared/infrastructure/email';
 import { welcomeEmailTemplate, welcomeEmailSubject } from '@/shared/infrastructure/email/templates/welcome';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
@@ -62,10 +62,10 @@ export async function POST(request: NextRequest) {
 
     const subject = welcomeEmailSubject();
 
-    // Send email
-    const success = await sendEmailDirectly(userEmail, subject, htmlBody);
-
-    if (!success) {
+    try {
+      await sendEmail({ to: userEmail, subject, html: htmlBody, from: 'noreply' });
+    } catch (err) {
+      console.error('Failed to send welcome email:', err);
       return NextResponse.json(
         { error: 'Failed to send welcome email' },
         { status: 500 }

@@ -3,7 +3,7 @@ import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
 import { render } from '@react-email/render'
 import ResetPasswordTemplate from '@/emails/reset-password'
-import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport'
+import { sendEmail } from '@/shared/infrastructure/email'
 import { getEmailConfig } from '@/shared/infrastructure/email/config'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { Database } from '@/types/supabase'
@@ -86,12 +86,13 @@ export async function POST(request: NextRequest) {
             { plainText: true }
         )
 
-        await sendEmailViaSMTP(
-            email,
-            'Reset your ApplyOS password',
-            htmlBody,
-            textBody
-        )
+        await sendEmail({
+            to: email,
+            subject: 'Reset your ApplyOS password',
+            html: htmlBody,
+            text: textBody,
+            from: 'noreply',
+        })
 
         console.log(`✅ Custom reset email sent to ${email}`)
         return NextResponse.json({ message: 'Reset email sent successfully' })

@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@/shared/db/supabase/server';
-import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { sendEmail } from '@/shared/infrastructure/email';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
 
 export const dynamic = 'force-dynamic'
@@ -128,9 +128,10 @@ export async function POST(request: NextRequest) {
       </html>
     `;
 
-    const success = await sendEmailDirectly(testEmail, subject, htmlBody);
-
-    if (!success) {
+    try {
+      await sendEmail({ to: testEmail, subject, html: htmlBody, from: 'support' });
+    } catch (err) {
+      console.error('Failed to send test email:', err);
       return NextResponse.json(
         { error: 'Failed to send test email. Check server logs for details.' },
         { status: 500 }

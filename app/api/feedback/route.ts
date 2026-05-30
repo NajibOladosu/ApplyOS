@@ -6,7 +6,7 @@
 
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient as createSupabaseServerClient } from '@/shared/db/supabase/server'
-import { sendEmailDirectly } from '@/shared/infrastructure/email'
+import { sendEmail } from '@/shared/infrastructure/email'
 import { feedbackNotificationTemplate, feedbackNotificationSubject } from '@/shared/infrastructure/email/templates/feedback-notification'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { FeedbackType } from '@/types/database'
@@ -91,10 +91,10 @@ export async function POST(request: NextRequest) {
         const htmlBody = feedbackNotificationTemplate(emailData, appUrl)
         const subject = feedbackNotificationSubject(type)
 
-        const emailSent = await sendEmailDirectly(adminEmail, subject, htmlBody)
-
-        if (!emailSent) {
-          console.warn('Failed to send feedback notification email')
+        try {
+          await sendEmail({ to: adminEmail, subject, html: htmlBody, from: 'support' })
+        } catch (err) {
+          console.warn('Failed to send feedback notification email:', err)
           // Don't fail the request if email fails - feedback was still submitted
         }
       }

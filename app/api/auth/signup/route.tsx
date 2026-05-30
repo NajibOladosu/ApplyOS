@@ -9,7 +9,7 @@ import { createClient } from '@/shared/db/supabase/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { render } from '@react-email/render';
 import VerifyEmailTemplate from '@/emails/verify-email';
-import { sendEmailViaSMTP } from '@/shared/infrastructure/email/transport';
+import { sendEmail } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import crypto from 'crypto';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
@@ -171,13 +171,13 @@ export async function POST(request: NextRequest) {
         { plainText: true }
       );
 
-      // Send directly via SMTP (not queued) with both HTML and plain text
-      await sendEmailViaSMTP(
-        email,
-        'Verify your ApplyOS email address',
-        htmlBody,
-        textBody
-      );
+      await sendEmail({
+        to: email,
+        subject: 'Verify your ApplyOS email address',
+        html: htmlBody,
+        text: textBody,
+        from: 'noreply',
+      });
 
       console.log(`✅ Verification email sent to ${email}`);
     } catch (emailError) {

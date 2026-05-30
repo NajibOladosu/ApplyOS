@@ -7,7 +7,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createServerClient } from '@supabase/supabase-js';
-import { sendEmailDirectly } from '@/shared/infrastructure/email';
+import { sendEmail } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import { signUnsubscribeToken } from '@/shared/infrastructure/email/unsubscribe-token';
 import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
@@ -331,7 +331,7 @@ export async function POST(request: NextRequest) {
             `;
 
             const emailSubject = `⏰ Deadline Reminder: ${app.title} (${daysUntil} days)`;
-            await sendEmailDirectly(userData.user.email, emailSubject, emailHtml);
+            await sendEmail({ to: userData.user.email, subject: emailSubject, html: emailHtml, from: 'noreply' });
             console.log(`✓ Email sent for ${app.title}`);
           } catch (emailError) {
             console.error(`Failed to send email for ${app.title}:`, emailError);
