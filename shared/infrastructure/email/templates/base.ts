@@ -40,19 +40,23 @@ export const baseTemplate = (
       border-radius: 12px 12px 0 0;
       border-bottom: 1px solid #333333;
     }
-    .header h1 {
+    .brand-table { margin: 0 auto; }
+    .brand-logo {
+      display: block;
+      width: 40px;
+      height: 40px;
+      border: 0;
+      outline: 0;
+      text-decoration: none;
+    }
+    .brand-wordmark {
       font-size: 24px;
       font-weight: 700;
       letter-spacing: -0.5px;
-      margin: 10px 0 0 0;
       color: #18BB70;
       font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    }
-    .logo-container {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
+      line-height: 40px;
+      white-space: nowrap;
     }
     .content {
       padding: 40px 30px;
@@ -152,10 +156,16 @@ export const baseTemplate = (
 <body>
   <div class="container">
     <div class="header">
-      <div class="logo-container">
-        <img src="[[APP_URL]]/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40" style="display: block; border: none;">
-        <h1>ApplyOS</h1>
-      </div>
+      <table role="presentation" class="brand-table" cellpadding="0" cellspacing="0" border="0" align="center">
+        <tr>
+          <td valign="middle" style="padding-right: 12px;">
+            <img class="brand-logo" src="[[APP_URL]]/ApplyOS%20Logo.webp" alt="ApplyOS" width="40" height="40">
+          </td>
+          <td valign="middle">
+            <span class="brand-wordmark">ApplyOS</span>
+          </td>
+        </tr>
+      </table>
     </div>
     <div class="content">
       ${content}
