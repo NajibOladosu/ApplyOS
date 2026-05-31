@@ -10,7 +10,7 @@ export interface TestUser {
   client: SupabaseClient
 }
 
-const TEST_PASSWORD = String.fromCharCode(84,101,115,116,85,115,101,114,95,80,64,115,115,119,48,114,100,33)
+export const TEST_PASSWORD = String.fromCharCode(84,101,115,116,85,115,101,114,95,80,64,115,115,119,48,114,100,33)
 const TEST_DOMAIN = 'applyos-test.local'
 
 export async function createTestUser(): Promise<TestUser> {
