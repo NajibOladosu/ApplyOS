@@ -124,4 +124,12 @@ describe('POST /api/apply-kit/parse — input validation (no Gemini call)', () =
     const body = await res.json()
     expect(body.error).toMatch(/invalid url/i)
   }, 30_000)
+
+  it('returns 400 when pasted text is too short', async () => {
+    const { POST } = await import('@/app/api/apply-kit/parse/route')
+    const res = await POST(makeReq({ text: 'short' }))
+    expect(res.status).toBe(400)
+    const body = await res.json()
+    expect(body.error).toMatch(/too short/i)
+  }, 30_000)
 })

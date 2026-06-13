@@ -116,6 +116,12 @@ export async function POST(request: NextRequest) {
       }
     } else {
       sourceText = text
+      if (sourceText.length < 20) {
+        return NextResponse.json(
+          { error: 'Job description text is too short to parse.' },
+          { status: 400 }
+        )
+      }
     }
 
     try {
