@@ -67,4 +67,14 @@ describe('parseJobPosting', () => {
     const job = await parseJobPosting('the raw posting body')
     expect(job.job_description).toBe('the raw posting body')
   })
+
+  it('throws a user-facing error when the response is not valid JSON', async () => {
+    mockGeminiResponse('not json at all')
+    await expect(parseJobPosting('text')).rejects.toThrow(/failed to parse job posting/i)
+  })
+
+  it('throws a user-facing error when Gemini fails', async () => {
+    mockGenerateContent.mockRejectedValueOnce(new Error('gemini exploded'))
+    await expect(parseJobPosting('text')).rejects.toThrow(/failed to parse job posting/i)
+  })
 })

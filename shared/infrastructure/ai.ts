@@ -1582,30 +1582,29 @@ RULES:
 - job_description must be plain text copied/cleaned from the posting, not summarized away.
 - If you cannot find a company, use null (not the string "null").`
 
-  let raw: string
   try {
-    raw = await callGeminiWithFallback(prompt, 'MEDIUM')
+    const raw = await callGeminiWithFallback(prompt, 'MEDIUM')
+
+    let jsonText = raw
+    const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
+    if (fence) jsonText = fence[1].trim()
+    const jsonMatch = jsonText.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) {
+      throw new Error('no json')
+    }
+
+    const parsed = JSON.parse(jsonMatch[0]) as Partial<ParsedJob>
+    const title = typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title.trim() : 'Untitled Application'
+    const company = typeof parsed.company === 'string' && parsed.company.trim() ? parsed.company.trim() : null
+    const job_description =
+      typeof parsed.job_description === 'string' && parsed.job_description.trim()
+        ? parsed.job_description.trim()
+        : text.trim()
+
+    return { title, company, job_description }
   } catch (error) {
     if (error instanceof AIRateLimitError) throw error
     console.error('Error parsing job posting:', error)
     throw new Error('Failed to parse job posting. Please try again.')
   }
-
-  let jsonText = raw
-  const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/)
-  if (fence) jsonText = fence[1].trim()
-  const objMatch = jsonText.match(/\{[\s\S]*\}/)
-  if (!objMatch) {
-    throw new Error('Could not parse job posting from AI response.')
-  }
-
-  const parsed = JSON.parse(objMatch[0]) as Partial<ParsedJob>
-  const title = typeof parsed.title === 'string' && parsed.title.trim() ? parsed.title.trim() : 'Untitled Application'
-  const company = typeof parsed.company === 'string' && parsed.company.trim() ? parsed.company.trim() : null
-  const job_description =
-    typeof parsed.job_description === 'string' && parsed.job_description.trim()
-      ? parsed.job_description.trim()
-      : text.trim()
-
-  return { title, company, job_description }
 }
