@@ -26,6 +26,7 @@ export function ApplyKitScreen() {
   const [url, setUrl] = useState("")
   const [text, setText] = useState("")
   const [docs, setDocs] = useState<Document[]>([])
+  const [docsLoading, setDocsLoading] = useState(true)
   const [documentId, setDocumentId] = useState<string>("")
   const [running, setRunning] = useState(false)
 
@@ -47,6 +48,7 @@ export function ApplyKitScreen() {
         if (d.length > 0) setDocumentId(d[0].id)
       })
       .catch(() => setDocs([]))
+      .finally(() => setDocsLoading(false))
   }, [])
 
   function resetResults() {
@@ -70,11 +72,15 @@ export function ApplyKitScreen() {
     setRunning(true)
     const input: ApplyKitInput = mode === "url" ? { url: url.trim() } : { text: text.trim() }
 
+    let jobErrored = false
     try {
       const result = await runApplyKit(input, documentId, client, (e) => {
         if (e.step === "job") {
           setJobStatus(e.status)
-          if (e.status === "error") toast({ title: "Couldn't read the job", description: e.error, variant: "destructive" })
+          if (e.status === "error") {
+            jobErrored = true
+            toast({ title: "Couldn't read the job", description: e.error, variant: "destructive" })
+          }
         }
         if (e.step === "fit") setFitStatus(e.status)
         if (e.step === "coverLetter") setCoverStatus(e.status)
@@ -85,8 +91,10 @@ export function ApplyKitScreen() {
       setJobDescription(result.job.job_description)
       setFit(result.fit)
       setCoverLetter(result.coverLetter)
-    } catch {
-      // parse failure already surfaced via toast; nothing was created
+    } catch (e) {
+      if (!jobErrored) {
+        toast({ title: "Something went wrong", description: e instanceof Error ? e.message : undefined, variant: "destructive" })
+      }
     } finally {
       setRunning(false)
     }
@@ -128,10 +136,10 @@ export function ApplyKitScreen() {
       <Card>
         <CardHeader>
           <div className="flex gap-2">
-            <Button variant={mode === "text" ? "default" : "outline"} size="sm" onClick={() => setMode("text")}>
+            <Button variant={mode === "text" ? "default" : "outline"} size="sm" aria-pressed={mode === "text"} onClick={() => setMode("text")}>
               <ClipboardPaste className="mr-2 h-4 w-4" /> Paste JD
             </Button>
-            <Button variant={mode === "url" ? "default" : "outline"} size="sm" onClick={() => setMode("url")}>
+            <Button variant={mode === "url" ? "default" : "outline"} size="sm" aria-pressed={mode === "url"} onClick={() => setMode("url")}>
               <Link2 className="mr-2 h-4 w-4" /> Job URL
             </Button>
           </div>
@@ -139,6 +147,7 @@ export function ApplyKitScreen() {
         <CardContent className="space-y-4">
           {mode === "url" ? (
             <input
+              id="job-url"
               type="url"
               value={url}
               onChange={(e) => setUrl(e.target.value)}
@@ -147,6 +156,7 @@ export function ApplyKitScreen() {
             />
           ) : (
             <textarea
+              id="job-text"
               value={text}
               onChange={(e) => setText(e.target.value)}
               placeholder="Paste the full job description here..."
@@ -156,13 +166,16 @@ export function ApplyKitScreen() {
           )}
 
           <div>
-            <label className="mb-1 block text-sm font-medium">Resume</label>
-            {docs.length === 0 ? (
+            <label htmlFor="resume-select" className="mb-1 block text-sm font-medium">Resume</label>
+            {docsLoading ? (
+              <p className="text-muted-foreground text-sm">Loading resumes…</p>
+            ) : docs.length === 0 ? (
               <p className="text-muted-foreground text-sm">
                 No analyzed resume found. <Link href="/upload" className="underline">Upload one</Link> first.
               </p>
             ) : (
               <select
+                id="resume-select"
                 value={documentId}
                 onChange={(e) => setDocumentId(e.target.value)}
                 className="w-full rounded-md border bg-background px-3 py-2 text-sm"
@@ -174,7 +187,7 @@ export function ApplyKitScreen() {
             )}
           </div>
 
-          <Button onClick={handleGenerate} disabled={running || docs.length === 0} className="w-full">
+          <Button onClick={handleGenerate} disabled={running || docsLoading || docs.length === 0} className="w-full">
             {running ? <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> Generating…</> : "Generate Apply Kit"}
           </Button>
         </CardContent>
@@ -230,11 +243,15 @@ export function ApplyKitScreen() {
           <CardHeader><CardTitle className="text-base">Cover Letter</CardTitle></CardHeader>
           <CardContent>
             {coverStatus === "loading" && <Loader2 className="h-4 w-4 animate-spin" />}
-            {coverStatus === "done" && coverLetter && (
-              <div className="space-y-2">
-                <p className="whitespace-pre-wrap text-sm">{coverLetter}</p>
-                {applicationId && <Link href={`/applications/${applicationId}`} className="text-sm underline">Edit in application</Link>}
-              </div>
+            {coverStatus === "done" && (
+              coverLetter ? (
+                <div className="space-y-2">
+                  <p className="whitespace-pre-wrap text-sm">{coverLetter}</p>
+                  {applicationId && <Link href={`/applications/${applicationId}`} className="text-sm underline">Edit in application</Link>}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No cover letter was generated.</p>
+              )
             )}
             {coverStatus === "error" && (
               <Button variant="outline" size="sm" onClick={retryCover}><RefreshCw className="mr-2 h-4 w-4" /> Retry cover letter</Button>
