@@ -36,7 +36,7 @@ export interface ApplyKitClient {
   createApplication(job: ParsedJob, sourceUrl: string | null): Promise<string>
   linkDocument(applicationId: string, documentId: string): Promise<void>
   scoreFit(jobDescription: string, documentId: string): Promise<FitResult>
-  generateCoverLetter(applicationId: string): Promise<string>
+  generateCoverLetter(applicationId: string): Promise<string | null>
 }
 
 function errMessage(e: unknown): string {
@@ -136,7 +136,8 @@ export function createApplyKitClient(): ApplyKitClient {
       const { error } = await supabase
         .from('application_documents')
         .insert({ application_id: applicationId, document_id: documentId })
-      if (error && !`${error.message}`.toLowerCase().includes('duplicate')) {
+      // 23505 = unique_violation: the resume is already linked to this app (retry). Ignore it.
+      if (error && error.code !== '23505') {
         throw new Error(error.message)
       }
     },
@@ -157,7 +158,7 @@ export function createApplyKitClient(): ApplyKitClient {
       const res = await postJson('/api/cover-letter/generate', { applicationId })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Failed to generate cover letter.')
-      return json.coverLetter as string
+      return typeof json.coverLetter === 'string' ? json.coverLetter : null
     },
   }
 }
