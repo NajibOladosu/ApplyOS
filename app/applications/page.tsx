@@ -6,6 +6,8 @@ import { Button } from "@/shared/ui/button"
 import { cn } from "@/shared/lib/utils"
 import { Checkbox } from "@/shared/ui/checkbox"
 import { motion } from "framer-motion"
+import { PageHeader } from "@/components/layout/page-header"
+import { StatusPill, PriorityDot } from "@/components/data/status-pill"
 import {
   Archive,
   ArchiveRestore,
@@ -300,36 +302,40 @@ export default function ApplicationsPage() {
     )
   }
 
+  const OUTCOME_ACTIVE: ApplicationStatus[] = ["draft", "submitted", "in_review", "interview"]
+  const activeCount = applications.filter((a) => OUTCOME_ACTIVE.includes(a.status)).length
+  const closedCount = applications.length - activeCount
+
   return (
     <DashboardLayout>
       <div className="space-y-5">
-        {/* Header */}
-        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              Applications
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Manage and track every job and scholarship application.
-            </p>
-          </div>
-          <div className="flex gap-2">
-            <Link
-              href="/apply"
-              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
-            >
-              <Wand2 className="h-3.5 w-3.5" />
-              Apply Kit
-            </Link>
-            <Button
-              className="h-9 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] hover:bg-primary hover:shadow-[0_6px_20px_-4px_rgba(24,187,112,0.65)]"
-              onClick={() => setIsModalOpen(true)}
-            >
-              <Plus className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.5} />
-              New application
-            </Button>
-          </div>
-        </div>
+        <PageHeader
+          overline="Library"
+          title="Applications"
+          description={
+            applications.length > 0
+              ? `${applications.length} tracked · ${activeCount} active · ${closedCount} closed`
+              : "Track every job and scholarship application in one place."
+          }
+          actions={
+            <>
+              <Link
+                href="/apply"
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+              >
+                <Wand2 className="h-3.5 w-3.5" />
+                Apply Kit
+              </Link>
+              <Button
+                className="h-9 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] hover:bg-primary hover:shadow-[0_6px_20px_-4px_rgba(24,187,112,0.65)]"
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Plus className="mr-1.5 h-3.5 w-3.5" strokeWidth={2.5} />
+                New application
+              </Button>
+            </>
+          }
+        />
 
         {/* Filters */}
         <div className="rounded-2xl border border-border/70 bg-card p-4">
@@ -434,124 +440,110 @@ export default function ApplicationsPage() {
             )}
           </div>
         ) : (
-          <div className="space-y-2">
-            {filteredApplications.map((app, index) => (
-              <motion.div
-                key={app.id}
-                initial={index < 12 ? { opacity: 0, y: 14 } : false}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.03, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <div
-                  className={cn(
-                    "group rounded-2xl border bg-card p-3.5 transition-all duration-200 sm:p-4",
-                    selectedIds.has(app.id)
-                      ? "border-primary/50 bg-primary/[0.04]"
-                      : "border-border/70 hover:border-primary/30"
-                  )}
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
-                    <div className="flex min-w-0 flex-1 items-center gap-3">
-                      <div
-                        className={cn(
-                          "shrink-0 transition-opacity duration-150",
-                          selectedIds.size > 0
-                            ? "opacity-100"
-                            : "opacity-0 focus-within:opacity-100 group-hover:opacity-100"
-                        )}
-                      >
-                        <Checkbox
-                          checked={selectedIds.has(app.id)}
-                          onChange={() => toggleSelect(app.id)}
-                          onClick={(e) => e.stopPropagation()}
-                          aria-label={`Select ${app.title}`}
-                        />
-                      </div>
+          <div className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+            {/* Column headers — the row used to be a single undifferentiated
+                block, so nothing lined up between records. */}
+            <div className="hidden items-center gap-4 border-b border-border/60 bg-muted/30 px-4 py-2.5 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted-foreground/70 lg:grid lg:grid-cols-[minmax(0,2.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_92px]">
+              <span>Role</span>
+              <span>Status</span>
+              <span>Priority</span>
+              <span>Deadline</span>
+              <span className="text-right">Actions</span>
+            </div>
 
-                      <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-primary/10 text-[11px] font-bold text-primary-strong dark:text-primary">
-                        {initialsFor(app)}
-                      </span>
+            <div className="divide-y divide-border/50">
+              {filteredApplications.map((app, index) => {
+                const days = daysUntilDeadline(app.deadline)
+                const tier = urgencyTier(days)
+                const selected = selectedIds.has(app.id)
+                const deadlineTone =
+                  tier === "overdue" || tier === "critical"
+                    ? "text-destructive"
+                    : tier === "soon"
+                      ? "text-amber-600 dark:text-amber-400"
+                      : "text-muted-foreground"
 
-                      <div className="min-w-0 flex-1">
-                        <div className="flex items-center gap-2">
+                return (
+                  <motion.div
+                    key={app.id}
+                    initial={index < 12 ? { opacity: 0, y: 8 } : false}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.25, delay: index * 0.02, ease: [0.22, 1, 0.36, 1] }}
+                    className={cn(
+                      "group relative transition-colors",
+                      selected ? "bg-primary/[0.05]" : "hover:bg-muted/40"
+                    )}
+                  >
+                    <div className="flex flex-col gap-3 px-4 py-3.5 lg:grid lg:grid-cols-[minmax(0,2.6fr)_minmax(0,1fr)_minmax(0,1fr)_minmax(0,1.1fr)_92px] lg:items-center lg:gap-4">
+                      {/* Role + company */}
+                      <div className="flex min-w-0 items-center gap-3">
+                        <div
+                          className={cn(
+                            "shrink-0 transition-opacity duration-150",
+                            selectedIds.size > 0 ? "opacity-100" : "opacity-0 focus-within:opacity-100 group-hover:opacity-100"
+                          )}
+                        >
+                          <Checkbox
+                            checked={selected}
+                            onChange={() => toggleSelect(app.id)}
+                            aria-label={`Select ${app.title}`}
+                          />
+                        </div>
+
+                        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/60 font-display text-[12px] font-bold text-foreground/80">
+                          {initialsFor(app)}
+                        </span>
+
+                        <div className="min-w-0 flex-1">
                           <Link
                             href={`/applications/${app.id}`}
-                            className="truncate text-[15px] font-semibold text-foreground transition-colors hover:text-primary-strong dark:hover:text-primary"
+                            className="block truncate text-[14px] font-semibold text-foreground transition-colors hover:text-primary-strong dark:hover:text-primary"
                           >
                             {app.title}
                           </Link>
-                          <span
-                            className={`h-2 w-2 shrink-0 rounded-full ${priorityDot[app.priority]}`}
-                            title={`${app.priority} priority`}
-                          />
-                        </div>
-                        <div className="mt-0.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                          {app.company && <span className="truncate">{app.company}</span>}
-                          <span className="capitalize">{app.type}</span>
-                          {(() => {
-                            const days = daysUntilDeadline(app.deadline)
-                            const tier = urgencyTier(days)
-                            const isPill =
-                              tier === "overdue" || tier === "critical" || tier === "soon"
-                            return (
-                              <span
-                                className={cn(
-                                  "flex items-center gap-1.5",
-                                  isPill && "rounded border px-1.5 py-0.5 font-medium",
-                                  isPill && urgencyClass[tier]
-                                )}
-                              >
-                                <Calendar className="h-3.5 w-3.5" />
-                                <span>
-                                  {urgencyLabel(days)}
-                                  {app.deadline && tier !== "later" && (
-                                    <span className="ml-1 opacity-70">
-                                      · {new Date(app.deadline).toLocaleDateString()}
-                                    </span>
-                                  )}
-                                  {app.deadline && tier === "later" && (
-                                    <span className="ml-1">
-                                      ({new Date(app.deadline).toLocaleDateString()})
-                                    </span>
-                                  )}
-                                </span>
-                              </span>
-                            )
-                          })()}
+                          <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-muted-foreground">
+                            {app.company && <span className="truncate">{app.company}</span>}
+                            <span className="text-muted-foreground/50">·</span>
+                            <span className="capitalize">{app.type}</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-                      <span
-                        className={cn(
-                          "rounded-full px-2.5 py-0.5 text-[11px] font-medium",
-                          statusChip[app.status].cls
-                        )}
-                      >
-                        {statusChip[app.status].label}
-                      </span>
+                      {/* Status */}
+                      <div className="flex items-center">
+                        <StatusPill status={app.status} size="sm" />
+                      </div>
 
-                      {app.url && (
-                        <a
-                          href={app.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="hidden items-center gap-1 text-xs font-medium text-primary-strong transition-opacity hover:opacity-75 md:flex dark:text-primary"
-                          onClick={(e) => e.stopPropagation()}
-                        >
-                          <span>Posting</span>
-                          <ExternalLink className="h-3 w-3" />
-                        </a>
-                      )}
+                      {/* Priority */}
+                      <div className="hidden lg:flex lg:items-center">
+                        <PriorityDot priority={app.priority} showLabel={app.priority !== "low"} />
+                      </div>
 
-                      <div className="flex items-center gap-0.5 opacity-60 transition-opacity duration-150 group-hover:opacity-100">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          asChild
-                          className="h-8 w-8"
-                        >
+                      {/* Deadline */}
+                      <div className={cn("flex items-center gap-1.5 text-xs font-medium", deadlineTone)}>
+                        <Calendar className="h-3.5 w-3.5 shrink-0" />
+                        <span className="truncate">{urgencyLabel(days)}</span>
+                        {app.deadline && tier === "later" ? (
+                          <span className="truncate text-muted-foreground">
+                            ({new Date(app.deadline).toLocaleDateString(undefined, { month: "short", day: "numeric" })})
+                          </span>
+                        ) : null}
+                      </div>
+
+                      {/* Actions */}
+                      <div className="flex items-center justify-end gap-1">
+                        {app.url ? (
+                          <a
+                            href={app.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hidden h-8 w-8 items-center justify-center rounded-lg text-muted-foreground transition-colors hover:bg-muted hover:text-foreground md:flex"
+                            aria-label={`Open the ${app.company ?? app.title} posting`}
+                          >
+                            <ExternalLink className="h-3.5 w-3.5" />
+                          </a>
+                        ) : null}
+                        <Button variant="ghost" size="icon" asChild className="h-8 w-8">
                           <Link href={`/applications/${app.id}`} aria-label={`Open ${app.title}`}>
                             <Eye className="h-4 w-4" />
                           </Link>
@@ -564,11 +556,7 @@ export default function ApplicationsPage() {
                           aria-label={app.archived ? `Restore ${app.title}` : `Archive ${app.title}`}
                           title={app.archived ? "Restore to active" : "Archive"}
                         >
-                          {app.archived ? (
-                            <ArchiveRestore className="h-4 w-4" />
-                          ) : (
-                            <Archive className="h-4 w-4" />
-                          )}
+                          {app.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
                         </Button>
                         <Button
                           variant="ghost"
@@ -581,10 +569,10 @@ export default function ApplicationsPage() {
                         </Button>
                       </div>
                     </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
+                  </motion.div>
+                )
+              })}
+            </div>
           </div>
         )}
       </div>
