@@ -107,10 +107,12 @@ export default function FeedbackPage() {
             transition={{ duration: 0.5 }}
             className="text-center max-w-md"
           >
-            <div className="h-20 w-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-6 glow-effect">
-              <CheckCircle className="h-10 w-10 text-primary" />
+            <div className="mx-auto mb-6 flex h-16 w-16 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
+              <CheckCircle className="h-8 w-8 text-primary-strong dark:text-primary" />
             </div>
-            <h2 className="text-2xl font-bold mb-2">Thank you!</h2>
+            <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              Thank you
+            </h2>
             <p className="text-muted-foreground mb-6">
               Your feedback has been successfully submitted. We really appreciate your input and will review it carefully.
             </p>
@@ -141,12 +143,16 @@ export default function FeedbackPage() {
           transition={{ duration: 0.3 }}
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-primary/10">
-              <MessageSquare className="h-6 w-6 text-primary" />
+            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
+              <MessageSquare className="h-5 w-5 text-primary-strong dark:text-primary" />
             </div>
             <div>
-              <h1 className="text-3xl font-bold">Feedback</h1>
-              <p className="text-muted-foreground">Help us improve ApplyOS with your feedback</p>
+              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+                Feedback
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Help us improve ApplyOS with your feedback.
+              </p>
             </div>
           </div>
         </motion.div>
@@ -157,8 +163,8 @@ export default function FeedbackPage() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3, delay: 0.1 }}
         >
-          <Card className="border-border/50">
-            <CardHeader>
+          <Card className="rounded-2xl border-border/70">
+            <CardHeader className="px-5 py-4">
               <CardTitle>Send us your feedback</CardTitle>
               <CardDescription>
                 Choose a category and tell us what&apos;s on your mind. We read all feedback and use it to improve ApplyOS.
@@ -175,11 +181,10 @@ export default function FeedbackPage() {
                         key={type.value}
                         type="button"
                         onClick={() => setFeedbackType(type.value)}
-                        whileHover={{ scale: 1.02 }}
-                        whileTap={{ scale: 0.98 }}
-                        className={`p-4 rounded-lg border-2 transition-all text-left ${feedbackType === type.value
-                          ? "border-primary bg-primary/5 shadow-md"
-                          : "border-border hover:border-border/75 bg-background"
+                        whileTap={{ scale: 0.99 }}
+                        className={`rounded-xl border p-4 text-left transition-all ${feedbackType === type.value
+                          ? "border-primary/50 bg-primary/5 shadow-sm"
+                          : "border-border/70 bg-background/50 hover:border-primary/25"
                           }`}
                       >
                         <div className="font-medium">{type.label}</div>
@@ -201,7 +206,7 @@ export default function FeedbackPage() {
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={isSubmitting}
-                    className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 transition-all focus:border-primary/40 focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
 
@@ -217,7 +222,7 @@ export default function FeedbackPage() {
                     onChange={(e) => setDescription(e.target.value)}
                     disabled={isSubmitting}
                     rows={6}
-                    className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all resize-none disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="w-full resize-none rounded-lg border border-border/70 bg-muted/40 px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/70 transition-all focus:border-primary/40 focus:bg-background focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50"
                   />
                 </div>
 
@@ -244,9 +249,11 @@ export default function FeedbackPage() {
                 </motion.div>
 
                 {/* Info */}
-                <div className="p-3 rounded-lg bg-muted/50 border border-border/50">
-                  <p className="text-xs text-muted-foreground">
-                    <strong>Tip:</strong> Be specific about what you&apos;re reporting or suggesting. This helps us understand and address your feedback better.
+                <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    <span className="font-semibold text-foreground/80">Tip:</span> Be
+                    specific about what you&apos;re reporting or suggesting — it helps
+                    us act on your feedback faster.
                   </p>
                 </div>
               </form>

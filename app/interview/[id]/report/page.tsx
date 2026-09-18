@@ -24,24 +24,24 @@ const sessionTypeLabels: Record<string, string> = {
 
 // Difficulty color classes
 const difficultyColors: Record<string, string> = {
-  easy: 'bg-green-500/10 text-green-700 dark:text-green-400 border-green-500/30',
+  easy: 'bg-primary/10 text-primary-strong dark:text-primary border-primary/30',
   medium: 'bg-yellow-500/10 text-yellow-700 dark:text-yellow-400 border-yellow-500/30',
-  hard: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-500/30'
+  hard: 'bg-destructive/10 text-destructive border-destructive/30'
 }
 
 // Helper function to get score color
 function getScoreColor(score: number | null): string {
   if (score == null) return 'text-muted-foreground'
-  if (score >= 8) return 'text-green-600 dark:text-green-400'
+  if (score >= 8) return 'text-primary-strong dark:text-primary'
   if (score >= 6) return 'text-yellow-600 dark:text-yellow-400'
-  return 'text-red-600 dark:text-red-400'
+  return 'text-destructive'
 }
 
 // Helper function to get score badge class
 function getScoreBadgeClass(score: number): string {
-  if (score >= 8) return 'bg-green-500/10 border border-green-500/30'
+  if (score >= 8) return 'bg-primary/10 border border-primary/30'
   if (score >= 6) return 'bg-yellow-500/10 border border-yellow-500/30'
-  return 'bg-red-500/10 border border-red-500/30'
+  return 'bg-destructive/10 border border-destructive/30'
 }
 
 // Helper function to aggregate strengths
@@ -113,24 +113,6 @@ export default function InterviewReportPage() {
 
         // Map answers by question_id for O(1) lookup
         const answersMap = new Map(answersData.map(ans => [ans.question_id, ans]))
-
-        // Debug logging
-        console.log('Interview Report Data:', {
-          sessionId,
-          sessionStatus: sessionData.status,
-          totalQuestions: sessionData.total_questions,
-          answeredQuestions: sessionData.answered_questions,
-          averageScore: sessionData.average_score,
-          questionsCount: questionsData.length,
-          answersCount: answersData.length,
-          answers: answersData.map(a => ({
-            id: a.id,
-            question_id: a.question_id,
-            has_feedback: !!a.feedback,
-            feedback_type: typeof a.feedback,
-            score: a.score
-          }))
-        })
 
         setSession(sessionData)
         setApplication(appData)
@@ -211,7 +193,7 @@ export default function InterviewReportPage() {
             </Link>
 
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">
+              <h1 className="break-words font-display text-2xl font-bold tracking-tight text-foreground md:text-[28px]">
                 {sessionTypeLabels[session.session_type] || session.session_type} Interview Report
               </h1>
               <p className="text-sm text-muted-foreground mt-1">
@@ -223,7 +205,7 @@ export default function InterviewReportPage() {
           {/* Go to Interview Button */}
           <div className="flex">
             <Link href={`/applications/${session.application_id}?tab=interview&session=${session.id}`}>
-              <Button className="glow-effect">
+              <Button className="bg-primary text-primary-foreground font-semibold">
                 <Mic className="h-4 w-4 mr-2" />
                 Go to Interview
               </Button>
@@ -304,7 +286,7 @@ export default function InterviewReportPage() {
                 {/* Preparation tips (shown if not started) */}
                 {session.answered_questions === 0 && (
                   <div className="border-t pt-4 mt-4">
-                    <h3 className="text-sm font-semibold mb-3 flex items-center gap-2">
+                    <h3 className="font-display mb-3 flex items-center gap-2 text-sm font-semibold">
                       <Lightbulb className="h-4 w-4 text-primary" />
                       Preparation Tips
                     </h3>
@@ -381,14 +363,14 @@ export default function InterviewReportPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
                     {/* Common Strengths */}
                     <div className="border rounded-lg p-4 bg-background/50">
-                      <h3 className="text-sm font-semibold text-green-600 dark:text-green-400 mb-3 flex items-center gap-2">
+                      <h3 className="font-display mb-3 flex items-center gap-2 text-sm font-semibold text-primary-strong dark:text-primary">
                         <CheckCircle className="h-4 w-4" />
                         Common Strengths
                       </h3>
                       <ul className="space-y-2">
                         {aggregateStrengths(answers).slice(0, 5).map((strength, idx) => (
                           <li key={idx} className="text-sm flex gap-2 items-start">
-                            <span className="text-green-400 mt-0.5">✓</span>
+                            <span className="text-primary-strong dark:text-primary mt-0.5">✓</span>
                             <span>{strength}</span>
                           </li>
                         ))}
@@ -400,7 +382,7 @@ export default function InterviewReportPage() {
 
                     {/* Areas for Improvement */}
                     <div className="border rounded-lg p-4 bg-background/50">
-                      <h3 className="text-sm font-semibold text-amber-600 dark:text-amber-400 mb-3 flex items-center gap-2">
+                      <h3 className="font-display mb-3 flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
                         <XCircle className="h-4 w-4" />
                         Areas for Improvement
                       </h3>
@@ -481,7 +463,7 @@ export default function InterviewReportPage() {
                             <>
                               {/* User's Answer */}
                               <div>
-                                <h4 className="text-xs font-semibold mb-2">Your Answer</h4>
+                                <h4 className="font-display text-xs font-semibold mb-2">Your Answer</h4>
                                 <div className="text-sm bg-background/50 p-3 rounded border">
                                   {answer.answer_text}
                                 </div>
@@ -492,7 +474,7 @@ export default function InterviewReportPage() {
                                 answer.relevance_score != null || answer.depth_score != null ||
                                 answer.confidence_score != null) && (
                                   <div>
-                                    <h4 className="text-xs font-semibold mb-2">Score Breakdown</h4>
+                                    <h4 className="font-display text-xs font-semibold mb-2">Score Breakdown</h4>
                                     <div className="grid grid-cols-5 gap-2">
                                       {[
                                         { label: 'Clarity', score: answer.clarity_score },
@@ -517,7 +499,7 @@ export default function InterviewReportPage() {
                               {/* Detailed Feedback */}
                               {answer.feedback ? (
                                 <div className="space-y-3">
-                                  <h4 className="text-xs font-semibold">Detailed Feedback</h4>
+                                  <h4 className="font-display text-xs font-semibold">Detailed Feedback</h4>
 
                                   {/* Overall */}
                                   {answer.feedback.overall && (
@@ -530,13 +512,13 @@ export default function InterviewReportPage() {
                                   {/* Strengths */}
                                   {answer.feedback.strengths && Array.isArray(answer.feedback.strengths) && answer.feedback.strengths.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-green-600 dark:text-green-400 mb-1">
+                                      <p className="font-display text-xs font-medium text-primary-strong dark:text-primary mb-1">
                                         Strengths
                                       </p>
                                       <ul className="space-y-1">
                                         {answer.feedback.strengths.map((strength, i) => (
                                           <li key={i} className="text-sm flex gap-2 items-start">
-                                            <span className="text-green-400 mt-0.5">✓</span>
+                                            <span className="text-primary-strong dark:text-primary mt-0.5">✓</span>
                                             <span>{strength}</span>
                                           </li>
                                         ))}
@@ -547,13 +529,13 @@ export default function InterviewReportPage() {
                                   {/* Weaknesses */}
                                   {answer.feedback.weaknesses && Array.isArray(answer.feedback.weaknesses) && answer.feedback.weaknesses.length > 0 && (
                                     <div>
-                                      <p className="text-xs font-medium text-red-600 dark:text-red-400 mb-1">
+                                      <p className="font-display text-xs font-medium text-destructive mb-1">
                                         Weaknesses
                                       </p>
                                       <ul className="space-y-1">
                                         {answer.feedback.weaknesses.map((weakness, i) => (
                                           <li key={i} className="text-sm flex gap-2 items-start">
-                                            <span className="text-red-400 mt-0.5">✗</span>
+                                            <span className="text-destructive mt-0.5">✗</span>
                                             <span>{weakness}</span>
                                           </li>
                                         ))}

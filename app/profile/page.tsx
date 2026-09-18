@@ -178,7 +178,6 @@ export default function ProfilePage() {
     setDeleteError(null)
 
     try {
-      console.log("🗑️ Calling account deletion API...")
       const response = await fetch("/api/account/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -193,7 +192,6 @@ export default function ProfilePage() {
         return
       }
 
-      console.log("✅ Account deleted successfully")
 
       // Wait a moment for backend to process, then redirect to home
       setTimeout(() => {
@@ -233,15 +231,17 @@ export default function ProfilePage() {
       <div className="space-y-6 max-w-4xl">
         {/* Header */}
         <div>
-          <h1 className="text-3xl font-bold mb-2">Profile</h1>
-          <p className="text-muted-foreground">
-            Manage your personal information and preferences
+          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+            Profile
+          </h1>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Manage your personal information and preferences.
           </p>
         </div>
 
         {/* Profile Card */}
-        <Card>
-          <CardHeader>
+        <Card className="rounded-2xl border-border/70">
+          <CardHeader className="px-5 py-4">
             <CardTitle>Personal Information</CardTitle>
             <CardDescription>
               Update your profile details and photo
@@ -325,7 +325,7 @@ export default function ProfilePage() {
 
             <div className="flex items-center space-x-3">
               <Button
-                className="glow-effect"
+                className="rounded-lg bg-primary font-semibold text-primary-foreground"
                 onClick={handleSave}
                 disabled={saving}
               >
@@ -353,8 +353,8 @@ export default function ProfilePage() {
         </Card>
 
         {/* Account Stats */}
-        <Card>
-          <CardHeader>
+        <Card className="rounded-2xl border-border/70">
+          <CardHeader className="px-5 py-4">
             <CardTitle>Account Overview</CardTitle>
             <CardDescription>
               Your ApplyOS account statistics
@@ -400,8 +400,8 @@ export default function ProfilePage() {
         </Card>
 
         {/* Import Applications */}
-        <Card>
-          <CardHeader>
+        <Card className="rounded-2xl border-border/70">
+          <CardHeader className="px-5 py-4">
             <CardTitle>Import Applications</CardTitle>
             <CardDescription>
               Import applications from Google Sheets or Excel
@@ -414,7 +414,7 @@ export default function ProfilePage() {
               </p>
               <Button
                 onClick={() => setShowImportModal(true)}
-                className="glow-effect"
+                className="rounded-lg bg-primary font-semibold text-primary-foreground"
               >
                 <Upload className="h-4 w-4 mr-2" />
                 Import from CSV
@@ -429,8 +429,8 @@ export default function ProfilePage() {
         </Card>
 
         {/* Connected Accounts (placeholder, no fake connections) */}
-        <Card>
-          <CardHeader>
+        <Card className="rounded-2xl border-border/70">
+          <CardHeader className="px-5 py-4">
             <CardTitle>Connected Accounts</CardTitle>
             <CardDescription>
               Link your professional profiles for better AI responses
@@ -471,7 +471,7 @@ export default function ProfilePage() {
 
         {/* Danger Zone */}
         <Card className="border-destructive/50">
-          <CardHeader>
+          <CardHeader className="px-5 py-4">
             <CardTitle className="text-destructive">Danger Zone</CardTitle>
             <CardDescription>
               Permanently delete your account and all associated data.

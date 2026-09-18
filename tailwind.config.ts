@@ -29,6 +29,10 @@ const config: Config = {
         primary: {
           DEFAULT: "var(--primary)",
           foreground: "var(--primary-foreground)",
+          // AA-contrast green for text on light surfaces
+          strong: "var(--primary-strong)",
+          // Bright accent reserved for dark surfaces
+          neon: "var(--primary-neon)",
         },
         secondary: {
           DEFAULT: "var(--secondary)",
@@ -62,6 +66,7 @@ const config: Config = {
       },
       fontFamily: {
         sans: ["Manrope", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Manrope", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

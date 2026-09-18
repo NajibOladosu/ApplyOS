@@ -12,28 +12,30 @@ export default function ResourcesPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl">
-        <div>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <BookOpen className="h-7 w-7 text-primary" />
-            Resources
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Reference material to speed up your job search.
-          </p>
+      <div className="max-w-4xl space-y-6">
+        <div className="flex items-center gap-3">
+          <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
+            <BookOpen className="h-5 w-5 text-primary-strong dark:text-primary" />
+          </div>
+          <div>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              Resources
+            </h1>
+            <p className="text-sm text-muted-foreground">
+              Reference material to speed up your job search.
+            </p>
+          </div>
         </div>
 
         <Tabs value={tab} onValueChange={setTab}>
-          <TabsList>
+          <TabsList className="w-fit border-0 bg-muted/70 p-1">
             <TabsTrigger value="glossary">Glossary</TabsTrigger>
             <TabsTrigger value="outreach">Outreach Templates</TabsTrigger>
           </TabsList>
-
-          <TabsContent value="glossary" className="mt-6">
+          <TabsContent value="glossary" className="mt-0">
             <GlossaryView />
           </TabsContent>
-
-          <TabsContent value="outreach" className="mt-6">
+          <TabsContent value="outreach" className="mt-0">
             <OutreachTemplatesView />
           </TabsContent>
         </Tabs>

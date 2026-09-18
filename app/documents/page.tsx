@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
+import { Card, CardContent, CardHeader } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
 import { motion } from "framer-motion"
@@ -241,103 +241,81 @@ export default function DocumentsPage() {
         {/* Header */}
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
           <div>
-            <h1 className="text-2xl sm:text-3xl font-bold mb-2">Documents</h1>
-            <p className="text-sm sm:text-base text-muted-foreground">
-              Manage your resumes, transcripts, and certificates
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              Documents
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Your resumes, transcripts, and certificates — the context behind every AI draft.
             </p>
           </div>
-          <Button
-            className="glow-effect inline-flex items-center justify-center gap-2 w-full sm:w-auto"
-            asChild
+          <Link
+            href="/upload"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_-4px_rgba(24,187,112,0.65)]"
           >
-            <Link href="/upload" className="flex items-center gap-2">
-              <Upload className="h-4 w-4" />
-              <span>Upload Document</span>
-            </Link>
-          </Button>
+            <Upload className="h-3.5 w-3.5" />
+            Upload document
+          </Link>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                Total Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold">{documents.length}</p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                Total Size
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold">
-                {formatFileSize(totalSize)}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                Analyzed
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold">
-                {analyzedCount}
-              </p>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardHeader className="pb-2 sm:pb-3">
-              <CardTitle className="text-xs sm:text-sm font-medium text-muted-foreground">
-                This Month
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-xl sm:text-2xl font-bold">
-                {
-                  documents.filter((d) => {
-                    if (!d.created_at) return false
-                    const created = new Date(d.created_at)
-                    const now = new Date()
-                    return (
-                      created.getFullYear() === now.getFullYear() &&
-                      created.getMonth() === now.getMonth()
-                    )
-                  }).length
-                }
-              </p>
-            </CardContent>
-          </Card>
+        {/* Stats */}
+        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+          {[
+            { label: "Total documents", value: String(documents.length) },
+            { label: "Total size", value: formatFileSize(totalSize) },
+            { label: "Analyzed", value: String(analyzedCount) },
+            {
+              label: "This month",
+              value: String(
+                documents.filter((d) => {
+                  if (!d.created_at) return false
+                  const created = new Date(d.created_at)
+                  const now = new Date()
+                  return (
+                    created.getFullYear() === now.getFullYear() &&
+                    created.getMonth() === now.getMonth()
+                  )
+                }).length
+              ),
+            },
+          ].map((stat, index) => (
+            <motion.div
+              key={stat.label}
+              initial={{ opacity: 0, y: 14 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
+                <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
+                <p className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground">
+                  {stat.value}
+                </p>
+              </div>
+            </motion.div>
+          ))}
         </div>
 
         {/* Documents Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {documents.length === 0 ? (
-            <Card>
-              <CardContent className="p-10 text-center space-y-3">
-                <div className="h-12 w-12 rounded-lg bg-primary/10 flex items-center justify-center mx-auto">
-                  <FileText className="h-6 w-6 text-primary" />
+            <Card className="rounded-2xl border-border/70">
+              <CardContent className="p-12 text-center">
+                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
+                  <FileText className="h-6 w-6 text-primary-strong dark:text-primary" />
                 </div>
-                <p className="font-semibold">No documents uploaded yet</p>
-                <p className="text-sm text-muted-foreground">
-                  Start by uploading your first resume, transcript, or certificate.
+                <p className="font-display text-base font-bold tracking-tight text-foreground">
+                  No documents yet
                 </p>
-                <Button
-                  className="mt-2 inline-flex items-center justify-center gap-2"
-                  asChild
+                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
+                  Upload your first resume, transcript, or certificate — it powers every AI draft
+                  you create.
+                </p>
+                <Link
+                  href="/upload"
+                  className="mt-5 inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5"
                 >
-                  <Link href="/upload" className="flex items-center gap-2">
-                    <Upload className="h-4 w-4" />
-                    <span>Upload Document</span>
-                  </Link>
-                </Button>
+                  <Upload className="h-4 w-4" />
+                  Upload your first document
+                </Link>
               </CardContent>
             </Card>
           ) : (
@@ -348,18 +326,18 @@ export default function DocumentsPage() {
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.3, delay: index * 0.1 }}
               >
-                <Card className="hover:border-primary/40 transition-all">
-                  <CardHeader className="p-4 sm:p-6">
+                <Card className="rounded-2xl border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30">
+                  <CardHeader className="p-4 sm:p-5">
                     <div className="flex items-start justify-between gap-2 sm:gap-3">
-                      <div className="h-10 w-10 sm:h-12 sm:w-12 rounded-lg bg-secondary flex items-center justify-center shrink-0">
-                        <FileText className="h-5 w-5 sm:h-6 sm:w-6 text-foreground" />
+                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 shrink-0">
+                        <FileText className="h-[18px] w-[18px] text-primary-strong dark:text-primary" />
                       </div>
                       <div className="flex-1 min-w-0">
-                        <h3 className="text-sm sm:text-base font-semibold truncate">{doc.file_name}</h3>
-                        <p className="text-xs sm:text-sm text-muted-foreground mt-1">
+                        <h3 className="font-display truncate text-[15px] font-semibold text-foreground">{doc.file_name}</h3>
+                        <p className="mt-1 text-xs text-muted-foreground">
                           {formatFileSize(doc.file_size || 0)}
                           {doc.created_at && (
-                            <> • {new Date(doc.created_at).toLocaleDateString()}</>
+                            <> · {new Date(doc.created_at).toLocaleDateString()}</>
                           )}
                         </p>
                       </div>

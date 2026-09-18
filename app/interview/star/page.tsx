@@ -140,12 +140,16 @@ export default function StarBuilderPage() {
             <ArrowLeft className="h-4 w-4" />
             Back to Interview Practice
           </Link>
-          <h1 className="text-2xl sm:text-3xl font-bold flex items-center gap-2">
-            <Sparkles className="h-7 w-7 text-primary" />
-            STAR Answer Builder
-          </h1>
-          <p className="text-muted-foreground mt-2">
-            Build strong behavioral answers using the Situation, Task, Action, Result framework.
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
+              <Sparkles className="h-5 w-5 text-primary-strong dark:text-primary" />
+            </span>
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              STAR Answer Builder
+            </h1>
+          </div>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Build strong behavioral answers with the Situation, Task, Action, Result framework.
             Answers are saved in this browser.
           </p>
         </div>
@@ -153,9 +157,9 @@ export default function StarBuilderPage() {
         <div className="grid gap-6 lg:grid-cols-2">
           {/* Builder */}
           <div className="space-y-4">
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
-                <CardTitle>{editingId ? "Edit answer" : "New answer"}</CardTitle>
+                <CardTitle className="font-display text-base font-bold tracking-tight">{editingId ? "Edit answer" : "New answer"}</CardTitle>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <div className="h-1.5 w-24 bg-secondary rounded-full overflow-hidden">
                     <div
@@ -191,7 +195,7 @@ export default function StarBuilderPage() {
                 ))}
 
                 <div className="flex flex-wrap gap-2 pt-1">
-                  <Button onClick={handleSave} disabled={!hasContent} className="glow-effect">
+                  <Button onClick={handleSave} disabled={!hasContent} className="bg-primary text-primary-foreground font-semibold">
                     <Save className="mr-2 h-4 w-4" />
                     {editingId ? "Update answer" : "Save answer"}
                   </Button>
@@ -206,7 +210,7 @@ export default function StarBuilderPage() {
             </Card>
 
             {/* Live preview */}
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <CardTitle className="text-base">Preview</CardTitle>
                 <Button
@@ -233,7 +237,7 @@ export default function StarBuilderPage() {
 
           {/* Library */}
           <div>
-            <Card>
+            <Card className="rounded-2xl border-border/70">
               <CardHeader>
                 <CardTitle>Your saved answers ({answers.length})</CardTitle>
               </CardHeader>
