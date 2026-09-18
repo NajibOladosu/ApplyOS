@@ -13,7 +13,13 @@
     "test:e2e": "playwright test",
     "test:all": "npm run test && npm run test:integration && npm run test:e2e",
     "test:coverage": "vitest run --coverage --config vitest.unit.config.ts",
-    "test:nuke": "tsx tests/helpers/nuke-test-data.ts"
+    "test:nuke": "tsx tests/helpers/nuke-test-data.ts",
+    "critic": "node scripts/critic.mjs",
+    "critic:selftest": "node scripts/critic.mjs --selftest",
+    "fix": "node scripts/fixer.mjs",
+    "fix:dry": "node scripts/fixer.mjs --dry-run",
+    "fix:selftest": "node scripts/fixer.mjs --selftest",
+    "loop": "node scripts/critic.mjs; node scripts/fixer.mjs --verify; node scripts/critic.mjs"
   },
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
