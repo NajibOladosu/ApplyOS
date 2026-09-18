@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Metadata } from "next"
-import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime } from "@/lib/blog"
+import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime, getMainAppUrl } from "@/lib/blog"
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { ArrowLeft, Calendar, Clock, Share2, Twitter, Linkedin } from "lucide-react"
 import { Button } from "@/shared/ui/button"
@@ -62,9 +62,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
     // Define custom components for MDX
     const components = {
-        h1: (props: React.ComponentPropsWithoutRef<'h1'>) => <h1 className="text-3xl font-bold mt-8 mb-4" {...props} />,
-        h2: (props: React.ComponentPropsWithoutRef<'h2'>) => <h2 className="text-2xl font-bold mt-8 mb-4" {...props} />,
-        h3: (props: React.ComponentPropsWithoutRef<'h3'>) => <h3 className="text-xl font-bold mt-6 mb-3" {...props} />,
+        h1: (props: React.ComponentPropsWithoutRef<'h1'>) => <h1 className="font-display mt-8 mb-4 text-3xl font-bold tracking-tight" {...props} />,
+        h2: (props: React.ComponentPropsWithoutRef<'h2'>) => <h2 className="font-display mt-8 mb-4 text-2xl font-bold tracking-tight" {...props} />,
+        h3: (props: React.ComponentPropsWithoutRef<'h3'>) => <h3 className="font-display mt-6 mb-3 text-xl font-bold tracking-tight" {...props} />,
         p: (props: React.ComponentPropsWithoutRef<'p'>) => <p className="text-muted-foreground leading-relaxed my-4" {...props} />,
         a: (props: React.ComponentPropsWithoutRef<'a'>) => <a className="text-primary hover:underline" {...props} />,
         ul: (props: React.ComponentPropsWithoutRef<'ul'>) => <ul className="list-disc list-inside my-4 space-y-2" {...props} />,
@@ -76,6 +76,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         code: (props: React.ComponentPropsWithoutRef<'code'>) => <code className="bg-secondary/50 px-1 py-0.5 rounded text-sm font-mono" {...props} />,
     }
 
+    const appUrl = getMainAppUrl()
+    // Blog home: "/" on the blog subdomain in production, "/blog" in dev/preview.
+    const blogBase = process.env.NODE_ENV === "production" ? "/" : "/blog"
     const shareUrl = `https://blog.applyos.io/${slug}`
     const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}`
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
@@ -84,7 +87,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
         <article className="container mx-auto px-6 max-w-3xl">
             {/* Back Link */}
             <Link
-                href="/"
+                href={blogBase}
                 className="inline-flex items-center gap-2 text-muted-foreground hover:text-primary transition-colors mb-8"
             >
                 <ArrowLeft className="h-4 w-4" />
@@ -99,7 +102,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                         {post.tags.map((tag) => (
                             <span
                                 key={tag}
-                                className="text-xs bg-transparent text-foreground dark:text-primary border border-border dark:border-primary/40 px-3 py-1 rounded-full"
+                                className="rounded-full border border-border/70 bg-muted/50 px-3 py-1 text-xs font-medium text-muted-foreground"
                             >
                                 {tag}
                             </span>
@@ -107,11 +110,11 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                     </div>
                 )}
 
-                <h1 className="text-4xl md:text-5xl font-bold mb-6 leading-tight">
+                <h1 className="font-display mb-6 text-4xl font-bold leading-[1.1] tracking-tight text-foreground md:text-5xl">
                     {post.title}
                 </h1>
 
-                <p className="text-xl text-muted-foreground mb-6">
+                <p className="mb-6 text-lg leading-relaxed text-muted-foreground">
                     {post.excerpt}
                 </p>
 
@@ -166,16 +169,20 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
             </div>
 
             {/* CTA Section */}
-            <div className="mt-12 p-8 rounded-lg bg-gradient-to-r from-primary/10 to-primary/5 border border-primary/20 text-center">
-                <h3 className="text-2xl font-bold mb-2">Ready to apply smarter?</h3>
-                <p className="text-muted-foreground mb-6">
-                    Stop wasting time on repetitive applications. Let AI do the heavy lifting.
+            <div className="mt-12 rounded-2xl border border-primary/20 bg-gradient-to-b from-primary/10 to-primary/5 p-8 text-center shadow-[0_16px_48px_-24px_rgba(24,187,112,0.4)] sm:p-10">
+                <h3 className="font-display mb-2 text-2xl font-bold tracking-tight text-foreground">
+                    Ready to apply smarter?
+                </h3>
+                <p className="mb-6 text-muted-foreground">
+                    Stop wasting time on repetitive applications. Let AI do the heavy
+                    lifting.
                 </p>
                 <Link
-                    href="https://applyos.io/auth/signup"
-                    className="inline-flex items-center gap-2 bg-primary text-primary-foreground font-bold px-6 py-3 rounded-md hover:bg-primary/90 transition-colors"
+                    href={`${appUrl}/auth/signup`}
+                    className="inline-flex items-center gap-2 rounded-lg bg-primary px-6 py-3 font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all hover:-translate-y-0.5 hover:bg-primary-strong dark:hover:bg-primary"
                 >
                     Try ApplyOS Free
+                    <ArrowLeft className="h-4 w-4 rotate-180" />
                 </Link>
             </div>
         </article>

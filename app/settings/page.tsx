@@ -245,9 +245,11 @@ export default function SettingsPage() {
         {/* Header */}
         <div className="flex items-center justify-between gap-4">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Settings</h1>
-            <p className="text-muted-foreground">
-              Manage your account settings and preferences
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              Settings
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Manage your account settings and preferences.
             </p>
           </div>
           <div className="flex items-center space-x-2">
@@ -276,7 +278,7 @@ export default function SettingsPage() {
         </div>
 
         {/* Notifications */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>Notification Preferences</CardTitle>
             <CardDescription>
@@ -369,7 +371,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* AI Settings */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>AI Features</CardTitle>
             <CardDescription>
@@ -409,7 +411,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Security */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>Security</CardTitle>
             <CardDescription>
@@ -440,7 +442,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Data & Privacy (coming soon) */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>Data & Privacy</CardTitle>
             <CardDescription>
@@ -466,7 +468,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Browser Extension */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>Browser Extension</CardTitle>
             <CardDescription>
@@ -499,7 +501,7 @@ export default function SettingsPage() {
         </Card>
 
         {/* Appearance */}
-        <Card>
+        <Card className="rounded-2xl border-border/70">
           <CardHeader>
             <CardTitle>Appearance</CardTitle>
             <CardDescription>

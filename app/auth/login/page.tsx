@@ -1,15 +1,20 @@
 "use client"
 
-import Image from "next/image"
 import { useState, useEffect, Suspense } from "react"
 import Link from "next/link"
 import { useRouter, useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
-import { Button } from "@/shared/ui/button"
-import { Input } from "@/shared/ui/input"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
+import { AnimatePresence, motion } from "framer-motion"
 import { createClient } from "@/shared/db/supabase/client"
-import { Chrome } from "lucide-react"
+import {
+  AuthAlert,
+  AuthField,
+  AuthFooterNote,
+  AuthGoogleButton,
+  AuthPrimaryButton,
+  AuthShell,
+  FieldLabelRow,
+} from "@/components/marketing/auth-primitives"
+import { Input } from "@/shared/ui/input"
 
 function LoginContent() {
   const searchParams = useSearchParams()
@@ -26,11 +31,11 @@ function LoginContent() {
   const supabase = createClient()
 
   useEffect(() => {
-    const errorParam = searchParams.get('error')
-    const returnToParam = searchParams.get('returnTo')
+    const errorParam = searchParams.get("error")
+    const returnToParam = searchParams.get("returnTo")
 
-    if (errorParam === 'no_account') {
-      setError('No account found. Please sign up first to create an account.')
+    if (errorParam === "no_account") {
+      setError("No account found. Please sign up first to create an account.")
     }
 
     if (returnToParam) {
@@ -59,15 +64,13 @@ function LoginContent() {
     // Get user from the sign-in response
     const user = authData.user
     if (!user) {
-      setError('Failed to get user information')
+      setError("Failed to get user information")
       setLoading(false)
       return
     }
 
     // Check if user's email is verified using Supabase Auth's built-in verification
-    // user.email_confirmed_at will be null if email is not verified
     if (!user.email_confirmed_at) {
-      // Email not verified - sign out and show modal
       await supabase.auth.signOut()
       setUnverifiedEmail(user.email || email)
       setShowResendModal(true)
@@ -75,7 +78,6 @@ function LoginContent() {
       return
     }
 
-    // Email verified - proceed to dashboard
     router.push("/dashboard")
   }
 
@@ -84,9 +86,9 @@ function LoginContent() {
     setResendSuccess(false)
 
     try {
-      const response = await fetch('/api/auth/resend-verification', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/auth/resend-verification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: unverifiedEmail }),
       })
 
@@ -98,10 +100,10 @@ function LoginContent() {
           setUnverifiedEmail("")
         }, 3000)
       } else {
-        setError('Failed to resend verification email')
+        setError("Failed to resend verification email")
       }
     } catch {
-      setError('An error occurred')
+      setError("An error occurred")
     } finally {
       setResending(false)
     }
@@ -110,17 +112,14 @@ function LoginContent() {
   const handleGoogleLogin = async () => {
     setLoading(true)
 
-    // Generate a random state to track this OAuth session
     const state = Math.random().toString(36).substring(7)
 
-    // Store intent and returnTo in cookies with SameSite=Lax for better persistence through redirects
     document.cookie = `auth_intent=login; path=/; max-age=3600; SameSite=Lax`
     document.cookie = `auth_state=${state}; path=/; max-age=3600; SameSite=Lax`
     if (returnTo) {
       document.cookie = `auth_returnTo=${encodeURIComponent(returnTo)}; path=/; max-age=3600; SameSite=Lax`
     }
 
-    // Use the environment variable if available, otherwise fall back to window.location.origin
     const origin = process.env.NEXT_PUBLIC_APP_URL || window.location.origin
     const redirectTo = `${origin}/auth/callback`
 
@@ -129,7 +128,7 @@ function LoginContent() {
       options: {
         redirectTo,
         queryParams: {
-          prompt: 'select_account', // Force Google to show account picker
+          prompt: "select_account",
         },
       },
     })
@@ -141,182 +140,151 @@ function LoginContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Image src="/ApplyOS%20Logo.webp" alt="ApplyOS" width={1073} height={1000} className="h-12 w-auto" />
-              <span className="text-3xl font-bold font-mono">
-                <span className="text-primary">Apply</span>
-                <span className="text-foreground">OS</span>
-              </span>
-            </div>
-          </Link>
-          <h1 className="text-2xl font-bold text-foreground">Welcome back</h1>
-          <p className="text-muted-foreground">Sign in to your account to continue</p>
+    <AuthShell title="Welcome back" subtitle="Sign in to your command center.">
+      <form onSubmit={handleLogin} className="space-y-5">
+        {error && <AuthAlert tone="error">{error}</AuthAlert>}
+
+        <AuthField
+          id="email"
+          label="Email"
+          type="email"
+          placeholder="you@example.com"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+          autoComplete="email"
+        />
+
+        <div className="space-y-1.5">
+          <FieldLabelRow
+            htmlFor="password"
+            label="Password"
+            action={
+              <Link
+                href="/auth/forgot-password"
+                className="text-[13px] font-medium text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+              >
+                Forgot password?
+              </Link>
+            }
+          />
+          <Input
+            id="password"
+            type="password"
+            placeholder="••••••••"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
+            autoComplete="current-password"
+            className="h-11 rounded-lg border-border/80 bg-card px-3.5 text-[15px] shadow-sm"
+          />
         </div>
 
-        <Card className="glass-effect">
-          <CardHeader>
-            <CardTitle>Sign In</CardTitle>
-            <CardDescription>
-              Enter your credentials to access your account
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <form onSubmit={handleLogin} className="space-y-4">
-              {error && (
-                <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                  {error}
+        <AuthPrimaryButton loading={loading} disabled={loading}>
+          {loading ? "Signing in…" : "Sign in"}
+        </AuthPrimaryButton>
+
+        <div className="relative" aria-hidden>
+          <div className="absolute inset-0 flex items-center">
+            <span className="w-full border-t border-border/70" />
+          </div>
+          <div className="relative flex justify-center">
+            <span className="bg-background px-3 text-[11px] font-medium uppercase tracking-[0.14em] text-muted-foreground/70">
+              or
+            </span>
+          </div>
+        </div>
+
+        <AuthGoogleButton onClick={handleGoogleLogin} disabled={loading} loading={loading} />
+      </form>
+
+      <AuthFooterNote>
+        New to ApplyOS?{" "}
+        <Link
+          href="/auth/signup"
+          className="font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+        >
+          Create an account
+        </Link>
+      </AuthFooterNote>
+
+      {/* Unverified email modal */}
+      <AnimatePresence>
+        {showResendModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.96, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+              className="w-full max-w-sm rounded-2xl border border-border/80 bg-card p-6 shadow-2xl"
+              role="dialog"
+              aria-modal="true"
+              aria-label="Verify your email"
+            >
+              <h2 className="font-display text-lg font-bold tracking-tight text-foreground">
+                Verify your email
+              </h2>
+              <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                We sent a verification link to{" "}
+                <strong className="font-semibold text-foreground">{unverifiedEmail}</strong>.
+                Open the link to finish signing in.
+              </p>
+
+              <p className="mt-4 rounded-lg border border-border/70 bg-muted/50 p-3 text-xs leading-relaxed text-muted-foreground">
+                Didn&apos;t receive it? Check your spam folder, or resend the email below.
+              </p>
+
+              {resendSuccess && (
+                <div className="mt-3">
+                  <AuthAlert tone="success">Verification email resent.</AuthAlert>
                 </div>
               )}
 
-              <div className="space-y-2">
-                <label htmlFor="email" className="text-sm font-medium">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  placeholder="you@example.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
+              <div className="mt-5 space-y-2.5">
+                <AuthPrimaryButton
+                  type="button"
+                  onClick={handleResendVerification}
+                  loading={resending}
+                  disabled={resending || resendSuccess}
+                >
+                  {resendSuccess ? "Email sent" : resending ? "Sending…" : "Resend verification email"}
+                </AuthPrimaryButton>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowResendModal(false)
+                    setUnverifiedEmail("")
+                    setResendSuccess(false)
+                  }}
+                  className="h-11 w-full rounded-lg text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+                >
+                  Back to login
+                </button>
               </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <label htmlFor="password" className="text-sm font-medium">
-                    Password
-                  </label>
-                  <Link
-                    href="/auth/forgot-password"
-                    className="text-sm text-primary hover:underline"
-                  >
-                    Forgot password?
-                  </Link>
-                </div>
-                <Input
-                  id="password"
-                  type="password"
-                  placeholder="••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                />
-              </div>
-
-              <Button type="submit" className="w-full bg-primary text-primary-foreground font-bold hover:bg-primary/90" disabled={loading}>
-                {loading ? "Signing in..." : "Sign In"}
-              </Button>
-
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <span className="w-full border-t border-border" />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-card px-2 text-muted-foreground">
-                    Or continue with
-                  </span>
-                </div>
-              </div>
-
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full"
-                onClick={handleGoogleLogin}
-                disabled={loading}
-              >
-                <Chrome className="mr-2 h-4 w-4" />
-                Google
-              </Button>
-
-              <p className="text-center text-sm text-muted-foreground">
-                Don&apos;t have an account?{" "}
-                <Link href="/auth/signup" className="text-primary hover:underline">
-                  Sign up
-                </Link>
-              </p>
-            </form>
-          </CardContent>
-        </Card>
-      </motion.div>
-
-      {/* Unverified Email Modal */}
-      {showResendModal && (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="fixed inset-0 bg-black/50 flex items-center justify-center p-4 z-50"
-        >
-          <motion.div
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="w-full max-w-sm"
-          >
-            <Card className="glass-effect">
-              <CardHeader>
-                <CardTitle className="text-primary">Verify Your Email</CardTitle>
-                <CardDescription>
-                  Please verify your email address to continue
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <p className="text-sm text-muted-foreground">
-                  We sent a verification link to <strong>{unverifiedEmail}</strong>. Please check your email and click the link to verify your account.
-                </p>
-                <div className="p-3 bg-muted rounded-lg border border-border">
-                  <p className="text-xs text-muted-foreground">
-                    Didn&apos;t receive the email? Check your spam folder or click below to resend it.
-                  </p>
-                </div>
-
-                {resendSuccess && (
-                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/20 text-primary text-sm">
-                    ✓ Verification email resent successfully!
-                  </div>
-                )}
-
-                <div className="space-y-2">
-                  <Button
-                    onClick={handleResendVerification}
-                    className="w-full"
-                    disabled={resending || resendSuccess}
-                  >
-                    {resending ? "Sending..." : resendSuccess ? "Email Sent" : "Resend Verification Email"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    className="w-full"
-                    onClick={() => {
-                      setShowResendModal(false)
-                      setUnverifiedEmail("")
-                      setResendSuccess(false)
-                    }}
-                  >
-                    Back to Login
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
+            </motion.div>
           </motion.div>
-        </motion.div>
-      )}
-    </div>
+        )}
+      </AnimatePresence>
+    </AuthShell>
   )
 }
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      }
+    >
       <LoginContent />
     </Suspense>
   )

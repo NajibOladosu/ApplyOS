@@ -390,7 +390,7 @@ export default function DocumentDetailPage() {
     const report = doc.report as DocumentReport | null
 
     return (
-      <Card className="bg-background/60 border-primary/10">
+      <Card className="rounded-2xl border-border/70 bg-card">
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="text-base sm:text-lg">Document Report</CardTitle>
@@ -428,7 +428,7 @@ export default function DocumentDetailPage() {
               {/* Header */}
               <div className="space-y-2 pb-4 border-b border-border/50">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <h3 className="font-display text-sm font-semibold text-foreground">
                     {report.documentType || "Document"}
                   </h3>
                   <div className="text-sm font-bold text-foreground">
@@ -494,7 +494,7 @@ export default function DocumentDetailPage() {
                           <div className="px-3 pb-3 space-y-3 border-t border-border/50 bg-muted/20">
                             {category.strengths && category.strengths.length > 0 && (
                               <div>
-                                <h4 className="text-xs font-semibold text-primary mb-1.5">
+                                <h4 className="font-display text-xs font-semibold text-primary mb-1.5">
                                   Strengths
                                 </h4>
                                 <ul className="space-y-1">
@@ -510,7 +510,7 @@ export default function DocumentDetailPage() {
 
                             {category.improvements && category.improvements.length > 0 && (
                               <div>
-                                <h4 className="text-xs font-semibold text-muted-foreground mb-1.5">
+                                <h4 className="font-display text-xs font-semibold text-muted-foreground mb-1.5">
                                   Areas for Improvement
                                 </h4>
                                 <ul className="space-y-1">
@@ -574,7 +574,7 @@ export default function DocumentDetailPage() {
     const parsed = doc.parsed_data as ParsedDocument | null
 
     return (
-      <Card className="bg-background/60 border-primary/10">
+      <Card className="rounded-2xl border-border/70 bg-card">
         <CardHeader className="p-4 sm:p-6">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <CardTitle className="text-base sm:text-lg">AI Analysis</CardTitle>
@@ -604,7 +604,7 @@ export default function DocumentDetailPage() {
         </CardHeader>
         <CardContent className="space-y-4 text-sm text-muted-foreground">
           {doc.analysis_status === "failed" && (
-            <div className="rounded-md border border-red-500/40 bg-red-500/5 p-3 text-xs text-red-300">
+            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
               <p className="font-semibold mb-1">Last analysis attempt failed.</p>
               {doc.analysis_error && (
                 <p className="line-clamp-3">
@@ -638,7 +638,7 @@ export default function DocumentDetailPage() {
             <>
               {parsed.education?.length > 0 && (
                 <section>
-                  <h3 className="font-semibold text-foreground mb-1">
+                  <h3 className="font-display font-semibold text-foreground mb-1">
                     Education
                   </h3>
                   <div className="space-y-1">
@@ -668,7 +668,7 @@ export default function DocumentDetailPage() {
 
               {parsed.experience?.length > 0 && (
                 <section>
-                  <h3 className="font-semibold text-foreground mb-1">
+                  <h3 className="font-display font-semibold text-foreground mb-1">
                     Experience
                   </h3>
                   <div className="space-y-1">
@@ -698,7 +698,7 @@ export default function DocumentDetailPage() {
 
               {parsed.projects?.length > 0 && (
                 <section>
-                  <h3 className="font-semibold text-foreground mb-1">
+                  <h3 className="font-display font-semibold text-foreground mb-1">
                     Projects
                   </h3>
                   <div className="space-y-1">
@@ -742,7 +742,7 @@ export default function DocumentDetailPage() {
                 parsed.skills?.soft?.length ||
                 parsed.skills?.other?.length) && (
                   <section>
-                    <h3 className="font-semibold text-foreground mb-1">
+                    <h3 className="font-display font-semibold text-foreground mb-1">
                       Skills
                     </h3>
                     <div className="flex flex-wrap gap-1">
@@ -779,7 +779,7 @@ export default function DocumentDetailPage() {
 
               {parsed.achievements?.length > 0 && (
                 <section>
-                  <h3 className="font-semibold text-foreground mb-1">
+                  <h3 className="font-display font-semibold text-foreground mb-1">
                     Achievements
                   </h3>
                   <ul className="list-disc list-inside space-y-0.5">
@@ -792,7 +792,7 @@ export default function DocumentDetailPage() {
 
               {parsed.certifications?.length > 0 && (
                 <section>
-                  <h3 className="font-semibold text-foreground mb-1">
+                  <h3 className="font-display font-semibold text-foreground mb-1">
                     Certifications
                   </h3>
                   <ul className="list-disc list-inside space-y-0.5">
@@ -811,7 +811,7 @@ export default function DocumentDetailPage() {
 
               {parsed.keywords?.length > 0 && (
                 <section>
-                  <h3 className="font-semibold text-foreground mb-1">
+                  <h3 className="font-display font-semibold text-foreground mb-1">
                     Keywords
                   </h3>
                   <div className="flex flex-wrap gap-1">
@@ -830,7 +830,7 @@ export default function DocumentDetailPage() {
 
               {parsed.raw_highlights?.length > 0 && (
                 <section>
-                  <h3 className="font-semibold text-foreground mb-1">
+                  <h3 className="font-display font-semibold text-foreground mb-1">
                     Highlights
                   </h3>
                   <ul className="list-disc list-inside space-y-0.5">
@@ -878,8 +878,8 @@ export default function DocumentDetailPage() {
               <div className="h-3 w-24 bg-muted/20 rounded animate-pulse" />
             </div>
           </div>
-          <Card className="h-32 bg-background/60 border-primary/5 animate-pulse" />
-          <Card className="h-64 bg-background/60 border-primary/5 animate-pulse" />
+          <Card className="h-32 rounded-2xl border-border/70 animate-pulse" />
+          <Card className="h-64 rounded-2xl border-border/70 animate-pulse" />
         </div>
       </DashboardLayout>
     )
@@ -917,7 +917,7 @@ export default function DocumentDetailPage() {
               <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
             </button>
             <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">
+              <h1 className="break-words font-display text-2xl font-bold tracking-tight text-foreground md:text-[28px]">
                 {doc.file_name}
               </h1>
               <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 text-xs text-muted-foreground">

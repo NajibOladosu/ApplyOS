@@ -22,12 +22,12 @@ import {
 import { AlertModal } from "@/components/modals/alert-modal"
 
 const typeConfig = {
-  deadline: { icon: Calendar, color: "text-red-500", bg: "bg-red-500/10" },
+  deadline: { icon: Calendar, color: "text-destructive", bg: "bg-destructive/10" },
   status_update: { icon: TrendingUp, color: "text-blue-500", bg: "bg-blue-500/10" },
-  success: { icon: CheckCheck, color: "text-green-500", bg: "bg-green-500/10" },
+  success: { icon: CheckCheck, color: "text-primary-strong dark:text-primary", bg: "bg-primary/10" },
   info: { icon: Bell, color: "text-blue-500", bg: "bg-blue-500/10" },
   warning: { icon: AlertCircle, color: "text-yellow-500", bg: "bg-yellow-500/10" },
-  error: { icon: AlertCircle, color: "text-red-500", bg: "bg-red-500/10" },
+  error: { icon: AlertCircle, color: "text-destructive", bg: "bg-destructive/10" },
 }
 
 export default function NotificationsPage() {
@@ -101,8 +101,10 @@ export default function NotificationsPage() {
         {/* Header */}
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold mb-2">Notifications</h1>
-            <p className="text-muted-foreground">
+            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
+              Notifications
+            </h1>
+            <p className="mt-1 text-sm text-muted-foreground">
               {unreadCount > 0
                 ? `You have ${unreadCount} unread notification${
                     unreadCount > 1 ? "s" : ""
@@ -114,6 +116,7 @@ export default function NotificationsPage() {
             variant="outline"
             onClick={handleMarkAllAsRead}
             disabled={updating || unreadCount === 0}
+            className="h-9 rounded-lg"
           >
             {updating ? (
               <>
@@ -153,9 +156,9 @@ export default function NotificationsPage() {
                   <CardContent className="p-4">
                     <div className="flex items-start space-x-4">
                       <div
-                        className={`h-10 w-10 rounded-full ${config.bg} flex items-center justify-center shrink-0`}
+                        className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${config.bg}`}
                       >
-                        <Icon className={`h-5 w-5 ${config.color}`} />
+                        <Icon className={`h-4 w-4 ${config.color}`} />
                       </div>
 
                       <div className="flex-1 min-w-0">
@@ -190,14 +193,16 @@ export default function NotificationsPage() {
         </div>
 
         {notifications.length === 0 && (
-          <Card>
+          <Card className="rounded-2xl border-border/70">
             <CardContent className="p-12 text-center">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto mb-4">
-                <Bell className="h-8 w-8 text-primary" />
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
+                <Bell className="h-6 w-6 text-primary-strong dark:text-primary" />
               </div>
-              <h3 className="text-lg font-semibold mb-2">No notifications</h3>
-              <p className="text-muted-foreground">
-                You&apos;re all caught up! New notifications will appear here.
+              <h3 className="font-display text-base font-bold tracking-tight text-foreground">
+                You&apos;re all caught up
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">
+                New notifications will appear here.
               </p>
             </CardContent>
           </Card>

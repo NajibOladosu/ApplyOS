@@ -1,13 +1,21 @@
 "use client"
 
-import Image from "next/image"
 import { useState, Suspense } from "react"
-import Link from "next/link"
 import { useSearchParams } from "next/navigation"
-import { motion } from "framer-motion"
-import { Button } from "@/shared/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
-import { Mail, ArrowLeft } from "lucide-react"
+import { Inbox, Mail, MailX } from "lucide-react"
+import {
+  AuthAlert,
+  AuthOutlineButton,
+  AuthPrimaryButton,
+  AuthShell,
+  StatusTile,
+} from "@/components/marketing/auth-primitives"
+
+const TIPS = [
+  { icon: Inbox, text: "Check your inbox" },
+  { icon: MailX, text: "Not there? Check your spam folder" },
+  { icon: Mail, text: "The link expires in 24 hours" },
+]
 
 function CheckEmailContent() {
   const searchParams = useSearchParams()
@@ -46,103 +54,64 @@ function CheckEmailContent() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-        className="w-full max-w-md"
-      >
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-block">
-            <div className="flex items-center justify-center space-x-2 mb-4">
-              <Image src="/ApplyOS%20Logo.webp" alt="ApplyOS" width={1073} height={1000} className="h-12 w-auto" />
-              <span className="text-3xl font-bold font-mono">
-                <span className="text-primary">Apply</span>
-                <span className="text-foreground">OS</span>
+    <AuthShell
+      title="Check your email"
+      subtitle="Click the verification link in the email to confirm your account."
+    >
+      <div className="space-y-6">
+        <StatusTile icon={Mail} size="lg" />
+
+        {email && (
+          <div className="rounded-lg border border-border/70 bg-muted/40 px-4 py-3 text-center text-sm text-muted-foreground">
+            Sent to <span className="font-semibold text-foreground">{email}</span>
+          </div>
+        )}
+
+        <ul className="space-y-2.5">
+          {TIPS.map(({ icon: Icon, text }) => (
+            <li key={text} className="flex items-center gap-2.5 text-sm text-muted-foreground">
+              <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md border border-border/70 bg-card">
+                <Icon className="h-3.5 w-3.5 text-primary-strong dark:text-primary" />
               </span>
-            </div>
-          </Link>
+              {text}
+            </li>
+          ))}
+        </ul>
+
+        {resendSuccess && <AuthAlert tone="success">Verification email resent.</AuthAlert>}
+        {resendError && <AuthAlert tone="error">{resendError}</AuthAlert>}
+
+        <div className="space-y-2.5 pt-1">
+          <AuthPrimaryButton
+            type="button"
+            onClick={handleResendEmail}
+            loading={resending}
+            disabled={resending || resendSuccess}
+          >
+            {resendSuccess ? "Email sent" : resending ? "Sending…" : "Resend verification email"}
+          </AuthPrimaryButton>
+          <AuthOutlineButton asChild href="/auth/login">
+            Back to login
+          </AuthOutlineButton>
         </div>
 
-        <Card className="glass-effect">
-          <CardHeader className="text-center">
-            <div className="flex justify-center mb-4">
-              <div className="h-16 w-16 rounded-full bg-primary/10 flex items-center justify-center">
-                <Mail className="h-8 w-8 text-primary" />
-              </div>
-            </div>
-            <CardTitle className="text-2xl">Check Your Email</CardTitle>
-            <CardDescription className="text-base mt-2">
-              We&apos;ve sent a verification link to your email address
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            {email && (
-              <div className="p-4 rounded-lg bg-muted/50 border border-border">
-                <p className="text-sm text-muted-foreground text-center">
-                  Email: <span className="font-medium text-foreground">{email}</span>
-                </p>
-              </div>
-            )}
-
-            <div className="space-y-3">
-              <p className="text-sm text-muted-foreground">
-                Click the verification link in the email to confirm your account. The link will expire in 24 hours.
-              </p>
-              <ul className="text-sm text-muted-foreground space-y-2 list-disc list-inside">
-                <li>Check your inbox</li>
-                <li>If you don&apos;t see it, check your spam folder</li>
-                <li>The link will expire in 24 hours</li>
-              </ul>
-            </div>
-
-            {resendSuccess && (
-              <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/20 text-green-600 text-sm">
-                ✓ Verification email resent successfully!
-              </div>
-            )}
-
-            {resendError && (
-              <div className="p-3 rounded-lg bg-destructive/10 border border-destructive/20 text-destructive text-sm">
-                {resendError}
-              </div>
-            )}
-
-            <div className="space-y-3 pt-4">
-              <Button
-                onClick={handleResendEmail}
-                disabled={resending || resendSuccess}
-                className="w-full"
-                variant="default"
-              >
-                {resending ? "Sending..." : resendSuccess ? "Email Sent" : "Resend Verification Email"}
-              </Button>
-              <Button
-                asChild
-                variant="outline"
-                className="w-full"
-              >
-                <Link href="/auth/login" className="flex items-center justify-center">
-                  <ArrowLeft className="h-4 w-4 mr-2" />
-                  Back to Login
-                </Link>
-              </Button>
-            </div>
-
-            <p className="text-xs text-muted-foreground text-center pt-4 border-t border-border">
-              Didn&apos;t receive an email? Make sure your email address is correct and check your spam folder.
-            </p>
-          </CardContent>
-        </Card>
-      </motion.div>
-    </div>
+        <p className="text-center text-xs leading-relaxed text-muted-foreground/70">
+          Still nothing? Make sure the address above is correct and check your spam folder.
+        </p>
+      </div>
+    </AuthShell>
   )
 }
 
 export default function CheckEmailPage() {
   return (
-    <Suspense fallback={<div>Loading...</div>}>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center bg-background">
+          <span className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+        </div>
+      }
+    >
       <CheckEmailContent />
     </Suspense>
   )

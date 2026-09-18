@@ -740,58 +740,82 @@ export default function ApplicationDetailPage() {
       <div className="space-y-6">
         {/* Header */}
         <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex items-start gap-2 sm:gap-4">
-            <Link href="/applications">
-              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 mt-1">
-                <ArrowLeft className="h-4 w-4" />
-              </Button>
-            </Link>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">{application.title}</h1>
-              {application.url ? (
-                <a
-                  href={application.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1 mt-1 break-all"
-                >
-                  <span className="truncate">{application.url}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0" />
-                </a>
-              ) : (
-                <div className="h-5 mt-1" />
-              )}
+          <Link
+            href="/applications"
+            className="inline-flex w-fit items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Applications
+          </Link>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-4">
+            <div className="min-w-0">
+              <h1 className="break-words font-display text-2xl font-bold tracking-tight text-foreground md:text-[28px]">
+                {application.title}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+                {application.company && (
+                  <span className="font-medium text-foreground/80">{application.company}</span>
+                )}
+                <span className="capitalize">{application.type}</span>
+                <span className="flex items-center gap-1.5 capitalize">
+                  <span className={`h-2 w-2 rounded-full ${priorityColor[application.priority]}`} />
+                  {application.priority} priority
+                </span>
+                {application.deadline && (
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {new Date(application.deadline).toLocaleDateString()}
+                  </span>
+                )}
+                {application.url && (
+                  <a
+                    href={application.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 font-medium text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+                  >
+                    <span className="max-w-[240px] truncate">View posting</span>
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                  </a>
+                )}
+              </div>
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowEditModal(true)}
+              className="h-9 shrink-0 rounded-lg"
+            >
+              <Edit className="mr-1.5 h-3.5 w-3.5" />
+              Edit
+            </Button>
           </div>
         </div>
 
         {/* Application Info (Static) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Application Information</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="h-8 w-8 text-muted-foreground hover:text-primary">
-              <Edit className="h-4 w-4" />
-              <span className="sr-only">Edit Application</span>
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-6">
+        <Card className="rounded-2xl border-border/70">
+          <CardContent className="p-5 sm:p-6">
             <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
               {application.company && (
                 <div>
-                  <p className="text-sm text-muted-foreground mb-1">Company/University</p>
-                  <div className="h-[38px] flex items-center">
-                    <span className="text-sm font-medium truncate">
+                  <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                    Company
+                  </p>
+                  <div className="flex h-9 items-center">
+                    <span className="truncate text-sm font-medium">
                       {application.company}
                     </span>
                   </div>
                 </div>
               )}
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Status</p>
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                  Status
+                </p>
                 <div className="relative inline-block w-full">
                   <button
                     onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="w-full h-[38px] flex items-center justify-between px-3 py-2 rounded-md border border-input hover:bg-muted transition-colors text-sm font-medium"
+                    className="flex h-9 w-full items-center justify-between rounded-lg border border-border/80 bg-card px-3 text-sm font-medium shadow-sm transition-colors hover:border-primary/40"
                   >
                     <span className="capitalize">
                       {statusLabel[pendingStatus || application.status]}
@@ -799,7 +823,7 @@ export default function ApplicationDetailPage() {
                     <ChevronDown className="h-4 w-4 text-muted-foreground" />
                   </button>
                   {statusDropdownOpen && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-input rounded-md shadow-md">
+                    <div className="absolute left-0 right-0 top-full z-50 mt-1.5 rounded-xl border border-border/70 bg-card p-1 shadow-xl">
                       {(Object.keys(statusLabel) as Array<keyof typeof statusLabel>).map((status) => (
                         <button
                           key={status}
@@ -807,8 +831,11 @@ export default function ApplicationDetailPage() {
                             handleStatusChange(status)
                             setStatusDropdownOpen(false)
                           }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-muted ${pendingStatus === status ? "bg-muted font-medium" : ""
-                            }`}
+                          className={`w-full rounded-lg px-3 py-2 text-left text-[13px] transition-colors ${
+                            pendingStatus === status
+                              ? "bg-primary/10 font-medium text-primary-strong dark:text-primary"
+                              : "text-foreground hover:bg-muted/70"
+                          }`}
                         >
                           {statusLabel[status]}
                         </button>
@@ -818,8 +845,10 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Priority</p>
-                <div className="h-[38px] flex items-center space-x-2">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                  Priority
+                </p>
+                <div className="flex h-9 items-center space-x-2">
                   <div className={`h-2 w-2 rounded-full ${priorityColor[application.priority]}`} />
                   <span className="text-sm font-medium capitalize">
                     {application.priority}
@@ -827,8 +856,10 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Deadline</p>
-                <div className="h-[38px] flex items-center space-x-2">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                  Deadline
+                </p>
+                <div className="flex h-9 items-center space-x-2">
                   <Calendar className="h-4 w-4 text-muted-foreground" />
                   <span className="text-sm font-medium">
                     {application.deadline
@@ -838,9 +869,11 @@ export default function ApplicationDetailPage() {
                 </div>
               </div>
               <div>
-                <p className="text-sm text-muted-foreground mb-1">Type</p>
-                <div className="h-[38px] flex items-center">
-                  <Badge variant="outline" className="capitalize">
+                <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                  Type
+                </p>
+                <div className="flex h-9 items-center">
+                  <Badge variant="outline" className="rounded-full capitalize">
                     {application.type}
                   </Badge>
                 </div>
@@ -849,8 +882,8 @@ export default function ApplicationDetailPage() {
 
 
             {application.job_description && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-3">
+              <div className="border-t border-border/60 pt-5">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
                   {application.type === 'scholarship' ? 'Scholarship Details' : 'Job Description'}
                 </p>
                 <motion.div
@@ -858,7 +891,7 @@ export default function ApplicationDetailPage() {
                   transition={{ duration: 0.3 }}
                 >
                   <div
-                    className={`text-sm whitespace-pre-wrap text-muted-foreground bg-muted/30 p-3 rounded border border-input transition-all ${jobDescriptionExpanded ? "" : "line-clamp-3"
+                    className={`whitespace-pre-wrap rounded-lg border border-border/60 bg-muted/40 p-3.5 text-sm leading-relaxed text-muted-foreground transition-all ${jobDescriptionExpanded ? "" : "line-clamp-3"
                       }`}
                   >
                     {application.job_description}
@@ -867,9 +900,9 @@ export default function ApplicationDetailPage() {
                 {application.job_description.split("\n").length > 3 && (
                   <button
                     onClick={() => setJobDescriptionExpanded(!jobDescriptionExpanded)}
-                    className="mt-2 text-xs text-primary hover:underline transition-colors"
+                    className="mt-2 text-xs font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
                   >
-                    {jobDescriptionExpanded ? "Show Less" : "Show More"}
+                    {jobDescriptionExpanded ? "Show less" : "Show more"}
                   </button>
                 )}
                 <JdSummaryCard jobDescription={application.job_description} />
@@ -877,10 +910,12 @@ export default function ApplicationDetailPage() {
             )}
 
             {/* Related Documents */}
-            <div className="border-t pt-4">
-              <p className="text-sm font-medium mb-3">Related Documents</p>
+            <div className="border-t border-border/60 pt-5">
+              <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/60">
+                Context Documents
+              </p>
               <p className="text-xs text-muted-foreground mb-4">
-                Select documents to use as context for generating AI answers to application questions.
+                These documents ground the AI answers for this application&apos;s questions.
               </p>
 
               {/* Add Document Button */}
@@ -997,50 +1032,15 @@ export default function ApplicationDetailPage() {
 
         {/* Tabs */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-7 w-full sm:w-auto">
-              <TabsTrigger
-                value="questions"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Questions
-              </TabsTrigger>
-              <TabsTrigger
-                value="cover-letter"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Cover Letter
-              </TabsTrigger>
-              <TabsTrigger
-                value="analysis"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Analysis
-              </TabsTrigger>
-              <TabsTrigger
-                value="job-fit"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Job Fit
-              </TabsTrigger>
-              <TabsTrigger
-                value="contacts"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Contacts
-              </TabsTrigger>
-              <TabsTrigger
-                value="notes"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Notes
-              </TabsTrigger>
-              <TabsTrigger
-                value="interview"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Interview
-              </TabsTrigger>
+          <div className="mb-6 overflow-x-auto">
+            <TabsList className="w-full min-w-0 sm:w-auto">
+              <TabsTrigger value="questions">Questions</TabsTrigger>
+              <TabsTrigger value="cover-letter">Cover Letter</TabsTrigger>
+              <TabsTrigger value="analysis">Analysis</TabsTrigger>
+              <TabsTrigger value="job-fit">Job Fit</TabsTrigger>
+              <TabsTrigger value="contacts">Contacts</TabsTrigger>
+              <TabsTrigger value="notes">Notes</TabsTrigger>
+              <TabsTrigger value="interview">Interview</TabsTrigger>
             </TabsList>
           </div>
 
@@ -1048,7 +1048,7 @@ export default function ApplicationDetailPage() {
           <TabsContent value="questions" className="space-y-6 mt-0">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
                   <MessageSquareText className="h-6 w-6 text-foreground dark:text-primary" />
                   Application Questions
                 </h2>
@@ -1171,7 +1171,7 @@ export default function ApplicationDetailPage() {
                               size="icon"
                               onClick={() => handleCopyAIAnswer(question.id, question.ai_answer || "")}
                               disabled={saving === question.id}
-                              className="glow-effect hover:bg-primary group"
+                              className="hover:bg-primary hover:shadow-[0_4px_16px_-4px_rgba(24,187,112,0.5)] group"
                               title="Copy AI answer to your edited answer"
                             >
                               <Copy className="h-4 w-4 text-primary group-hover:text-background" />
@@ -1214,7 +1214,7 @@ export default function ApplicationDetailPage() {
           <TabsContent value="cover-letter" className="space-y-6 mt-0">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
                   <Mail className="h-6 w-6 text-foreground dark:text-primary" />
                   Cover Letter
                 </h2>
@@ -1271,7 +1271,7 @@ export default function ApplicationDetailPage() {
                             size="icon"
                             onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
                             disabled={savingCoverLetter}
-                            className="glow-effect hover:bg-primary group"
+                            className="hover:bg-primary hover:shadow-[0_4px_16px_-4px_rgba(24,187,112,0.5)] group"
                             title="Copy AI cover letter to your edited cover letter"
                           >
                             <Copy className="h-4 w-4 text-primary group-hover:text-background" />
@@ -1333,7 +1333,7 @@ export default function ApplicationDetailPage() {
           <TabsContent value="notes" className="space-y-6 mt-0">
             <div className="space-y-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
                   <StickyNote className="h-6 w-6 text-foreground dark:text-primary" />
                   Notes
                 </h2>
@@ -1376,7 +1376,7 @@ export default function ApplicationDetailPage() {
                   </Button>
                   <Button
                     onClick={handleNewNote}
-                    className="glow-effect flex-1 sm:flex-none"
+                    className="flex-1 rounded-lg font-semibold shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] sm:flex-none"
                   >
                     <Plus className="h-4 w-4 mr-2" />
                     Add Note
@@ -1442,12 +1442,12 @@ export default function ApplicationDetailPage() {
               ) : (
                 <>
                   <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
+                    <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
                       <Mic className="h-6 w-6 text-foreground dark:text-primary" />
                       Mock Interview
                     </h2>
                     <Button
-                      className="glow-effect flex-1 sm:flex-none"
+                      className="flex-1 rounded-lg font-semibold shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] sm:flex-none"
                       onClick={() => setShowNewInterviewModal(true)}
                     >
                       <Plus className="h-4 w-4 mr-2" />
@@ -1461,13 +1461,13 @@ export default function ApplicationDetailPage() {
                       <CardContent className="pt-6">
                         <div className="text-center py-12">
                           <Mic className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                          <h3 className="text-lg font-semibold mb-2">AI-Powered Interview Practice</h3>
+                          <h3 className="font-display mb-2 text-lg font-bold tracking-tight">AI-Powered Interview Practice</h3>
                           <p className="text-muted-foreground max-w-md mx-auto mb-6">
                             Practice your interview skills with AI-generated questions tailored to your application.
                             Get real-time feedback and improve your responses.
                           </p>
                           <Button
-                            className="glow-effect"
+                            className="rounded-lg font-semibold shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
                             onClick={() => setShowNewInterviewModal(true)}
                           >
                             <Plus className="h-5 w-5 mr-2" />
@@ -1489,9 +1489,9 @@ export default function ApplicationDetailPage() {
                         }
 
                         const difficultyColors = {
-                          easy: "bg-green-500/10 text-green-700 dark:text-green-400",
+                          easy: "bg-primary/10 text-primary-strong dark:text-primary",
                           medium: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-                          hard: "bg-red-500/10 text-red-700 dark:text-red-400"
+                          hard: "bg-destructive/10 text-destructive"
                         }
 
                         const progress = session.total_questions > 0
@@ -1506,7 +1506,6 @@ export default function ApplicationDetailPage() {
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.3 }}
-                            whileHover={{ scale: 1.01 }}
                           >
                             <Card
                               className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm"
@@ -1543,20 +1542,20 @@ export default function ApplicationDetailPage() {
                                         {session.difficulty || 'medium'}
                                       </Badge>
                                       {(session.status === 'completed' || progress === 100) && (
-                                        <Badge className="bg-green-600 text-white border-0 shadow-sm">
+                                        <Badge className="border-0 bg-primary text-primary-foreground shadow-sm">
                                           ✓ Completed
                                         </Badge>
                                       )}
                                     </div>
                                     {session.answered_questions > 0 && (
                                       <div className="flex items-center gap-1.5">
-                                        <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-green-500/10 border border-green-500/30' :
+                                        <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-primary/10 border border-primary/30' :
                                           avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                                            'bg-red-500/10 border border-red-500/30'
+                                            'bg-destructive/10 border border-destructive/30'
                                           }`}>
-                                          <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
+                                          <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-primary-strong dark:text-primary' :
                                             avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                              'text-red-600 dark:text-red-400'
+                                              'text-destructive'
                                             }`}>
                                             {avgScore.toFixed(1)}
                                           </span>
@@ -1598,7 +1597,7 @@ export default function ApplicationDetailPage() {
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-primary-foreground glow-effect group/btn transition-all"
+                                      className="flex-1 rounded-lg text-primary border-primary/50 shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_4px_16px_-4px_rgba(24,187,112,0.5)] group/btn"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         handleViewReport(session.id)
@@ -1611,7 +1610,7 @@ export default function ApplicationDetailPage() {
                                   <Button
                                     variant="outline"
                                     size="sm"
-                                    className={`text-red-600 border-red-600/50 hover:bg-red-600 hover:text-white transition-all ${!(session.status === 'completed' || progress === 100) ? 'flex-1' : ''
+                                    className={`rounded-lg text-destructive border-destructive/50 hover:bg-destructive hover:text-white transition-all ${!(session.status === 'completed' || progress === 100) ? 'flex-1' : ''
                                       }`}
                                     onClick={(e) => {
                                       e.stopPropagation()

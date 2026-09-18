@@ -14,6 +14,10 @@ const crimsonText = Crimson_Text({
   variable: "--font-crimson"
 })
 
+// Display face (Space Grotesk) for marketing headlines is loaded via the
+// browser-side @import in app/globals.css — same pattern as Manrope — and
+// exposed through the --font-display variable.
+
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.applyos.io'),
   title: {
