@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react"
 import Link from "next/link"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Tabs, TabsContent, TabsTrigger } from "@/shared/ui/tabs"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
 import { ActivityStats } from "@/modules/analytics/components/ActivityStats"
 import { FollowUpCard } from "@/modules/applications/components/follow-up-card"
 import { MetricsCard } from "@/modules/analytics/components/MetricsCard"
@@ -253,7 +253,7 @@ export default function DashboardPage() {
             </div>
 
             <div className="flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
-              <div className="flex rounded-lg bg-muted/70 p-1">
+              <TabsList className="flex rounded-lg border-0 bg-muted/70 p-1">
                 {(["overview", "analytics"] as const).map((tab) => (
                   <TabsTrigger
                     key={tab}
@@ -263,7 +263,7 @@ export default function DashboardPage() {
                     {tab}
                   </TabsTrigger>
                 ))}
-              </div>
+              </TabsList>
               <div className="flex gap-2">
                 <Link
                   href="/upload"
@@ -472,7 +472,7 @@ export default function DashboardPage() {
                 value={timeRange}
                 onValueChange={(value) => setTimeRange(value as TimeRange)}
               >
-                <div className="flex rounded-lg bg-muted/70 p-1">
+                <TabsList className="flex w-fit rounded-lg border-0 bg-muted/70 p-1">
                   <TabsTrigger
                     value="7d"
                     className="rounded-md px-3 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
@@ -497,7 +497,7 @@ export default function DashboardPage() {
                   >
                     All
                   </TabsTrigger>
-                </div>
+                </TabsList>
               </Tabs>
             </div>
 
