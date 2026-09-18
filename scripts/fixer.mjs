@@ -240,6 +240,7 @@ const FIX_NOTES = {
 }
 
 const MANUAL_HINTS = {
+  "JSX-001": "structural: swap the wrapper element for the required Radix parent (a styled div around triggers must become <TabsList>) — not auto-applied because matching closing tags is error-prone",
   "CORRECT-002": "console statement is part of a larger expression — remove it manually",
   "DESIGN-002": "no automatic token mapping for this value — choose the semantic token (see scripts/README.md)",
   "DESIGN-003": "heading className is dynamic (cn()/template) — add font-display manually",

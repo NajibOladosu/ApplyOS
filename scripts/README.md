@@ -31,10 +31,24 @@ instead of by memory. Both are plain Node scripts — no API keys, no network.
 | VOICE-001 | `!` in a heading |
 | PERF-001 ⚠ | `whileHover` scale on a large surface |
 | CSS-001 ⚠ | raw `#hex` outside token definitions |
+| JSX-001 | Radix component rendered outside the parent that supplies its context (e.g. `<TabsTrigger>` without `<TabsList>`) — throws at runtime |
 
 Shared logic lives in `scripts/critic.mjs`; `scripts/fixer.mjs` imports the same
 linter so the two can never disagree about what "clean" means — and the fixer
 re-lints after every change to prove the fix actually removed the violation.
+
+## Why JSX-001 exists
+
+A `<TabsTrigger>` wrapped in a plain `<div>` instead of `<TabsList>` shipped on
+`/dashboard`. Radix throws `RovingFocusGroupItem must be used within
+RovingFocusGroup` — but only at render time, only on an authenticated page, so
+neither `tsc`, eslint, nor a curl check could see it. Now it is caught twice:
+
+- **statically** by JSX-001, which walks the JSX with a tag stack (comment- and
+  string-aware) across every changed file
+- **at runtime** by `tests/unit/components/dashboard-tabs.test.tsx`, which
+  renders the real dashboard page in jsdom and fails with that exact error if
+  either segmented control loses its `TabsList`
 
 ## What the fixer will not touch
 
@@ -57,5 +71,5 @@ selftests — a rule that cannot be proven to fire is not a rule.
 CRITIC:  42 files scanned → 0 errors, 0 warnings   (exit 0)
 FIXER:   42 files · 0 changed · 0 auto-fixes · 0 manual
 tsc:     only pre-existing test-file errors · eslint: clean
-critic:selftest 25/25 · fix:selftest 14/14
+critic:selftest 31/31 · fix:selftest 14/14 · dashboard-tabs test 3/3
 ```
