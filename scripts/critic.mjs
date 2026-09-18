@@ -96,6 +96,157 @@ function surfaceAt(lines, i) {
   return "unknown"
 }
 
+/**
+ * Radix UI components throw at RUNTIME when rendered outside the parent that
+ * provides their context — <TabsTrigger> needs a <TabsList> because the list
+ * supplies the RovingFocusGroup. TypeScript cannot see this and it only shows
+ * up on an authenticated render, which is exactly how a <div>-wrapped tab
+ * switcher reached production on /dashboard. This walks the JSX with a tag
+ * stack and reports any component whose required ancestor is missing.
+ */
+const REQUIRED_ANCESTOR = {
+  TabsList: ["Tabs"],
+  TabsTrigger: ["TabsList"],
+  TabsContent: ["Tabs"],
+  SelectItem: ["Select"],
+  SelectTrigger: ["Select"],
+  SelectContent: ["Select"],
+  RadioGroupItem: ["RadioGroup"],
+  AccordionItem: ["Accordion"],
+  AccordionTrigger: ["AccordionItem", "Accordion"],
+  AccordionContent: ["AccordionItem", "Accordion"],
+  DropdownMenuItem: ["DropdownMenu"],
+  DropdownMenuTrigger: ["DropdownMenu"],
+  DropdownMenuContent: ["DropdownMenu"],
+  ToggleGroupItem: ["ToggleGroup"],
+  DialogContent: ["Dialog"],
+  DialogTrigger: ["Dialog"],
+}
+
+/**
+ * Blank out comments while preserving byte offsets and line numbers, so the
+ * JSX scanner cannot mistake example markup in a doc comment for real code
+ * (that produced two false positives on its first run). String literals are
+ * honored, so "https://…" never looks like a line comment.
+ */
+function stripComments(source) {
+  let out = ""
+  let i = 0
+  let state = "code" // code | line | block | ' | " | `
+  while (i < source.length) {
+    const ch = source[i]
+    const next = source[i + 1]
+    if (state === "code") {
+      if (ch === "/" && next === "/") {
+        state = "line"
+        out += "  "
+        i += 2
+        continue
+      }
+      if (ch === "/" && next === "*") {
+        state = "block"
+        out += "  "
+        i += 2
+        continue
+      }
+      if (ch === "'" || ch === '"' || ch === "`") state = ch
+      out += ch
+      i++
+      continue
+    }
+    if (state === "line") {
+      if (ch === "\n") {
+        state = "code"
+        out += ch
+      } else out += " "
+      i++
+      continue
+    }
+    if (state === "block") {
+      if (ch === "*" && next === "/") {
+        state = "code"
+        out += "  "
+        i += 2
+        continue
+      }
+      out += ch === "\n" ? ch : " "
+      i++
+      continue
+    }
+    // inside a string literal
+    if (ch === "\\") {
+      out += ch + (source[i + 1] ?? "")
+      i += 2
+      continue
+    }
+    if (ch === state) state = "code"
+    out += ch
+    i++
+  }
+  return out
+}
+
+function jsxContextIssues(file, rawSource) {
+  const source = stripComments(rawSource)
+  const out = []
+  const stack = []
+  let i = 0
+  while (i < source.length) {
+    const lt = source.indexOf("<", i)
+    if (lt === -1) break
+    const next = source[lt + 1]
+    if (next === "!" || next === "%") {
+      i = lt + 1
+      continue
+    }
+    let j = lt + 1
+    if (source[j] === "/") {
+      // closing tag: pop back to the matching opening tag (lenient on mismatch)
+      j++
+      const start = j
+      while (j < source.length && /[\w.$-]/.test(source[j])) j++
+      const name = source.slice(start, j)
+      while (j < source.length && source[j] !== ">") j++
+      if (name) {
+        const idx = stack.map((s) => s.name).lastIndexOf(name)
+        if (idx !== -1) stack.length = idx
+      }
+      i = j + 1
+      continue
+    }
+    if (!/[\w$]/.test(next ?? "")) {
+      i = lt + 1 // not a tag (e.g. "a < b")
+      continue
+    }
+    const start = j
+    while (j < source.length && /[\w.$-]/.test(source[j])) j++
+    const raw = source.slice(start, j)
+    // scan attributes to the closing ">", honoring quotes and {expressions}
+    let depth = 0
+    let selfClosing = false
+    while (j < source.length) {
+      const ch = source[j]
+      if (ch === '"' || ch === "'") {
+        j++
+        while (j < source.length && source[j] !== ch) j++
+      } else if (ch === "{") depth++
+      else if (ch === "}") depth--
+      else if (ch === ">" && depth === 0) break
+      else if (ch === "<" && depth === 0) break
+      j++
+    }
+    if (source[j - 1] === "/") selfClosing = true
+    const name = raw.split(".").pop()
+    const need = REQUIRED_ANCESTOR[name]
+    if (need && !need.some((n) => stack.some((s) => s.name === n))) {
+      out.push({ name, need, line: lineOf(source, lt) })
+    }
+    if (!selfClosing && /^[A-Z]/.test(raw)) stack.push({ name })
+    i = j + 1
+  }
+  return out
+}
+
 // ---------------------------------------------------------------- rules
 const EXTERNAL_ALLOW = [
   "twitter.com",
@@ -232,6 +383,11 @@ function lintTsSource(file, source) {
     }
   }
 
+  // JSX-001: Radix components must sit inside the parent that supplies context
+  for (const c of jsxContextIssues(file, source)) {
+    issue("ERROR", "JSX-001", file, c.line, `<${c.name}> needs a <${c.need.join(" | ")}> ancestor — Radix throws at runtime without it`)
+  }
+
   // PERF-001: hover scale on large blocks (warn — motion rule)
   for (let i = 0; i < lines.length; i++) {
     if (/whileHover=\{\{\s*scale:\s*1\.0\d/.test(lines[i])) {
@@ -288,6 +444,8 @@ const SELFTESTS = [
   { rule: "CORRECT-005", file: "app/x/page.tsx", src: `<Image src="/hero.png" width={10} height={10} />` },
   { rule: "CORRECT-007", file: "app/x/page.tsx", src: `<form className="grid gap-4">` },
   { rule: "PERF-001", file: "app/x/page.tsx", src: `<div whileHover={{ scale: 1.02 }} />` },
+  { rule: "JSX-001", file: "app/x/page.tsx", src: `<Tabs value="a">\n  <div className="flex p-1">\n    <TabsTrigger value="a">A</TabsTrigger>\n  </div>\n</Tabs>` },
+  { rule: "JSX-001", file: "app/x/page.tsx", src: `<form>\n  <RadioGroupItem value="a" />\n</form>` },
   { rule: "CSS-001", file: "app/globals.css", src: `.x {\n  color: #ff00aa;\n}` },
 ]
 const NEGATIVE_TESTS = [
@@ -299,6 +457,10 @@ const NEGATIVE_TESTS = [
   { file: "app/x/page.tsx", src: `<div className="bg-white/5 text-white/80" />` },
   { file: "proxy.ts", src: `const ALLOWED = ["http://localhost:3000"]` },
   { file: "app/globals.css", src: `:root {\n  --primary: #18bb70;\n}` },
+  { file: "app/x/page.tsx", src: `<Tabs value="a">\n  <TabsList>\n    <TabsTrigger value="a">A</TabsTrigger>\n  </TabsList>\n  <TabsContent value="a">ok</TabsContent>\n</Tabs>` },
+  { file: "app/x/page.tsx", src: `/* a <TabsTrigger value="a">A</TabsTrigger> in prose must not count */\n<div className="bg-card" />` },
+  { file: "app/x/page.tsx", src: `// <TabsList> also in a line comment\nconst url = "https://example.com/a"` },
+  { file: "app/x/page.tsx", src: `<Select value="a">\n  <SelectTrigger><SelectValue /></SelectTrigger>\n  <SelectContent>\n    <SelectItem value="a">A</SelectItem>\n  </SelectContent>\n</Select>` },
 ]
 
 function runSelfTest() {
@@ -372,6 +534,7 @@ function main() {
   md += `- **VOICE-001** heading contains "!"\n`
   md += `- **PERF-001** whileHover scale on blocks (warn)\n`
   md += `- **CSS-001** raw hex outside token definitions (warn)\n`
+  md += `- **JSX-001** Radix component outside its required parent (runtime throw)\n`
 
   if (!quiet) {
     mkdirSync("docs/critique", { recursive: true })
