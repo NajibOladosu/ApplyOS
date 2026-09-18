@@ -1,11 +1,12 @@
 import 'server-only'
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { PREVIEW_ENABLED, createPreviewClient } from './preview'
 
 export async function createClient() {
   const cookieStore = await cookies()
 
-  return createServerClient(
+  const realClient = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
     {
@@ -50,4 +51,15 @@ export async function createClient() {
       },
     }
   )
+
+  // Dev-only harness: API routes read the same seeded rows as the browser
+  // client so authenticated pages can render without Supabase (see preview.ts).
+  // The cast keeps the return type identical to the real client's — a union or
+  // a `ReturnType<…>` cast widens it and breaks contextual typing across the
+  // API routes (`.map((row) => …)` loses its inferred parameter type).
+  if (PREVIEW_ENABLED) {
+    return createPreviewClient() as typeof realClient
+  }
+
+  return realClient
 }

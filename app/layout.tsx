@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import { Manrope, Crimson_Text } from "next/font/google"
+import localFont from "next/font/local"
 import { headers } from "next/headers"
 import "./globals.css"
 import { AuthProvider } from "@/contexts/AuthContext"
@@ -7,16 +7,34 @@ import { ThemeProvider } from "@/components/theme-provider"
 import { ToastProvider } from "@/shared/ui/use-toast"
 import { AnalyticsGate } from "@/components/analytics-gate"
 
-const manrope = Manrope({ subsets: ["latin"] })
-const crimsonText = Crimson_Text({
-  subsets: ["latin"],
-  weight: ["400", "600", "700"],
-  variable: "--font-crimson"
+// Fonts are self-hosted (woff2 committed under app/fonts). The previous
+// next/font/google + CSS @import approach silently produced fallback system
+// fonts: the @import was blocked by our own CSP (style-src/font-src), so every
+// font-display heading rendered in system-ui. Self-hosting also removes a
+// render-blocking third-party request.
+const manrope = localFont({
+  src: "./fonts/manrope-latin.woff2",
+  weight: "200 800",
+  display: "swap",
+  variable: "--font-sans",
 })
 
-// Display face (Space Grotesk) for marketing headlines is loaded via the
-// browser-side @import in app/globals.css — same pattern as Manrope — and
-// exposed through the --font-display variable.
+const spaceGrotesk = localFont({
+  src: "./fonts/space-grotesk-latin.woff2",
+  weight: "300 700",
+  display: "swap",
+  variable: "--font-display-face",
+})
+
+const crimsonText = localFont({
+  src: [
+    { path: "./fonts/crimson-400.woff2", weight: "400" },
+    { path: "./fonts/crimson-600.woff2", weight: "600" },
+    { path: "./fonts/crimson-700.woff2", weight: "700" },
+  ],
+  display: "swap",
+  variable: "--font-crimson",
+})
 
 export const metadata: Metadata = {
   metadataBase: new URL('https://www.applyos.io'),
@@ -66,7 +84,10 @@ export default async function RootLayout({
   return (
     <html lang="en" suppressHydrationWarning>
       <head>{nonce ? <meta name="csp-nonce" content={nonce} /> : null}</head>
-      <body className={`${manrope.className} ${crimsonText.variable}`} suppressHydrationWarning>
+      <body
+        className={`${manrope.variable} ${spaceGrotesk.variable} ${crimsonText.variable} font-sans antialiased`}
+        suppressHydrationWarning
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

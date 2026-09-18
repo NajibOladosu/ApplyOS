@@ -65,8 +65,8 @@ const config: Config = {
         sm: "0.5rem",
       },
       fontFamily: {
-        sans: ["Manrope", "system-ui", "sans-serif"],
-        display: ["var(--font-display)", "Manrope", "system-ui", "sans-serif"],
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "system-ui", "sans-serif"],
       },
       keyframes: {
         "accordion-down": {

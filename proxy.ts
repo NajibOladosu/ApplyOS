@@ -191,9 +191,16 @@ export async function proxy(request: NextRequest) {
     }
   )
 
+  // Dev-only preview harness: treat the session as signed in so the
+  // authenticated pages can be rendered without Supabase (see
+  // shared/db/supabase/preview.ts). Never active in production.
+  const previewSession =
+    process.env.NEXT_PUBLIC_PREVIEW === "1" && process.env.NODE_ENV !== "production"
+
   const {
-    data: { user },
-  } = await supabase.auth.getUser()
+    data: { user: realUser },
+  } = previewSession ? { data: { user: null } } : await supabase.auth.getUser()
+  const user = previewSession ? { id: "preview-user", email: "ada.okafor@example.com" } : realUser
 
   // Protected routes
   const protectedRoutes = ['/dashboard', '/apply', '/applications', '/documents', '/upload', '/notifications', '/profile', '/settings']
