@@ -6,6 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Badge } from "@/shared/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
 import { motion } from "framer-motion"
+import { PageHeader } from "@/components/layout/page-header"
+import { Stat } from "@/components/data/stat"
+import { ScoreRing } from "@/components/data/status-pill"
+import { EmptyState } from "@/components/data/empty-state"
 import {
   Mic,
   TrendingUp,
@@ -16,6 +20,10 @@ import {
   Loader2,
   RefreshCcw,
   Sparkles,
+  HelpCircle,
+  Timer,
+  ArrowRight,
+  CheckCircle2,
 } from "lucide-react"
 import Link from "next/link"
 import type { InterviewSession, Application } from "@/types/database"
@@ -132,6 +140,16 @@ export default function InterviewPage() {
   // Calculate statistics
   const totalSessions = sessions.length
   const completedSessions = sessions.filter(s => s.status === 'completed').length
+  const answeredTotal = sessions.reduce((sum, s) => sum + (s.answered_questions ?? 0), 0)
+  const questionsTotal = sessions.reduce((sum, s) => sum + (s.total_questions ?? 0), 0)
+  const timeSpentMinutes = Math.round(
+    sessions.reduce((sum, s) => sum + (s.total_duration_seconds ?? 0), 0) / 60
+  )
+  const avgScoreOverall =
+    completedSessions > 0
+      ? sessions.filter((s) => s.status === "completed" && s.average_score).reduce((sum, s) => sum + (s.average_score ?? 0), 0) /
+        sessions.filter((s) => s.status === "completed" && s.average_score).length || 0
+      : 0
   const totalQuestionsAnswered = sessions.reduce((sum, s) => sum + s.answered_questions, 0)
   const averageScore = sessions.length > 0
     ? sessions.reduce((sum, s) => sum + (s.average_score || 0), 0) / sessions.length
@@ -163,189 +181,75 @@ export default function InterviewPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3">
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
-                <Mic className="h-5 w-5 text-primary-strong dark:text-primary" />
-              </span>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-                Interview
-              </h1>
-            </div>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Practice out loud — the AI scores clarity, structure, depth and confidence.
-            </p>
-          </div>
-          <Link
-            href="/interview/star"
-            className="inline-flex h-9 w-full items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40 sm:w-auto"
-          >
-            <Sparkles className="h-3.5 w-3.5" />
-            STAR Answer Builder
-          </Link>
-        </div>
+        <PageHeader
+          overline="Practice"
+          title="Interview"
+          description={
+            sessions.length > 0
+              ? `${totalSessions} sessions · ${answeredTotal} questions answered · ${avgScoreOverall.toFixed(1)}/10 average score`
+              : "Practise out loud — the AI scores clarity, structure, depth and confidence."
+          }
+          actions={
+            <Link
+              href="/interview/star"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+            >
+              <Sparkles className="h-3.5 w-3.5" />
+              STAR Answer Builder
+            </Link>
+          }
+        />
 
-        {sessions.length === 0 ? (
-          // Empty State
-          <Card className="rounded-2xl border-border/70">
-            <CardContent className="p-12 text-center">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
-                <Mic className="h-6 w-6 text-primary-strong dark:text-primary" />
-              </div>
-              <h3 className="font-display text-base font-bold tracking-tight text-foreground">
-                No interview sessions yet
-              </h3>
-              <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-                Create a session from any application, or try the STAR Answer Builder to shape a
-                strong answer first.
-              </p>
-              <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-                <Link
-                  href="/applications"
-                  className="inline-flex h-10 items-center rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5"
-                >
-                  Go to applications
-                </Link>
-                <Link
-                  href="/interview/star"
-                  className="inline-flex h-10 items-center rounded-lg border border-border/80 bg-card px-4 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
-                >
-                  STAR Answer Builder
-                </Link>
-              </div>
-            </CardContent>
-          </Card>
-        ) : (
-          <>
-            {/* Stats Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3 }}
-              >
-                <Card className="h-full rounded-2xl border-border/70">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardDescription>Total sessions</CardDescription>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                        <BarChart3 className="h-4 w-4 text-primary-strong dark:text-primary" />
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-display text-2xl font-bold tracking-tight">{totalSessions}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {completedSessions} completed
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.1 }}
-              >
-                <Card className="h-full rounded-2xl border-border/70">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardDescription>Questions answered</CardDescription>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                        <Target className="h-4 w-4 text-primary-strong dark:text-primary" />
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-display text-2xl font-bold tracking-tight">{totalQuestionsAnswered}</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Across all sessions
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.2 }}
-              >
-                <Card className="h-full rounded-2xl border-border/70">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardDescription>Average score</CardDescription>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                        <Award className="h-4 w-4 text-primary-strong dark:text-primary" />
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className={`text-2xl font-bold ${averageScore >= 8 ? 'text-primary-strong dark:text-primary' :
-                      averageScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                        'text-destructive'
-                      }`}>
-                      {averageScore.toFixed(1)}/10
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Overall performance
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.3 }}
-              >
-                <Card className="h-full rounded-2xl border-border/70">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardDescription>Time spent</CardDescription>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                        <Clock className="h-4 w-4 text-primary-strong dark:text-primary" />
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-display text-2xl font-bold tracking-tight">
-                      {Math.floor(totalTimeSpent / 60)}m
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Total practice time
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
-
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: 0.4 }}
-              >
-                <Card className="h-full rounded-2xl border-border/70">
-                  <CardHeader className="pb-3">
-                    <div className="flex items-center justify-between">
-                      <CardDescription>Completion</CardDescription>
-                      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary/10">
-                        <TrendingUp className="h-4 w-4 text-primary-strong dark:text-primary" />
-                      </span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="font-display text-2xl font-bold tracking-tight text-primary-strong dark:text-primary">
-                      +{((completedSessions / Math.max(totalSessions, 1)) * 100).toFixed(0)}%
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Completion rate
-                    </p>
-                  </CardContent>
-                </Card>
-              </motion.div>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+              <Stat
+                label="Average score"
+                value={`${avgScoreOverall.toFixed(1)}/10`}
+                icon={<Award className="h-4 w-4" />}
+                accent={avgScoreOverall >= 7.5 ? "primary" : avgScoreOverall >= 6 ? "warning" : "danger"}
+                hint={`Across ${completedSessions} completed ${completedSessions === 1 ? "session" : "sessions"}`}
+              />
+              <Stat
+                label="Questions answered"
+                value={answeredTotal}
+                icon={<HelpCircle className="h-4 w-4" />}
+                accent="primary"
+                hint={questionsTotal > 0 ? `${Math.round((answeredTotal / questionsTotal) * 100)}% of ${questionsTotal} generated` : "No questions yet"}
+              />
+              <Stat
+                label="Time practising"
+                value={timeSpentMinutes >= 60 ? `${Math.floor(timeSpentMinutes / 60)}h ${timeSpentMinutes % 60}m` : `${timeSpentMinutes}m`}
+                icon={<Timer className="h-4 w-4" />}
+                hint="Total across every session"
+              />
+              <Stat
+                label="Completion rate"
+                value={`${Math.round((completedSessions / Math.max(totalSessions, 1)) * 100)}%`}
+                icon={<TrendingUp className="h-4 w-4" />}
+                accent={completedSessions === totalSessions && totalSessions > 0 ? "primary" : "muted"}
+                hint={`${completedSessions} of ${totalSessions} finished`}
+              />
             </div>
 
+            {sessions.length === 0 ? (
+              <div className="rounded-2xl border border-border/70 bg-card">
+                <EmptyState
+                  variant="page"
+                  icon={<Mic className="h-5 w-5" />}
+                  title="No interview sessions yet"
+                  description="Sessions start from an application — open one and practise the questions the AI generates for the role."
+                  action={
+                    <Link
+                      href="/applications"
+                      className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5"
+                    >
+                      <ArrowRight className="h-4 w-4" />
+                      Go to applications
+                    </Link>
+                  }
+                />
+              </div>
+            ) : (
+              <>
             {/* Tabs */}
             <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
               <TabsList className="w-full sm:w-auto">
@@ -369,84 +273,77 @@ export default function InterviewPage() {
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.3 }}
                                               >
-                        <Link href={`/interview/${session.id}/report`}>
-                          <Card className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm">
-                            {/* Gradient overlay on hover */}
-                            <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-
-                            <CardHeader className="pb-3">
-                              <div className="flex items-start justify-between gap-3">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center gap-2 flex-wrap mb-2">
-                                    <CardTitle className="font-display text-[15px] font-bold tracking-tight">
+                        <Link href={`/interview/${session.id}/report`} className="block">
+                          <Card className="group relative overflow-hidden rounded-2xl border-border/70 bg-card transition-colors duration-200 hover:border-primary/40">
+                            <CardContent className="p-5">
+                              <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+                                {/* Identity */}
+                                <div className="min-w-0 flex-1">
+                                  <div className="flex flex-wrap items-center gap-2">
+                                    <h3 className="font-display text-[15px] font-bold tracking-tight text-foreground">
                                       {sessionTypeLabels[session.session_type] || session.session_type}
-                                    </CardTitle>
-                                    {session.company_name && (
-                                      <Badge variant="outline" className="text-xs font-medium">
+                                    </h3>
+                                    {session.company_name ? (
+                                      <span className="rounded-md border border-border/60 bg-muted/50 px-1.5 py-0.5 text-[11px] font-medium text-muted-foreground">
                                         {session.company_name}
-                                      </Badge>
-                                    )}
+                                      </span>
+                                    ) : null}
+                                    {session.difficulty ? (
+                                      <span
+                                        className={`rounded-full px-2 py-0.5 text-[11px] font-medium capitalize ${difficultyColors[session.difficulty]}`}
+                                      >
+                                        {session.difficulty}
+                                      </span>
+                                    ) : null}
+                                    {session.status === "completed" ? (
+                                      <span className="inline-flex items-center gap-1 rounded-full border border-primary/25 bg-primary/10 px-2 py-0.5 text-[11px] font-medium text-primary-strong dark:text-primary">
+                                        <CheckCircle2 className="h-3 w-3" />
+                                        Completed
+                                      </span>
+                                    ) : session.status === "in_progress" ? (
+                                      <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/25 bg-amber-500/10 px-2 py-0.5 text-[11px] font-medium text-amber-700 dark:text-amber-400">
+                                        <Clock className="h-3 w-3" />
+                                        In progress
+                                      </span>
+                                    ) : null}
                                   </div>
-                                  <CardDescription className="text-xs">
-                                    {session.application?.title || 'Unknown Application'} •{' '}
-                                    {new Date(session.created_at).toLocaleDateString()}
-                                  </CardDescription>
-                                </div>
-                                <div className="flex flex-col gap-2 items-end shrink-0">
-                                  <div className="flex items-center gap-2">
-                                    <Badge
-                                      variant="outline"
-                                      className={`capitalize font-semibold ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
-                                    >
-                                      {session.difficulty || 'medium'}
-                                    </Badge>
-                                    {(session.status === 'completed' || progress === 100) && (
-                                      <Badge className="border-0 bg-primary text-primary-foreground shadow-sm">
-                                        ✓ Completed
-                                      </Badge>
-                                    )}
-                                  </div>
-                                  {session.answered_questions > 0 && (
-                                    <div className="flex items-center gap-1.5">
-                                      <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-primary/10 border border-primary/30' :
-                                        avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                                          'bg-destructive/10 border border-destructive/30'
-                                        }`}>
-                                        <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-primary-strong dark:text-primary' :
-                                          avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                            'text-destructive'
-                                          }`}>
-                                          {avgScore.toFixed(1)}
-                                        </span>
-                                      </div>
-                                      <span className="text-xs text-muted-foreground font-medium">Avg Score</span>
-                                    </div>
-                                  )}
-                                </div>
-                              </div>
-                            </CardHeader>
 
-                            <CardContent className="space-y-2 pb-4">
-                              {/* Progress Section */}
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center text-sm">
-                                  <span className="text-muted-foreground font-medium">Progress</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold text-foreground">
-                                      {session.answered_questions} / {session.total_questions}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground">
-                                      ({Math.round(progress)}%)
+                                  <p className="mt-1 text-xs text-muted-foreground">
+                                    {session.application?.title || "Unknown application"} ·{" "}
+                                    {new Date(session.created_at).toLocaleDateString(undefined, {
+                                      month: "short",
+                                      day: "numeric",
+                                      year: "numeric",
+                                    })}
+                                    {session.total_duration_seconds
+                                      ? ` · ${Math.round(session.total_duration_seconds / 60)} min`
+                                      : ""}
+                                  </p>
+
+                                  {/* One thin meter instead of two heavy bars */}
+                                  <div className="mt-3 flex items-center gap-3">
+                                    <div className="h-1.5 max-w-[220px] flex-1 overflow-hidden rounded-full bg-muted">
+                                      <div
+                                        className="h-full rounded-full bg-primary transition-[width] duration-500"
+                                        style={{ width: `${progress}%` }}
+                                      />
+                                    </div>
+                                    <span className="text-[11px] tabular-nums text-muted-foreground">
+                                      {session.answered_questions}/{session.total_questions} answered
                                     </span>
                                   </div>
                                 </div>
-                                <div className="relative h-2.5 w-full bg-secondary/50 rounded-full overflow-hidden border border-border/50">
-                                  <div
-                                    className="h-full bg-gradient-to-r from-primary via-primary to-primary/80 transition-all duration-500 ease-out relative"
-                                    style={{ width: `${progress}%` }}
-                                  >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-                                  </div>
+
+                                {/* Score */}
+                                <div className="flex items-center gap-4 sm:shrink-0">
+                                  {session.answered_questions > 0 ? (
+                                    <ScoreRing score={avgScore} size={52} />
+                                  ) : (
+                                    <span className="flex h-[52px] w-[52px] items-center justify-center rounded-full border border-dashed border-border text-[11px] text-muted-foreground">
+                                      —
+                                    </span>
+                                  )}
+                                  <ArrowRight className="h-4 w-4 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
                                 </div>
                               </div>
                             </CardContent>
@@ -539,8 +436,8 @@ export default function InterviewPage() {
                 ))}
               </TabsContent>
             </Tabs>
-          </>
-        )}
+              </>
+            )}
       </div>
 
       <ConfirmDialog

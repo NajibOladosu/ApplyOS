@@ -42,6 +42,7 @@ const ANALYSIS_STATUS = {
     label: "Analyzed",
     pill: "border-primary/25 bg-primary/10 text-primary-strong dark:text-primary",
     icon: CheckCircle2,
+    spin: "",
   },
   pending: {
     label: "Analyzing",
@@ -53,11 +54,13 @@ const ANALYSIS_STATUS = {
     label: "Failed",
     pill: "border-destructive/25 bg-destructive/10 text-destructive",
     icon: AlertTriangle,
+    spin: "",
   },
   not_analyzed: {
     label: "Not analyzed",
     pill: "border-border/70 bg-muted/60 text-muted-foreground",
     icon: Clock3,
+    spin: "",
   },
 } as const
 
