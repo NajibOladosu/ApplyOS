@@ -3,11 +3,12 @@
 import { useState, useCallback } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent } from "@/shared/ui/card"
+import { PageHeader } from "@/components/layout/page-header"
+import Link from "next/link"
 import { Button } from "@/shared/ui/button"
 import { motion } from "framer-motion"
 import { Upload, FileText, CheckCircle, X } from "lucide-react"
 import { useDropzone } from "react-dropzone"
-import Link from "next/link"
 import { AlertModal } from "@/components/modals/alert-modal"
 
 export default function UploadPage() {
@@ -115,22 +116,26 @@ export default function UploadPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-            Upload documents
-          </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Add your resume, transcripts, and other documents for AI analysis.
-          </p>
-        </div>
+        <PageHeader
+          overline="Library"
+          title="Upload documents"
+          description="Drop in a résumé, transcript or certificate — ApplyOS parses it and the AI drafts from it."
+          actions={
+            <Link
+              href="/documents"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:border-primary/40"
+            >
+              View library
+            </Link>
+          }
+        />
 
-        {/* Upload Area */}
+        {/* Upload Area — sized to the task instead of filling the viewport */}
         <Card className="rounded-2xl border-border/70">
-          <CardContent className="p-4 sm:p-6">
+          <CardContent className="p-4 sm:p-5">
             <div
               {...getRootProps()}
-              className={`cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all duration-200 sm:p-12 ${isDragActive
+              className={`cursor-pointer rounded-xl border-2 border-dashed p-6 text-center transition-all duration-200 sm:p-8 ${isDragActive
                 ? "border-primary bg-primary/[0.06]"
                 : "border-border bg-muted/30 hover:border-primary/40 hover:bg-primary/[0.03]"
                 }`}
@@ -226,19 +231,42 @@ export default function UploadPage() {
           </Card>
         )}
 
-        {/* Info strip */}
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-          {[
-            { title: "Auto analysis", text: "Education, experience and skills extracted automatically." },
-            { title: "Private by default", text: "Documents live in your own row-level-scoped workspace." },
-            { title: "Feeds every draft", text: "Parsed data powers AI answers and cover letters." },
-          ].map((info) => (
-            <div key={info.title} className="rounded-2xl border border-border/70 bg-card p-4">
-              <h3 className="font-display text-[13px] font-semibold text-foreground">{info.title}</h3>
-              <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">{info.text}</p>
-            </div>
-          ))}
-        </div>
+        {/* What happens next — a single list rather than three cards that all
+            restate the same promise in different words. */}
+        <section className="rounded-2xl border border-border/70 bg-card p-5">
+          <h2 className="font-display text-[15px] font-bold tracking-tight text-foreground">
+            What happens to your file
+          </h2>
+          <ol className="mt-4 space-y-3">
+            {[
+              {
+                title: "Parsed into structure",
+                text: "Education, experience, projects and skills are extracted automatically — you can correct anything afterwards.",
+              },
+              {
+                title: "Scored and reported",
+                text: "You get an overall score with per-category feedback, so you know what to tighten before applying.",
+              },
+              {
+                title: "Available to every draft",
+                text: "Cover letters, application answers and interview prep all read from the parsed version.",
+              },
+            ].map((step, i) => (
+              <li key={step.title} className="flex gap-3">
+                <span className="mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border border-primary/30 bg-primary/10 font-display text-[11px] font-bold text-primary-strong dark:text-primary">
+                  {i + 1}
+                </span>
+                <div>
+                  <p className="text-[13.5px] font-semibold text-foreground">{step.title}</p>
+                  <p className="mt-0.5 text-[13px] leading-relaxed text-muted-foreground">{step.text}</p>
+                </div>
+              </li>
+            ))}
+          </ol>
+          <p className="mt-4 border-t border-border/60 pt-3 text-xs text-muted-foreground">
+            Files stay in your own workspace and are only ever read by your own drafts.
+          </p>
+        </section>
 
         {/* Error Modal */}
         <AlertModal
