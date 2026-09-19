@@ -162,13 +162,12 @@ export function Sidebar({ isOpen = false, onClose }: SidebarProps) {
                           : "text-muted-foreground hover:bg-secondary/60 hover:text-foreground"
                       )}
                     >
-                      {isActive && (
-                        <motion.span
-                          layoutId="sidebar-active"
-                          transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                          className="absolute left-0 top-1/2 h-4 w-[2.5px] -translate-y-1/2 rounded-r-full bg-primary"
+                      {isActive ? (
+                        <span
+                          aria-hidden
+                          className="absolute left-0 top-1/2 h-5 w-[3px] -translate-y-1/2 rounded-r-full bg-primary"
                         />
-                      )}
+                      ) : null}
                       <Icon
                         className={cn(
                           "h-[17px] w-[17px] shrink-0 transition-transform duration-200 group-hover:scale-105",

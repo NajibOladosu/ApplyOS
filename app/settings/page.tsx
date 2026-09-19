@@ -6,17 +6,10 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
-import {
-  Bell,
-  Download,
-  Key,
-  Palette,
-  Loader2,
-  Sun,
-  Moon,
-  Monitor,
-  Chrome,
-} from "lucide-react"
+import { Bell, Download, Key, Palette, Star, Loader2, Sun, Moon, Monitor, Chrome } from "lucide-react"
+import { PageHeader } from "@/components/layout/page-header"
+import { cn } from "@/shared/lib/utils"
+import { ToggleSwitch } from "@/shared/ui/toggle-switch"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import {
@@ -36,6 +29,56 @@ type NotificationPrefs = {
 
 type AiSettings = {
   auto_generate_answers: boolean
+}
+
+
+/** Section wrapper: one heading, then rows — replaces the six stacked cards
+ *  that each carried a heading, a description and a single control. */
+function SettingsSection({
+  icon,
+  title,
+  description,
+  children,
+}: {
+  icon: React.ReactNode
+  title: string
+  description: string
+  children: React.ReactNode
+}) {
+  return (
+    <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+      <div className="flex items-start gap-3 border-b border-border/60 px-5 py-4">
+        <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/50 text-muted-foreground">
+          {icon}
+        </span>
+        <div>
+          <h2 className="font-display text-[15px] font-bold tracking-tight text-foreground">{title}</h2>
+          <p className="mt-0.5 text-xs text-muted-foreground">{description}</p>
+        </div>
+      </div>
+      <div className="divide-y divide-border/50">{children}</div>
+    </section>
+  )
+}
+
+function SettingsRow({
+  label,
+  hint,
+  children,
+}: {
+  label: string
+  hint: string
+  children: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+      <div className="min-w-0">
+        <p className="text-[13.5px] font-medium text-foreground">{label}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{hint}</p>
+      </div>
+      <div className="shrink-0">{children}</div>
+    </div>
+  )
 }
 
 export default function SettingsPage() {
@@ -241,316 +284,166 @@ export default function SettingsPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl">
-        {/* Header */}
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              Settings
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Manage your account settings and preferences.
-            </p>
-          </div>
-          <div className="flex items-center space-x-2">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={persistSettings}
-              disabled={saving}
-            >
-              {saving ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Saving...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-            {success && (
-              <span className="text-xs text-primary">Saved.</span>
-            )}
-            {error && (
-              <span className="text-xs text-destructive">{error}</span>
-            )}
-          </div>
-        </div>
+      <div className="mx-auto max-w-3xl space-y-6">
+        <PageHeader
+          overline="Account"
+          title="Settings"
+          description="Notifications, AI behaviour, appearance and data. Changes apply to your account only."
+          actions={
+            <div className="flex items-center gap-3">
+              {success ? <span className="text-xs text-primary-strong dark:text-primary">Saved.</span> : null}
+              {error ? <span className="text-xs text-destructive">{error}</span> : null}
+              <Button
+                className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
+                onClick={persistSettings}
+                disabled={saving}
+              >
+                {saving ? (
+                  <>
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    Saving…
+                  </>
+                ) : (
+                  "Save changes"
+                )}
+              </Button>
+            </div>
+          }
+        />
 
         {/* Notifications */}
-        <Card className="rounded-2xl border-border/70">
-          <CardHeader>
-            <CardTitle>Notification Preferences</CardTitle>
-            <CardDescription>
-              Stored in your user metadata. Used to tailor how ApplyOS notifies you.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Email Notifications</p>
-                  <p className="text-sm text-muted-foreground">
-                    Receive email updates for important events
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant={
-                  notificationPrefs.email_notifications ? "default" : "outline"
-                }
-                size="sm"
-                onClick={() =>
-                  setNotificationPrefs((prev) => ({
-                    ...prev,
-                    email_notifications: !prev.email_notifications,
-                  }))
-                }
-              >
-                {notificationPrefs.email_notifications ? "Enabled" : "Disabled"}
-              </Button>
-            </div>
+        <SettingsSection
+          icon={<Bell className="h-4 w-4" />}
+          title="Notifications"
+          description="Choose what ApplyOS tells you about, and when."
+        >
+          {(
+            [
+              {
+                key: "email_notifications" as const,
+                label: "Email notifications",
+                hint: "Important activity delivered to your inbox",
+              },
+              {
+                key: "deadline_reminders" as const,
+                label: "Deadline reminders",
+                hint: "A nudge before an application deadline passes",
+              },
+              {
+                key: "status_updates" as const,
+                label: "Status updates",
+                hint: "When an application moves between stages",
+              },
+            ]
+          ).map((row) => (
+            <SettingsRow key={row.key} label={row.label} hint={row.hint}>
+              <ToggleSwitch
+                checked={notificationPrefs[row.key]}
+                onChange={(checked) => setNotificationPrefs((prev) => ({ ...prev, [row.key]: checked }))}
+              />
+            </SettingsRow>
+          ))}
+        </SettingsSection>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Deadline Reminders</p>
-                  <p className="text-sm text-muted-foreground">
-                    Get reminded before application deadlines
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant={
-                  notificationPrefs.deadline_reminders
-                    ? "default"
-                    : "outline"
-                }
-                size="sm"
-                onClick={() =>
-                  setNotificationPrefs((prev) => ({
-                    ...prev,
-                    deadline_reminders: !prev.deadline_reminders,
-                  }))
-                }
-              >
-                {notificationPrefs.deadline_reminders
-                  ? "Enabled"
-                  : "Disabled"}
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Bell className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Status Updates</p>
-                  <p className="text-sm text-muted-foreground">
-                    Notifications when application status changes
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant={
-                  notificationPrefs.status_updates ? "default" : "outline"
-                }
-                size="sm"
-                onClick={() =>
-                  setNotificationPrefs((prev) => ({
-                    ...prev,
-                    status_updates: !prev.status_updates,
-                  }))
-                }
-              >
-                {notificationPrefs.status_updates ? "Enabled" : "Disabled"}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* AI Settings */}
-        <Card className="rounded-2xl border-border/70">
-          <CardHeader>
-            <CardTitle>AI Features</CardTitle>
-            <CardDescription>
-              Configure AI-powered features (per-user preferences stored in metadata).
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">
-                Auto-generate Responses
-              </label>
-              <div className="flex items-center justify-between">
-                <p className="text-sm text-muted-foreground max-w-md">
-                  When enabled, ApplyOS can automatically generate AI answers
-                  for new application questions using your documents and profile.
-                </p>
-                <Button
-                  variant={
-                    aiSettings.auto_generate_answers ? "default" : "outline"
-                  }
-                  size="sm"
-                  onClick={() =>
-                    setAiSettings((prev) => ({
-                      ...prev,
-                      auto_generate_answers: !prev.auto_generate_answers,
-                    }))
-                  }
-                >
-                  {aiSettings.auto_generate_answers
-                    ? "Enabled"
-                    : "Disabled"}
-                </Button>
-              </div>
-            </div>
-
-          </CardContent>
-        </Card>
-
-        {/* Security */}
-        <Card className="rounded-2xl border-border/70">
-          <CardHeader>
-            <CardTitle>Security</CardTitle>
-            <CardDescription>
-              Manage your account security and authentication settings.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Key className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Change Password</p>
-                  <p className="text-sm text-muted-foreground">
-                    Update your account password securely.
-                  </p>
-                </div>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowPasswordModal(true)}
-                className="hover:bg-primary hover:text-primary-foreground hover:border-primary"
-              >
-                Change
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Data & Privacy (coming soon) */}
-        <Card className="rounded-2xl border-border/70">
-          <CardHeader>
-            <CardTitle>Data & Privacy</CardTitle>
-            <CardDescription>
-              Manage your data and privacy settings
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Download className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Export Data</p>
-                  <p className="text-sm text-muted-foreground">
-                    Download all your data as JSON or CSV (requires an API endpoint).
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                Coming soon
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Browser Extension */}
-        <Card className="rounded-2xl border-border/70">
-          <CardHeader>
-            <CardTitle>Browser Extension</CardTitle>
-            <CardDescription>
-              Install the Chrome extension to easily save jobs from any website.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Chrome className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Chrome Extension</p>
-                  <p className="text-sm text-muted-foreground">
-                    Download the latest release and install it in Chrome.
-                  </p>
-                </div>
-              </div>
-              <Button asChild variant="outline" size="sm">
-                <a
-                  href="https://chromewebstore.google.com/detail/gikepikgajfppgebbgcikhocdeejandg?utm_source=item-share-cb"
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  Download
-                  <Download className="ml-2 h-4 w-4" />
-                </a>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+        {/* AI */}
+        <SettingsSection
+          icon={<Star className="h-4 w-4" />}
+          title="AI features"
+          description="How much the assistant does without being asked."
+        >
+          <SettingsRow
+            label="Auto-generate answers"
+            hint="Draft interview and application answers from your documents and profile"
+          >
+            <ToggleSwitch
+              checked={aiSettings.auto_generate_answers}
+              onChange={(checked) => setAiSettings({ auto_generate_answers: checked })}
+            />
+          </SettingsRow>
+        </SettingsSection>
 
         {/* Appearance */}
-        <Card className="rounded-2xl border-border/70">
-          <CardHeader>
-            <CardTitle>Appearance</CardTitle>
-            <CardDescription>
-              Customize how ApplyOS looks
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-3">
-                <Palette className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Theme</p>
-                  <p className="text-sm text-muted-foreground">
-                    Choose between light and dark mode
-                  </p>
-                </div>
-              </div>
-              <div className="flex items-center gap-1 rounded-lg bg-muted p-1">
-                <Button
-                  variant={theme === 'light' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setTheme('light')}
-                  className="gap-2"
+        <SettingsSection
+          icon={<Palette className="h-4 w-4" />}
+          title="Appearance"
+          description="Applies to this browser only."
+        >
+          <SettingsRow label="Theme" hint="Follow your system or pick one">
+            <div className="inline-flex rounded-lg border border-border/70 bg-muted/50 p-0.5">
+              {(
+                [
+                  { value: "light", label: "Light", icon: Sun },
+                  { value: "dark", label: "Dark", icon: Moon },
+                  { value: "system", label: "System", icon: Monitor },
+                ] as const
+              ).map(({ value, label, icon: Icon }) => (
+                <button
+                  key={value}
+                  onClick={() => setTheme(value)}
+                  aria-pressed={theme === value}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-[12.5px] font-medium transition-colors",
+                    theme === value
+                      ? "bg-card text-foreground shadow-sm"
+                      : "text-muted-foreground hover:text-foreground"
+                  )}
                 >
-                  <Sun className="h-4 w-4" />
-                  Light
-                </Button>
-                <Button
-                  variant={theme === 'dark' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setTheme('dark')}
-                  className="gap-2"
-                >
-                  <Moon className="h-4 w-4" />
-                  Dark
-                </Button>
-                <Button
-                  variant={theme === 'system' ? 'default' : 'ghost'}
-                  size="sm"
-                  onClick={() => setTheme('system')}
-                  className="gap-2"
-                >
-                  <Monitor className="h-4 w-4" />
-                  System
-                </Button>
-              </div>
+                  <Icon className="h-3.5 w-3.5" />
+                  {label}
+                </button>
+              ))}
             </div>
-          </CardContent>
-        </Card>
+          </SettingsRow>
+        </SettingsSection>
+
+        {/* Security */}
+        <SettingsSection
+          icon={<Key className="h-4 w-4" />}
+          title="Security"
+          description="Keep your account safe."
+        >
+          <SettingsRow label="Password" hint="Update the password you sign in with">
+            <Button
+              variant="outline"
+              onClick={() => setShowPasswordModal(true)}
+              className="h-9 rounded-lg border-border/80 text-[13px] font-medium"
+            >
+              Change password
+            </Button>
+          </SettingsRow>
+        </SettingsSection>
+
+        {/* Data */}
+        <SettingsSection
+          icon={<Download className="h-4 w-4" />}
+          title="Data and privacy"
+          description="Take your data with you."
+        >
+          <SettingsRow label="Export data" hint="Applications, documents and interview history as CSV or JSON">
+            <Button variant="outline" disabled className="h-9 rounded-lg border-border/80 text-[13px] font-medium">
+              Coming soon
+            </Button>
+          </SettingsRow>
+        </SettingsSection>
+
+        {/* Extension */}
+        <SettingsSection
+          icon={<Chrome className="h-4 w-4" />}
+          title="Browser extension"
+          description="Capture a job posting without leaving the page."
+        >
+          <SettingsRow label="Chrome extension" hint="Available on the Chrome Web Store">
+            <a
+              href="https://chromewebstore.google.com/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40"
+            >
+              <Download className="h-3.5 w-3.5" />
+              Download
+            </a>
+          </SettingsRow>
+        </SettingsSection>
 
         {/* Password Change Modal */}
         <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>
