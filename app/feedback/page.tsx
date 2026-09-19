@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Button } from "@/shared/ui/button"
 import { useToast } from "@/shared/ui/use-toast"
 import { motion } from "framer-motion"
-import { MessageSquare, Loader2, CheckCircle } from "lucide-react"
+import { MessageSquare, Loader2, CheckCircle, Bug, Lightbulb } from "lucide-react"
+import { PageHeader } from "@/components/layout/page-header"
 import type { FeedbackType } from "@/types/database"
 
 export default function FeedbackPage() {
@@ -17,21 +18,29 @@ export default function FeedbackPage() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitted, setSubmitted] = useState(false)
 
-  const feedbackTypes: { value: FeedbackType; label: string; description: string }[] = [
+  const feedbackTypes: {
+    value: FeedbackType
+    label: string
+    description: string
+    icon: typeof MessageSquare
+  }[] = [
     {
       value: "general",
-      label: "General Feedback",
-      description: "Share your thoughts and ideas about ApplyOS",
+      label: "General feedback",
+      description: "Share your thoughts on ApplyOS",
+      icon: MessageSquare,
     },
     {
       value: "bug",
-      label: "Bug Report",
-      description: "Report issues or unexpected behavior",
+      label: "Bug report",
+      description: "Something behaved unexpectedly",
+      icon: Bug,
     },
     {
       value: "feature",
-      label: "Feature Request",
-      description: "Suggest new features or improvements",
+      label: "Feature request",
+      description: "Suggest an improvement",
+      icon: Lightbulb,
     },
   ]
 
@@ -111,10 +120,10 @@ export default function FeedbackPage() {
               <CheckCircle className="h-8 w-8 text-primary-strong dark:text-primary" />
             </div>
             <h2 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              Thank you
+              Thanks — we have it
             </h2>
             <p className="text-muted-foreground mb-6">
-              Your feedback has been successfully submitted. We really appreciate your input and will review it carefully.
+              Your feedback went straight to the team. If it needs a reply we will follow up by email.
             </p>
             <Button
               variant="outline"
@@ -125,7 +134,7 @@ export default function FeedbackPage() {
                 setFeedbackType("general")
               }}
             >
-              Submit More Feedback
+              Send more feedback
             </Button>
           </motion.div>
         </div>
@@ -135,27 +144,12 @@ export default function FeedbackPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <motion.div
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-        >
-          <div className="flex items-center gap-3">
-            <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
-              <MessageSquare className="h-5 w-5 text-primary-strong dark:text-primary" />
-            </div>
-            <div>
-              <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-                Feedback
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Help us improve ApplyOS with your feedback.
-              </p>
-            </div>
-          </div>
-        </motion.div>
+      <div className="mx-auto w-full max-w-3xl space-y-6">
+        <PageHeader
+          overline="Support"
+          title="Feedback"
+          description="Bugs, requests or anything else — it all reaches the people building ApplyOS."
+        />
 
         {/* Main Card */}
         <motion.div
@@ -165,44 +159,71 @@ export default function FeedbackPage() {
         >
           <Card className="rounded-2xl border-border/70">
             <CardHeader className="px-5 py-4">
-              <CardTitle>Send us your feedback</CardTitle>
+              <CardTitle className="font-display text-lg font-semibold tracking-[-0.01em]">
+                New ticket
+              </CardTitle>
               <CardDescription>
-                Choose a category and tell us what&apos;s on your mind. We read all feedback and use it to improve ApplyOS.
+                Pick the closest category — it routes your note to the right place.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Feedback Type Selection */}
                 <div className="space-y-3">
-                  <label className="text-sm font-medium">Feedback Type</label>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                    {feedbackTypes.map((type) => (
-                      <motion.button
-                        key={type.value}
-                        type="button"
-                        onClick={() => setFeedbackType(type.value)}
-                        whileTap={{ scale: 0.99 }}
-                        className={`rounded-xl border p-4 text-left transition-all ${feedbackType === type.value
-                          ? "border-primary/50 bg-primary/5 shadow-sm"
-                          : "border-border/70 bg-background/50 hover:border-primary/25"
+                  <label className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                    Category
+                  </label>
+                  <div className="grid grid-cols-1 gap-2 sm:grid-cols-3">
+                    {feedbackTypes.map((type) => {
+                      const active = feedbackType === type.value
+                      const Icon = type.icon
+                      return (
+                        <button
+                          key={type.value}
+                          type="button"
+                          onClick={() => setFeedbackType(type.value)}
+                          aria-pressed={active}
+                          className={`group flex items-start gap-3 rounded-xl border p-3.5 text-left transition-colors ${
+                            active
+                              ? "border-primary/45 bg-primary/[0.07]"
+                              : "border-border/70 bg-background/40 hover:border-border hover:bg-muted/40"
                           }`}
-                      >
-                        <div className="font-medium">{type.label}</div>
-                        <div className="text-xs text-muted-foreground mt-1">{type.description}</div>
-                      </motion.button>
-                    ))}
+                        >
+                          <span
+                            className={`mt-px flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border transition-colors ${
+                              active
+                                ? "border-primary/35 bg-primary/12 text-primary-strong dark:text-primary"
+                                : "border-border/70 bg-muted/50 text-muted-foreground group-hover:text-foreground"
+                            }`}
+                          >
+                            <Icon className="h-3.5 w-3.5" />
+                          </span>
+                          <span className="min-w-0">
+                            <span className="block text-sm font-medium text-foreground">
+                              {type.label}
+                            </span>
+                            <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
+                              {type.description}
+                            </span>
+                          </span>
+                        </button>
+                      )
+                    })}
                   </div>
                 </div>
 
                 {/* Title Input */}
                 <div className="space-y-2">
-                  <label htmlFor="title" className="text-sm font-medium">
+                  <label
+                    htmlFor="title"
+                    className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70"
+                  >
                     Title
                   </label>
                   <input
                     id="title"
                     type="text"
-                    placeholder="Brief summary of your feedback"
+                    placeholder="One line that sums it up"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                     disabled={isSubmitting}
@@ -212,12 +233,15 @@ export default function FeedbackPage() {
 
                 {/* Description Textarea */}
                 <div className="space-y-2">
-                  <label htmlFor="description" className="text-sm font-medium">
-                    Description
+                  <label
+                    htmlFor="description"
+                    className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70"
+                  >
+                    Details
                   </label>
                   <textarea
                     id="description"
-                    placeholder="Describe the feedback in detail..."
+                    placeholder="What happened, what you expected, and what you were doing at the time."
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                     disabled={isSubmitting}
@@ -227,14 +251,14 @@ export default function FeedbackPage() {
                 </div>
 
                 {/* Submit Button */}
-                <motion.div
-                  whileHover={{ scale: isSubmitting ? 1 : 1.02 }}
-                  whileTap={{ scale: isSubmitting ? 1 : 0.98 }}
-                >
+                <div className="flex flex-col gap-3 border-t border-border/50 pt-5 sm:flex-row sm:items-center sm:justify-between">
+                  <p className="text-xs text-muted-foreground">
+                    Tickets are triaged weekly. Bug reports get a reply fastest.
+                  </p>
                   <Button
                     type="submit"
                     disabled={isSubmitting}
-                    className="w-full"
+                    className="shrink-0 sm:w-auto"
                     size="default"
                   >
                     {isSubmitting ? (
@@ -243,19 +267,11 @@ export default function FeedbackPage() {
                         Submitting...
                       </>
                     ) : (
-                      "Submit Feedback"
+                      "Send feedback"
                     )}
                   </Button>
-                </motion.div>
-
-                {/* Info */}
-                <div className="rounded-lg border border-border/60 bg-muted/40 px-3 py-2.5">
-                  <p className="text-xs leading-relaxed text-muted-foreground">
-                    <span className="font-semibold text-foreground/80">Tip:</span> Be
-                    specific about what you&apos;re reporting or suggesting — it helps
-                    us act on your feedback faster.
-                  </p>
                 </div>
+
               </form>
             </CardContent>
           </Card>
