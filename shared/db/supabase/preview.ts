@@ -138,11 +138,37 @@ const documents = [
     },
     version: 3, created_at: daysAgo(24), updated_at: daysAgo(2),
     report: {
-      overall_score: 84,
-      strengths: ["Quantified impact in every role", "Clear design-system ownership", "Strong tooling breadth"],
-      improvements: ["Add a one-line summary tailored per role", "Move education below experience for senior roles"],
-      keyword_matches: ["React", "TypeScript", "Design Systems", "Accessibility"],
-      missing_keywords: ["GraphQL", "WebGL"],
+      documentType: "Résumé — Senior Frontend Engineer",
+      overallScore: 8.4,
+      overallAssessment:
+        "A strong senior résumé: every role leads with a measurable outcome and the tooling reads as current. It loses points for a missing headline and for spacing that pushes the best work past the first screen.",
+      categories: [
+        {
+          name: "Impact", score: 9,
+          strengths: ["Each role opens with a number, not a responsibility", "Scope grows across the three roles"],
+          improvements: [],
+        },
+        {
+          name: "Clarity", score: 8.5,
+          strengths: ["Plain language, no filler verbs", "Sections labelled conventionally"],
+          improvements: ["Two bullets in the Stripe role are 40+ words — split them"],
+        },
+        {
+          name: "ATS keywords", score: 8,
+          strengths: ["React, TypeScript and design systems all appear naturally"],
+          improvements: ["Add GraphQL if you keep applying to platform teams", "Spell out 'CI/CD' once before using it"],
+        },
+        {
+          name: "Structure", score: 7.5,
+          strengths: ["Single column, parseable headings"],
+          improvements: ["Move education below experience — you are eight years in"],
+        },
+        {
+          name: "Formatting", score: 8,
+          strengths: ["Consistent date format throughout"],
+          improvements: ["Tighten the top margin so the first role is visible without scrolling"],
+        },
+      ],
     },
     report_generated_at: daysAgo(2), analysis_status: "success", analysis_error: null,
     parsed_at: daysAgo(24), application_id: "app-001", extracted_text: "Ada Okafor — Senior Frontend Engineer…",
