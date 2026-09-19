@@ -155,7 +155,7 @@ function CardHead({
 function ParsedSection({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section className="px-5 py-4">
-      <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+      <h3 className="font-display mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
         {title}
       </h3>
       {children}

@@ -63,9 +63,6 @@ vi.stubGlobal(
 )
 
 // the charts are irrelevant here — keep the test about tab structure
-vi.mock("@/modules/analytics/components/ActivityStats", () => ({
-  ActivityStats: () => <div data-testid="activity-stats" />,
-}))
 vi.mock("@/modules/analytics/components/MetricsCard", () => ({
   MetricsCard: () => <div data-testid="metrics-card" />,
 }))

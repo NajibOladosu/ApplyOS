@@ -424,7 +424,7 @@ export default function InterviewReportPage() {
                 {answers.size > 0 && (
                   <div className="grid gap-4 border-t border-border/60 pt-5 md:grid-cols-2">
                     <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                      <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                      <h3 className="font-display mb-3 flex items-center gap-2 text-[13px] font-semibold text-foreground">
                         <CheckCircle className="h-4 w-4 text-primary-strong dark:text-primary" />
                         Common strengths
                       </h3>
@@ -447,7 +447,7 @@ export default function InterviewReportPage() {
                     </div>
 
                     <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
-                      <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                      <h3 className="font-display mb-3 flex items-center gap-2 text-[13px] font-semibold text-foreground">
                         <XCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
                         Areas to work on
                       </h3>

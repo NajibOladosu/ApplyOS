@@ -88,7 +88,7 @@ export function GlossaryView() {
             {filtered.map((t) => (
               <li key={t.term} className="group px-5 py-4 transition-colors hover:bg-muted/30">
                 <div className="flex items-start justify-between gap-4">
-                  <h3 className="text-sm font-semibold text-foreground">
+                  <h3 className="font-display text-sm font-semibold text-foreground">
                     {t.term}
                     {t.abbreviation && (
                       <span className="ml-2 rounded border border-border/70 bg-muted/50 px-1.5 py-0.5 align-middle font-mono text-[10px] font-medium tracking-wide text-muted-foreground">
