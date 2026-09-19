@@ -51,6 +51,8 @@ const ROUTES = [
   { name: "settings", url: "/settings" },
   { name: "resources", url: "/resources" },
   { name: "feedback", url: "/feedback" },
+  { name: "star-builder", url: "/interview/star" },
+  { name: "apply-kit", url: "/apply" },
 ]
 
 const targets = filter ? ROUTES.filter((r) => r.name.includes(filter)) : ROUTES

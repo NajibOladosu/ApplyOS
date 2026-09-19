@@ -194,7 +194,7 @@ export default function NotificationsPage() {
             {Object.entries(grouped).map(([day, items]) => (
               <section key={day}>
                 <div className="mb-2 flex items-center gap-3">
-                  <h2 className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                  <h2 className="font-display text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
                     {day}
                   </h2>
                   <span className="h-px flex-1 bg-border/60" />

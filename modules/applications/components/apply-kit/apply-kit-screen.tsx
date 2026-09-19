@@ -14,6 +14,7 @@ import {
   Wand2,
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
+import { PageHeader } from "@/components/layout/page-header"
 import { Badge } from "@/shared/ui/badge"
 import { useToast } from "@/shared/ui/use-toast"
 import { getAnalyzedDocuments } from "@/modules/documents/services/document.service"
@@ -188,279 +189,343 @@ export function ApplyKitScreen() {
         : "border-border/70 hover:border-primary/30"
     )
 
+  // The pipeline is the page's mental model: show it before, during and after
+  // the run so the empty state is not just a lone form.
+  const steps: Array<{ label: string; detail: string; status: StepStatus | "idle" | "skipped" }> = [
+    {
+      label: "Read the posting",
+      detail: "Title, company and requirements",
+      status: jobStatus,
+    },
+    {
+      label: "Create the application",
+      detail: "Saved to your applications",
+      status: jobStatus === "done" ? "done" : jobStatus,
+    },
+    {
+      label: "Analyse against your resume",
+      detail: wantAnalysis ? "Match score and missing keywords" : "Skipped",
+      status: wantAnalysis ? analysisStatus : "skipped",
+    },
+    {
+      label: "Draft the cover letter",
+      detail: wantCoverLetter ? "Written from your resume and the posting" : "Skipped",
+      status: wantCoverLetter ? coverStatus : "skipped",
+    },
+  ]
+
   return (
-    <div className="mx-auto max-w-3xl space-y-6">
-      {/* Header */}
-      <div>
-        <div className="flex items-center gap-3">
-          <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10">
-            <Wand2 className="h-5 w-5 text-primary-strong dark:text-primary" />
-          </span>
-          <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              Apply Kit
-            </h1>
-            <p className="mt-0.5 text-sm text-muted-foreground">
-              Paste a posting, pick your resume, and let the AI build the application.
-            </p>
-          </div>
-        </div>
-      </div>
+    <div className="space-y-6">
+      <PageHeader
+        overline="Apply Kit"
+        title="Turn a posting into a ready application"
+        description="Paste a job description or link, choose your resume, and ApplyOS builds the rest."
+      />
 
-      {/* Input */}
-      <div className="rounded-2xl border border-border/70 bg-card p-5 sm:p-6">
-        <div className="mb-5 flex rounded-lg bg-muted/70 p-1">
-          <button
-            type="button"
-            aria-pressed={mode === "text"}
-            onClick={() => setMode("text")}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-all",
-              mode === "text"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <ClipboardPaste className="h-3.5 w-3.5" />
-            Paste JD
-          </button>
-          <button
-            type="button"
-            aria-pressed={mode === "url"}
-            onClick={() => setMode("url")}
-            className={cn(
-              "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-all",
-              mode === "url"
-                ? "bg-card text-foreground shadow-sm"
-                : "text-muted-foreground hover:text-foreground"
-            )}
-          >
-            <Link2 className="h-3.5 w-3.5" />
-            Job URL
-          </button>
-        </div>
-
-        <div className="space-y-5">
-          {mode === "url" ? (
-            <input
-              id="job-url"
-              type="url"
-              value={url}
-              onChange={(e) => setUrl(e.target.value)}
-              placeholder="https://company.com/careers/role"
-              className="h-11 w-full rounded-xl border border-border/80 bg-background px-4 text-sm text-foreground transition-all placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-            />
-          ) : (
-            <textarea
-              id="job-text"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              placeholder="Paste the full job description here…"
-              rows={9}
-              className="w-full resize-y rounded-xl border border-border/80 bg-background p-4 text-sm leading-relaxed text-foreground transition-all placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-            />
-          )}
-
-          <div>
-            <label htmlFor="resume-select" className="mb-1.5 block text-[13px] font-medium text-foreground">
-              Resume
-            </label>
-            {docsLoading ? (
-              <p className="text-sm text-muted-foreground">Loading resumes…</p>
-            ) : docs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">
-                No analyzed resume found.{" "}
-                <Link href="/upload" className="font-semibold text-primary-strong underline underline-offset-2 dark:text-primary">
-                  Upload one
-                </Link>{" "}
-                first.
-              </p>
-            ) : (
-              <div className="relative">
-                <FileText className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
-                <select
-                  id="resume-select"
-                  value={documentId}
-                  onChange={(e) => setDocumentId(e.target.value)}
-                  className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-background pl-10 pr-4 text-sm font-medium text-foreground focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
-                >
-                  {docs.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.file_name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            )}
-          </div>
-
-          <div>
-            <p className="mb-2 text-[13px] font-medium text-foreground">Also generate</p>
-            <div className="flex flex-col gap-2 sm:flex-row">
-              <label htmlFor="want-analysis" className={optionCard(wantAnalysis)}>
-                <span className="text-sm font-medium text-foreground">Resume analysis</span>
-                <input
-                  id="want-analysis"
-                  type="checkbox"
-                  checked={wantAnalysis}
-                  onChange={(e) => setWantAnalysis(e.target.checked)}
-                  className="sr-only"
-                />
-                <span
-                  className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-md border transition-colors",
-                    wantAnalysis
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background"
-                  )}
-                >
-                  {wantAnalysis && <Check className="h-3 w-3" strokeWidth={3} />}
-                </span>
-              </label>
-              <label htmlFor="want-cover-letter" className={optionCard(wantCoverLetter)}>
-                <span className="text-sm font-medium text-foreground">Cover letter</span>
-                <input
-                  id="want-cover-letter"
-                  type="checkbox"
-                  checked={wantCoverLetter}
-                  onChange={(e) => setWantCoverLetter(e.target.checked)}
-                  className="sr-only"
-                />
-                <span
-                  className={cn(
-                    "flex h-5 w-5 items-center justify-center rounded-md border transition-colors",
-                    wantCoverLetter
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border bg-background"
-                  )}
-                >
-                  {wantCoverLetter && <Check className="h-3 w-3" strokeWidth={3} />}
-                </span>
-              </label>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground/80">
-              The application is always created and saved. Selected items are generated and saved
-              to it, just like running each feature individually.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            onClick={handleGenerate}
-            disabled={running || docsLoading || docs.length === 0}
-            className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_6px_20px_-8px_rgba(24,187,112,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-8px_rgba(24,187,112,0.75)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60"
-          >
-            {running ? (
-              <>
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Generating…
-              </>
-            ) : (
-              <>
-                <Sparkles className="h-4 w-4" />
-                Generate Apply Kit
-              </>
-            )}
-          </button>
-        </div>
-      </div>
-
-      {/* Results */}
-      <StepCard title="Application" status={jobStatus}>
-        {jobStatus === "done" && (
-          <div className="space-y-2">
-            <p className="text-[15px] font-semibold text-foreground">
-              {jobTitle}
-              {jobCompany ? <span className="font-normal text-muted-foreground"> — {jobCompany}</span> : null}
-            </p>
-            {applicationId && (
-              <Link
-                href={`/applications/${applicationId}`}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+        <div className="min-w-0 space-y-6">
+          {/* Input */}
+          <div className="rounded-2xl border border-border/70 bg-card p-5 sm:p-6">
+            <div className="mb-5 flex rounded-lg bg-muted/70 p-1">
+              <button
+                type="button"
+                aria-pressed={mode === "text"}
+                onClick={() => setMode("text")}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-all",
+                  mode === "text"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                Open application
-                <ExternalLink className="h-3 w-3" />
-              </Link>
-            )}
-          </div>
-        )}
-        {jobStatus === "error" && (
-          <p className="text-sm text-destructive">Could not read the job posting.</p>
-        )}
-      </StepCard>
-
-      <StepCard title="Resume analysis" status={analysisStatus}>
-        {analysisStatus === "done" && analysis && (
-          <div className="space-y-3">
-            <div className="flex items-baseline gap-2">
-              <span className="font-display text-3xl font-bold tracking-tight text-foreground">
-                {analysis.score}
-              </span>
-              <span className="text-sm text-muted-foreground">/ 100 match score</span>
-            </div>
-            {analysis.missingKeywords.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {analysis.missingKeywords.map((k) => (
-                  <Badge key={k} variant="outline" className="rounded-full font-normal">
-                    {k}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            {applicationId && (
-              <Link
-                href={`/applications/${applicationId}?tab=analysis`}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+                <ClipboardPaste className="h-3.5 w-3.5" />
+                Paste the description
+              </button>
+              <button
+                type="button"
+                aria-pressed={mode === "url"}
+                onClick={() => setMode("url")}
+                className={cn(
+                  "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-[13px] font-medium transition-all",
+                  mode === "url"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
               >
-                View full analysis
-                <ExternalLink className="h-3 w-3" />
-              </Link>
-            )}
-          </div>
-        )}
-        {analysisStatus === "error" && (
-          <button
-            type="button"
-            onClick={retryAnalysis}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Retry analysis
-          </button>
-        )}
-      </StepCard>
+                <Link2 className="h-3.5 w-3.5" />
+                Paste a link
+              </button>
+            </div>
 
-      <StepCard title="Cover letter" status={coverStatus}>
-        {coverStatus === "done" &&
-          (coverLetter ? (
-            <div className="space-y-3">
-              <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">
-                {coverLetter}
-              </p>
-              {applicationId && (
-                <Link
-                  href={`/applications/${applicationId}?tab=cover-letter`}
-                  className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
-                >
-                  Edit in application
-                  <ExternalLink className="h-3 w-3" />
-                </Link>
+            <div className="space-y-5">
+              {mode === "url" ? (
+                <input
+                  id="job-url"
+                  type="url"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                  placeholder="https://company.com/careers/role"
+                  className="h-11 w-full rounded-xl border border-border/80 bg-background px-4 text-sm text-foreground transition-all placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
+              ) : (
+                <textarea
+                  id="job-text"
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Paste the full job description here…"
+                  rows={9}
+                  className="w-full resize-y rounded-xl border border-border/80 bg-background p-4 text-sm leading-relaxed text-foreground transition-all placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                />
               )}
+
+              <div>
+                <label htmlFor="resume-select" className="mb-1.5 block text-[13px] font-medium text-foreground">
+                  Resume
+                </label>
+                {docsLoading ? (
+                  <p className="text-sm text-muted-foreground">Loading resumes…</p>
+                ) : docs.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No analyzed resume found.{" "}
+                    <Link href="/upload" className="font-semibold text-primary-strong underline underline-offset-2 dark:text-primary">
+                      Upload one
+                    </Link>{" "}
+                    first.
+                  </p>
+                ) : (
+                  <div className="relative">
+                    <FileText className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+                    <select
+                      id="resume-select"
+                      value={documentId}
+                      onChange={(e) => setDocumentId(e.target.value)}
+                      className="h-11 w-full appearance-none rounded-xl border border-border/80 bg-background pl-10 pr-4 text-sm font-medium text-foreground focus-visible:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                    >
+                      {docs.map((d) => (
+                        <option key={d.id} value={d.id}>
+                          {d.file_name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
+              </div>
+
+              <div>
+                <p className="mb-2 text-[13px] font-medium text-foreground">Also generate</p>
+                <div className="flex flex-col gap-2 sm:flex-row">
+                  <label htmlFor="want-analysis" className={optionCard(wantAnalysis)}>
+                    <span className="text-sm font-medium text-foreground">Resume analysis</span>
+                    <input
+                      id="want-analysis"
+                      type="checkbox"
+                      checked={wantAnalysis}
+                      onChange={(e) => setWantAnalysis(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <span
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-md border transition-colors",
+                        wantAnalysis ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"
+                      )}
+                    >
+                      {wantAnalysis && <Check className="h-3 w-3" strokeWidth={3} />}
+                    </span>
+                  </label>
+                  <label htmlFor="want-cover-letter" className={optionCard(wantCoverLetter)}>
+                    <span className="text-sm font-medium text-foreground">Cover letter</span>
+                    <input
+                      id="want-cover-letter"
+                      type="checkbox"
+                      checked={wantCoverLetter}
+                      onChange={(e) => setWantCoverLetter(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <span
+                      className={cn(
+                        "flex h-5 w-5 items-center justify-center rounded-md border transition-colors",
+                        wantCoverLetter ? "border-primary bg-primary text-primary-foreground" : "border-border bg-background"
+                      )}
+                    >
+                      {wantCoverLetter && <Check className="h-3 w-3" strokeWidth={3} />}
+                    </span>
+                  </label>
+                </div>
+                <p className="mt-2 text-xs leading-relaxed text-muted-foreground/80">
+                  The application is always created and saved. Selected items are generated and saved to it.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={handleGenerate}
+                disabled={running || docsLoading || docs.length === 0}
+                className="group inline-flex h-11 w-full items-center justify-center gap-2 rounded-xl bg-primary text-[15px] font-semibold text-primary-foreground shadow-[0_6px_20px_-8px_rgba(24,187,112,0.6)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_28px_-8px_rgba(24,187,112,0.75)] active:scale-[0.99] disabled:pointer-events-none disabled:opacity-60"
+              >
+                {running ? (
+                  <>
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                    Generating…
+                  </>
+                ) : (
+                  <>
+                    <Sparkles className="h-4 w-4" />
+                    Generate Apply Kit
+                  </>
+                )}
+              </button>
             </div>
-          ) : (
-            <p className="text-sm text-muted-foreground">No cover letter was generated.</p>
-          ))}
-        {coverStatus === "error" && (
-          <button
-            type="button"
-            onClick={retryCover}
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40"
-          >
-            <RefreshCw className="h-3.5 w-3.5" />
-            Retry cover letter
-          </button>
-        )}
-      </StepCard>
+          </div>
+
+          {/* Results */}
+          <StepCard title="Application" status={jobStatus}>
+            {jobStatus === "done" && (
+              <div className="space-y-2">
+                <p className="text-[15px] font-semibold text-foreground">
+                  {jobTitle}
+                  {jobCompany ? <span className="font-normal text-muted-foreground"> — {jobCompany}</span> : null}
+                </p>
+                {applicationId && (
+                  <Link
+                    href={`/applications/${applicationId}`}
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+                  >
+                    Open application
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
+              </div>
+            )}
+            {jobStatus === "error" && <p className="text-sm text-destructive">Could not read the job posting.</p>}
+          </StepCard>
+
+          <StepCard title="Resume analysis" status={analysisStatus}>
+            {analysisStatus === "done" && analysis && (
+              <div className="space-y-3">
+                <div className="flex items-baseline gap-2">
+                  <span className="font-display text-3xl font-bold tracking-tight text-foreground">
+                    {analysis.score}
+                  </span>
+                  <span className="text-sm text-muted-foreground">/ 100 match score</span>
+                </div>
+                {analysis.missingKeywords.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {analysis.missingKeywords.map((k) => (
+                      <Badge key={k} variant="outline" className="rounded-full font-normal">
+                        {k}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+                {applicationId && (
+                  <Link
+                    href={`/applications/${applicationId}?tab=analysis`}
+                    className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+                  >
+                    View full analysis
+                    <ExternalLink className="h-3 w-3" />
+                  </Link>
+                )}
+              </div>
+            )}
+            {analysisStatus === "error" && (
+              <button
+                type="button"
+                onClick={retryAnalysis}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry analysis
+              </button>
+            )}
+          </StepCard>
+
+          <StepCard title="Cover letter" status={coverStatus}>
+            {coverStatus === "done" &&
+              (coverLetter ? (
+                <div className="space-y-3">
+                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-muted-foreground">{coverLetter}</p>
+                  {applicationId && (
+                    <Link
+                      href={`/applications/${applicationId}?tab=cover-letter`}
+                      className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+                    >
+                      Edit in application
+                      <ExternalLink className="h-3 w-3" />
+                    </Link>
+                  )}
+                </div>
+              ) : (
+                <p className="text-sm text-muted-foreground">No cover letter was generated.</p>
+              ))}
+            {coverStatus === "error" && (
+              <button
+                type="button"
+                onClick={retryCover}
+                className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40"
+              >
+                <RefreshCw className="h-3.5 w-3.5" />
+                Retry cover letter
+              </button>
+            )}
+          </StepCard>
+        </div>
+
+        {/* Pipeline rail — visible from the start, so the form is not a lone box */}
+        <aside className="lg:sticky lg:top-6 lg:self-start">
+          <section className="rounded-2xl border border-border/70 bg-card">
+            <div className="border-b border-border/60 px-4 py-3">
+              <h2 className="font-display text-[14px] font-bold tracking-tight text-foreground">What runs</h2>
+              <p className="mt-0.5 text-xs text-muted-foreground">Steps in order, as they complete</p>
+            </div>
+            <ol className="divide-y divide-border/50">
+              {steps.map((step, i) => {
+                const done = step.status === "done"
+                const active = step.status === "loading"
+                const failed = step.status === "error"
+                const skipped = step.status === "skipped"
+                return (
+                  <li key={step.label} className="flex items-start gap-3 px-4 py-3">
+                    <span
+                      className={cn(
+                        "mt-0.5 flex h-6 w-6 shrink-0 items-center justify-center rounded-full border font-display text-[11px] font-bold",
+                        done
+                          ? "border-primary/30 bg-primary/10 text-primary-strong dark:text-primary"
+                          : failed
+                            ? "border-destructive/30 bg-destructive/10 text-destructive"
+                            : active
+                              ? "border-amber-500/30 bg-amber-500/10 text-amber-600 dark:text-amber-400"
+                              : "border-border/70 bg-muted/50 text-muted-foreground"
+                      )}
+                    >
+                      {done ? (
+                        <Check className="h-3 w-3" strokeWidth={3} />
+                      ) : failed ? (
+                        "!"
+                      ) : active ? (
+                        <Loader2 className="h-3 w-3 animate-spin" />
+                      ) : (
+                        i + 1
+                      )}
+                    </span>
+                    <div className="min-w-0">
+                      <p
+                        className={cn(
+                          "text-[13px] font-semibold",
+                          skipped ? "text-muted-foreground line-through" : "text-foreground"
+                        )}
+                      >
+                        {step.label}
+                      </p>
+                      <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">{step.detail}</p>
+                    </div>
+                  </li>
+                )
+              })}
+            </ol>
+          </section>
+        </aside>
+      </div>
     </div>
   )
 }
