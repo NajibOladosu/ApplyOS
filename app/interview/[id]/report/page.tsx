@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import { useParams } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
+import { ScoreRing, scoreTone } from "@/components/data/status-pill"
+import { EmptyState } from "@/components/data/empty-state"
+import { MiniBar } from "@/components/data/stat"
 import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/shared/ui/accordion"
@@ -147,6 +150,19 @@ export default function InterviewReportPage() {
   }
 
   // Loading state
+  // answers that carry a score, used for the dimension averages
+  const scoredAnswers = [...answers.values()].filter((a) => typeof a.score === "number")
+
+  // the answers worth revisiting first
+  const weakestAnswers = scoredAnswers
+    .slice()
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((answer) => ({
+      answer,
+      question: questions.find((q) => q.id === answer.question_id),
+    }))
+
   if (loading) {
     return (
       <DashboardLayout>
@@ -320,84 +336,163 @@ export default function InterviewReportPage() {
         {hasAnsweredQuestions && (
           <>
             {/* Overall Summary Card */}
-            <Card className="border-primary/20">
-              <CardHeader>
-                <CardTitle>
-                  {isCompleted ? 'Interview Summary' : 'Progress Summary'}
+            <Card className="rounded-2xl border-border/70">
+              <CardHeader className="px-5 py-4">
+                <CardTitle className="font-display text-[15px] font-bold tracking-tight">
+                  {isCompleted ? "Interview summary" : "Progress summary"}
                 </CardTitle>
-                <CardDescription>
+                <CardDescription className="text-xs">
                   {isCompleted
-                    ? 'Overall performance and insights'
-                    : `${session.answered_questions} of ${session.total_questions} questions answered`
-                  }
+                    ? `${session.answered_questions} of ${session.total_questions} questions answered · scored out of 100`
+                    : `${session.answered_questions} of ${session.total_questions} questions answered so far`}
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                  {/* Overall Score */}
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <div className={`text-3xl font-bold ${getScoreColor(session.average_score)}`}>
-                      {session.average_score?.toFixed(1) || 'N/A'}/100
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">Overall Score</p>
-                  </div>
 
-                  {/* Questions Answered */}
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <div className="text-3xl font-bold">{session.answered_questions}</div>
-                    <p className="text-sm text-muted-foreground mt-1">Questions Answered</p>
-                  </div>
+              <CardContent className="space-y-6 px-5 pb-5">
+                <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:gap-8">
+                  <ScoreRing score={session.average_score ?? 0} size={104} tone="score" />
 
-                  {/* Time Spent */}
-                  <div className="text-center p-4 bg-muted/30 rounded-lg">
-                    <div className="text-3xl font-bold">
-                      {Math.floor((session.total_duration_seconds || 0) / 60)}m
+                  <div className="grid flex-1 grid-cols-2 gap-x-6 gap-y-4">
+                    <div>
+                      <p className="text-xs text-muted-foreground">Questions answered</p>
+                      <p className="mt-1 font-display text-xl font-bold leading-none text-foreground tabular-nums">
+                        {session.answered_questions}
+                        <span className="text-sm font-medium text-muted-foreground">
+                          /{session.total_questions}
+                        </span>
+                      </p>
                     </div>
-                    <p className="text-sm text-muted-foreground mt-1">Time Spent</p>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Time spent</p>
+                      <p className="mt-1 font-display text-xl font-bold leading-none text-foreground tabular-nums">
+                        {Math.floor((session.total_duration_seconds || 0) / 60)}m
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Company</p>
+                      <p className="mt-1 truncate text-sm font-semibold text-foreground">
+                        {session.company_name || application?.company || "—"}
+                      </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground">Session type</p>
+                      <p className="mt-1 text-sm font-semibold capitalize text-foreground">
+                        {(session.session_type || "mixed").replace("_", " ")}
+                      </p>
+                    </div>
                   </div>
                 </div>
 
-                {/* Aggregated Strengths & Weaknesses */}
+                {/* Score breakdown — the raw dimension scores were being
+                    collected and then never shown anywhere. */}
+                {scoredAnswers.length > 0 && (
+                  <div className="space-y-3 border-t border-border/60 pt-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Average by dimension
+                    </p>
+                    {(
+                      [
+                        { key: "clarity_score", label: "Clarity" },
+                        { key: "structure_score", label: "Structure" },
+                        { key: "relevance_score", label: "Relevance" },
+                        { key: "depth_score", label: "Depth" },
+                        { key: "confidence_score", label: "Confidence" },
+                      ] as const
+                    ).map(({ key, label }) => {
+                      const values = scoredAnswers
+                        .map((a) => a[key as keyof typeof a])
+                        .filter((v): v is number => typeof v === "number")
+                      if (!values.length) return null
+                      const avg = values.reduce((sum, v) => sum + v, 0) / values.length
+                      return (
+                        <div key={key} className="flex items-center gap-3">
+                          <span className="w-20 shrink-0 text-xs text-muted-foreground">{label}</span>
+                          <div className="flex-1">
+                            <MiniBar ratio={avg / 100} />
+                          </div>
+                          <span className="w-9 shrink-0 text-right text-xs font-semibold tabular-nums text-foreground">
+                            {Math.round(avg)}
+                          </span>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+
+                {/* Strengths and improvements — an empty list is an absence of
+                    data, not a sentence, so it is presented as such. */}
                 {answers.size > 0 && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t">
-                    {/* Common Strengths */}
-                    <div className="border rounded-lg p-4 bg-background/50">
-                      <h3 className="font-display mb-3 flex items-center gap-2 text-sm font-semibold text-primary-strong dark:text-primary">
-                        <CheckCircle className="h-4 w-4" />
-                        Common Strengths
+                  <div className="grid gap-4 border-t border-border/60 pt-5 md:grid-cols-2">
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                      <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                        <CheckCircle className="h-4 w-4 text-primary-strong dark:text-primary" />
+                        Common strengths
                       </h3>
-                      <ul className="space-y-2">
-                        {aggregateStrengths(answers).slice(0, 5).map((strength, idx) => (
-                          <li key={idx} className="text-sm flex gap-2 items-start">
-                            <span className="text-primary-strong dark:text-primary mt-0.5">✓</span>
-                            <span>{strength}</span>
-                          </li>
-                        ))}
-                        {aggregateStrengths(answers).length === 0 && (
-                          <li className="text-sm text-muted-foreground italic">No strengths identified</li>
-                        )}
-                      </ul>
+                      {aggregateStrengths(answers).length > 0 ? (
+                        <ul className="space-y-2">
+                          {aggregateStrengths(answers)
+                            .slice(0, 5)
+                            .map((strength, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-[13px] text-muted-foreground">
+                                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />
+                                <span>{strength}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          Nothing recorded yet — strengths appear as answers are scored.
+                        </p>
+                      )}
                     </div>
 
-                    {/* Areas for Improvement */}
-                    <div className="border rounded-lg p-4 bg-background/50">
-                      <h3 className="font-display mb-3 flex items-center gap-2 text-sm font-semibold text-amber-600 dark:text-amber-400">
-                        <XCircle className="h-4 w-4" />
-                        Areas for Improvement
+                    <div className="rounded-xl border border-border/60 bg-muted/20 p-4">
+                      <h3 className="mb-3 flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                        <XCircle className="h-4 w-4 text-amber-600 dark:text-amber-400" />
+                        Areas to work on
                       </h3>
-                      <ul className="space-y-2">
-                        {aggregateWeaknesses(answers).slice(0, 5).map((weakness, idx) => (
-                          <li key={idx} className="text-sm flex gap-2 items-start">
-                            <span className="text-amber-400 mt-0.5">→</span>
-                            <span>{weakness}</span>
-                          </li>
-                        ))}
-                        {aggregateWeaknesses(answers).length === 0 && (
-                          <li className="text-sm text-muted-foreground italic">No areas for improvement identified</li>
-                        )}
-                      </ul>
+                      {aggregateWeaknesses(answers).length > 0 ? (
+                        <ul className="space-y-2">
+                          {aggregateWeaknesses(answers)
+                            .slice(0, 5)
+                            .map((weakness, idx) => (
+                              <li key={idx} className="flex items-start gap-2 text-[13px] text-muted-foreground">
+                                <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-amber-500" />
+                                <span>{weakness}</span>
+                              </li>
+                            ))}
+                        </ul>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">
+                          No gaps flagged in this session — try a harder difficulty or a different question
+                          category to find something to work on.
+                        </p>
+                      )}
                     </div>
+                  </div>
+                )}
+
+                {/* Weakest answers — the analysis existed but was never surfaced */}
+                {weakestAnswers.length > 0 && (
+                  <div className="space-y-3 border-t border-border/60 pt-5">
+                    <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Lowest scoring answers
+                    </p>
+                    <ul className="space-y-2">
+                      {weakestAnswers.map(({ question, answer }) => (
+                        <li
+                          key={answer.id}
+                          className="flex items-center gap-3 rounded-xl border border-border/60 px-3.5 py-2.5"
+                        >
+                          <span className="min-w-0 flex-1 truncate text-[13px] text-foreground">
+                            {question?.question_text ?? "Question"}
+                          </span>
+                          <span className={`shrink-0 text-sm font-bold tabular-nums ${scoreTone(answer.score).text}`}>
+                            {answer.score}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
                   </div>
                 )}
               </CardContent>
