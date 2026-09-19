@@ -338,7 +338,7 @@ export default function InterviewReportPage() {
                   {/* Overall Score */}
                   <div className="text-center p-4 bg-muted/30 rounded-lg">
                     <div className={`text-3xl font-bold ${getScoreColor(session.average_score)}`}>
-                      {session.average_score?.toFixed(1) || 'N/A'}/10
+                      {session.average_score?.toFixed(1) || 'N/A'}/100
                     </div>
                     <p className="text-sm text-muted-foreground mt-1">Overall Score</p>
                   </div>

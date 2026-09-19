@@ -298,7 +298,17 @@ const TABLES: Record<string, Record<string, unknown>[]> = {
 type Result = { data: unknown; error: unknown; count?: number }
 
 /** Applies the subset of the PostgREST chain the services use. */
-function runQuery(table: string, state: { filters: [string, unknown][]; orders: [string, boolean][]; limit: number | null; op: string; payload: unknown }) {
+function runQuery(
+  table: string,
+  state: {
+    filters: [string, unknown][]
+    orders: [string, boolean][]
+    limit: number | null
+    op: string
+    payload: unknown
+    embedApplication: boolean
+  }
+) {
   let rows = [...(TABLES[table] ?? [])]
 
   for (const [col, val] of state.filters) {
@@ -324,6 +334,14 @@ function runQuery(table: string, state: { filters: [string, unknown][]; orders: 
     })
   }
   if (state.limit != null) rows = rows.slice(0, state.limit)
+
+  // PostgREST embed: `application:applications(*)` returns a nested row
+  if (state.embedApplication && table === "interview_sessions") {
+    rows = rows.map((r) => ({
+      ...r,
+      application: applications.find((a) => a.id === r.application_id) ?? null,
+    }))
+  }
 
   if (state.op === "insert") {
     const inserted = (Array.isArray(state.payload) ? state.payload : [state.payload]).map((p, i) => ({
@@ -356,6 +374,7 @@ function createQuery(table: string) {
     payload: null as unknown,
     single: false,
     maybeSingle: false,
+    embedApplication: false,
   }
 
   const resolve = (): Result => {
@@ -378,7 +397,9 @@ function createQuery(table: string) {
     }
 
   Object.assign(builder, {
-    select: chain(() => {}),
+    select: chain(([cols]) => {
+      if (typeof cols === "string" && /application:applications/.test(cols)) state.embedApplication = true
+    }),
     order: chain(([col, opts]) => state.orders.push([col as string, (opts as { ascending?: boolean })?.ascending !== false])),
     limit: chain(([n]) => (state.limit = n as number)),
     eq: chain(([col, val]) => state.filters.push([col as string, val])),
