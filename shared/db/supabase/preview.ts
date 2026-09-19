@@ -101,15 +101,40 @@ const documents = [
   {
     id: "doc-001", user_id: USER_ID, file_name: "Ada_Okafor_CV_2026.pdf",
     file_url: "/preview/cv.pdf", file_type: "application/pdf", file_size: 284_112,
+    // shape mirrors ParsedDocument in shared/infrastructure/ai.ts
     parsed_data: {
-      name: "Ada Okafor", email: "ada.okafor@example.com", phone: "+234 801 555 0134",
-      location: "Lagos, Nigeria", summary: "Frontend engineer with 6 years building design systems and data-heavy product UIs.",
-      experience: [
-        { company: "Paystack", role: "Senior Frontend Engineer", duration: "2022 — present", description: "Led the design system migration across 40+ screens; cut bundle size 38%." },
-        { company: "Andela", role: "Frontend Engineer", duration: "2020 — 2022", description: "Built internal tooling for talent matching used by 200+ staff." },
+      education: [
+        {
+          institution: "University of Lagos", degree: "BSc", field: "Computer Science",
+          start_date: "2016", end_date: "2020",
+          description: "Graduated with honours; final year project on distributed caching.",
+        },
       ],
-      education: [{ institution: "University of Lagos", degree: "BSc Computer Science", year: "2020" }],
-      skills: ["React", "TypeScript", "Next.js", "Tailwind CSS", "Design Systems", "Testing", "Accessibility"],
+      experience: [
+        {
+          company: "Paystack", role: "Senior Frontend Engineer",
+          start_date: "2022", end_date: "Present",
+          description: "Led the design system migration across 40+ screens; cut bundle size 38%.",
+        },
+        {
+          company: "Andela", role: "Frontend Engineer",
+          start_date: "2020", end_date: "2022",
+          description: "Built internal tooling for talent matching used by 200+ staff.",
+        },
+      ],
+      projects: [
+        {
+          name: "Atlas UI", description: "Open-source component library with 1.2k GitHub stars.",
+          technologies: ["React", "TypeScript", "Radix UI"], start_date: "2023", end_date: "Present",
+        },
+      ],
+      skills: {
+        technical: ["React", "TypeScript", "Next.js", "Tailwind CSS", "Design Systems", "Testing", "Accessibility", "Node.js"],
+        soft: ["Mentoring", "Technical writing", "Cross-functional collaboration"],
+        other: ["Figma", "Playwright", "GitHub Actions"],
+      },
+      achievements: ["Spoke at React Summit Lagos 2024", "Reduced checkout bundle by 38%"],
+      certifications: [{ name: "AWS Certified Developer", issuer: "Amazon", date: "2023" }],
     },
     version: 3, created_at: daysAgo(24), updated_at: daysAgo(2),
     report: {

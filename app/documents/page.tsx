@@ -2,9 +2,8 @@
 
 import { useEffect, useState } from "react"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader } from "@/shared/ui/card"
+import { Card, CardContent } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
-import { Badge } from "@/shared/ui/badge"
 import { motion } from "framer-motion"
 import {
   FileText,
@@ -14,7 +13,16 @@ import {
   Eye,
   MoreVertical,
   Loader2,
+  AlertTriangle,
+  CheckCircle2,
+  Clock3,
+  Sparkles,
+  FileSpreadsheet,
+  FileImage,
 } from "lucide-react"
+import { PageHeader } from "@/components/layout/page-header"
+import { Stat } from "@/components/data/stat"
+import { EmptyState } from "@/components/data/empty-state"
 import Link from "next/link"
 import type { Document } from "@/types/database"
 import { getDocuments, deleteDocument } from "@/modules/documents/services/document.service"
@@ -27,6 +35,31 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu"
+
+/** Analysis status is the one thing a document card must communicate. */
+const ANALYSIS_STATUS = {
+  success: {
+    label: "Analyzed",
+    pill: "border-primary/25 bg-primary/10 text-primary-strong dark:text-primary",
+    icon: CheckCircle2,
+  },
+  pending: {
+    label: "Analyzing",
+    pill: "border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400",
+    icon: Clock3,
+    spin: "animate-spin",
+  },
+  failed: {
+    label: "Failed",
+    pill: "border-destructive/25 bg-destructive/10 text-destructive",
+    icon: AlertTriangle,
+  },
+  not_analyzed: {
+    label: "Not analyzed",
+    pill: "border-border/70 bg-muted/60 text-muted-foreground",
+    icon: Clock3,
+  },
+} as const
 
 function formatFileSize(bytes: number): string {
   if (bytes < 1024) return bytes + " B"
@@ -43,6 +76,7 @@ export default function DocumentsPage() {
   const [reportingId, setReportingId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; fileUrl: string; fileName: string } | null>(null)
+  const [docFilter, setDocFilter] = useState<"all" | "analyzed" | "attention">("all")
 
   useEffect(() => {
     const load = async () => {
@@ -223,7 +257,23 @@ export default function DocumentsPage() {
   }
 
   const totalSize = documents.reduce((acc, doc) => acc + (doc.file_size || 0), 0)
-  const analyzedCount = documents.filter((d) => d.parsed_data).length
+  const analyzedCount = documents.filter((d) => d.analysis_status === "success").length
+  const needsAnalysis = documents.filter((d) => d.analysis_status !== "success" && d.analysis_status !== "failed").length
+  const failedCount = documents.filter((d) => d.analysis_status === "failed").length
+
+  const visibleDocuments = documents.filter((doc) => {
+    if (docFilter === "all") return true
+    if (docFilter === "analyzed") return doc.analysis_status === "success"
+    if (docFilter === "attention")
+      return doc.analysis_status === "failed" || doc.analysis_status === "not_analyzed" || doc.analysis_status === "pending"
+    return true
+  })
+
+  const FILTERS = [
+    { key: "all" as const, label: "All", count: documents.length },
+    { key: "analyzed" as const, label: "Analyzed", count: analyzedCount },
+    { key: "attention" as const, label: "Needs attention", count: needsAnalysis + failedCount },
+  ]
 
   if (loading) {
     return (
@@ -238,292 +288,302 @@ export default function DocumentsPage() {
   return (
     <DashboardLayout>
       <div className="space-y-6">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div>
-            <h1 className="font-display text-2xl font-bold tracking-tight text-foreground">
-              Documents
-            </h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Your resumes, transcripts, and certificates — the context behind every AI draft.
-            </p>
-          </div>
-          <Link
-            href="/upload"
-            className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_-4px_rgba(24,187,112,0.65)]"
-          >
-            <Upload className="h-3.5 w-3.5" />
-            Upload document
-          </Link>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
-          {[
-            { label: "Total documents", value: String(documents.length) },
-            { label: "Total size", value: formatFileSize(totalSize) },
-            { label: "Analyzed", value: String(analyzedCount) },
-            {
-              label: "This month",
-              value: String(
-                documents.filter((d) => {
-                  if (!d.created_at) return false
-                  const created = new Date(d.created_at)
-                  const now = new Date()
-                  return (
-                    created.getFullYear() === now.getFullYear() &&
-                    created.getMonth() === now.getMonth()
-                  )
-                }).length
-              ),
-            },
-          ].map((stat, index) => (
-            <motion.div
-              key={stat.label}
-              initial={{ opacity: 0, y: 14 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4, delay: index * 0.05, ease: [0.22, 1, 0.36, 1] }}
+        <PageHeader
+          overline="Library"
+          title="Documents"
+          description={
+            documents.length > 0
+              ? `${documents.length} files · ${formatFileSize(totalSize)} · ${analyzedCount} analyzed`
+              : "Resumes, transcripts and certificates — the evidence behind every AI draft."
+          }
+          actions={
+            <Link
+              href="/upload"
+              className="inline-flex h-9 items-center gap-1.5 rounded-lg bg-primary px-3.5 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_6px_20px_-4px_rgba(24,187,112,0.65)]"
             >
-              <div className="rounded-2xl border border-border/70 bg-card p-4 sm:p-5">
-                <p className="text-xs font-medium text-muted-foreground">{stat.label}</p>
-                <p className="mt-2 font-display text-2xl font-bold tracking-tight text-foreground">
-                  {stat.value}
-                </p>
-              </div>
-            </motion.div>
-          ))}
-        </div>
+              <Upload className="h-3.5 w-3.5" />
+              Upload document
+            </Link>
+          }
+        />
 
-        {/* Documents Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {documents.length === 0 ? (
-            <Card className="rounded-2xl border-border/70">
-              <CardContent className="p-12 text-center">
-                <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10">
-                  <FileText className="h-6 w-6 text-primary-strong dark:text-primary" />
+        {documents.length > 0 ? (
+          <>
+            <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 lg:gap-4">
+              <Stat
+                label="Analyzed"
+                value={analyzedCount}
+                icon={<CheckCircle2 className="h-4 w-4" />}
+                accent="primary"
+                hint={analyzedCount === documents.length ? "Every file is readable by the AI" : `${documents.length - analyzedCount} still to process`}
+              />
+              <Stat
+                label="Needs attention"
+                value={needsAnalysis + failedCount}
+                icon={<AlertTriangle className="h-4 w-4" />}
+                accent={needsAnalysis + failedCount > 0 ? "warning" : "muted"}
+                hint={failedCount > 0 ? `${failedCount} failed to parse` : "Nothing stuck"}
+              />
+              <Stat
+                label="Storage used"
+                value={formatFileSize(totalSize)}
+                icon={<FileSpreadsheet className="h-4 w-4" />}
+                hint={`Across ${documents.length} ${documents.length === 1 ? "file" : "files"}`}
+              />
+              <Stat
+                label="Parsed skills"
+                value={documents.reduce((sum, d) => {
+                  const skills = d.parsed_data?.skills
+                  if (!skills) return sum
+                  return sum + (skills.technical?.length ?? 0) + (skills.soft?.length ?? 0) + (skills.other?.length ?? 0)
+                }, 0)}
+                icon={<Sparkles className="h-4 w-4" />}
+                hint="Distinct skills across your CVs"
+              />
+            </div>
+
+            {/* Filter bar with counts — the grid previously had no way to
+                isolate the files that still need processing. */}
+            <div className="flex flex-wrap items-center gap-2">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.key}
+                  onClick={() => setDocFilter(f.key)}
+                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${
+                    docFilter === f.key
+                      ? "border-primary/40 bg-primary/10 text-primary-strong dark:text-primary"
+                      : "border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground"
+                  }`}
+                >
+                  {f.label}
+                  <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
+                    {f.count}
+                  </span>
+                </button>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {visibleDocuments.map((doc, index) => {
+                const status = ANALYSIS_STATUS[doc.analysis_status] ?? ANALYSIS_STATUS.not_analyzed
+                const StatusIcon = status.icon
+                const ext = (doc.file_name.split(".").pop() ?? "").toLowerCase()
+                const TypeIcon = ["png", "jpg", "jpeg", "webp", "gif"].includes(ext) ? FileImage : FileText
+
+                return (
+                  <motion.div
+                    key={doc.id}
+                    initial={{ opacity: 0, y: 14 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.28, delay: Math.min(index * 0.04, 0.3), ease: [0.22, 1, 0.36, 1] }}
+                  >
+                    <Card className="flex h-full flex-col rounded-2xl border-border/70 transition-all duration-200 hover:border-primary/30">
+                      <CardContent className="flex flex-1 flex-col p-5">
+                        {/* File identity */}
+                        <div className="flex items-start gap-3">
+                          <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-border/60 bg-muted/60">
+                            <TypeIcon className="h-[18px] w-[18px] text-foreground/70" />
+                          </span>
+                          <div className="min-w-0 flex-1">
+                            <Link
+                              href={`/documents/${doc.id}`}
+                              className="font-display block truncate text-[14px] font-bold tracking-tight text-foreground transition-colors hover:text-primary-strong dark:hover:text-primary"
+                              title={doc.file_name}
+                            >
+                              {doc.file_name}
+                            </Link>
+                            <p className="mt-0.5 text-xs text-muted-foreground">
+                              {formatFileSize(doc.file_size || 0)}
+                              {doc.created_at ? <> · {new Date(doc.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })}</> : null}
+                            </p>
+                          </div>
+
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0 text-muted-foreground">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="w-52">
+                              <DropdownMenuItem
+                                onClick={() => handleAnalyze(doc)}
+                                disabled={processingId === doc.id}
+                                className="cursor-pointer"
+                              >
+                                {processingId === doc.id ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                    Analyzing…
+                                  </>
+                                ) : (
+                                  <>
+                                    <Sparkles className="mr-2 h-3.5 w-3.5" />
+                                    {doc.analysis_status === "success" ? "Re-analyze" : "Analyze document"}
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                              <DropdownMenuItem
+                                onClick={() => handleGenerateReport(doc)}
+                                disabled={reportingId === doc.id}
+                                className="cursor-pointer"
+                              >
+                                {reportingId === doc.id ? (
+                                  <>
+                                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                                    Generating…
+                                  </>
+                                ) : (
+                                  <>
+                                    <FileText className="mr-2 h-3.5 w-3.5" />
+                                    Generate report
+                                  </>
+                                )}
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+
+                        {/* Status — the card previously said nothing about whether
+                            the file was readable, which is the one thing that matters. */}
+                        <div className="mt-4 flex items-center justify-between gap-3">
+                          <span
+                            className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[11px] font-medium ${status.pill}`}
+                          >
+                            <StatusIcon className={`h-3 w-3 ${status.spin ?? ""}`} />
+                            {status.label}
+                          </span>
+
+                          {doc.report ? (
+                            <span className="font-display text-sm font-bold tabular-nums text-foreground">
+                              {doc.report.overallScore}
+                              <span className="text-xs font-medium text-muted-foreground">/10</span>
+                            </span>
+                          ) : null}
+                        </div>
+
+                        {/* Parsed summary */}
+                        {doc.parsed_data ? (
+                          <div className="mt-4 space-y-2">
+                            <div className="flex flex-wrap gap-1.5">
+                              {[
+                                ["education", "Education"],
+                                ["experience", "Experience"],
+                                ["projects", "Project"],
+                              ].map(([key, label]) => {
+                                const arr = (doc.parsed_data as Record<string, unknown>)?.[key]
+                                if (!Array.isArray(arr) || arr.length === 0) return null
+                                return (
+                                  <span
+                                    key={key}
+                                    className="rounded-md border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground"
+                                  >
+                                    {arr.length} {label}
+                                    {arr.length > 1 && key !== "education" ? "s" : ""}
+                                  </span>
+                                )
+                              })}
+                              {(() => {
+                                const skills = doc.parsed_data?.skills
+                                const n = (skills?.technical?.length ?? 0) + (skills?.soft?.length ?? 0) + (skills?.other?.length ?? 0)
+                                return n > 0 ? (
+                                  <span className="rounded-md border border-border/60 bg-muted/50 px-2 py-0.5 text-[11px] font-medium text-muted-foreground">
+                                    {n} skills
+                                  </span>
+                                ) : null
+                              })()}
+                            </div>
+
+                            {doc.report?.overallAssessment ? (
+                              <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+                                {doc.report.overallAssessment}
+                              </p>
+                            ) : null}
+                          </div>
+                        ) : doc.analysis_error ? (
+                          <p className="mt-4 line-clamp-2 text-xs leading-relaxed text-destructive/90">
+                            {doc.analysis_error}
+                          </p>
+                        ) : (
+                          <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+                            Not analyzed yet — run the analyzer to unlock AI drafts from this file.
+                          </p>
+                        )}
+
+                        {/* Actions */}
+                        <div className="mt-auto flex items-center gap-2 pt-5">
+                          <Link
+                            href={`/documents/${doc.id}`}
+                            className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-card text-[13px] font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary-strong dark:hover:text-primary"
+                          >
+                            <Eye className="h-3.5 w-3.5" />
+                            View
+                          </Link>
+                          {doc.file_url ? (
+                            <a
+                              href={doc.file_url}
+                              download={doc.file_name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex h-9 flex-1 items-center justify-center gap-1.5 rounded-lg border border-border/80 bg-card text-[13px] font-medium text-foreground transition-colors hover:border-primary/40 hover:text-primary-strong dark:hover:text-primary"
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              Download
+                            </a>
+                          ) : null}
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-9 w-9 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                            onClick={() => requestDelete(doc)}
+                            disabled={deletingId === doc.id}
+                            aria-label={`Delete ${doc.file_name}`}
+                          >
+                            {deletingId === doc.id ? (
+                              <Loader2 className="h-4 w-4 animate-spin" />
+                            ) : (
+                              <Trash2 className="h-4 w-4" />
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </motion.div>
+                )
+              })}
+
+              {visibleDocuments.length === 0 ? (
+                <div className="md:col-span-2 xl:col-span-3">
+                  <EmptyState
+                    icon={<CheckCircle2 className="h-5 w-5" />}
+                    title="Nothing here"
+                    description="Every document in this view is already analyzed."
+                    variant="page"
+                  />
                 </div>
-                <p className="font-display text-base font-bold tracking-tight text-foreground">
-                  No documents yet
-                </p>
-                <p className="mx-auto mt-1 max-w-sm text-sm text-muted-foreground">
-                  Upload your first resume, transcript, or certificate — it powers every AI draft
-                  you create.
-                </p>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <div className="rounded-2xl border border-border/70 bg-card">
+            <EmptyState
+              variant="page"
+              icon={<FileText className="h-5 w-5" />}
+              title="No documents yet"
+              description="Upload your first resume, transcript or certificate — it powers every AI draft you create."
+              action={
                 <Link
                   href="/upload"
-                  className="mt-5 inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5"
+                  className="inline-flex h-10 items-center gap-1.5 rounded-lg bg-primary px-4 text-sm font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] transition-all duration-200 hover:-translate-y-0.5"
                 >
                   <Upload className="h-4 w-4" />
                   Upload your first document
                 </Link>
-              </CardContent>
-            </Card>
-          ) : (
-            documents.map((doc, index) => (
-              <motion.div
-                key={doc.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.3, delay: index * 0.1 }}
-              >
-                <Card className="rounded-2xl border-border/70 transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/30">
-                  <CardHeader className="p-4 sm:p-5">
-                    <div className="flex items-start justify-between gap-2 sm:gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 shrink-0">
-                        <FileText className="h-[18px] w-[18px] text-primary-strong dark:text-primary" />
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <h3 className="font-display truncate text-[15px] font-semibold text-foreground">{doc.file_name}</h3>
-                        <p className="mt-1 text-xs text-muted-foreground">
-                          {formatFileSize(doc.file_size || 0)}
-                          {doc.created_at && (
-                            <> · {new Date(doc.created_at).toLocaleDateString()}</>
-                          )}
-                        </p>
-                      </div>
-                      {/* 3-dot menu for non-destructive AI actions */}
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className="text-muted-foreground hover:text-primary h-8 w-8 sm:h-9 sm:w-9"
-                          >
-                            <MoreVertical className="h-4 w-4" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end" className="w-48 sm:w-52">
-                          {/* Re-process flow (see handler for detailed behavior notes) */}
-                          <DropdownMenuItem
-                            onClick={() => handleAnalyze(doc)}
-                            disabled={processingId === doc.id}
-                            className="cursor-pointer text-xs sm:text-sm"
-                          >
-                            {processingId === doc.id ? (
-                              <>
-                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                Analyzing...
-                              </>
-                            ) : (
-                              <>
-                                <Upload className="mr-2 h-3 w-3" />
-                                Analyze document
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem
-                            onClick={() => handleGenerateReport(doc)}
-                            disabled={reportingId === doc.id}
-                            className="cursor-pointer text-xs sm:text-sm"
-                          >
-                            {reportingId === doc.id ? (
-                              <>
-                                <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                                Generating report...
-                              </>
-                            ) : (
-                              <>
-                                <FileText className="mr-2 h-3 w-3" />
-                                Generate report
-                              </>
-                            )}
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </CardHeader>
-
-                  <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-                    {/* AI Analysis summary */}
-                    {doc.parsed_data && (
-                      <div className="mb-4">
-                        <div className="flex flex-wrap items-center gap-2 mb-3">
-                          {/* Education */}
-                          {Array.isArray(doc.parsed_data.education) && doc.parsed_data.education.length > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {doc.parsed_data.education.length} {doc.parsed_data.education.length === 1 ? 'Education' : 'Educations'}
-                            </Badge>
-                          )}
-
-                          {/* Experience */}
-                          {Array.isArray(doc.parsed_data.experience) && doc.parsed_data.experience.length > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {doc.parsed_data.experience.length} {doc.parsed_data.experience.length === 1 ? 'Experience' : 'Experiences'}
-                            </Badge>
-                          )}
-
-                          {/* Projects */}
-                          {Array.isArray(doc.parsed_data.projects) && doc.parsed_data.projects.length > 0 && (
-                            <Badge variant="secondary" className="text-xs">
-                              {doc.parsed_data.projects.length} {doc.parsed_data.projects.length === 1 ? 'Project' : 'Projects'}
-                            </Badge>
-                          )}
-
-                          {/* Skills */}
-                          {doc.parsed_data.skills && (
-                            (doc.parsed_data.skills.technical?.length || 0) +
-                            (doc.parsed_data.skills.soft?.length || 0) +
-                            (doc.parsed_data.skills.other?.length || 0) > 0
-                          ) && (
-                              <Badge variant="secondary" className="text-xs">
-                                {(
-                                  (doc.parsed_data.skills.technical?.length || 0) +
-                                  (doc.parsed_data.skills.soft?.length || 0) +
-                                  (doc.parsed_data.skills.other?.length || 0)
-                                )} Skills
-                              </Badge>
-                            )}
-                        </div>
-
-                        {/* Inline report display if available */}
-                        {doc.report && (
-                          <div className="rounded-md bg-muted/60 p-2.5 mb-2.5">
-                            <div className="flex items-center justify-between mb-1.5">
-                              <p className="text-xs font-medium text-muted-foreground">
-                                {doc.report.documentType}
-                              </p>
-                              <span className="text-xs font-bold text-primary">
-                                {doc.report.overallScore}/10
-                              </span>
-                            </div>
-                            <p className="text-xs leading-relaxed text-muted-foreground line-clamp-2">
-                              {doc.report.overallAssessment}
-                            </p>
-                          </div>
-                        )}
-                      </div>
-                    )}
-
-                    <div className="flex flex-wrap items-center gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1 min-w-[100px]"
-                        asChild
-                      >
-                        <Link href={`/documents/${doc.id}`} className="flex items-center justify-center gap-1.5">
-                          <Eye className="h-3 w-3" />
-                          <span className="text-xs sm:text-sm">View</span>
-                        </Link>
-                      </Button>
-                      {doc.file_url ? (
-                        <a
-                          href={doc.file_url}
-                          download={doc.file_name}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex-1 min-w-[100px]"
-                        >
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="w-full flex items-center justify-center gap-1.5"
-                          >
-                            <Download className="h-4 w-4 flex-shrink-0" />
-                            <span className="text-xs sm:text-sm">Download</span>
-                          </Button>
-                        </a>
-                      ) : (
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="flex-1 min-w-[100px] flex items-center justify-center gap-1.5"
-                          disabled
-                        >
-                          <Download className="h-4 w-4 flex-shrink-0" />
-                          <span className="text-xs sm:text-sm">Download</span>
-                        </Button>
-                      )}
-                      {/* Explicit, visible destructive delete button with confirm dialog */}
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={cn(
-                          "text-destructive hover:bg-destructive hover:text-white h-9 w-9",
-                          deletingId === doc.id && "opacity-50 cursor-not-allowed"
-                        )}
-                        onClick={() => requestDelete(doc)}
-                        disabled={deletingId === doc.id}
-                      >
-                        {deletingId === doc.id ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
-                        ) : (
-                          <Trash2 className="h-4 w-4" />
-                        )}
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))
-          )}
-        </div>
-
-        {error && (
-          <p className="text-xs text-destructive">
-            {error}
-          </p>
+              }
+            />
+          </div>
         )}
+
+        {error ? <p className="text-xs text-destructive">{error}</p> : null}
 
         <ConfirmDialog
           open={!!deleteTarget}
