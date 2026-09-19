@@ -6,10 +6,28 @@ import { DashboardLayout } from "@/components/layout/dashboard-layout"
 import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
 import { Badge } from "@/shared/ui/badge"
 import { Button } from "@/shared/ui/button"
-import { Loader2, ArrowLeft, ExternalLink, RefreshCw, FileText, ChevronDown } from "lucide-react"
+import {
+  Loader2,
+  ArrowLeft,
+  ArrowUpRight,
+  ExternalLink,
+  RefreshCw,
+  FileText,
+  ChevronDown,
+  Check,
+  CheckCircle2,
+  AlertCircle,
+  Circle,
+  ArrowRight,
+  Sparkles,
+  Trophy,
+} from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/shared/ui/use-toast"
 import { cn } from "@/shared/lib/utils"
+import { MiniBar } from "@/components/data/stat"
+import { ScoreRing } from "@/components/data/status-pill"
+import { EmptyState } from "@/components/data/empty-state"
 import type { DocumentReport } from "@/types/database"
 
 type ParsedEducation = {
@@ -68,6 +86,7 @@ type DocumentDetail = {
   file_size: number | null
   created_at: string | null
   updated_at: string | null
+  version: number | null
   report: DocumentReport | null
   report_generated_at: string | null
   parsed_data: ParsedDocument | null
@@ -89,6 +108,95 @@ function formatDate(value: string | null): string {
   const d = new Date(value)
   if (Number.isNaN(d.getTime())) return "Unknown"
   return d.toLocaleString()
+}
+
+/** Short, unambiguous date — the long toLocaleString is for the header line only. */
+function formatDay(value: string | null): string {
+  if (!value) return "Unknown"
+  const d = new Date(value)
+  if (Number.isNaN(d.getTime())) return "Unknown"
+  return d.toLocaleDateString(undefined, { day: "numeric", month: "short", year: "numeric" })
+}
+
+function formatRelativeDay(value: string | null): string {
+  if (!value) return ""
+  const then = new Date(value).getTime()
+  if (Number.isNaN(then)) return ""
+  const days = Math.floor((Date.now() - then) / 86_400_000)
+  if (days <= 0) return "Updated today"
+  if (days === 1) return "Updated yesterday"
+  if (days < 30) return `Updated ${days} days ago`
+  return `Updated ${new Date(value).toLocaleDateString()}`
+}
+
+/** Card header used by both columns: overline + title, optional right-hand slot. */
+function CardHead({
+  overline,
+  title,
+  action,
+}: {
+  overline: string
+  title: string
+  action?: React.ReactNode
+}) {
+  return (
+    <div className="flex flex-col gap-2 border-b border-border/50 px-5 py-3.5 sm:flex-row sm:items-center sm:justify-between">
+      <div className="min-w-0">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+          {overline}
+        </p>
+        <p className="mt-0.5 truncate text-sm font-semibold text-foreground">{title}</p>
+      </div>
+      {action ? <div className="shrink-0">{action}</div> : null}
+    </div>
+  )
+}
+
+function ParsedSection({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section className="px-5 py-4">
+      <h3 className="mb-2.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+        {title}
+      </h3>
+      {children}
+    </section>
+  )
+}
+
+function Chip({
+  children,
+  variant = "default",
+}: {
+  children: React.ReactNode
+  variant?: "default" | "primary" | "muted"
+}) {
+  const tones = {
+    default: "border-border/70 bg-muted/50 text-foreground/90",
+    primary: "border-primary/25 bg-primary/10 text-primary-strong dark:text-primary",
+    muted: "border-border/60 bg-transparent text-muted-foreground",
+  } as const
+  return (
+    <span className={cn("rounded-md border px-2 py-0.5 text-[11px] font-medium", tones[variant])}>
+      {children}
+    </span>
+  )
+}
+
+/** The file's own facts — kept out of the header so the title stays the loudest thing. */
+function FileFacts({ rows }: { rows: { label: string; value: React.ReactNode }[] }) {
+  return (
+    <Card className="overflow-hidden rounded-2xl border-border/70">
+      <CardHead overline="File" title="Document details" />
+      <dl className="divide-y divide-border/50">
+        {rows.map((row) => (
+          <div key={row.label} className="flex items-center justify-between gap-4 px-5 py-3">
+            <dt className="text-xs text-muted-foreground">{row.label}</dt>
+            <dd className="truncate text-[13px] font-medium text-foreground">{row.value}</dd>
+          </div>
+        ))}
+      </dl>
+    </Card>
+  )
 }
 
 export default function DocumentDetailPage() {
@@ -141,6 +249,7 @@ export default function DocumentDetailPage() {
           file_size: typeof payload.file_size === "number" ? payload.file_size : null,
           created_at: payload.created_at ?? null,
           updated_at: payload.updated_at ?? null,
+          version: typeof payload.version === "number" ? payload.version : null,
           report: payload.report ?? null,
           report_generated_at: payload.report_generated_at ?? null,
           parsed_data: payload.parsed_data ?? null,
@@ -201,6 +310,7 @@ export default function DocumentDetailPage() {
             file_size: typeof payload.file_size === "number" ? payload.file_size : null,
             created_at: payload.created_at ?? null,
             updated_at: payload.updated_at ?? null,
+            version: typeof payload.version === "number" ? payload.version : null,
             report: payload.report ?? null,
             report_generated_at: payload.report_generated_at ?? null,
             parsed_data: parsedData ?? null,
@@ -340,509 +450,417 @@ export default function DocumentDetailPage() {
     }
   }
 
-  const renderAnalysisStatusBadge = () => {
+  const statusChip = () => {
     if (!doc) return null
-    const status = doc.analysis_status
-    const base = "px-2 py-0.5 text-xs rounded-full border bg-transparent"
-
-    if (status === "success") {
+    const base =
+      "inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium"
+    if (doc.analysis_status === "success") {
       return (
-        <span className={cn(base, "border-border text-foreground")}>
-          Analyzed
+        <span className={cn(base, "border-primary/25 bg-primary/10 text-primary-strong dark:text-primary")}>
+          <CheckCircle2 className="h-3 w-3" />
+          Parsed
         </span>
       )
     }
-    if (status === "pending") {
+    if (doc.analysis_status === "pending") {
       return (
-        <span className={cn(base, "border-border text-foreground flex items-center gap-1")}>
+        <span className={cn(base, "border-border/70 bg-muted/60 text-muted-foreground")}>
           <Loader2 className="h-3 w-3 animate-spin" />
-          Analyzing...
+          Parsing
         </span>
       )
     }
-    if (status === "failed") {
+    if (doc.analysis_status === "failed") {
       return (
-        <span className={cn(base, "border-destructive/40 text-destructive")}>
-          Analysis failed
+        <span className={cn(base, "border-destructive/25 bg-destructive/10 text-destructive")}>
+          <AlertCircle className="h-3 w-3" />
+          Parse failed
         </span>
       )
     }
     return (
-      <span className={cn(base, "border-border text-muted-foreground")}>
-        Not analyzed
+      <span className={cn(base, "border-border/70 bg-muted/60 text-muted-foreground")}>
+        <Circle className="h-3 w-3" />
+        Not parsed
       </span>
     )
   }
 
   const toggleCategory = (categoryName: string) => {
-    const newExpanded = new Set(expandedCategories)
-    if (newExpanded.has(categoryName)) {
-      newExpanded.delete(categoryName)
-    } else {
-      newExpanded.add(categoryName)
-    }
-    setExpandedCategories(newExpanded)
+    const next = new Set(expandedCategories)
+    if (next.has(categoryName)) next.delete(categoryName)
+    else next.add(categoryName)
+    setExpandedCategories(next)
   }
 
-  const renderReportSection = () => {
+  /* ---------- Report column ---------- */
+  const renderReport = () => {
     if (!doc) return null
-
     const report = doc.report as DocumentReport | null
 
+    if (!report) {
+      const parsedOk = doc.analysis_status === "success"
+      return (
+          <Card className="overflow-hidden rounded-2xl border-border/70">
+            <CardHead overline="Report" title="No report yet" />
+            <EmptyState
+              icon={<FileText className="h-5 w-5" />}
+              title={parsedOk ? "Nothing has been scored" : "Waiting on a parse"}
+              description={
+                parsedOk
+                  ? "Generate a report to get a score, category feedback and the changes worth making first."
+                  : "A report reads the parsed content, so this file has to be parsed before it can be scored."
+              }
+              action={
+                parsedOk ? (
+                  <Button size="sm" className="rounded-lg" onClick={handleGenerateReport} disabled={loadingReport}>
+                    {loadingReport ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+                    Generate report
+                  </Button>
+                ) : undefined
+              }
+            />
+          </Card>
+      )
+    }
+
+    const overall = Math.round(report.overallScore * 10)
+    const categories = report.categories ?? []
+
     return (
-      <Card className="rounded-2xl border-border/70 bg-card">
-        <CardHeader className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-base sm:text-lg">Document Report</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              {report && (
-                <Badge variant="outline" className="text-xs bg-transparent text-foreground border-border">
-                  Updated {formatDate(doc.report_generated_at)}
-                </Badge>
-              )}
+      <Card className="overflow-hidden rounded-2xl border-border/70">
+        <CardHead
+          overline="Report"
+          title={report.documentType || "Document report"}
+          action={
+            <div className="flex items-center gap-2">
+              {doc.report_generated_at ? (
+                <span className="hidden text-xs text-muted-foreground sm:inline">
+                  {formatRelativeDay(doc.report_generated_at)}
+                </span>
+              ) : null}
               <Button
                 size="sm"
                 variant="outline"
-                className="gap-1 text-xs sm:text-sm"
+                className="h-8 rounded-lg"
                 onClick={handleGenerateReport}
                 disabled={loadingReport}
               >
                 {loadingReport ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Generating...
-                  </>
+                  <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
                 ) : (
-                  <>
-                    <FileText className="h-3 w-3" />
-                    Generate report
-                  </>
+                  <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
                 )}
+                Regenerate
               </Button>
             </div>
+          }
+        />
+
+        <div className="flex items-center gap-4 border-b border-border/50 px-5 py-4">
+          <ScoreRing score={overall} size={68} tone="progress" />
+          <div className="min-w-0">
+            <p className="font-display text-[26px] font-bold leading-none tracking-[-0.02em] text-foreground">
+              {report.overallScore.toFixed(1)}
+              <span className="text-base font-medium text-muted-foreground/70">/10</span>
+            </p>
+            <p className="mt-1.5 text-[13px] leading-relaxed text-muted-foreground">
+              {report.overallAssessment || "No summary was returned with this report."}
+            </p>
           </div>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {report ? (
-            <>
-              {/* Header */}
-              <div className="space-y-2 pb-4 border-b border-border/50">
-                <div className="flex items-center justify-between">
-                  <h3 className="font-display text-sm font-semibold text-foreground">
-                    {report.documentType || "Document"}
-                  </h3>
-                  <div className="text-sm font-bold text-foreground">
-                    {report.overallScore}/10
-                  </div>
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  {report.overallAssessment}
-                </p>
-                {/* Overall score bar */}
-                <div className="w-full bg-muted/30 rounded-full h-2 overflow-hidden">
-                  <div
-                    className="h-full bg-primary transition-all duration-300"
-                    style={{ width: `${(report.overallScore / 10) * 100}%` }}
-                  />
-                </div>
-              </div>
+        </div>
 
-              {/* Categories */}
-              {report.categories && report.categories.length > 0 ? (
-                <div className="space-y-2">
-                  {report.categories.map((category, idx) => {
-                    const isExpanded = expandedCategories.has(category.name)
-                    const scorePercentage = (category.score / 10) * 100
-                    const scoreColor =
-                      category.score >= 8
-                        ? "text-foreground"
-                        : category.score >= 6
-                          ? "text-muted-foreground"
-                          : "text-destructive"
-
-                    return (
-                      <div key={idx} className="border border-border/50 rounded-lg overflow-hidden">
-                        <button
-                          onClick={() => toggleCategory(category.name)}
-                          className="w-full p-3 flex items-center justify-between hover:bg-muted/40 transition-colors"
-                        >
-                          <div className="flex items-center gap-3 flex-1">
-                            <div className="flex-1 text-left">
-                              <div className="text-sm font-medium text-foreground">
-                                {category.name}
-                              </div>
-                              <div className="w-24 bg-muted/30 rounded-full h-1.5 mt-1.5 overflow-hidden">
-                                <div
-                                  className="h-full bg-primary transition-all duration-300"
-                                  style={{ width: `${scorePercentage}%` }}
-                                />
-                              </div>
-                            </div>
-                            <div className={cn("text-sm font-bold min-w-12 text-right", scoreColor)}>
-                              {category.score}/10
-                            </div>
-                          </div>
-                          <ChevronDown
-                            className={cn(
-                              "h-4 w-4 text-muted-foreground transition-transform ml-2",
-                              isExpanded && "rotate-180"
-                            )}
-                          />
-                        </button>
-
-                        {isExpanded && (
-                          <div className="px-3 pb-3 space-y-3 border-t border-border/50 bg-muted/20">
-                            {category.strengths && category.strengths.length > 0 && (
-                              <div>
-                                <h4 className="font-display text-xs font-semibold text-primary mb-1.5">
-                                  Strengths
-                                </h4>
-                                <ul className="space-y-1">
-                                  {category.strengths.map((strength, i) => (
-                                    <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                                      <span className="text-primary mt-0.5">✓</span>
-                                      <span>{strength}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {category.improvements && category.improvements.length > 0 && (
-                              <div>
-                                <h4 className="font-display text-xs font-semibold text-muted-foreground mb-1.5">
-                                  Areas for Improvement
-                                </h4>
-                                <ul className="space-y-1">
-                                  {category.improvements.map((improvement, i) => (
-                                    <li key={i} className="text-xs text-muted-foreground flex gap-2">
-                                      <span className="text-muted-foreground mt-0.5">→</span>
-                                      <span>{improvement}</span>
-                                    </li>
-                                  ))}
-                                </ul>
-                              </div>
-                            )}
-
-                            {(!category.improvements || category.improvements.length === 0) &&
-                              (!category.strengths || category.strengths.length === 0) && (
-                                <p className="text-xs text-muted-foreground">
-                                  No details available for this category.
-                                </p>
-                              )}
-                          </div>
+        {categories.length === 0 ? (
+          <p className="px-5 py-6 text-sm text-muted-foreground">
+            This report has no category breakdown — regenerate it to get one.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border/50">
+            {categories.map((category) => {
+              const open = expandedCategories.has(category.name)
+              const hasDetail =
+                (category.strengths?.length ?? 0) > 0 || (category.improvements?.length ?? 0) > 0
+              return (
+                <li key={category.name}>
+                  <button
+                    type="button"
+                    onClick={() => hasDetail && toggleCategory(category.name)}
+                    aria-expanded={open}
+                    className={cn(
+                      "flex w-full items-center gap-4 px-5 py-3.5 text-left transition-colors",
+                      hasDetail ? "hover:bg-muted/40" : "cursor-default"
+                    )}
+                  >
+                    <span className="w-32 shrink-0 text-sm font-medium text-foreground">
+                      {category.name}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <MiniBar
+                        ratio={category.score / 10}
+                        tone={category.score >= 8 ? "primary" : category.score >= 6 ? "warning" : "danger"}
+                      />
+                    </span>
+                    <span className="w-12 shrink-0 text-right text-sm font-semibold tabular-nums text-foreground">
+                      {category.score}
+                      <span className="font-normal text-muted-foreground/70">/10</span>
+                    </span>
+                    {hasDetail ? (
+                      <ChevronDown
+                        className={cn(
+                          "h-4 w-4 shrink-0 text-muted-foreground transition-transform",
+                          open && "rotate-180"
                         )}
-                      </div>
-                    )
-                  })}
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground">
-                  No detailed feedback available.
-                </p>
-              )}
-            </>
-          ) : (
-            <div className="text-sm text-muted-foreground">
-              <p className="mb-3">
-                No report has been generated for this document yet.
-              </p>
-              <Button
-                size="sm"
-                onClick={handleGenerateReport}
-                disabled={loadingReport}
-              >
-                {loadingReport ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                    Generating...
-                  </>
-                ) : (
-                  "Generate report"
-                )}
-              </Button>
-            </div>
-          )}
-        </CardContent>
+                      />
+                    ) : (
+                      <span className="h-4 w-4 shrink-0" />
+                    )}
+                  </button>
+
+                  {open ? (
+                    <div className="space-y-3 bg-muted/20 px-5 pb-4 pt-1">
+                      {category.strengths?.length ? (
+                        <div>
+                          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Working
+                          </p>
+                          <ul className="space-y-1.5">
+                            {category.strengths.map((item, i) => (
+                              <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-foreground/90">
+                                <Check className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                      {category.improvements?.length ? (
+                        <div>
+                          <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Worth changing
+                          </p>
+                          <ul className="space-y-1.5">
+                            {category.improvements.map((item, i) => (
+                              <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-foreground/90">
+                                <ArrowRight className="mt-0.5 h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                                {item}
+                              </li>
+                            ))}
+                          </ul>
+                        </div>
+                      ) : null}
+                    </div>
+                  ) : null}
+                </li>
+              )
+            })}
+          </ul>
+        )}
       </Card>
     )
   }
 
-  const renderAnalysisSection = () => {
+  /* ---------- Parsed content column ---------- */
+  const renderParsed = () => {
     if (!doc) return null
-
     const parsed = doc.parsed_data as ParsedDocument | null
 
-    return (
-      <Card className="rounded-2xl border-border/70 bg-card">
-        <CardHeader className="p-4 sm:p-6">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-            <CardTitle className="text-base sm:text-lg">AI Analysis</CardTitle>
-            <div className="flex flex-wrap items-center gap-2">
-              {renderAnalysisStatusBadge()}
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1 text-xs sm:text-sm"
-                onClick={handleAnalyze}
-                disabled={loadingAnalysis}
-              >
-                {loadingAnalysis ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin" />
-                    Analyzing...
-                  </>
-                ) : (
-                  <>
-                    <RefreshCw className="h-3 w-3" />
-                    Analyze document
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-4 text-sm text-muted-foreground">
-          {doc.analysis_status === "failed" && (
-            <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-xs text-destructive">
-              <p className="font-semibold mb-1">Last analysis attempt failed.</p>
-              {doc.analysis_error && (
-                <p className="line-clamp-3">
-                  {doc.analysis_error}
-                </p>
-              )}
-            </div>
-          )}
-
-          {doc.analysis_status !== "success" || !parsed ? (
-            <div className="text-sm">
-              <p className="mb-2">
-                This document has not been successfully analyzed yet.
+    if (doc.analysis_status !== "success" || !parsed) {
+      return (
+        <Card className="overflow-hidden rounded-2xl border-border/70">
+          <CardHead
+            overline="Parsed content"
+            title="What ApplyOS read"
+            action={statusChip()}
+          />
+          {doc.analysis_status === "failed" && doc.analysis_error ? (
+            <div className="mx-5 mt-4 rounded-lg border border-destructive/30 bg-destructive/5 px-3.5 py-3">
+              <p className="flex items-center gap-1.5 text-xs font-semibold text-destructive">
+                <AlertCircle className="h-3.5 w-3.5" />
+                Last attempt failed
               </p>
-              <Button
-                size="sm"
-                onClick={handleAnalyze}
-                disabled={loadingAnalysis}
-              >
-                {loadingAnalysis ? (
-                  <>
-                    <Loader2 className="h-3 w-3 animate-spin mr-2" />
-                    Analyzing...
-                  </>
-                ) : (
-                  "Analyze document"
-                )}
-              </Button>
+              <p className="mt-1 text-xs leading-relaxed text-destructive/90">{doc.analysis_error}</p>
             </div>
-          ) : (
-            <>
-              {parsed.education?.length > 0 && (
-                <section>
-                  <h3 className="font-display font-semibold text-foreground mb-1">
-                    Education
-                  </h3>
-                  <div className="space-y-1">
-                    {parsed.education.map((e, idx) => (
-                      <div key={idx} className="border-l border-primary/30 pl-3">
-                        <div className="font-medium text-foreground">
-                          {e.degree || e.field || "Education entry"}
-                        </div>
-                        <div className="text-xs">
-                          {e.institution}
-                          {e.start_date || e.end_date
-                            ? ` • ${[e.start_date, e.end_date]
-                              .filter(Boolean)
-                              .join(" - ")}`
-                            : ""}
-                        </div>
-                        {e.description && (
-                          <div className="text-xs mt-0.5">
+          ) : null}
+          <EmptyState
+            icon={<Sparkles className="h-5 w-5" />}
+            title={
+              doc.analysis_status === "pending" ? "Still reading this file" : "Not parsed yet"
+            }
+            description={
+              doc.analysis_status === "pending"
+                ? "Parsing usually takes a few seconds. This card fills in as soon as it finishes."
+                : "Parse the file to extract your roles, skills and dates — that is what drafts and matching read from."
+            }
+            action={
+              doc.analysis_status === "pending" ? undefined : (
+                <Button size="sm" className="rounded-lg" onClick={handleAnalyze} disabled={loadingAnalysis}>
+                  {loadingAnalysis ? <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" /> : null}
+                  Parse document
+                </Button>
+              )
+            }
+          />
+        </Card>
+      )
+    }
+
+    const hasAnything =
+      (parsed.experience?.length ?? 0) +
+        (parsed.education?.length ?? 0) +
+        (parsed.projects?.length ?? 0) +
+        (parsed.skills?.technical?.length ?? 0) +
+        (parsed.achievements?.length ?? 0) +
+        (parsed.certifications?.length ?? 0) >
+      0
+
+    return (
+      <Card className="overflow-hidden rounded-2xl border-border/70">
+        <CardHead
+          overline="Parsed content"
+          title="What ApplyOS read"
+          action={statusChip()}
+        />
+
+        {!hasAnything ? (
+          <EmptyState
+            icon={<FileText className="h-5 w-5" />}
+            title="Nothing extractable found"
+            description="This file parsed without errors but contained no roles, skills or dates. If it is a scan, upload the text-based original instead."
+          />
+        ) : (
+          <div className="divide-y divide-border/50">
+            {parsed.experience?.length ? (
+              <ParsedSection title="Experience">
+                <ol className="space-y-3.5">
+                  {parsed.experience.map((e, i) => (
+                    <li key={i} className="flex gap-3">
+                      <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-primary" />
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-foreground">{e.role || "Role"}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {[e.company, [e.start_date, e.end_date].filter(Boolean).join(" – ")]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </p>
+                        {e.description ? (
+                          <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
                             {e.description}
-                          </div>
-                        )}
+                          </p>
+                        ) : null}
                       </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+                    </li>
+                  ))}
+                </ol>
+              </ParsedSection>
+            ) : null}
 
-              {parsed.experience?.length > 0 && (
-                <section>
-                  <h3 className="font-display font-semibold text-foreground mb-1">
-                    Experience
-                  </h3>
-                  <div className="space-y-1">
-                    {parsed.experience.map((e, idx) => (
-                      <div key={idx} className="border-l border-primary/30 pl-3">
-                        <div className="font-medium text-foreground">
-                          {e.role || "Experience"}
+            {parsed.education?.length ? (
+              <ParsedSection title="Education">
+                <ul className="space-y-3">
+                  {parsed.education.map((e, i) => (
+                    <li key={i}>
+                      <p className="text-sm font-medium text-foreground">
+                        {e.degree || e.field || "Qualification"}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        {[e.institution, [e.start_date, e.end_date].filter(Boolean).join(" – ")]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                      {e.description ? (
+                        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                          {e.description}
+                        </p>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </ParsedSection>
+            ) : null}
+
+            {parsed.projects?.length ? (
+              <ParsedSection title="Projects">
+                <ul className="space-y-3">
+                  {parsed.projects.map((p, i) => (
+                    <li key={i}>
+                      <p className="text-sm font-medium text-foreground">{p.name || "Project"}</p>
+                      {p.description ? (
+                        <p className="mt-1 text-[13px] leading-relaxed text-muted-foreground">
+                          {p.description}
+                        </p>
+                      ) : null}
+                      {p.technologies?.length ? (
+                        <div className="mt-2 flex flex-wrap gap-1.5">
+                          {p.technologies.map((tech, j) => (
+                            <Chip key={j}>{tech}</Chip>
+                          ))}
                         </div>
-                        <div className="text-xs">
-                          {e.company}
-                          {e.start_date || e.end_date
-                            ? ` • ${[e.start_date, e.end_date]
-                              .filter(Boolean)
-                              .join(" - ")}`
-                            : ""}
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              </ParsedSection>
+            ) : null}
+
+            {parsed.skills &&
+            (parsed.skills.technical?.length || parsed.skills.soft?.length || parsed.skills.other?.length) ? (
+              <ParsedSection title="Skills">
+                <div className="space-y-3">
+                  {(
+                    [
+                      ["Technical", parsed.skills.technical, "primary"],
+                      ["Ways of working", parsed.skills.soft, "default"],
+                      ["Tools", parsed.skills.other, "muted"],
+                    ] as const
+                  ).map(([label, list, variant]) =>
+                    list?.length ? (
+                      <div key={label}>
+                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                          {label}
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {list.map((skill, i) => (
+                            <Chip key={i} variant={variant}>
+                              {skill}
+                            </Chip>
+                          ))}
                         </div>
-                        {e.description && (
-                          <div className="text-xs mt-0.5">
-                            {e.description}
-                          </div>
-                        )}
                       </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+                    ) : null
+                  )}
+                </div>
+              </ParsedSection>
+            ) : null}
 
-              {parsed.projects?.length > 0 && (
-                <section>
-                  <h3 className="font-display font-semibold text-foreground mb-1">
-                    Projects
-                  </h3>
-                  <div className="space-y-1">
-                    {parsed.projects.map((p, idx) => (
-                      <div key={idx} className="border-l border-primary/30 pl-3">
-                        <div className="font-medium text-foreground">
-                          {p.name || "Project"}
-                        </div>
-                        <div className="text-xs">
-                          {p.start_date || p.end_date
-                            ? `${[p.start_date, p.end_date]
-                              .filter(Boolean)
-                              .join(" - ")}`
-                            : ""}
-                        </div>
-                        {p.description && (
-                          <div className="text-xs mt-0.5">
-                            {p.description}
-                          </div>
-                        )}
-                        {p.technologies && p.technologies.length > 0 && (
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {p.technologies.map((tech, i) => (
-                              <Badge
-                                key={i}
-                                variant="outline"
-                                className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
-                              >
-                                {tech}
-                              </Badge>
-                            ))}
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              )}
+            {parsed.achievements?.length ? (
+              <ParsedSection title="Achievements">
+                <ul className="space-y-1.5">
+                  {parsed.achievements.map((a, i) => (
+                    <li key={i} className="flex gap-2 text-[13px] leading-relaxed text-foreground/90">
+                      <Trophy className="mt-0.5 h-3.5 w-3.5 shrink-0 text-amber-500" />
+                      {a}
+                    </li>
+                  ))}
+                </ul>
+              </ParsedSection>
+            ) : null}
 
-              {(parsed.skills?.technical?.length ||
-                parsed.skills?.soft?.length ||
-                parsed.skills?.other?.length) && (
-                  <section>
-                    <h3 className="font-display font-semibold text-foreground mb-1">
-                      Skills
-                    </h3>
-                    <div className="flex flex-wrap gap-1">
-                      {parsed.skills.technical.map((s, i) => (
-                        <Badge
-                          key={`t-${i}`}
-                          variant="outline"
-                          className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
-                        >
-                          {s}
-                        </Badge>
-                      ))}
-                      {parsed.skills.soft.map((s, i) => (
-                        <Badge
-                          key={`s-${i}`}
-                          variant="outline"
-                          className="bg-transparent text-foreground border-border px-3 py-1 text-[10px]"
-                        >
-                          {s}
-                        </Badge>
-                      ))}
-                      {parsed.skills.other.map((s, i) => (
-                        <Badge
-                          key={`o-${i}`}
-                          variant="outline"
-                          className="bg-transparent text-muted-foreground border-border px-3 py-1 text-[10px]"
-                        >
-                          {s}
-                        </Badge>
-                      ))}
-                    </div>
-                  </section>
-                )}
-
-              {parsed.achievements?.length > 0 && (
-                <section>
-                  <h3 className="font-display font-semibold text-foreground mb-1">
-                    Achievements
-                  </h3>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    {parsed.achievements.map((a, i) => (
-                      <li key={i}>{a}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {parsed.certifications?.length > 0 && (
-                <section>
-                  <h3 className="font-display font-semibold text-foreground mb-1">
-                    Certifications
-                  </h3>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    {parsed.certifications.map((c, i) => (
-                      <li key={i}>
-                        <span className="font-medium">
-                          {c.name}
-                        </span>{" "}
-                        {c.issuer && `• ${c.issuer}`}{" "}
-                        {c.date && `(${c.date})`}
-                      </li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-
-              {parsed.keywords?.length > 0 && (
-                <section>
-                  <h3 className="font-display font-semibold text-foreground mb-1">
-                    Keywords
-                  </h3>
-                  <div className="flex flex-wrap gap-1">
-                    {parsed.keywords.map((k, i) => (
-                      <Badge
-                        key={i}
-                        variant="outline"
-                        className="text-[10px] bg-transparent text-foreground border-border"
-                      >
-                        {k}
-                      </Badge>
-                    ))}
-                  </div>
-                </section>
-              )}
-
-              {parsed.raw_highlights?.length > 0 && (
-                <section>
-                  <h3 className="font-display font-semibold text-foreground mb-1">
-                    Highlights
-                  </h3>
-                  <ul className="list-disc list-inside space-y-0.5">
-                    {parsed.raw_highlights.map((h, i) => (
-                      <li key={i}>{h}</li>
-                    ))}
-                  </ul>
-                </section>
-              )}
-            </>
-          )}
-        </CardContent>
+            {parsed.certifications?.length ? (
+              <ParsedSection title="Certifications">
+                <ul className="space-y-2">
+                  {parsed.certifications.map((c, i) => (
+                    <li key={i} className="flex items-baseline justify-between gap-3">
+                      <span className="text-sm text-foreground">{c.name}</span>
+                      <span className="shrink-0 text-xs text-muted-foreground">
+                        {[c.issuer, c.date].filter(Boolean).join(" · ")}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </ParsedSection>
+            ) : null}
+          </div>
+        )}
       </Card>
     )
   }
@@ -906,64 +924,102 @@ export default function DocumentDetailPage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
+      <div className="mx-auto w-full max-w-6xl space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-4">
-          <div className="flex items-start gap-2 sm:gap-3">
-            <button
-              onClick={() => router.push("/documents")}
-              className="mt-1 text-muted-foreground hover:text-primary transition-colors shrink-0"
-            >
-              <ArrowLeft className="h-4 w-4 sm:h-5 sm:w-5" />
-            </button>
-            <div className="flex-1 min-w-0">
-              <h1 className="break-words font-display text-2xl font-bold tracking-tight text-foreground md:text-[28px]">
+        <div className="space-y-4 border-b border-border/60 pb-5">
+          <Link
+            href="/documents"
+            className="inline-flex items-center gap-1.5 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Library
+          </Link>
+
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+            <div className="min-w-0">
+              <h1 className="break-words font-display text-[26px] font-bold leading-tight tracking-[-0.02em] text-foreground">
                 {doc.file_name}
               </h1>
-              <div className="flex flex-wrap gap-1.5 sm:gap-2 mt-2 text-xs text-muted-foreground">
+              <div className="mt-2 flex flex-wrap items-center gap-x-2.5 gap-y-1.5 text-xs text-muted-foreground">
+                {statusChip()}
                 <span>{formatFileSize(doc.file_size)}</span>
-                <span>• Uploaded {formatDate(doc.created_at)}</span>
-                {doc.file_type && <span>• {doc.file_type}</span>}
-                {doc.application_id && (
-                  <span>
-                    • Linked to{" "}
+                <span aria-hidden className="text-muted-foreground/40">·</span>
+                <span>Uploaded {formatDay(doc.created_at)}</span>
+                {doc.version ? (
+                  <>
+                    <span aria-hidden className="text-muted-foreground/40">·</span>
+                    <span>v{doc.version}</span>
+                  </>
+                ) : null}
+                {doc.application_id ? (
+                  <>
+                    <span aria-hidden className="text-muted-foreground/40">·</span>
                     <Link
                       href={`/applications/${doc.application_id}`}
-                      className="text-primary hover:underline"
+                      className="inline-flex items-center gap-1 font-medium text-primary-strong hover:underline dark:text-primary"
                     >
-                      application
+                      Linked application
+                      <ArrowUpRight className="h-3 w-3" />
                     </Link>
-                  </span>
-                )}
+                  </>
+                ) : null}
               </div>
             </div>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            {renderAnalysisStatusBadge()}
-            {doc.report && (
-              <Badge
-                variant="outline"
-                className="bg-transparent border-border text-foreground text-xs"
-              >
-                Report available
-              </Badge>
-            )}
-            <Button
-              variant="outline"
-              size="sm"
-              className="gap-1"
-              onClick={handleOpenOriginal}
-            >
-              <ExternalLink className="h-3 w-3" />
-              <span className="text-xs sm:text-sm">View original</span>
-            </Button>
+
+            <div className="flex shrink-0 items-center gap-2">
+              <Button variant="outline" size="sm" className="h-9 rounded-lg" onClick={handleOpenOriginal}>
+                <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
+                View original
+              </Button>
+              {doc.analysis_status === "success" ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="h-9 rounded-lg"
+                  onClick={handleAnalyze}
+                  disabled={loadingAnalysis}
+                >
+                  {loadingAnalysis ? (
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                  ) : (
+                    <RefreshCw className="mr-1.5 h-3.5 w-3.5" />
+                  )}
+                  Re-parse
+                </Button>
+              ) : null}
+            </div>
           </div>
         </div>
 
         {/* Content */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-          {renderReportSection()}
-          {renderAnalysisSection()}
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start">
+          <div className="space-y-5">
+            {renderReport()}
+            <FileFacts
+              rows={[
+                { label: "File type", value: doc.file_type ?? "Unknown" },
+                { label: "Size", value: formatFileSize(doc.file_size) },
+                { label: "Version", value: doc.version ? `v${doc.version}` : "—" },
+                { label: "Uploaded", value: formatDay(doc.created_at) },
+                { label: "Last parsed", value: doc.parsed_at ? formatDay(doc.parsed_at) : "Never" },
+                {
+                  label: "Application",
+                  value: doc.application_id ? (
+                    <Link
+                      href={`/applications/${doc.application_id}`}
+                      className="inline-flex items-center gap-1 text-primary-strong hover:underline dark:text-primary"
+                    >
+                      Open
+                      <ArrowUpRight className="h-3 w-3" />
+                    </Link>
+                  ) : (
+                    "Not linked"
+                  ),
+                },
+              ]}
+            />
+          </div>
+          {renderParsed()}
         </div>
       </div>
     </DashboardLayout>
