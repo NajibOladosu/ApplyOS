@@ -3,20 +3,35 @@
     "name": "ApplyOS - Job Application Manager",
     "version": "1.0.0",
     "description": "Streamline your job applications with AI-powered extraction and management",
+    "minimum_chrome_version": "116",
     "permissions": [
         "activeTab",
         "storage",
-        "notifications",
-        "scripting"
+        "scripting",
+        "alarms"
     ],
     "host_permissions": [
         "*://*.linkedin.com/*",
         "*://*.indeed.com/*",
+        "*://*.glassdoor.com/*",
         "*://*.myworkdayjobs.com/*",
+        "*://*.myworkdaysite.com/*",
+        "*://*.workday.com/*",
         "*://*.greenhouse.io/*",
         "*://*.lever.co/*",
-        "*://*.glassdoor.com/*",
-        "https://www.applyos.io/*"
+        "*://*.ashbyhq.com/*",
+        "*://*.smartrecruiters.com/*",
+        "*://*.workable.com/*",
+        "*://*.icims.com/*",
+        "*://*.taleo.net/*",
+        "*://*.jobvite.com/*",
+        "*://*.successfactors.com/*",
+        "*://*.successfactors.eu/*",
+        "https://www.applyos.io/*",
+        "https://applyos.io/*"
+    ],
+    "optional_host_permissions": [
+        "*://*/*"
     ],
     "background": {
         "service_worker": "background.js",
@@ -26,18 +41,28 @@
         {
             "matches": [
                 "*://*.linkedin.com/jobs/*",
-                "*://*.linkedin.com/jobs?*",
                 "*://*.indeed.com/viewjob*",
                 "*://*.indeed.com/rc/clk*",
+                "*://smartapply.indeed.com/*",
                 "*://*.myworkdayjobs.com/*",
-                "*://*.greenhouse.io/jobs/*",
+                "*://*.myworkdaysite.com/*",
+                "*://*.greenhouse.io/*",
                 "*://*.lever.co/*",
+                "*://*.ashbyhq.com/*",
+                "*://*.smartrecruiters.com/*",
+                "*://apply.workable.com/*",
+                "*://*.icims.com/*",
+                "*://*.taleo.net/*",
+                "*://*.jobvite.com/*",
+                "*://*.successfactors.com/*",
+                "*://*.successfactors.eu/*",
                 "*://*.glassdoor.com/job-listing/*"
             ],
             "js": [
                 "content.js"
             ],
-            "run_at": "document_idle"
+            "run_at": "document_idle",
+            "all_frames": true
         }
     ],
     "action": {
