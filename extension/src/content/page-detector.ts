@@ -113,7 +113,7 @@ export class PageDetector {
 
                 if (data['@type'] === 'JobPosting' ||
                     (Array.isArray(data['@graph']) &&
-                        data['@graph'].some((item: any) => item['@type'] === 'JobPosting'))) {
+                        data['@graph'].some((item: { '@type'?: unknown }) => item?.['@type'] === 'JobPosting'))) {
                     return {
                         isApplicationPage: true,
                         platform: 'unknown', // Can't determine platform just from schema usually
@@ -124,7 +124,7 @@ export class PageDetector {
                         }
                     }
                 }
-            } catch (e) {
+            } catch {
                 // Invalid JSON, skip
             }
         }

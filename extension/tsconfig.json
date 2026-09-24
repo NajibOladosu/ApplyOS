@@ -22,6 +22,9 @@
         "paths": {
             "@/*": [
                 "src/*"
+            ],
+            "@shared/*": [
+                "../shared/*"
             ]
         },
         "types": [
@@ -30,7 +33,8 @@
         ]
     },
     "include": [
-        "src/**/*"
+        "src/**/*",
+        "../shared/autofill/**/*"
     ],
     "exclude": [
         "node_modules",

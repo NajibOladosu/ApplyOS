@@ -30,6 +30,24 @@ export interface Document {
     created_at: string
 }
 
+/** Row shape returned by the application_notes embed in getApplications(). */
+interface ApplicationNoteRow {
+    content: string | null
+    category: string | null
+    is_pinned: boolean | null
+}
+
+/** An applications row with the embedded notes relation, as PostgREST returns it. */
+type ApplicationWithNotes = Application & { application_notes?: ApplicationNoteRow[] }
+
+/** Question payload produced by QuestionExtractor.extract() (question-extractor.ts:1-6). */
+export interface ExtractedQuestionInput {
+    text: string
+    type: 'text' | 'textarea' | 'select' | 'file' | 'radio' | 'checkbox'
+    required: boolean
+    options?: string[]
+}
+
 export class APIClient {
     // Applications
     static async createApplication(data: Partial<Application>) {
@@ -51,7 +69,7 @@ export class APIClient {
 
         if (error) throw error
 
-        return data.map((app: any) => ({
+        return (data as ApplicationWithNotes[]).map((app) => ({
             ...app,
             notes: app.application_notes?.[0]?.content || null,
             note_category: app.application_notes?.[0]?.category || null,
@@ -88,7 +106,7 @@ export class APIClient {
                     .eq('application_id', id)
                     .maybeSingle()
 
-                const noteUpdates: any = {
+                const noteUpdates: Record<string, unknown> = {
                     updated_at: new Date().toISOString()
                 }
                 if (typeof notes !== 'undefined') noteUpdates.content = notes
@@ -130,7 +148,7 @@ export class APIClient {
         // Return combined object with the updated note
         return {
             ...updatedApp,
-            notes: typeof notes !== 'undefined' ? notes : (updatedApp as any).notes
+            notes: typeof notes !== 'undefined' ? notes : (updatedApp as { notes?: string | null }).notes
         }
     }
 
@@ -180,7 +198,7 @@ export class APIClient {
         return data
     }
 
-    static async saveQuestions(applicationId: string, questions: any[]) {
+    static async saveQuestions(applicationId: string, questions: ExtractedQuestionInput[]) {
         const { data: { user } } = await supabase.auth.getUser()
         if (!user) throw new Error('Not authenticated')
 
@@ -283,7 +301,7 @@ export class APIClient {
         return true
     }
 
-    static async updateQuestion(id: string, updates: any) {
+    static async updateQuestion(id: string, updates: Record<string, unknown>) {
         const { data, error } = await supabase
             .from('questions')
             .update(updates)
@@ -299,7 +317,7 @@ export class APIClient {
     static async uploadDocument(file: File, userId: string) {
         // Upload to storage
         const fileName = `${Date.now()}-${file.name}`
-        const { data: uploadData, error: uploadError } = await supabase.storage
+        const { error: uploadError } = await supabase.storage
             .from('documents')
             .upload(`${userId}/${fileName}`, file)
 

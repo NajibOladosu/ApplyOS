@@ -62,7 +62,7 @@ export class DataExtractor {
             console.error('Extraction error:', error)
             try {
                 return await aiExtractor.extract()
-            } catch (fallbackError) {
+            } catch (_fallbackError) {
                 return null
             }
         }

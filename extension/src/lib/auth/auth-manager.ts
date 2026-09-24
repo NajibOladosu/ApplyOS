@@ -1,3 +1,4 @@
+import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../api/supabase-client'
 
 export class AuthManager {
@@ -26,7 +27,7 @@ export class AuthManager {
         return user
     }
 
-    static onAuthStateChange(callback: (event: string, session: any) => void) {
+    static onAuthStateChange(callback: (event: string, session: Session | null) => void) {
         return supabase.auth.onAuthStateChange(callback)
     }
 }

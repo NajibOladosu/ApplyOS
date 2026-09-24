@@ -5,9 +5,9 @@
     "scripts": {
         "dev": "webpack --mode development --watch",
         "build": "webpack --mode production",
-        "build:chrome": "webpack --mode production --env browser=chrome",
-        "build:firefox": "webpack --mode production --env browser=firefox",
-        "build:edge": "webpack --mode production --env browser=edge"
+        "build:chrome": "webpack --mode production --env browser=chrome && bash scripts/check-secrets.sh dist/chrome",
+        "build:firefox": "webpack --mode production --env browser=firefox && bash scripts/check-secrets.sh dist/firefox",
+        "build:edge": "webpack --mode production --env browser=edge && bash scripts/check-secrets.sh dist/edge"
     },
     "keywords": [
         "applyos",
