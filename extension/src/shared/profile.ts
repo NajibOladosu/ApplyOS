@@ -637,3 +637,240 @@ export function splitName(fullName: string): { firstName: string; lastName: stri
     middleName: parts.slice(1, -1).join(" "),
   }
 }
+
+// ────────────────────────────────────────────────────────────────────────────
+// Resume import — merging an AI-extracted profile into the stored one
+// ────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Structural type for what /api/extension/profile/import returns. The web app
+ * guarantees only these keys with these shapes (see
+ * app/api/extension/_lib/profile-import.ts); treat it as untrusted anyway.
+ */
+export interface ImportedProfile {
+  identity?: Partial<{ firstName: string; middleName: string; lastName: string; preferredName: string }>
+  contact?: Partial<{
+    email: string
+    phone: string
+    addressLine1: string
+    addressLine2: string
+    city: string
+    state: string
+    postalCode: string
+    country: string
+  }>
+  links?: Partial<{ linkedin: string; github: string; portfolio: string; website: string; twitter: string }>
+  work?: Partial<{
+    currentCompany: string
+    currentTitle: string
+    yearsExperience: string
+    noticePeriod: string
+    desiredSalary: string
+  }>
+  education?: Partial<{
+    school: string
+    degree: string
+    fieldOfStudy: string
+    graduationYear: string
+    gpa: string
+  }>
+  experience?: Array<{
+    company: string
+    title: string
+    location?: string
+    startDate?: string
+    endDate?: string
+    current?: boolean
+    description?: string
+  }>
+  educationHistory?: Array<{
+    school: string
+    degree?: string
+    fieldOfStudy?: string
+    startYear?: string
+    endYear?: string
+    gpa?: string
+  }>
+  skills?: string
+  certifications?: string
+  languages?: string
+}
+
+/** How many top-level sections of the import actually carried new values. */
+export interface ImportMergeResult {
+  profile: AutofillProfile
+  /** Sections the import filled (were empty before). */
+  filled: string[]
+  /** Sections the import offered but the user had already filled. */
+  kept: string[]
+}
+
+/**
+ * Merge an imported (resume-extracted) profile into the current one.
+ *
+ * One rule: the user's own typing always wins. Imported values only land in
+ * empty slots — a resume that says a different email than the one the user
+ * deliberately set must not silently replace it. Arrays (experience,
+ * educationHistory) replace only when the profile has none, because entries
+ * are not comparable field-by-field.
+ */
+export function mergeImportedProfile(
+  current: AutofillProfile,
+  imported: ImportedProfile
+): ImportMergeResult {
+  const next = structuredClone(current)
+  const filled: string[] = []
+  const kept: string[] = []
+
+  const takeStrings = (
+    section: string,
+    source: Record<string, string | undefined> | undefined,
+    target: Record<string, string>,
+    map: Record<string, string>
+  ) => {
+    if (!source) return
+    let wrote = false
+    let skipped = false
+    for (const [importKey, targetKey] of Object.entries(map)) {
+      const value = source[importKey]?.trim()
+      if (!value) continue
+      if (target[targetKey]) {
+        skipped = true
+        continue
+      }
+      target[targetKey] = value
+      wrote = true
+    }
+    if (wrote) filled.push(section)
+    else if (skipped) kept.push(section)
+  }
+
+  takeStrings(
+    "identity",
+    imported.identity,
+    next.identity as unknown as Record<string, string>,
+    { firstName: "firstName", middleName: "middleName", lastName: "lastName", preferredName: "preferredName" }
+  )
+  takeStrings(
+    "contact",
+    imported.contact,
+    next.contact as unknown as Record<string, string>,
+    {
+      email: "email",
+      phone: "phone",
+      addressLine1: "addressLine1",
+      addressLine2: "addressLine2",
+      city: "city",
+      state: "state",
+      postalCode: "postalCode",
+      country: "country",
+    }
+  )
+  takeStrings(
+    "links",
+    imported.links,
+    next.links as unknown as Record<string, string>,
+    { linkedin: "linkedin", github: "github", portfolio: "portfolio", website: "website", twitter: "twitter" }
+  )
+  takeStrings(
+    "work",
+    imported.work,
+    next.work as unknown as Record<string, string>,
+    {
+      currentCompany: "currentCompany",
+      currentTitle: "currentTitle",
+      yearsExperience: "yearsExperience",
+      noticePeriod: "noticePeriod",
+      desiredSalary: "desiredSalary",
+    }
+  )
+  takeStrings(
+    "education",
+    imported.education,
+    next.education as unknown as Record<string, string>,
+    {
+      school: "school",
+      degree: "degree",
+      fieldOfStudy: "fieldOfStudy",
+      graduationYear: "graduationYear",
+      gpa: "gpa",
+    }
+  )
+
+  if (imported.experience?.length && next.experience.length === 0) {
+    next.experience = imported.experience.map((entry, index) => ({
+      id: `imported-${Date.now()}-${index}`,
+      company: entry.company ?? "",
+      title: entry.title ?? "",
+      location: entry.location,
+      startDate: entry.startDate,
+      endDate: entry.current ? "" : entry.endDate,
+      current: Boolean(entry.current),
+      description: entry.description,
+    }))
+    filled.push("experience")
+  } else if (imported.experience?.length) {
+    kept.push("experience")
+  }
+
+  if (imported.educationHistory?.length && next.educationHistory.length === 0) {
+    next.educationHistory = imported.educationHistory.map((entry, index) => ({
+      id: `imported-edu-${Date.now()}-${index}`,
+      school: entry.school,
+      degree: entry.degree,
+      fieldOfStudy: entry.fieldOfStudy,
+      startYear: entry.startYear,
+      endYear: entry.endYear,
+      gpa: entry.gpa,
+    }))
+    filled.push("education history")
+  } else if (imported.educationHistory?.length) {
+    kept.push("education history")
+  }
+
+  if (imported.skills?.trim() && !next.skills) {
+    next.skills = imported.skills.trim()
+    filled.push("skills")
+  } else if (imported.skills?.trim()) {
+    kept.push("skills")
+  }
+  if (imported.certifications?.trim() && !next.certifications) {
+    next.certifications = imported.certifications.trim()
+    filled.push("certifications")
+  } else if (imported.certifications?.trim()) {
+    kept.push("certifications")
+  }
+  if (imported.languages?.trim() && !next.languages) {
+    next.languages = imported.languages.trim()
+    filled.push("languages")
+  } else if (imported.languages?.trim()) {
+    kept.push("languages")
+  }
+
+  return { profile: next, filled, kept }
+}
+
+/**
+ * Record answers learned on a page: questions the plan could not answer that
+ * the user then answered by hand. Capped so a long session cannot grow the
+ * stored profile without bound.
+ */
+export function learnScreeningAnswers(
+  current: AutofillProfile,
+  learned: Array<{ question: string; answer: string }>
+): AutofillProfile {
+  const clean = learned
+    .filter((entry) => entry.question.trim() && entry.answer.trim())
+    .slice(0, 25)
+    .map((entry) => ({
+      id: `learned-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+      question: entry.question.trim().slice(0, 500),
+      answer: entry.answer.trim().slice(0, 4000),
+      updatedAt: new Date().toISOString(),
+    }))
+
+  if (clean.length === 0) return current
+  const next = structuredClone(current)
+  next.screening = mergeScreening(next.screening, clean).slice(-200)
+  return next
+}
