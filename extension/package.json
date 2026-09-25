@@ -1,6 +1,6 @@
 {
   "name": "applyos-extension",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "description": "Autofill job applications, generate tailored cover letters, and track every application in one place.",
   "scripts": {
     "dev": "webpack --mode development --watch",
