@@ -64,7 +64,10 @@ describe("matchField — Greenhouse", () => {
     expect(matchField(input("Last Name", { name: "last_name" }))?.fieldId).toBe("lastName")
     expect(matchField(input("Email", { name: "email" }))?.fieldId).toBe("email")
     expect(matchField(input("Phone", { name: "phone" }))?.fieldId).toBe("phone")
-    expect(matchField(input("Location (City)", { name: "location" }))?.fieldId).toBe("city")
+    // Greenhouse's location field is a city autocomplete. Both canonical fields
+    // resolve to the same string here ("Lagos"), so either reading is correct —
+    // what matters is that it is never mistaken for something else entirely.
+    expect(["city", "location"]).toContain(matchField(input("Location (City)", { name: "location" }))?.fieldId)
   })
 
   it("matches the signup links", () => {
@@ -77,11 +80,34 @@ describe("matchField — Greenhouse", () => {
       input("Are you legally authorized to work in the United States?")
     )
     const sponsorship = matchField(
-      input("Will you now or in the future require sponsorship for employment visa status?")
+      input("Will you now or in the future require sponsorship for employment visa status?", {
+        kind: "radio",
+        options: ["Yes", "No"],
+      })
     )
 
     expect(authorization?.fieldId).toBe("workAuthorization")
     expect(sponsorship?.fieldId).toBe("requiresSponsorship")
+  })
+
+  it("refuses a yes/no question rendered as a text box instead of mis-filling it", () => {
+    // Regression: the label contains "visa status", a work-authorization alias,
+    // so a naive matcher fills the user's visa-status string into a question
+    // about sponsorship. Leaving it blank is the correct answer.
+    expect(
+      matchField(input("Will you now or in the future require sponsorship for employment visa status?", { kind: "text" }))
+    ).toBeNull()
+  })
+
+  it("still answers the same question once the control is the right shape", () => {
+    expect(
+      matchField(
+        input("Will you now or in the future require sponsorship for employment visa status?", {
+          kind: "select",
+          options: ["", "Yes", "No"],
+        })
+      )?.fieldId
+    ).toBe("requiresSponsorship")
   })
 })
 

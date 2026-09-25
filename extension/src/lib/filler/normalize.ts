@@ -165,3 +165,28 @@ export function similarity(a: string, b: string): number {
 export function fingerprint(value: string): string {
   return normalize(value).replace(/\s+/g, "")
 }
+
+/**
+ * Index at which `needle` appears in `haystack` as a run of whole tokens, or
+ * -1 when it does not.
+ *
+ * Whole tokens matter: a naive substring test finds "city" inside "velocity"
+ * and "state" inside "statement", which is how an autofiller ends up putting
+ * your hometown in a question about airspeed.
+ */
+export function tokenRunIndex(haystack: string[], needle: string[]): number {
+  if (needle.length === 0 || haystack.length < needle.length) return -1
+
+  for (let start = 0; start <= haystack.length - needle.length; start += 1) {
+    let matched = true
+    for (let offset = 0; offset < needle.length; offset += 1) {
+      if (haystack[start + offset] !== needle[offset]) {
+        matched = false
+        break
+      }
+    }
+    if (matched) return start
+  }
+
+  return -1
+}

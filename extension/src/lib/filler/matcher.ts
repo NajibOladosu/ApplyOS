@@ -1,5 +1,5 @@
 import { CANONICAL_FIELDS, type CanonicalField, type CanonicalFieldId, type FieldKind } from "../../shared/fields"
-import { fingerprint, isNegated, normalize, similarity, tokenize } from "./normalize"
+import { fingerprint, isNegated, normalize, similarity, tokenize, tokenRunIndex } from "./normalize"
 
 /**
  * Deterministic field matching.
@@ -47,7 +47,7 @@ export interface FieldMatch {
    * Used to break ties between two fields that both look plausible.
    */
   specificity: number
-  /** Where in the label the alias matched. Earlier usually means it is the subject. */
+  /** Token offset of the match. Earlier usually means it is the subject. */
   position: number
 }
 
@@ -152,21 +152,45 @@ function kindAllowed(field: CanonicalField, kind: FieldKind): boolean {
   return false
 }
 
-type Score = { score: number; evidence: string; reason: FieldMatch["reason"]; specificity: number; position: number }
+type Score = {
+  score: number
+  evidence: string
+  reason: FieldMatch["reason"]
+  specificity: number
+  position: number
+  kindCompatible: boolean
+}
+
+/**
+ * Extra confidence an incompatible interpretation must have before we refuse to
+ * fill anything at all. See `matchField` for why this exists.
+ */
+const REFUSAL_MARGIN = 0.05
 
 /**
  * Score one canonical field against one descriptor's text, returning the best
  * `(attribute, score)` pair.
+ *
+ * Note this does *not* filter on control kind — compatibility is reported so the
+ * caller can detect when the best reading of a label is a question this control
+ * cannot answer.
  */
 function scoreField(field: CanonicalField, descriptor: FieldDescriptor): Score | null {
-  if (!kindAllowed(field, descriptor.kind)) return null
+  const kindCompatible = kindAllowed(field, descriptor.kind)
 
   // 1. The HTML autocomplete token is a standard, not a guess. It wins.
   if (descriptor.autocomplete) {
     const tokens = descriptor.autocomplete.toLowerCase().split(/\s+/)
     for (const token of field.autocomplete) {
       if (tokens.includes(token)) {
-        return { score: 1, evidence: descriptor.autocomplete, reason: "autocomplete", specificity: 1, position: 0 }
+        return {
+          score: 1,
+          evidence: descriptor.autocomplete,
+          reason: "autocomplete",
+          specificity: 1,
+          position: 0,
+          kindCompatible,
+        }
       }
     }
   }
@@ -193,23 +217,39 @@ function scoreField(field: CanonicalField, descriptor: FieldDescriptor): Score |
 
       // 2a. Same question, same words.
       if (normalizedText === normalizedAlias) {
-        consider({ score: weight * 0.95, evidence: raw, reason: "exact", specificity: 1, position: 0 })
+        consider({ score: weight * 0.95, evidence: raw, reason: "exact", specificity: 1, position: 0, kindCompatible })
         continue
       }
 
-      // 2b. The alias is a phrase inside a longer label.
+      // 2b. The alias is a run of whole words inside a longer label.
       //     Specificity rewards aliases that account for more of the label, and
-      //     position rewards the phrase the sentence is actually about — this is
-      //     what separates "require sponsorship" from a trailing "visa status".
-      const position = normalizedText.indexOf(normalizedAlias)
-      if (aliasTokens.length > 0 && position >= 0) {
+      //     token position rewards the phrase the sentence is actually about —
+      //     this is what separates "require sponsorship" from a trailing
+      //     "visa status" alias belonging to a different question.
+      const forward = tokenRunIndex(textTokens, aliasTokens)
+      if (aliasTokens.length > 0 && forward >= 0) {
         const specificity = aliasTokens.length / Math.max(textTokens.length, aliasTokens.length)
         consider({
           score: weight * (0.62 + 0.28 * specificity),
           evidence: raw,
           reason: "alias",
           specificity,
-          position,
+          position: forward,
+          kindCompatible,
+        })
+        continue
+      }
+
+      // 2c. The label is shorter than the alias ("Email" vs "contact email").
+      if (textTokens.length > 0 && tokenRunIndex(aliasTokens, textTokens) >= 0) {
+        const specificity = textTokens.length / Math.max(textTokens.length, aliasTokens.length)
+        consider({
+          score: weight * (0.62 + 0.28 * specificity),
+          evidence: raw,
+          reason: "alias",
+          specificity,
+          position: 0,
+          kindCompatible,
         })
         continue
       }
@@ -223,6 +263,7 @@ function scoreField(field: CanonicalField, descriptor: FieldDescriptor): Score |
           reason: "fuzzy",
           specificity: fuzzy,
           position: 0,
+          kindCompatible,
         })
       }
     }
@@ -232,49 +273,89 @@ function scoreField(field: CanonicalField, descriptor: FieldDescriptor): Score |
 }
 
 /**
- * Decide which question a control is asking.
+ * All plausible interpretations of a control, best first.
  *
- * Returns `null` when nothing clears the threshold — an honest "I don't know"
- * is what keeps autofill from filling a phone number into a salary box.
+ * Exported because the same ranking drives two things: the decision below, and
+ * the "why did it fill that?" explanation in the review table.
  */
-export function matchField(descriptor: FieldDescriptor): FieldMatch | null {
-  const candidates: FieldMatch[] = []
+interface Scored {
+  match: FieldMatch
+  score: number
+  kindCompatible: boolean
+}
+
+/** Every field that clears the threshold, best first, ignoring control kind. */
+function scoreAll(descriptor: FieldDescriptor): Scored[] {
+  const scored: Scored[] = []
 
   for (const field of CANONICAL_FIELDS) {
-    const scored = scoreField(field, descriptor)
-    if (!scored) continue
-    if (scored.score < MATCH_THRESHOLD) continue
+    const result = scoreField(field, descriptor)
+    if (!result || result.score < MATCH_THRESHOLD) continue
 
     // A negative phrasing inverts the meaning of boolean questions.
     const text = `${descriptor.label ?? ""} ${descriptor.ariaLabel ?? ""}`
     const negated = NEGATABLE_FIELDS.has(field.id) && isNegated(text)
 
-    candidates.push({
-      fieldId: field.id,
-      confidence: Math.min(1, Number(scored.score.toFixed(4))),
-      reason: scored.reason,
-      evidence: scored.evidence,
-      negated,
-      specificity: scored.specificity,
-      position: scored.position,
+    scored.push({
+      score: result.score,
+      kindCompatible: result.kindCompatible,
+      match: {
+        fieldId: field.id,
+        confidence: Math.min(1, Number(result.score.toFixed(4))),
+        reason: result.reason,
+        evidence: result.evidence,
+        negated,
+        specificity: result.specificity,
+        position: result.position,
+      },
     })
   }
-
-  if (candidates.length === 0) return null
 
   // Confidence first; then specificity (the match that explains more of the
   // label); then position (the phrase the sentence is about comes first); and
   // only then registry order, so the result is always deterministic.
-  candidates.sort((a, b) => {
-    if (b.confidence !== a.confidence) return b.confidence - a.confidence
-    if (b.specificity !== a.specificity) return b.specificity - a.specificity
-    if (a.position !== b.position) return a.position - b.position
-    const indexA = CANONICAL_FIELDS.findIndex((f) => f.id === a.fieldId)
-    const indexB = CANONICAL_FIELDS.findIndex((f) => f.id === b.fieldId)
+  scored.sort((a, b) => {
+    if (b.score !== a.score) return b.score - a.score
+    if (b.match.specificity !== a.match.specificity) return b.match.specificity - a.match.specificity
+    if (a.match.position !== b.match.position) return a.match.position - b.match.position
+    const indexA = CANONICAL_FIELDS.findIndex((f) => f.id === a.match.fieldId)
+    const indexB = CANONICAL_FIELDS.findIndex((f) => f.id === b.match.fieldId)
     return indexA - indexB
   })
 
-  return candidates[0]
+  return scored
+}
+
+/**
+ * Interpretations that this control can actually accept, best first.
+ *
+ * Used by the review table to explain a fill.
+ */
+export function rankFieldCandidates(descriptor: FieldDescriptor): FieldMatch[] {
+  return scoreAll(descriptor)
+    .filter((entry) => entry.kindCompatible)
+    .map((entry) => entry.match)
+}
+
+export function matchField(descriptor: FieldDescriptor): FieldMatch | null {
+  const scored = scoreAll(descriptor)
+  if (scored.length === 0) return null
+
+  const bestOverall = scored[0]
+  const bestCompatible = scored.find((entry) => entry.kindCompatible)
+
+  // Nothing this control can hold beats the threshold — leave it alone.
+  if (!bestCompatible) return null
+
+  // The label reads more like a question this control cannot answer. A yes/no
+  // question rendered as a text box, for instance: filling our visa-status
+  // string into "Will you require sponsorship?" would be worse than leaving it
+  // blank, so refuse and let the user (or Copilot) answer it.
+  if (!bestOverall.kindCompatible && bestOverall.score > bestCompatible.score + REFUSAL_MARGIN) {
+    return null
+  }
+
+  return bestCompatible.match
 }
 
 /**

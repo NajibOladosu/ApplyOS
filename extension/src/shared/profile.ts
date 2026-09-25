@@ -224,25 +224,30 @@ export function normalizeProfile(raw: unknown): AutofillProfile {
 
   for (const key of Object.keys(EMPTY_PROFILE) as Array<keyof AutofillProfile>) {
     if (key === "version") continue
-    const incoming = input[key]
+    const incoming = (input as Record<string, unknown>)[key]
     if (incoming === undefined || incoming === null) continue
 
-    if (Array.isArray(incoming)) {
-      if (Array.isArray(merged[key])) {
-        ;(merged as Record<string, unknown>)[key] = incoming
-      }
+    const target = merged[key]
+
+    // Arrays replace wholesale, but only with arrays.
+    if (Array.isArray(target)) {
+      if (Array.isArray(incoming)) (merged as unknown as Record<string, unknown>)[key] = incoming
       continue
     }
 
-    if (typeof incoming === "object") {
-      const target = merged[key]
-      if (target && typeof target === "object" && !Array.isArray(target)) {
+    // Object branches merge key-by-key, and a primitive must never be allowed
+    // to overwrite one — corrupt storage would otherwise break every reader.
+    if (target && typeof target === "object") {
+      if (typeof incoming === "object" && !Array.isArray(incoming)) {
         Object.assign(target, incoming)
       }
       continue
     }
 
-    ;(merged as Record<string, unknown>)[key] = incoming
+    // Plain values (the document ids, the version).
+    if (typeof incoming === "string" || typeof incoming === "number" || typeof incoming === "boolean") {
+      ;(merged as unknown as Record<string, unknown>)[key] = incoming
+    }
   }
 
   merged.version = 1
@@ -270,11 +275,21 @@ const text = (value: unknown): ResolvedAnswer | null => {
 const bool = (value: boolean | null): ResolvedAnswer | null =>
   value === null || value === undefined ? null : { type: "boolean", value }
 
-/** Build "City, State" without leaving stray punctuation when one half is empty. */
+/**
+ * Build the human-readable location forms expect.
+ *
+ * Prefers "City, State" (what US forms want), falls back to "City, Country"
+ * (what the rest of the world wants), then to whichever single part exists.
+ */
 function joinLocation(city: string, state: string, country: string): string {
-  const parts = [city, state].map((p) => p.trim()).filter(Boolean)
-  if (parts.length === 0) return country.trim()
-  return parts.join(", ")
+  const trim = (value: string) => value.trim()
+  const [c, s, n] = [trim(city), trim(state), trim(country)]
+
+  if (c && s) return `${c}, ${s}`
+  if (c && n) return `${c}, ${n}`
+  if (c) return c
+  if (s && n) return `${s}, ${n}`
+  return s || n
 }
 
 /**
@@ -375,14 +390,31 @@ export const PROFILE_RESOLVERS: {
   previousApplicant: (p) => text(p.openEnded.previousApplicant),
 }
 
-/** Accept `github.com/me`, `me`, or a full URL and return a usable URL. */
+/**
+ * Accept `github.com/me`, `me`, `in/me`, or a full URL and return a usable URL.
+ *
+ * Profiles store handles in whatever form the user typed them, so the hint may
+ * carry a path ("linkedin.com/in") that the value repeats ("in/ada") — that
+ * must not become "/in/in/ada".
+ */
 function asUrl(value: string, domainHint?: string): string {
   const trimmed = value.trim()
   if (!trimmed) return ""
   if (/^https?:\/\//i.test(trimmed)) return trimmed
-  const looksLikeDomain = trimmed.includes(".") || trimmed.startsWith("www.")
+
+  const looksLikeDomain = /^[a-z0-9-]+(\.[a-z0-9-]+)+(\/|$)/i.test(trimmed) || trimmed.startsWith("www.")
   if (looksLikeDomain) return `https://${trimmed}`
-  if (domainHint) return `https://${domainHint}/${trimmed.replace(/^\/+/, "")}`
+
+  if (domainHint) {
+    const [host, ...pathParts] = domainHint.split("/")
+    const basePath = pathParts.join("/")
+    const handle = trimmed.replace(/^\/+/, "")
+    if (basePath && (handle === basePath || handle.startsWith(`${basePath}/`))) {
+      return `https://${host}/${handle}`
+    }
+    return `https://${host}${basePath ? `/${basePath}` : ""}/${handle}`
+  }
+
   return `https://${trimmed}`
 }
 
@@ -433,7 +465,7 @@ export function applyOverrides(profile: AutofillProfile, overrides: LocalOverrid
 
 /** Write a plain string into the profile's nested shape by canonical id. */
 function setFieldValue(profile: AutofillProfile, fieldId: CanonicalFieldId, value: string) {
-  const write = {
+  const write: Record<string, readonly [group: string, key?: string]> = {
     firstName: ["identity", "firstName"],
     middleName: ["identity", "middleName"],
     lastName: ["identity", "lastName"],
@@ -486,13 +518,21 @@ function setFieldValue(profile: AutofillProfile, fieldId: CanonicalFieldId, valu
     hispanicLatino: ["eeo", "hispanicLatino"],
     veteranStatus: ["eeo", "veteranStatus"],
     disabilityStatus: ["eeo", "disabilityStatus"],
-  } as const
+  }
 
-  const target = write[fieldId as keyof typeof write]
+  const target = write[fieldId]
   if (!target) return
+
   const [group, key] = target
-  const container = profile[group] as unknown as Record<string, string>
-  container[key] = value
+
+  // Top-level string fields (skills, languages, certifications) have no branch.
+  if (key === undefined) {
+    ;(profile as unknown as Record<string, string>)[group] = value
+    return
+  }
+
+  const container = profile[group as keyof AutofillProfile] as unknown as Record<string, string>
+  if (container && typeof container === "object") container[key] = value
 }
 
 /** Merge two answer lists, newest answer wins per normalised question. */

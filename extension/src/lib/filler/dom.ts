@@ -103,7 +103,8 @@ function collectElements(root: ParentNode, out: Control[], depth = 0): void {
 function labelFromLabelElement(el: Control): string {
   if (el.id) {
     try {
-      const explicit = el.getRootNode().querySelector<HTMLLabelElement>(`label[for="${CSS.escape(el.id)}"]`)
+      const root = el.getRootNode() as ParentNode
+      const explicit = root.querySelector<HTMLLabelElement>(`label[for="${CSS.escape(el.id)}"]`)
       if (explicit?.textContent?.trim()) return cleanLabelText(explicit.textContent)
     } catch {
       // CSS.escape can throw on exotic ids; fall through to the wrapping label.
@@ -141,7 +142,8 @@ function labelFromAria(el: Control): string {
       .split(/\s+/)
       .map((id) => {
         try {
-          return el.getRootNode().querySelector(`#${CSS.escape(id)}`)?.textContent ?? ""
+          const scope = el.getRootNode() as ParentNode
+          return scope.querySelector(`#${CSS.escape(id)}`)?.textContent ?? ""
         } catch {
           return document.getElementById(id)?.textContent ?? ""
         }
