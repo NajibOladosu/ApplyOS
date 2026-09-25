@@ -1,37 +1,174 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+/*
+ * Design tokens mirror app/globals.css in the web app, one-for-one.
+ *
+ * The popup is a 400px window sitting beside the ApplyOS dashboard, so any
+ * drift between the two is immediately visible. Names, values and the light/dark
+ * split are copied deliberately rather than re-invented.
+ *
+ * Fonts are self-hosted. The previous build pulled Manrope from
+ * fonts.googleapis.com via @import, which is both an external request from an
+ * extension (a reviewer concern) and a hard dependency on the network for the
+ * popup to look correct.
+ */
+
+@font-face {
+    font-family: 'Manrope';
+    src: url('/fonts/manrope-latin.woff2') format('woff2');
+    font-weight: 200 800;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Space Grotesk';
+    src: url('/fonts/space-grotesk-latin.woff2') format('woff2');
+    font-weight: 300 700;
+    font-style: normal;
+    font-display: swap;
+}
+
 @layer base {
+    :root {
+        --font-display: 'Space Grotesk', 'Manrope', system-ui, sans-serif;
+
+        /* Daylight mode — mirrors the web app's light theme */
+        --background: 244 244 245;
+        --foreground: 10 10 10;
+        --card: 255 255 255;
+        --card-foreground: 10 10 10;
+        --popover: 255 255 255;
+        --popover-foreground: 10 10 10;
+        --primary: 24 187 112;
+        --primary-foreground: 10 10 10;
+        --primary-strong: 14 143 82;
+        --primary-neon: 24 187 112;
+        --secondary: 228 228 231;
+        --secondary-foreground: 24 24 27;
+        --muted: 244 244 245;
+        --muted-foreground: 82 82 91;
+        --accent: 228 228 231;
+        --accent-foreground: 24 24 27;
+        --destructive: 239 68 68;
+        --destructive-foreground: 250 250 250;
+        --border: 228 228 231;
+        --input: 228 228 231;
+        --ring: 24 187 112;
+        --radius: 0.5rem;
+
+        /* Status hues, kept in sync with STATUS_META in the web app */
+        --status-review: #f59e0b;
+        --status-interview: #8b5cf6;
+    }
+
+    .dark {
+        --background: 10 10 10;
+        --foreground: 237 237 237;
+        --card: 16 16 16;
+        --card-foreground: 237 237 237;
+        --popover: 16 16 16;
+        --popover-foreground: 237 237 237;
+        --primary: 24 187 112;
+        --primary-foreground: 10 10 10;
+        --primary-strong: 24 187 112;
+        --primary-neon: 43 229 139;
+        --secondary: 16 16 16;
+        --secondary-foreground: 181 181 181;
+        --muted: 16 16 16;
+        --muted-foreground: 181 181 181;
+        --accent: 16 16 16;
+        --accent-foreground: 24 187 112;
+        --destructive: 255 68 68;
+        --destructive-foreground: 237 237 237;
+        --border: 26 26 26;
+        --input: 26 26 26;
+        --ring: 24 187 112;
+    }
+
+    * {
+        @apply border-border;
+    }
+
+    html,
     body {
-        @apply bg-background text-foreground;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        @apply bg-background text-foreground font-sans antialiased;
+        font-feature-settings: 'rlig' 1, 'calt' 1;
+    }
+
+    /* The popup is a fixed-size window; a stray horizontal scrollbar looks broken. */
+    body {
+        overflow-x: hidden;
     }
 }
 
 @layer components {
+    /* Cards match the web app: rounded-2xl, border-border/70, bg-card. */
+    .card {
+        @apply rounded-2xl border border-border/70 bg-card;
+    }
+
+    .card-muted {
+        @apply rounded-2xl border border-border/70 bg-card/60;
+    }
+
     .btn-primary {
-        @apply px-4 py-2 bg-primary text-primary-foreground font-semibold rounded-lg hover:bg-primary/90 transition-all flex items-center justify-center;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+        box-shadow: 0 4px 14px -4px rgba(24, 187, 112, 0.5);
     }
 
     .btn-secondary {
-        @apply px-4 py-2 bg-secondary text-secondary-foreground font-medium rounded-lg hover:bg-secondary/80 transition-all flex items-center justify-center border border-border;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+    }
+
+    .btn-ghost {
+        @apply inline-flex items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground;
     }
 
     .input-field {
-        @apply w-full px-3 py-2 bg-input border border-border rounded-lg text-foreground placeholder-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all;
+        @apply w-full rounded-lg border border-border bg-input px-3 py-2 text-sm text-foreground transition-colors placeholder:text-muted-foreground/70 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-ring;
     }
 
-    .card {
-        @apply bg-card border border-border rounded-lg p-4;
+    /* Small caps label used above fields and above page titles. */
+    .overline {
+        @apply text-[10px] font-bold uppercase tracking-[0.14em] text-muted-foreground;
+    }
+
+    .display-title {
+        font-family: var(--font-display);
+        @apply text-lg font-bold tracking-[-0.02em] text-foreground;
+    }
+
+    /* Segmented control, matching the web app's tab pattern. */
+    .segmented {
+        @apply flex gap-1 rounded-xl border border-border/70 bg-secondary/60 p-1;
+    }
+
+    .segmented-item {
+        @apply flex flex-1 items-center justify-center gap-1.5 rounded-lg px-2 py-1.5 text-[11px] font-semibold text-muted-foreground transition-all hover:text-foreground;
+    }
+
+    .segmented-item-active {
+        @apply bg-card text-foreground shadow-sm;
     }
 }
 
 @layer utilities {
     .glass-effect {
-        background: rgba(16, 16, 16, 0.7);
+        background: rgba(255, 255, 255, 0.8);
         backdrop-filter: blur(10px);
+        border: 1px solid rgba(228, 228, 231, 0.5);
+    }
+
+    .dark .glass-effect {
+        background: rgba(16, 16, 16, 0.7);
         border: 1px solid rgba(26, 26, 26, 0.5);
     }
 
@@ -46,26 +183,43 @@
         box-shadow: 0 0 20px rgba(24, 187, 112, 0.2);
     }
 
-    .group-card:hover .group-card\:opacity-100 {
-        opacity: 1;
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 8px;
+        height: 8px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background: rgb(var(--border));
+        border-radius: 4px;
+    }
+
+    .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+        background: var(--primary);
     }
 }
 
-/* Scrollbar */
-::-webkit-scrollbar {
-    width: 8px;
-    height: 8px;
+/* Slow, subtle pulse for the extraction skeleton. */
+@keyframes applyos-sheen {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
 }
 
-::-webkit-scrollbar-track {
-    background: #0A0A0A;
+.skeleton {
+    background: linear-gradient(90deg, rgb(var(--muted)) 25%, rgb(var(--border)) 50%, rgb(var(--muted)) 75%);
+    background-size: 200% 100%;
+    animation: applyos-sheen 1.4s ease-in-out infinite;
 }
 
-::-webkit-scrollbar-thumb {
-    background: #1A1A1A;
-    border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-    background: #18bb70;
+@media (prefers-reduced-motion: reduce) {
+    .skeleton {
+        animation: none;
+    }
 }

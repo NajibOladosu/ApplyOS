@@ -1,6 +1,14 @@
 import { supabase } from './supabase-client'
 
 // Types based on the database schema
+/**
+ * Mirrors public.applications.
+ *
+ * `platform`, `location` and `salary` were previously declared here but are not
+ * columns, so sending them made PostgREST reject the entire insert. The join
+ * fields below (notes, note_category, note_is_pinned) are assembled client-side
+ * from application_notes, not stored on this table.
+ */
 export interface Application {
     id?: string
     user_id: string
@@ -10,7 +18,6 @@ export interface Application {
     job_description: string | null
     status: 'draft' | 'submitted' | 'in_review' | 'interview' | 'offer' | 'rejected'
     priority: 'low' | 'medium' | 'high'
-    platform?: string | null
     notes?: string | null
     note_category?: string | null
     note_is_pinned?: boolean
@@ -18,6 +25,8 @@ export interface Application {
     ai_cover_letter?: string | null
     manual_cover_letter?: string | null
     created_at?: string
+    updated_at?: string
+    archived?: boolean
 }
 
 export interface Document {
@@ -41,6 +50,30 @@ export class APIClient {
 
         if (error) throw error
         return app
+    }
+
+    /**
+     * Find an application already saved for a posting URL.
+     *
+     * The popup calls this before inserting so re-visiting a posting updates the
+     * existing row instead of creating a second one. URLs are normalised by
+     * stripping the query string and hash: job boards hang tracking parameters
+     * off the same posting, and those would otherwise defeat the match.
+     */
+    static async findApplicationByUrl(url: string) {
+        const normalised = normaliseJobUrl(url)
+        if (!normalised) return null
+
+        const { data, error } = await supabase
+            .from('applications')
+            .select('id, title, status')
+            .ilike('url', `%${normalised}%`)
+            .limit(5)
+
+        if (error) return null
+
+        const exact = (data ?? []).find((row: any) => normaliseJobUrl(row.url ?? '') === normalised)
+        return exact ?? (data?.[0] ?? null)
     }
 
     static async getApplications() {
@@ -385,5 +418,25 @@ export class APIClient {
             totalApplications: count || 0,
             successRate: 0 // Placeholder
         }
+    }
+}
+
+/**
+ * Reduce a job posting URL to the part that identifies the posting.
+ *
+ * LinkedIn in particular appends `?refId=...&trackingId=...&position=...` which
+ * differ per visit, so two saves of the same job look like two different URLs.
+ */
+export function normaliseJobUrl(raw: string): string {
+    if (!raw) return ''
+    try {
+        const parsed = new URL(raw)
+        parsed.hash = ''
+        parsed.search = ''
+        // Trailing slashes are not meaningful on job posting paths.
+        parsed.pathname = parsed.pathname.replace(/\/+$/, '')
+        return `${parsed.origin}${parsed.pathname}`.toLowerCase()
+    } catch {
+        return raw.trim().toLowerCase()
     }
 }

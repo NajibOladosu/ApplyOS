@@ -6,11 +6,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ApplyOS</title>
   <style>
+    /*
+     * Chrome caps a popup at 600px tall. Setting the height here rather than on
+     * a React root means the window opens at its final size with no reflow
+     * flash while fonts and data load.
+     */
+    html,
     body {
       width: 400px;
-      min-height: 500px;
+      height: 600px;
       margin: 0;
       padding: 0;
+      overflow: hidden;
+    }
+
+    #root {
+      height: 100%;
     }
   </style>
 </head>

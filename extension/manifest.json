@@ -1,22 +1,26 @@
 {
     "manifest_version": 3,
     "name": "ApplyOS - Job Application Manager",
-    "version": "1.0.0",
-    "description": "Streamline your job applications with AI-powered extraction and management",
+    "version": "1.1.0",
+    "description": "Autofill job applications, generate tailored cover letters, and track every application in one place.",
     "permissions": [
         "activeTab",
-        "storage",
+        "alarms",
         "notifications",
-        "scripting"
+        "scripting",
+        "storage"
     ],
     "host_permissions": [
-        "*://*.linkedin.com/*",
-        "*://*.indeed.com/*",
-        "*://*.myworkdayjobs.com/*",
-        "*://*.greenhouse.io/*",
-        "*://*.lever.co/*",
-        "*://*.glassdoor.com/*",
-        "https://www.applyos.io/*"
+        "https://*.applyos.io/*",
+        "https://applyos.io/*",
+        "https://*.ashbyhq.com/*",
+        "https://*.glassdoor.com/*",
+        "https://*.greenhouse.io/*",
+        "https://*.indeed.com/*",
+        "https://*.lever.co/*",
+        "https://*.linkedin.com/*",
+        "https://*.myworkdayjobs.com/*",
+        "https://*.smartrecruiters.com/*"
     ],
     "background": {
         "service_worker": "background.js",
@@ -26,13 +30,15 @@
         {
             "matches": [
                 "*://*.linkedin.com/jobs/*",
-                "*://*.linkedin.com/jobs?*",
                 "*://*.indeed.com/viewjob*",
                 "*://*.indeed.com/rc/clk*",
                 "*://*.myworkdayjobs.com/*",
                 "*://*.greenhouse.io/jobs/*",
+                "*://*.greenhouse.io/embed/job_app*",
                 "*://*.lever.co/*",
-                "*://*.glassdoor.com/job-listing/*"
+                "*://*.glassdoor.com/job-listing/*",
+                "*://*.ashbyhq.com/*",
+                "*://*.smartrecruiters.com/*"
             ],
             "js": [
                 "content.js"
@@ -57,18 +63,18 @@
     "web_accessible_resources": [
         {
             "resources": [
-                "icons/*.png",
-                "*.svg",
-                "*.webp",
-                "logo.png"
+                "fonts/*.woff2",
+                "logo.webp"
             ],
             "matches": [
-                "*://*.linkedin.com/*",
-                "*://*.indeed.com/*",
-                "*://*.myworkdayjobs.com/*",
-                "*://*.greenhouse.io/*",
-                "*://*.lever.co/*",
-                "*://*.glassdoor.com/*"
+                "https://*.ashbyhq.com/*",
+                "https://*.glassdoor.com/*",
+                "https://*.greenhouse.io/*",
+                "https://*.indeed.com/*",
+                "https://*.lever.co/*",
+                "https://*.linkedin.com/*",
+                "https://*.myworkdayjobs.com/*",
+                "https://*.smartrecruiters.com/*"
             ]
         }
     ]

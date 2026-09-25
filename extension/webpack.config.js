@@ -27,7 +27,23 @@ module.exports = (env) => {
                 },
                 {
                     test: /\.css$/,
-                    use: ['style-loader', 'css-loader', 'postcss-loader']
+                    use: [
+                        'style-loader',
+                        // `/fonts/*.woff2` must survive as a literal URL: at runtime
+                        // popup.html sits at the extension root, so that path resolves
+                        // to chrome-extension://<id>/fonts/..., which CopyPlugin fills.
+                        // Without this filter css-loader resolves it as a module at
+                        // build time and the build fails.
+                        {
+                            loader: 'css-loader',
+                            options: {
+                                url: {
+                                    filter: (url) => !url.startsWith('/fonts/')
+                                }
+                            }
+                        },
+                        'postcss-loader'
+                    ]
                 }
             ]
         },
@@ -47,6 +63,8 @@ module.exports = (env) => {
                         from: path.resolve(__dirname, 'manifest.json'),
                         to: 'manifest.json'
                     },
+                    // public/ carries icons and the self-hosted woff2 files that
+                    // globals.css references at /fonts/*.
                     { from: 'public', to: '.' },
                     { from: 'src/popup/index.html', to: 'popup.html' },
                     { from: 'src/options/index.html', to: 'options.html' }
