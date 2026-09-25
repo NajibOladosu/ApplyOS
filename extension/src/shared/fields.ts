@@ -488,7 +488,9 @@ export const CANONICAL_FIELDS: CanonicalField[] = [
       "immigration status",
       "work eligibility",
     ],
-    kinds: ["select", "radio", "text"],
+    // A single checkbox ("I am authorized to work in the US") is a common
+    // rendering of this question, not only a Yes/No pair.
+    kinds: ["select", "radio", "text", "checkbox"],
     hint: "The form asks about your legal right to work in this country.",
   },
   {

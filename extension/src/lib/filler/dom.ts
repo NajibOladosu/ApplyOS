@@ -99,15 +99,39 @@ function collectElements(root: ParentNode, out: Control[], depth = 0): void {
   }
 }
 
-/** Text of `<label for="id">` or a wrapping `<label>`. */
+/**
+ * Find an element by id inside a document or shadow root.
+ *
+ * Avoids `querySelector("#id")` entirely, so nothing here depends on the id
+ * being a valid CSS identifier (or on `CSS.escape` existing at all).
+ */
+function findById(root: ParentNode, id: string): Element | null {
+  const asDocument = root as Document
+  if (typeof asDocument.getElementById === "function") {
+    const found = asDocument.getElementById(id)
+    if (found) return found
+  }
+  for (const candidate of Array.from(root.querySelectorAll("[id]"))) {
+    if (candidate.id === id) return candidate
+  }
+  return null
+}
+
+/**
+ * Text of `<label for="id">` or a wrapping `<label>`.
+ *
+ * Matching is done by comparing `htmlFor` rather than building a selector:
+ * a single failed `CSS.escape` used to silently produce an empty label, which
+ * then let an unrelated `<legend>` elsewhere on the page become this field's
+ * question.
+ */
 function labelFromLabelElement(el: Control): string {
   if (el.id) {
-    try {
-      const root = el.getRootNode() as ParentNode
-      const explicit = root.querySelector<HTMLLabelElement>(`label[for="${CSS.escape(el.id)}"]`)
-      if (explicit?.textContent?.trim()) return cleanLabelText(explicit.textContent)
-    } catch {
-      // CSS.escape can throw on exotic ids; fall through to the wrapping label.
+    const root = el.getRootNode() as ParentNode
+    for (const label of Array.from(root.querySelectorAll("label[for]"))) {
+      if ((label as HTMLLabelElement).htmlFor !== el.id) continue
+      const text = cleanLabelText(label.textContent ?? "")
+      if (text) return text
     }
   }
 
@@ -138,16 +162,11 @@ export function cleanLabelText(raw: string): string {
 function labelFromAria(el: Control): string {
   const labelledBy = el.getAttribute("aria-labelledby")
   if (labelledBy) {
+    const scope = el.getRootNode() as ParentNode
     const texts = labelledBy
       .split(/\s+/)
-      .map((id) => {
-        try {
-          const scope = el.getRootNode() as ParentNode
-          return scope.querySelector(`#${CSS.escape(id)}`)?.textContent ?? ""
-        } catch {
-          return document.getElementById(id)?.textContent ?? ""
-        }
-      })
+      .filter(Boolean)
+      .map((id) => findById(scope, id)?.textContent ?? "")
       .filter(Boolean)
     const joined = cleanLabelText(texts.join(" "))
     if (joined) return joined
@@ -168,35 +187,40 @@ function labelFromFieldset(el: Control): string {
  * put the question in a `<div>` above the control with no `for` attribute.
  */
 function labelFromNeighbourhood(el: Control): string {
-  const container =
-    el.closest<HTMLElement>("[data-automation-id]")?.parentElement ??
-    el.parentElement?.parentElement ??
-    el.parentElement
-  if (!container) return ""
+  // Walk up a few ancestors only, and stop before the form or the document.
+  // Without that bound, a control with no label of its own inherits the first
+  // `<legend>` anywhere on the page — which is how every field on a form ends
+  // up asking whether you are legally authorised to work.
+  let container: Element | null = el.parentElement
+  let depth = 0
 
-  // A row that holds exactly one control: its other text is the label.
-  const controlsInRow = container.querySelectorAll("input, textarea, select").length
-  if (controlsInRow === 1) {
-    const clone = container.cloneNode(true) as HTMLElement
-    for (const nested of Array.from(clone.querySelectorAll("input, textarea, select, option, button"))) {
-      nested.remove()
+  while (container && depth < 3) {
+    const tag = container.tagName.toLowerCase()
+    if (tag === "form" || tag === "body" || tag === "html") break
+
+    // A row holding exactly one control: its remaining text is the label.
+    if (container.querySelectorAll("input, textarea, select").length === 1) {
+      const clone = container.cloneNode(true) as HTMLElement
+      for (const nested of Array.from(clone.querySelectorAll("input, textarea, select, option, button"))) {
+        nested.remove()
+      }
+      const text = cleanLabelText(clone.textContent ?? "")
+      if (text && text.length <= 200) return text
     }
-    const text = cleanLabelText(clone.textContent ?? "")
-    // Only trust it when it reads like a question, not like generated copy.
-    if (text && text.length <= 200) return text
+
+    container = container.parentElement
+    depth += 1
   }
 
-  const heading = container.querySelector("h1, h2, h3, h4, legend, dt")
-  const headingText = heading?.textContent?.trim()
-  return headingText ? cleanLabelText(headingText) : ""
+  return ""
 }
 
 /** Section heading above the control — identifies EEO blocks and essay prompts. */
 function findSectionHeading(el: Control): string {
-  const root = el.getRootNode() as ParentNode
   let node: Element | null = el
+  let depth = 0
 
-  while (node && node !== (root as unknown as Element)) {
+  while (node && depth < 4) {
     let sibling: Element | null = node.previousElementSibling
     while (sibling) {
       const heading = /^h[1-6]$/i.test(sibling.tagName)
@@ -205,8 +229,10 @@ function findSectionHeading(el: Control): string {
       if (heading?.textContent?.trim()) return cleanLabelText(heading.textContent)
       sibling = sibling.previousElementSibling
     }
+
     node = node.parentElement
-    if (node && node.tagName === "FORM") break
+    depth += 1
+    if (node && ["FORM", "BODY", "HTML"].includes(node.tagName)) break
   }
 
   return ""
