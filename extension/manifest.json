@@ -6,10 +6,25 @@
     "permissions": [
         "activeTab",
         "alarms",
+        "contextMenus",
         "notifications",
         "scripting",
         "storage"
     ],
+    "commands": {
+        "fill-form": {
+            "suggested_key": {
+                "default": "Alt+Shift+F"
+            },
+            "description": "Fill the current application form with ApplyOS"
+        },
+        "save-job": {
+            "suggested_key": {
+                "default": "Alt+Shift+S"
+            },
+            "description": "Save the current job posting to ApplyOS"
+        }
+    },
     "host_permissions": [
         "https://*.applyos.io/*",
         "https://applyos.io/*",

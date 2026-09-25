@@ -15,6 +15,7 @@ import {
     getStoredSession,
 } from '../lib/api/rest'
 import { dueReminders, toCandidates, type ReminderDecision } from '../lib/reminders/reminder-engine'
+import { captureJobFromCommand, fillFieldFromContextMenu, fillFormFromCommand, proxyAiAnswer } from './actions'
 
 /**
  * A service worker is torn down constantly, so this is only a fast path to stop
@@ -179,6 +180,7 @@ chrome.runtime.onInstalled.addListener((details) => {
             await chrome.storage.local.set({ [STORAGE_SETTINGS]: DEFAULT_SETTINGS })
         }
         await scheduleReminderSweep()
+        await registerContextMenus()
         if (details.reason === 'install') {
             await refreshBadgeFromApplications()
         }
@@ -195,6 +197,7 @@ chrome.alarms.onAlarm.addListener((alarm) => {
 // Re-arm if the browser dropped the alarm (e.g. after an update).
 chrome.runtime.onStartup.addListener(() => {
     void scheduleReminderSweep()
+    void registerContextMenus()
 })
 
 chrome.notifications.onClicked.addListener((notificationId) => {
@@ -237,6 +240,60 @@ async function getAppBaseUrl(): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Context menu, keyboard shortcuts, AI proxy
+// ---------------------------------------------------------------------------
+
+const MENU_FILL_FIELD = 'applyos-fill-field'
+const MENU_FILL_FORM = 'applyos-fill-form'
+const MENU_CAPTURE = 'applyos-capture'
+
+async function registerContextMenus(): Promise<void> {
+    // removeall keeps this idempotent across worker restarts and updates.
+    await chrome.contextMenus.removeAll()
+    chrome.contextMenus.create({
+        id: MENU_FILL_FIELD,
+        title: 'Fill this field with ApplyOS',
+        contexts: ['editable'],
+    })
+    chrome.contextMenus.create({
+        id: MENU_FILL_FORM,
+        title: 'Fill this application with ApplyOS',
+        contexts: ['page'],
+    })
+    chrome.contextMenus.create({
+        id: MENU_CAPTURE,
+        title: 'Save this job to ApplyOS',
+        contexts: ['page'],
+    })
+}
+
+chrome.contextMenus.onClicked.addListener((info, tab) => {
+    if (!tab?.id) return
+    switch (info.menuItemId) {
+        case MENU_FILL_FIELD:
+            void fillFieldFromContextMenu()
+            break
+        case MENU_FILL_FORM:
+            void fillFormFromCommand()
+            break
+        case MENU_CAPTURE:
+            void captureJobFromCommand()
+            break
+    }
+})
+
+chrome.commands.onCommand.addListener((command) => {
+    switch (command) {
+        case 'fill-form':
+            void fillFormFromCommand()
+            break
+        case 'save-job':
+            void captureJobFromCommand()
+            break
+    }
+})
+
+// ---------------------------------------------------------------------------
 // Messaging
 // ---------------------------------------------------------------------------
 
@@ -252,6 +309,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             refreshBadgeFromApplications()
                 .then(() => sendResponse({ success: true }))
                 .catch((error) => sendResponse({ success: false, error: String(error) }))
+            return true
+
+        case 'AI_ANSWER_REQUEST':
+            // Content scripts cannot read the Supabase session from
+            // chrome.storage; the worker proxies the API call for them.
+            proxyAiAnswer(message.question, message.jobDescription, message.previousAnswers)
+                .then((result) => sendResponse(result))
+                .catch((error) => sendResponse({ answer: null, error: String(error) }))
             return true
 
         case 'SETTINGS_CHANGED':

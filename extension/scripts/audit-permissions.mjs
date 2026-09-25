@@ -39,6 +39,10 @@ const PERMISSION_RULES = {
         test: /chrome\.scripting\.executeScript\(/,
         note: 'Injects the autofill/extraction bundle into the active tab when the user explicitly asks to fill or scan a page.',
     },
+    contextMenus: {
+        test: /chrome\.contextMenus\./,
+        note: 'Right-click "Fill this field / Fill this application / Save this job with ApplyOS". Registered on install and handled by the background worker.',
+    },
     notifications: {
         test: /chrome\.notifications\.create\(/,
         note: 'Follow-up reminders ("7 days since you applied to X") and application deadline alerts the user opts into.',

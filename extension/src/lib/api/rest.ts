@@ -148,3 +148,130 @@ export async function countInFlightApplications(): Promise<number | null> {
         return null
     }
 }
+
+// ---------------------------------------------------------------------------
+// Application capture (context menu / keyboard shortcut)
+// ---------------------------------------------------------------------------
+
+export interface CapturedApplication {
+    title: string
+    company: string | null
+    url: string | null
+    job_description: string | null
+}
+
+function authHeaders(session: SupabaseSession): Record<string, string> {
+    return {
+        apikey: SUPABASE_ANON_KEY,
+        Authorization: `Bearer ${session.access_token}`,
+        'Content-Type': 'application/json',
+        Accept: 'application/json',
+    }
+}
+
+async function sessionOrNull(): Promise<SupabaseSession | null> {
+    const session = await getStoredSession()
+    if (!session?.access_token) return null
+    if (session.expires_at && session.expires_at * 1000 < Date.now()) return null
+    return session
+}
+
+/** Find the user's application for a posting URL, for capture de-duplication. */
+export async function findApplicationByUrl(url: string): Promise<string | null> {
+    if (!isConfigured()) return null
+    const session = await sessionOrNull()
+    if (!session) return null
+
+    const normalised = normaliseJobUrl(url)
+    if (!normalised) return null
+
+    const params = new URLSearchParams({
+        select: 'id,url',
+        url: `ilike.*${normalised}*`,
+        limit: '5',
+    })
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/applications?${params}`, {
+            headers: authHeaders(session),
+        })
+        if (!response.ok) return null
+
+        const rows = (await response.json()) as Array<{ id: string; url: string | null }>
+        const exact = rows.find((row) => normaliseJobUrl(row.url ?? '') === normalised)
+        return exact?.id ?? null
+    } catch {
+        return null
+    }
+}
+
+/**
+ * Save a job captured from a page. Updates the existing row when the posting
+ * was already saved (matching the popup's behaviour), otherwise inserts.
+ * Returns the application id, or null when the request could not be made.
+ */
+export async function upsertApplication(
+    data: CapturedApplication
+): Promise<{ id: string; created: boolean } | null> {
+    if (!isConfigured()) return null
+    const session = await sessionOrNull()
+    if (!session) return null
+
+    const existingId = await findApplicationByUrl(data.url ?? '')
+    if (existingId) {
+        try {
+            const response = await fetch(`${SUPABASE_URL}/rest/v1/applications?id=eq.${existingId}`, {
+                method: 'PATCH',
+                headers: { ...authHeaders(session), Prefer: 'return=minimal' },
+                body: JSON.stringify({
+                    title: data.title,
+                    company: data.company,
+                    job_description: data.job_description,
+                }),
+            })
+            if (response.ok) return { id: existingId, created: false }
+        } catch {
+            // fall through to insert path only if the id is bogus; safest is to bail
+            return null
+        }
+        return null
+    }
+
+    try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/applications`, {
+            method: 'POST',
+            headers: { ...authHeaders(session), Prefer: 'return=representation' },
+            body: JSON.stringify({
+                title: data.title,
+                company: data.company,
+                url: data.url,
+                job_description: data.job_description,
+                status: 'draft',
+                priority: 'medium',
+            }),
+        })
+        if (!response.ok) return null
+        const rows = (await response.json()) as Array<{ id: string }>
+        return rows[0]?.id ? { id: rows[0].id, created: true } : null
+    } catch {
+        return null
+    }
+}
+
+/** Strip tracking parameters so the same posting matches itself. */
+function normaliseJobUrl(url: string): string | null {
+    try {
+        const parsed = new URL(url)
+        parsed.hash = ''
+        // Keep only parameters that commonly identify a posting.
+        const keep = new URLSearchParams()
+        for (const key of ['currentJobId', 'jk', 'ghjk', 'id', 'jobId']) {
+            const value = parsed.searchParams.get(key)
+            if (value) keep.set(key, value)
+        }
+        parsed.search = keep.toString()
+        return parsed.toString()
+    } catch {
+        return null
+    }
+}
