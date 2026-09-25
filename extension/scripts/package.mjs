@@ -13,10 +13,11 @@
  * Usage: npm run package
  */
 
-import { readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { readdirSync, readFileSync, statSync, writeFileSync, unlinkSync } from 'node:fs'
 import { join, relative } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
+import { verifyZip } from './verify-zip.mjs'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const DIST = join(ROOT, 'dist', 'chrome')
@@ -71,11 +72,26 @@ async function main() {
     const buffer = await zip.generateAsync({ type: 'nodebuffer', compression: 'DEFLATE' })
     writeFileSync(out, buffer)
 
+    // Verify what was actually written — the store resolves manifest paths
+    // against the zip root with exact case, and a packaging regression is
+    // cheaper to catch here than as a dashboard rejection.
+    const verification = await verifyZip(buffer, out)
+    if (!verification.ok) {
+        unlinkSync(out)
+        console.error('\nPackaged zip failed verification — deleted it so it cannot be uploaded:')
+        for (const problem of verification.problems) {
+            console.error(`  ✗ ${problem.id}${problem.path ? ` (${problem.path})` : ''}`)
+            console.error(`      ${problem.detail}`)
+        }
+        process.exit(1)
+    }
+
     const kb = (buffer.length / 1024).toFixed(1)
     console.log(`\nPackaged ${files.length} files → ${relative(ROOT, out)} (${kb} KiB)`)
     console.log(`  name:     ${manifest.name}`)
     console.log(`  version:  ${manifest.version}`)
     console.log(`  perms:    ${(manifest.permissions ?? []).join(', ')}`)
+    console.log('  verified: every manifest path resolves to a non-empty entry')
 }
 
 main().catch((error) => {

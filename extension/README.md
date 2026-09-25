@@ -112,6 +112,10 @@ npm run typecheck   # tsc --noEmit
 npm test            # vitest: field matcher, fill engine, plan, profile, merge,
                     # reminder engine, step-navigation scoring
 npm run audit       # permission audit
+npm run verify:zip  # store-zip check: every manifest path must resolve to a
+                    # non-empty entry (catches nested folders, backslash entry
+                    # names from PowerShell zips, case mismatches, truncation)
+                    # — also runs automatically inside `npm run package`
 ```
 
 ## Project structure

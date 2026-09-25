@@ -12,7 +12,8 @@
     "audit": "node scripts/audit-permissions.mjs",
     "test": "vitest run --config vitest.config.ts",
     "package": "node scripts/package.mjs",
-    "test:watch": "vitest --config vitest.config.ts"
+    "test:watch": "vitest --config vitest.config.ts",
+    "verify:zip": "node scripts/verify-zip.mjs"
   },
   "keywords": [
     "applyos",
