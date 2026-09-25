@@ -1,19 +1,21 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import '../styles/globals.css'
-import { Loader2, LayoutGrid, Settings, LogOut, Compass } from 'lucide-react'
+import { Loader2, LayoutGrid, Settings, LogOut, Compass, Zap } from 'lucide-react'
 
 import { Login } from './components/Login'
 import { ErrorBoundary } from './components/ErrorBoundary'
+import { AutofillTab } from './tabs/AutofillTab'
 import { QuickAddTab } from './tabs/QuickAddTab'
 import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { AuthManager } from '../lib/auth/auth-manager'
 import { initTheme, watchSystemTheme, type ThemePreference } from '../lib/theme'
 import { cn } from '../lib/cn'
 
-type TabId = 'current-job' | 'applications'
+type TabId = 'autofill' | 'current-job' | 'applications'
 
 const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'autofill', label: 'Autofill', icon: Zap },
     { id: 'current-job', label: 'This job', icon: Compass },
     { id: 'applications', label: 'Applications', icon: LayoutGrid },
 ]
@@ -21,7 +23,7 @@ const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: 
 function Popup() {
     const [session, setSession] = useState<any>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<TabId>('current-job')
+    const [activeTab, setActiveTab] = useState<TabId>('autofill')
     const [themeRef] = useState<{ current: ThemePreference }>({ current: 'system' })
 
     // Apply the stored theme before anything renders, so the popup never flashes
@@ -153,7 +155,13 @@ function Popup() {
             {/* Content */}
             <main className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
                 <ErrorBoundary>
-                    {activeTab === 'current-job' ? <QuickAddTab /> : <ApplicationsTab />}
+                    {activeTab === 'autofill' ? (
+                            <AutofillTab />
+                        ) : activeTab === 'current-job' ? (
+                            <QuickAddTab />
+                        ) : (
+                            <ApplicationsTab />
+                        )}
                 </ErrorBoundary>
             </main>
         </div>
