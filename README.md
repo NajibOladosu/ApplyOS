@@ -5,6 +5,8 @@ ApplyOS is an AI-assisted job and scholarship application manager. It combines a
 ## What it does
 
 - Track applications, deadlines, priorities, status history, documents, and rich notes; archive rejected/withdrawn applications and run bulk actions.
+- Autofill job applications from the browser extension: review-first form filling on eight ATS/job platforms (and anywhere else on demand), a multi-step copilot that advances pages without ever submitting, AI answers for open-ended questions, and documents auto-attached from the vault — driven by a profile synced to the user's account.
+- Capture postings from any page through the extension's right-click menu or keyboard shortcuts, with platform-specific extractors for title, company, and description.
 - Upload PDF, DOCX, text, and JSON documents for extraction and AI analysis.
 - Create tailored cover letters, extract application questions, and generate grounded answers.
 - Run the Apply Kit: parse a job posting, analyse resume compatibility, and create application materials in one flow.
@@ -12,7 +14,7 @@ ApplyOS is an AI-assisted job and scholarship application manager. It combines a
 - Practise text, voice, resume-grill, company-prep, and conversational interviews with feedback and reports.
 - View application metrics, conversion funnels, timelines, and status-flow visualisations, plus an activity streak, weekly goal, and contribution heatmap.
 - Score resume-to-job fit per application (match score, improvement tips, missing keywords).
-- Receive welcome, status, deadline, and weekly-digest emails through Resend.
+- Receive welcome, status, deadline, and weekly-digest emails through Resend, and browser follow-up reminders through the extension.
 - Publish MDX blog posts via `blog.applyos.io` subdomain routing and an automated PR workflow.
 
 ## Stack
@@ -36,7 +38,7 @@ shared/                  Supabase clients, AI and email infrastructure, shared U
 lib/                     Security, validation, parsing, editor, blog, and rate-limit utilities
 supabase/migrations/     PostgreSQL schema, RLS, triggers, and security migrations
 content/blog/            MDX blog posts
-extension/               Browser-extension project
+extension/               Browser extension: autofill, job capture, tracking, reminders
 tests/                   Unit, integration, and end-to-end tests
 ```
 
@@ -95,6 +97,18 @@ npm run test:e2e            # Run Playwright tests (requires test Supabase secre
 npm run test:all            # Run all test tiers
 ```
 
+The browser extension is a separate workspace:
+
+```bash
+cd extension
+npm install
+npm run build               # Audit permissions, typecheck, and bundle to dist/chrome
+npm test                    # Extension unit tests (engine, profile, reminders)
+npm run package             # Deterministic Chrome Web Store zip
+```
+
+See [extension/README.md](extension/README.md) for the extension's architecture, permissions documentation, and loading instructions.
+
 Integration and end-to-end tests require isolated Supabase credentials. See [tests/README.md](tests/README.md) and [docs/TESTING.md](docs/TESTING.md) before running them against any shared environment.
 
 ## Key HTTP surfaces
@@ -102,6 +116,7 @@ Integration and end-to-end tests require isolated Supabase credentials. See [tes
 - `POST /api/documents/upload` and `POST /api/documents/reprocess` manage extraction and AI analysis.
 - `POST /api/apply-kit/parse` parses a URL or pasted job description; it is SSRF guarded.
 - `POST /api/cover-letter/generate` and the question routes generate application materials.
+- `POST /api/extension/answer` and `POST /api/extension/profile/import` power the browser extension: grounded AI answers for application questions, and resume-to-profile import.
 - `POST /api/interview/*` creates, conducts, scores, and reports interview sessions.
 - `GET /api/analytics/*` supplies application metrics and status-flow data.
 - `POST /api/cron/*` runs authenticated scheduled maintenance, deadline, digest, and AI-retry tasks.
