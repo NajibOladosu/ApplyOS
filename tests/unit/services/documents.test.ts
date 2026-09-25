@@ -231,16 +231,30 @@ describe('deleteDocument', () => {
   })
 })
 
+/** A structurally valid, all-empty ParsedDocument for updateDocumentParsedData tests. */
+const emptyParsed = {
+  education: [],
+  experience: [],
+  projects: [],
+  skills: { technical: [], soft: [], other: [] },
+  achievements: [],
+  certifications: [],
+  keywords: [],
+  raw_highlights: [],
+}
+
 describe('updateDocumentParsedData', () => {
   it('updates parsed_data column for given id', async () => {
     mockSupabase.single.mockResolvedValueOnce({ data: { id: 'd1' }, error: null })
-    await updateDocumentParsedData('d1', { skills: ['ts'] })
-    expect(mockSupabase.update).toHaveBeenCalledWith({ parsed_data: { skills: ['ts'] } })
+    await updateDocumentParsedData('d1', { ...emptyParsed, skills: { technical: ['ts'], soft: [], other: [] } })
+    expect(mockSupabase.update).toHaveBeenCalledWith({
+      parsed_data: { ...emptyParsed, skills: { technical: ['ts'], soft: [], other: [] } },
+    })
     expect(mockSupabase.eq).toHaveBeenCalledWith('id', 'd1')
   })
 
   it('throws on error', async () => {
     mockSupabase.single.mockResolvedValueOnce({ data: null, error: { message: 'fail' } })
-    await expect(updateDocumentParsedData('d1', {})).rejects.toMatchObject({ message: 'fail' })
+    await expect(updateDocumentParsedData('d1', emptyParsed)).rejects.toMatchObject({ message: 'fail' })
   })
 })
