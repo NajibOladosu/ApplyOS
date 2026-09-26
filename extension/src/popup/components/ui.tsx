@@ -110,7 +110,7 @@ export function Stat({
 }) {
     return (
         <div className="rounded-xl border border-border/70 bg-card px-3 py-2">
-            <p className="overline mb-1">{label}</p>
+            <p className="mb-1 text-[11px] font-medium text-muted-foreground">{label}</p>
             <p
                 className={cn(
                     'font-display text-lg font-bold leading-none tabular-nums',

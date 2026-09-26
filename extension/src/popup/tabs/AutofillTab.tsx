@@ -330,7 +330,6 @@ export function AutofillTab() {
                     <div className="icon-chip mb-3">
                         <ScanSearch className="h-5 w-5" />
                     </div>
-                    <p className="overline mb-1">Autofill</p>
                     <h2 className="display-title">Fill this application</h2>
                     <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
                         Scan the form, review what ApplyOS would write, edit anything, then fill —
@@ -522,7 +521,7 @@ export function AutofillTab() {
 function QuickTips() {
     return (
         <Card className="p-4">
-            <p className="overline mb-2">Also available</p>
+            <p className="mb-2 text-[11px] font-medium text-muted-foreground">Also available</p>
             <ul className="space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
                 <li className="flex gap-2">
                     <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
@@ -576,7 +575,7 @@ function SummaryStat({
             >
                 {value}
             </p>
-            <p className="overline mt-1 !text-[8px]">{label}</p>
+            <p className="mt-1 text-[9px] font-medium text-muted-foreground">{label}</p>
         </div>
     )
 }
