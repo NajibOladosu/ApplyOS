@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
+    ArrowLeft,
     Check,
     ChevronRight,
     FileText,
@@ -15,15 +16,18 @@ import { fetchDocumentBytes } from '../../lib/documents'
 import { loadCachedProfile, saveLearnedAnswers } from '../../lib/profile/store'
 import type { AutofillProfile } from '../../shared/profile'
 import { cn } from '../../lib/cn'
-import { Card, ErrorNote, SectionHeading, Skeleton, Spinner } from '../components/ui'
+import { Card, ErrorNote, Skeleton, Spinner } from '../components/ui'
 import type { PlanRow, ScanResult, StepInfo } from '../../content/autofill-runtime'
 
 /**
- * The Autofill tab: the review-first fill flow.
+ * The autofill flow: the review-first fill experience.
  *
  * Scan -> review every decision the engine made -> edit anything -> fill ->
  * advance to the next step (copilot) -> repeat. The user always sees what will
  * be written before it is, which is the promise the whole engine is built on.
+ *
+ * It opens directly into a scan: the user arrived here by choosing "Autofill
+ * this form", so there is no intermediate "click to scan" screen.
  */
 
 type Phase = 'idle' | 'scanning' | 'review' | 'filling' | 'copilot' | 'done'
@@ -35,8 +39,12 @@ interface FillOutcome {
     savedAnswers: boolean
 }
 
-export function AutofillTab() {
-    const [phase, setPhase] = useState<Phase>('idle')
+interface AutofillFlowProps {
+    onBack: () => void
+}
+
+export function AutofillFlow({ onBack }: AutofillFlowProps) {
+    const [phase, setPhase] = useState<Phase>('scanning')
     const [profile, setProfile] = useState<AutofillProfile | null>(null)
     const [rows, setRows] = useState<PlanRow[]>([])
     const [step, setStep] = useState<StepInfo | null>(null)
@@ -58,8 +66,15 @@ export function AutofillTab() {
     const [outcome, setOutcome] = useState<FillOutcome | null>(null)
     const [aiBusy, setAiBusy] = useState<number | null>(null)
 
+    // Guards the initial scan against React 19 StrictMode's double-invoke.
+    const hasScanned = useRef(false)
+    const [profileReady, setProfileReady] = useState(false)
+
     useEffect(() => {
-        void loadCachedProfile().then(setProfile)
+        void loadCachedProfile().then((loaded) => {
+            setProfile(loaded)
+            setProfileReady(true)
+        })
     }, [])
 
     const sendScan = useCallback(async (): Promise<ScanResult | null> => {
@@ -97,6 +112,14 @@ export function AutofillTab() {
         setPhase('review')
     }, [sendScan])
 
+    // Wait for the profile: a scan that runs before it loads fills the review
+    // table with nothing, and the user would see every field as "missing".
+    useEffect(() => {
+        if (!profileReady || hasScanned.current) return
+        hasScanned.current = true
+        void handleScan()
+    }, [profileReady, handleScan])
+
     // ── Review table helpers ────────────────────────────────────────────────
 
     const selectedRows = useMemo(
@@ -113,8 +136,6 @@ export function AutofillTab() {
             ),
         [rows]
     )
-
-    const fileRows = useMemo(() => rows.filter((row) => row.status === 'file'), [rows])
 
     const valueOf = useCallback(
         (row: PlanRow) => edits[row.index] ?? row.value ?? '',
@@ -214,7 +235,7 @@ export function AutofillTab() {
                 const documentId =
                     row.fieldId === 'coverLetterFile' ? profile?.coverLetterDocumentId : profile?.resumeDocumentId
                 if (!documentId) {
-                    setError('Choose a resume in Options → Profile first, then attach from here.')
+                    setError('Choose a resume in Settings → Profile first, then attach from here.')
                     return
                 }
 
@@ -323,193 +344,244 @@ export function AutofillTab() {
 
     // ── Render ──────────────────────────────────────────────────────────────
 
-    if (phase === 'idle' || phase === 'scanning') {
+    const heading = copilotRunning ? `Filling each step · ${stepCount}` : 'Autofill this form'
+
+    if (phase === 'scanning') {
         return (
-            <div className="space-y-3 px-4 pb-6 pt-4">
-                <Card className="flex flex-col items-center p-6 text-center">
-                    <div className="icon-chip mb-3">
-                        <ScanSearch className="h-5 w-5" />
-                    </div>
-                    <h2 className="display-title">Fill this application</h2>
-                    <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
-                        Scan the form, review what ApplyOS would write, edit anything, then fill —
-                        one page or the whole multi-step flow.
+            <div className="flex h-full flex-col">
+                <FlowHeader title={heading} onBack={onBack} />
+                <div className="space-y-3 p-4">
+                    <Card className="space-y-2 p-4">
+                        {[0, 1, 2, 3, 4].map((i) => (
+                            <Skeleton key={i} className="h-8 w-full" />
+                        ))}
+                    </Card>
+                    <p className="text-center text-[11px] text-muted-foreground">
+                        Reading the form fields on this page.
                     </p>
-                    <button
-                        type="button"
-                        onClick={handleScan}
-                        disabled={phase === 'scanning'}
-                        className="btn-primary mt-4 w-full"
-                    >
-                        {phase === 'scanning' ? (
-                            <>
-                                <Spinner className="h-4 w-4" /> Scanning…
-                            </>
-                        ) : (
-                            <>
-                                <ScanSearch className="h-4 w-4" /> Scan this page
-                            </>
-                        )}
-                    </button>
-                </Card>
+                </div>
+            </div>
+        )
+    }
 
-                <QuickTips />
-
-                {error ? <ErrorNote>{error}</ErrorNote> : null}
+    if (phase === 'idle') {
+        // Only reached when the opening scan failed — offer a retry.
+        return (
+            <div className="flex h-full flex-col">
+                <FlowHeader title={heading} onBack={onBack} />
+                <div className="space-y-3 p-4">
+                    {error ? <ErrorNote>{error}</ErrorNote> : null}
+                    <Card className="flex flex-col items-center p-6 text-center">
+                        <div className="icon-chip mb-3">
+                            <ScanSearch className="h-5 w-5" />
+                        </div>
+                        <h2 className="font-display text-[15px] font-bold tracking-tight text-foreground">
+                            Fill this application
+                        </h2>
+                        <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
+                            Scan the form, review what ApplyOS would write, edit anything, then fill.
+                        </p>
+                        <button type="button" onClick={() => void handleScan()} className="btn-primary mt-4 h-10 w-full">
+                            <ScanSearch className="h-4 w-4" />
+                            Scan this page
+                        </button>
+                    </Card>
+                </div>
             </div>
         )
     }
 
     return (
-        <div className="space-y-3 px-4 pb-6 pt-4">
-            <SectionHeading
-                overline={copilotRunning ? `Copilot · step ${stepCount}` : 'Autofill'}
-                title={copilotRunning ? 'Filling each step' : 'Review the fill'}
+        <div className="flex h-full flex-col">
+            <FlowHeader
+                title={heading}
+                onBack={onBack}
                 action={
-                    <button type="button" className="btn-ghost" onClick={handleScan}>
-                        <ScanSearch className="h-3.5 w-3.5" /> Rescan
-                    </button>
+                    (phase === 'review' || phase === 'done') ? (
+                        <button type="button" className="btn-ghost" onClick={() => void handleScan()}>
+                            <ScanSearch className="h-3.5 w-3.5" /> Rescan
+                        </button>
+                    ) : null
                 }
             />
 
-            {error ? <ErrorNote>{error}</ErrorNote> : null}
+            <div className="scrollbar-thin min-h-0 flex-1 space-y-3 overflow-y-auto p-4 pb-6">
+                {error ? <ErrorNote>{error}</ErrorNote> : null}
 
-            {phase === 'filling' || phase === 'copilot' ? (
-                <Card className="space-y-2 p-4">
-                    {[0, 1, 2, 3].map((i) => (
-                        <Skeleton key={i} className="h-8 w-full" />
-                    ))}
-                </Card>
-            ) : null}
-
-            {copilotRunning ? (
-                <Card className="p-4">
-                    <div className="space-y-1 font-mono text-[11px] leading-relaxed text-muted-foreground">
-                        {copilotLog.map((line, i) => (
-                            <p key={i} className={i === copilotLog.length - 1 ? 'text-primary-strong dark:text-primary' : ''}>
-                                {line}
-                            </p>
-                        ))}
-                    </div>
-                    <div className="mt-3 flex gap-2">
-                        <button type="button" className="btn-secondary flex-1" onClick={stopCopilot}>
-                            <Square className="h-3.5 w-3.5" /> Stop
-                        </button>
-                    </div>
-                </Card>
-            ) : null}
-
-            {phase === 'review' || phase === 'done' ? (
-                <>
-                    {outcome && phase === 'done' ? (
-                        <Card className="p-4">
-                            <div className="flex items-center gap-2">
-                                <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary-strong dark:text-primary">
-                                    <Check className="h-3.5 w-3.5" />
-                                </span>
-                                <p className="text-[13px] font-semibold">
-                                    Filled {outcome.filled} field{outcome.filled === 1 ? '' : 's'}
-                                    {outcome.failed > 0 ? (
-                                        <span className="text-muted-foreground"> · {outcome.failed} needs a look</span>
-                                    ) : null}
-                                </p>
-                            </div>
-                            {outcome.learned.length > 0 && !outcome.savedAnswers ? (
-                                <div className="mt-3 rounded-lg border border-primary/25 bg-primary/10 p-3">
-                                    <p className="text-[12px] font-medium text-foreground">
-                                        Remember {outcome.learned.length} answer
-                                        {outcome.learned.length === 1 ? '' : 's'} you typed by hand?
-                                    </p>
-                                    <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
-                                        {outcome.learned
-                                            .slice(0, 2)
-                                            .map((entry) => entry.question)
-                                            .join(' · ')}
-                                        {outcome.learned.length > 2 ? ` +${outcome.learned.length - 2} more` : ''}
-                                    </p>
-                                    <div className="mt-2 flex gap-2">
-                                        <button type="button" className="btn-primary flex-1 !py-1.5 !text-xs" onClick={saveLearned}>
-                                            <Wand2 className="h-3 w-3" /> Save answers
-                                        </button>
-                                        <button
-                                            type="button"
-                                            className="btn-ghost"
-                                            onClick={() => setOutcome({ ...outcome, savedAnswers: true })}
-                                        >
-                                            Dismiss
-                                        </button>
-                                    </div>
-                                </div>
-                            ) : null}
-                            {outcome.savedAnswers ? (
-                                <p className="mt-2 text-[11px] text-muted-foreground">
-                                    Saved to your answer library — future forms fill these automatically.
-                                </p>
-                            ) : null}
-                        </Card>
-                    ) : null}
-
-                    <ReviewSummary rows={rows} openCount={openQuestions.length} />
-
-                    <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-card/60 px-3 py-2">
-                        <ToggleChip checked={fastMode} onChange={setFastMode} label="Fast mode" title="Skip typing simulation — faster, but some forms validate on keystrokes" />
-                        <ToggleChip
-                            checked={includeSensitive}
-                            onChange={setIncludeSensitive}
-                            label="Voluntary questions"
-                            title="Also fill demographic (EEO) questions from your profile"
-                        />
-                    </div>
-
-                    <Card className="divide-y divide-border/50">
-                        {rows.map((row) => (
-                            <ReviewRow
-                                key={row.index}
-                                row={row}
-                                value={valueOf(row)}
-                                included={Boolean(included[row.index])}
-                                includeSensitive={includeSensitive}
-                                busy={aiBusy === row.index}
-                                onToggle={() =>
-                                    setIncluded((current) => ({ ...current, [row.index]: !current[row.index] }))
-                                }
-                                onEdit={(value) => setEdits((current) => ({ ...current, [row.index]: value }))}
-                                onGenerate={() => void generateAnswer(row)}
-                                onAttach={() => void attachDocument(row)}
-                            />
+                {phase === 'filling' || phase === 'copilot' ? (
+                    <Card className="space-y-2 p-4">
+                        {[0, 1, 2, 3].map((i) => (
+                            <Skeleton key={i} className="h-8 w-full" />
                         ))}
                     </Card>
+                ) : null}
 
-                    {openQuestions.length > 0 ? (
-                        <button type="button" className="btn-secondary w-full" onClick={() => void answerAllOpen()}>
-                            <Sparkles className="h-3.5 w-3.5" />
-                            Answer {Math.min(openQuestions.length, 6)} open question
-                            {Math.min(openQuestions.length, 6) === 1 ? '' : 's'} with AI
-                        </button>
-                    ) : null}
+                {copilotRunning ? (
+                    <Card className="p-4">
+                        <div className="space-y-1 font-mono text-[11px] leading-relaxed text-muted-foreground">
+                            {copilotLog.map((line, i) => (
+                                <p key={i} className={i === copilotLog.length - 1 ? 'text-primary-strong dark:text-primary' : ''}>
+                                    {line}
+                                </p>
+                            ))}
+                        </div>
+                        <div className="mt-3 flex gap-2">
+                            <button type="button" className="btn-secondary flex-1" onClick={stopCopilot}>
+                                <Square className="h-3.5 w-3.5" /> Stop
+                            </button>
+                        </div>
+                    </Card>
+                ) : null}
 
-                    <div className="flex gap-2">
+                {phase === 'review' || phase === 'done' ? (
+                    <>
+                        {outcome && phase === 'done' ? (
+                            <Card className="p-4">
+                                <div className="flex items-center gap-2">
+                                    <span className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/15 text-primary-strong dark:text-primary">
+                                        <Check className="h-3.5 w-3.5" />
+                                    </span>
+                                    <p className="text-[13px] font-semibold text-foreground">
+                                        Filled {outcome.filled} field{outcome.filled === 1 ? '' : 's'}
+                                        {outcome.failed > 0 ? (
+                                            <span className="text-muted-foreground"> · {outcome.failed} needs a look</span>
+                                        ) : null}
+                                    </p>
+                                </div>
+                                {outcome.learned.length > 0 && !outcome.savedAnswers ? (
+                                    <div className="mt-3 rounded-lg border border-primary/25 bg-primary/10 p-3">
+                                        <p className="text-[12px] font-medium text-foreground">
+                                            Remember {outcome.learned.length} answer
+                                            {outcome.learned.length === 1 ? '' : 's'} you typed by hand?
+                                        </p>
+                                        <p className="mt-0.5 text-[11px] leading-relaxed text-muted-foreground">
+                                            {outcome.learned
+                                                .slice(0, 2)
+                                                .map((entry) => entry.question)
+                                                .join(' · ')}
+                                            {outcome.learned.length > 2 ? ` +${outcome.learned.length - 2} more` : ''}
+                                        </p>
+                                        <div className="mt-2 flex gap-2">
+                                            <button type="button" className="btn-primary flex-1 !py-1.5 !text-xs" onClick={() => void saveLearned()}>
+                                                <Wand2 className="h-3 w-3" /> Save answers
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="btn-ghost"
+                                                onClick={() => setOutcome({ ...outcome, savedAnswers: true })}
+                                            >
+                                                Dismiss
+                                            </button>
+                                        </div>
+                                    </div>
+                                ) : null}
+                                {outcome.savedAnswers ? (
+                                    <p className="mt-2 text-[11px] text-muted-foreground">
+                                        Saved to your answer library — future forms fill these automatically.
+                                    </p>
+                                ) : null}
+                            </Card>
+                        ) : null}
+
                         <button
                             type="button"
-                            className="btn-primary flex-1"
-                            disabled={selectedRows.length === 0}
-                            onClick={() => void handleFill()}
+                            onClick={onBack}
+                            className="btn-ghost"
+                            aria-label="Back to this page"
                         >
-                            Fill {selectedRows.length} field{selectedRows.length === 1 ? '' : 's'}
+                            <ArrowLeft className="h-3 w-3" />
+                            Back to this page
                         </button>
-                        {step?.hasNext ? (
-                            <button
-                                type="button"
-                                className="btn-secondary"
-                                title="Fill each step and advance until the review page"
-                                onClick={() => void runCopilot()}
-                            >
-                                <ChevronRight className="h-3.5 w-3.5" /> All steps
+
+                        <ReviewSummary rows={rows} openCount={openQuestions.length} />
+
+                        <div className="flex items-center justify-between gap-2 rounded-xl border border-border/70 bg-card/60 px-3 py-2">
+                            <ToggleChip checked={fastMode} onChange={setFastMode} label="Fast mode" title="Skip typing simulation — faster, but some forms validate on keystrokes" />
+                            <ToggleChip
+                                checked={includeSensitive}
+                                onChange={setIncludeSensitive}
+                                label="Voluntary questions"
+                                title="Also fill demographic (EEO) questions from your profile"
+                            />
+                        </div>
+
+                        <Card className="divide-y divide-border/50">
+                            {rows.map((row) => (
+                                <ReviewRow
+                                    key={row.index}
+                                    row={row}
+                                    value={valueOf(row)}
+                                    included={Boolean(included[row.index])}
+                                    includeSensitive={includeSensitive}
+                                    busy={aiBusy === row.index}
+                                    onToggle={() =>
+                                        setIncluded((current) => ({ ...current, [row.index]: !current[row.index] }))
+                                    }
+                                    onEdit={(value) => setEdits((current) => ({ ...current, [row.index]: value }))}
+                                    onGenerate={() => void generateAnswer(row)}
+                                    onAttach={() => void attachDocument(row)}
+                                />
+                            ))}
+                        </Card>
+
+                        {openQuestions.length > 0 ? (
+                            <button type="button" className="btn-secondary w-full" onClick={() => void answerAllOpen()}>
+                                <Sparkles className="h-3.5 w-3.5" />
+                                Answer {Math.min(openQuestions.length, 6)} open question
+                                {Math.min(openQuestions.length, 6) === 1 ? '' : 's'} with AI
                             </button>
                         ) : null}
-                    </div>
-                </>
-            ) : null}
+
+                        <div className="flex gap-2">
+                            <button
+                                type="button"
+                                className="btn-primary flex-1"
+                                disabled={selectedRows.length === 0}
+                                onClick={() => void handleFill()}
+                            >
+                                Fill {selectedRows.length} field{selectedRows.length === 1 ? '' : 's'}
+                            </button>
+                            {step?.hasNext ? (
+                                <button
+                                    type="button"
+                                    className="btn-secondary"
+                                    title="Fill each step and advance until the review page"
+                                    onClick={() => void runCopilot()}
+                                >
+                                    <ChevronRight className="h-3.5 w-3.5" /> All steps
+                                </button>
+                            ) : null}
+                        </div>
+                    </>
+                ) : null}
+            </div>
+        </div>
+    )
+}
+
+function FlowHeader({
+    title,
+    onBack,
+    action,
+}: {
+    title: string
+    onBack: () => void
+    action?: React.ReactNode
+}) {
+    return (
+        <div className="flex shrink-0 items-center gap-2 border-b border-border/70 bg-card/60 px-3 py-2.5 backdrop-blur-md">
+            <button
+                type="button"
+                onClick={onBack}
+                className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                aria-label="Back"
+            >
+                <ArrowLeft className="h-4 w-4" />
+            </button>
+            <h2 className="min-w-0 flex-1 truncate font-display text-[13.5px] font-bold tracking-tight text-foreground">
+                {title}
+            </h2>
+            {action}
         </div>
     )
 }
@@ -518,38 +590,15 @@ export function AutofillTab() {
 // Sub-components
 // ────────────────────────────────────────────────────────────────────────────
 
-function QuickTips() {
-    return (
-        <Card className="p-4">
-            <p className="mb-2 text-[11px] font-medium text-muted-foreground">Also available</p>
-            <ul className="space-y-1.5 text-[11px] leading-relaxed text-muted-foreground">
-                <li className="flex gap-2">
-                    <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
-                    Right-click any field → <span className="text-foreground">Fill this field with ApplyOS</span>
-                </li>
-                <li className="flex gap-2">
-                    <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
-                    Keyboard shortcut → <span className="text-foreground">Alt+Shift+F</span> fills the form
-                </li>
-                <li className="flex gap-2">
-                    <ChevronRight className="mt-0.5 h-3 w-3 shrink-0 text-primary" />
-                    Save a job from any page → <span className="text-foreground">Alt+Shift+S</span>
-                </li>
-            </ul>
-        </Card>
-    )
-}
-
 function ReviewSummary({ rows, openCount }: { rows: PlanRow[]; openCount: number }) {
     const ready = rows.filter((r) => r.status === 'ready').length
     const files = rows.filter((r) => r.status === 'file').length
     const filled = rows.filter((r) => r.status === 'already-filled').length
-    const blocked = rows.filter((r) => r.status === 'sensitive').length
 
     return (
         <div className="grid grid-cols-4 gap-2">
             <SummaryStat value={ready} label="Ready" tone="primary" />
-            <SummaryStat value={openCount} label="Open Qs" />
+            <SummaryStat value={openCount} label="Open" />
             <SummaryStat value={files} label="Files" />
             <SummaryStat value={filled} label="Done" />
         </div>
@@ -569,7 +618,7 @@ function SummaryStat({
         <div className="rounded-xl border border-border/70 bg-card px-2 py-1.5 text-center">
             <p
                 className={cn(
-                    'font-display text-base font-bold leading-none tabular-nums',
+                    'font-display text-base font-bold leading-none tabular-nums text-foreground',
                     tone === 'primary' && 'text-primary-strong dark:text-primary'
                 )}
             >
@@ -681,7 +730,7 @@ function ReviewRow({
                         {row.label}
                     </p>
                     {STATUS_BADGES[row.status] ? (
-                        <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-px text-[9px] font-semibold uppercase tracking-wide text-muted-foreground">
+                        <span className="shrink-0 rounded-full border border-border bg-muted px-1.5 py-px text-[9px] font-semibold text-muted-foreground">
                             {STATUS_BADGES[row.status]}
                         </span>
                     ) : null}

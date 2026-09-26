@@ -205,7 +205,6 @@ function Options() {
                             <span className="text-primary">Apply</span>OS
                         </span>
                     </div>
-                    <p className="overline mb-1">Extension</p>
                     <h1 className="font-display text-[26px] font-bold tracking-[-0.02em]">Settings</h1>
                     <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
                         Everything here is stored on your device. ApplyOS only reads a page when you ask
