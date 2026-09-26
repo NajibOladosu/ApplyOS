@@ -8,9 +8,11 @@ import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
 import { Textarea } from "@/shared/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs"
+import { StatusPill, PriorityDot, STATUS_META } from "@/components/data/status-pill"
 import { motion } from "framer-motion"
 import {
   ArrowLeft,
+  Wand2,
   ExternalLink,
   Calendar,
   Sparkles,
@@ -739,912 +741,835 @@ export default function ApplicationDetailPage() {
     <DashboardLayout>
       <div className="space-y-6">
         {/* Header */}
-        <div className="flex flex-col gap-3 sm:gap-4">
-          <div className="flex items-start gap-2 sm:gap-4">
-            <Link href="/applications">
-              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 shrink-0 mt-1">
-                <ArrowLeft className="h-4 w-4" />
+        <div className="flex flex-col gap-4">
+          <Link
+            href="/applications"
+            className="inline-flex w-fit items-center gap-1.5 text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" />
+            Applications
+          </Link>
+
+          <div className="flex flex-col gap-4 border-b border-border/60 pb-5 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0">
+              <div className="flex flex-wrap items-center gap-2">
+                <StatusPill status={application.status} />
+                <PriorityDot priority={application.priority} />
+                {application.archived ? (
+                  <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/60 px-2.5 py-1 text-xs font-medium text-muted-foreground">
+                    Archived
+                  </span>
+                ) : null}
+              </div>
+              <h1 className="mt-3 break-words font-display text-[26px] font-bold leading-tight tracking-[-0.02em] text-foreground md:text-[30px]">
+                {application.title}
+              </h1>
+              <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[13px] text-muted-foreground">
+                {application.company && <span className="font-medium text-foreground/80">{application.company}</span>}
+                <span className="capitalize">{application.type}</span>
+                {application.deadline && (
+                  <span className="flex items-center gap-1.5">
+                    <Calendar className="h-3.5 w-3.5" />
+                    {new Date(application.deadline).toLocaleDateString(undefined, {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </span>
+                )}
+                {application.url && (
+                  <a
+                    href={application.url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-1 font-medium text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+                  >
+                    <span className="max-w-[220px] truncate">View posting</span>
+                    <ExternalLink className="h-3 w-3 shrink-0" />
+                  </a>
+                )}
+              </div>
+            </div>
+
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Button variant="outline" size="sm" onClick={() => setShowEditModal(true)} className="h-9 rounded-lg">
+                <Edit className="mr-1.5 h-3.5 w-3.5" />
+                Edit
               </Button>
-            </Link>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-xl sm:text-2xl md:text-3xl font-bold break-words">{application.title}</h1>
-              {application.url ? (
-                <a
-                  href={application.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-xs sm:text-sm text-primary hover:underline flex items-center gap-1 mt-1 break-all"
-                >
-                  <span className="truncate">{application.url}</span>
-                  <ExternalLink className="h-3 w-3 shrink-0" />
-                </a>
-              ) : (
-                <div className="h-5 mt-1" />
-              )}
+              <Button
+                size="sm"
+                asChild
+                className="h-9 rounded-lg bg-primary text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] hover:bg-primary"
+              >
+                <Link href="/apply">
+                  <Wand2 className="mr-1.5 h-3.5 w-3.5" />
+                  Apply Kit
+                </Link>
+              </Button>
             </div>
           </div>
         </div>
 
-        {/* Application Info (Static) */}
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle>Application Information</CardTitle>
-            <Button variant="ghost" size="icon" onClick={() => setShowEditModal(true)} className="h-8 w-8 text-muted-foreground hover:text-primary">
-              <Edit className="h-4 w-4" />
-              <span className="sr-only">Edit Application</span>
-            </Button>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-5 gap-3 sm:gap-4">
-              {application.company && (
-                <div>
-                  <p className="text-sm text-muted-foreground mb-1">Company/University</p>
-                  <div className="h-[38px] flex items-center">
-                    <span className="text-sm font-medium truncate">
-                      {application.company}
-                    </span>
-                  </div>
-                </div>
-              )}
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Status</p>
-                <div className="relative inline-block w-full">
-                  <button
-                    onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
-                    className="w-full h-[38px] flex items-center justify-between px-3 py-2 rounded-md border border-input hover:bg-muted transition-colors text-sm font-medium"
-                  >
-                    <span className="capitalize">
-                      {statusLabel[pendingStatus || application.status]}
-                    </span>
-                    <ChevronDown className="h-4 w-4 text-muted-foreground" />
-                  </button>
-                  {statusDropdownOpen && (
-                    <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-popover border border-input rounded-md shadow-md">
-                      {(Object.keys(statusLabel) as Array<keyof typeof statusLabel>).map((status) => (
-                        <button
-                          key={status}
-                          onClick={() => {
-                            handleStatusChange(status)
-                            setStatusDropdownOpen(false)
-                          }}
-                          className={`w-full text-left px-3 py-2 text-sm transition-colors hover:bg-muted ${pendingStatus === status ? "bg-muted font-medium" : ""
-                            }`}
-                        >
-                          {statusLabel[status]}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Priority</p>
-                <div className="h-[38px] flex items-center space-x-2">
-                  <div className={`h-2 w-2 rounded-full ${priorityColor[application.priority]}`} />
-                  <span className="text-sm font-medium capitalize">
-                    {application.priority}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Deadline</p>
-                <div className="h-[38px] flex items-center space-x-2">
-                  <Calendar className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm font-medium">
-                    {application.deadline
-                      ? new Date(application.deadline).toLocaleDateString()
-                      : "No deadline"}
-                  </span>
-                </div>
-              </div>
-              <div>
-                <p className="text-sm text-muted-foreground mb-1">Type</p>
-                <div className="h-[38px] flex items-center">
-                  <Badge variant="outline" className="capitalize">
-                    {application.type}
-                  </Badge>
-                </div>
-              </div>
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="min-w-0 space-y-6">
+            {/* Job description — collapsed into the rail below; the tabs are
+                the work surface, so they lead the layout */}
+
+          {/* Tabs */}
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+            <div className="mb-6 overflow-x-auto">
+              <TabsList className="w-full min-w-0 sm:w-auto">
+                <TabsTrigger value="questions">Questions</TabsTrigger>
+                <TabsTrigger value="cover-letter">Cover Letter</TabsTrigger>
+                <TabsTrigger value="analysis">Analysis</TabsTrigger>
+                <TabsTrigger value="job-fit">Job Fit</TabsTrigger>
+                <TabsTrigger value="contacts">Contacts</TabsTrigger>
+                <TabsTrigger value="notes">Notes</TabsTrigger>
+                <TabsTrigger value="interview">Interview</TabsTrigger>
+              </TabsList>
             </div>
 
-
-            {application.job_description && (
-              <div className="border-t pt-4">
-                <p className="text-sm font-medium mb-3">
-                  {application.type === 'scholarship' ? 'Scholarship Details' : 'Job Description'}
-                </p>
-                <motion.div
-                  animate={{ height: "auto" }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <div
-                    className={`text-sm whitespace-pre-wrap text-muted-foreground bg-muted/30 p-3 rounded border border-input transition-all ${jobDescriptionExpanded ? "" : "line-clamp-3"
-                      }`}
-                  >
-                    {application.job_description}
-                  </div>
-                </motion.div>
-                {application.job_description.split("\n").length > 3 && (
-                  <button
-                    onClick={() => setJobDescriptionExpanded(!jobDescriptionExpanded)}
-                    className="mt-2 text-xs text-primary hover:underline transition-colors"
-                  >
-                    {jobDescriptionExpanded ? "Show Less" : "Show More"}
-                  </button>
-                )}
-                <JdSummaryCard jobDescription={application.job_description} />
-              </div>
-            )}
-
-            {/* Related Documents */}
-            <div className="border-t pt-4">
-              <p className="text-sm font-medium mb-3">Related Documents</p>
-              <p className="text-xs text-muted-foreground mb-4">
-                Select documents to use as context for generating AI answers to application questions.
-              </p>
-
-              {/* Add Document Button */}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  setPendingDocumentIds([])
-                  setShowDocumentModal(true)
-                }}
-                className="mb-4"
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Add Document
-              </Button>
-
-              {/* Selected Documents List */}
-              {selectedDocumentIds.length === 0 ? (
-                <p className="text-sm text-muted-foreground italic">
-                  No documents selected yet. Click &quot;Add Document&quot; to select documents.
-                </p>
-              ) : (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-                  {selectedDocumentIds.map((docId) => {
-                    const doc = documents.find((d) => d.id === docId)
-                    if (!doc) return null
-                    return (
-                      <div
-                        key={doc.id}
-                        className="rounded-lg border p-3 flex items-center gap-3 transition-all hover:bg-muted relative group border-input bg-card"
-                      >
-                        <div className="p-2 rounded bg-background border flex items-center justify-center">
-                          <FileText className="h-4 w-4 text-primary" />
-                        </div>
-                        <div className="overflow-hidden flex-1">
-                          <p className="text-sm font-medium truncate">{doc.file_name}</p>
-                          <p className="text-xs text-muted-foreground truncate">
-                            {((doc.file_size || 0) / 1024).toFixed(0)} KB • {doc.analysis_status === "success" ? "Analyzed" : "Pending"}
-                          </p>
-                        </div>
-                        <button
-                          onClick={() => removeDocument(doc.id)}
-                          className="p-1 hover:bg-destructive/10 hover:text-destructive rounded-full transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 absolute top-1 right-1"
-                          title="Remove document"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      </div>
-                    )
-                  })}
-                </div>
-              )}
-
-              {/* Document Selection Modal */}
-              {showDocumentModal && (
-                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center">
-                  <Card className="w-full max-w-md mx-4">
-                    <CardHeader>
-                      <CardTitle>Select Documents</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                      {documents.length === 0 ? (
-                        <p className="text-sm text-muted-foreground">
-                          No documents available. Upload documents in the Documents section first.
-                        </p>
+            {/* Questions Tab */}
+            <TabsContent value="questions" className="space-y-6 mt-0">
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+                    <MessageSquareText className="h-6 w-6 text-foreground dark:text-primary" />
+                    Application Questions
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleExtractQuestions}
+                      disabled={extracting || regenerating !== null || !application.url}
+                      title={!application.url ? "Add a URL to the application first" : "Extract questions from the application URL"}
+                    >
+                      {extracting ? (
+                        <>
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          Extracting...
+                        </>
                       ) : (
                         <>
-                          <div className="space-y-2 max-h-64 overflow-y-auto">
-                            {documents.map((doc) => (
-                              <button
-                                key={doc.id}
-                                onClick={() => toggleDocumentSelection(doc.id)}
-                                className={`w-full text-left p-3 rounded border transition-all ${pendingDocumentIds.includes(doc.id)
-                                  ? "border-primary bg-primary/10"
-                                  : "border-input hover:border-primary/50 hover:bg-muted/50"
-                                  }`}
-                              >
-                                <p className="text-sm font-medium truncate">{doc.file_name}</p>
-                                <p className="text-xs text-muted-foreground">
-                                  {doc.analysis_status === "success"
-                                    ? "✓ Analyzed"
-                                    : doc.analysis_status === "pending"
-                                      ? "⏳ Analyzing..."
-                                      : "✗ Not analyzed"}
-                                </p>
-                              </button>
-                            ))}
-                          </div>
-                          <div className="flex space-x-2 pt-4 border-t">
-                            <Button
-                              variant="outline"
-                              onClick={() => setShowDocumentModal(false)}
-                              className="flex-1"
-                            >
-                              Cancel
-                            </Button>
-                            <Button
-                              onClick={addSelectedDocuments}
-                              disabled={pendingDocumentIds.length === 0}
-                              className="flex-1"
-                            >
-                              Add Selected
-                            </Button>
-                          </div>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Extract Questions
                         </>
                       )}
-                    </CardContent>
-                  </Card>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowEditQuestionsModal(true)}
+                      disabled={regenerating !== null || extracting}
+                      title="Edit, delete, or add new questions"
+                    >
+                      <Edit className="mr-2 h-4 w-4" />
+                      Edit Questions
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleRegenerate()}
+                      disabled={regenerating !== null || questions.length === 0}
+                    >
+                      {regenerating === "all" ? (
+                        <>
+                          <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                          {regenerateProgress && regenerateProgress.total > 0
+                            ? `Generating ${regenerateProgress.current}/${regenerateProgress.total}...`
+                            : "Generating..."}
+                        </>
+                      ) : (
+                        <>
+                          <Sparkles className="mr-2 h-4 w-4" />
+                          Generate All
+                        </>
+                      )}
+                    </Button>
+                  </div>
                 </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
 
-        {/* Tabs */}
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <div className="flex justify-center mb-6">
-            <TabsList className="grid grid-cols-7 w-full sm:w-auto">
-              <TabsTrigger
-                value="questions"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Questions
-              </TabsTrigger>
-              <TabsTrigger
-                value="cover-letter"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Cover Letter
-              </TabsTrigger>
-              <TabsTrigger
-                value="analysis"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Analysis
-              </TabsTrigger>
-              <TabsTrigger
-                value="job-fit"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Job Fit
-              </TabsTrigger>
-              <TabsTrigger
-                value="contacts"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Contacts
-              </TabsTrigger>
-              <TabsTrigger
-                value="notes"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Notes
-              </TabsTrigger>
-              <TabsTrigger
-                value="interview"
-                className="data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
-              >
-                Interview
-              </TabsTrigger>
-            </TabsList>
-          </div>
+                {questions.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    No questions found for this application yet. {application.url ? "Click 'Extract Questions' above to automatically extract questions from the application URL, or" : "You can"} add questions when creating or editing the application.
+                  </p>
+                ) : (
+                  questions.map((question, index) => (
+                    <motion.div
+                      key={question.id}
+                      initial={{ opacity: 0, y: 20 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.3, delay: index * 0.1 }}
+                    >
+                      <Card>
+                        <CardHeader className="p-4 sm:p-6">
+                          <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
+                            <div className="flex-1 min-w-0">
+                              <CardTitle className="text-base sm:text-lg">
+                                Question {index + 1}
+                              </CardTitle>
+                              <CardDescription className="text-sm sm:text-base font-medium text-foreground break-words">
+                                {question.question_text}
+                              </CardDescription>
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRegenerate(question.id)}
+                              disabled={regenerating === question.id || regenerating === "all"}
+                              className="shrink-0 text-xs sm:text-sm self-end sm:self-start"
+                            >
+                              {regenerating === question.id ? (
+                                <>
+                                  <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
+                                  {question.ai_answer ? "Regenerating" : "Generating"}
+                                </>
+                              ) : (
+                                <>
+                                  <RotateCw className="mr-1.5 h-3 w-3" />
+                                  {question.ai_answer ? "Regenerate" : "Generate"}
+                                </>
+                              )}
+                            </Button>
+                          </div>
+                        </CardHeader>
+                        <CardContent className="space-y-4">
+                          <div>
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <p className="text-sm font-medium">AI-Generated Answer</p>
+                            </div>
+                            <Textarea
+                              value={question.ai_answer || ""}
+                              rows={5}
+                              className="resize-none"
+                              readOnly
+                              placeholder="No AI-generated answer yet."
+                            />
+                          </div>
 
-          {/* Questions Tab */}
-          <TabsContent value="questions" className="space-y-6 mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  <MessageSquareText className="h-6 w-6 text-foreground dark:text-primary" />
-                  Application Questions
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleExtractQuestions}
-                    disabled={extracting || regenerating !== null || !application.url}
-                    title={!application.url ? "Add a URL to the application first" : "Extract questions from the application URL"}
-                  >
-                    {extracting ? (
-                      <>
-                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                        Extracting...
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Extract Questions
-                      </>
-                    )}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowEditQuestionsModal(true)}
-                    disabled={regenerating !== null || extracting}
-                    title="Edit, delete, or add new questions"
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Questions
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleRegenerate()}
-                    disabled={regenerating !== null || questions.length === 0}
-                  >
-                    {regenerating === "all" ? (
-                      <>
-                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                        {regenerateProgress && regenerateProgress.total > 0
-                          ? `Generating ${regenerateProgress.current}/${regenerateProgress.total}...`
-                          : "Generating..."}
-                      </>
-                    ) : (
-                      <>
-                        <Sparkles className="mr-2 h-4 w-4" />
-                        Generate All
-                      </>
-                    )}
-                  </Button>
-                </div>
+                          {question.ai_answer && (
+                            <div className="flex justify-center">
+                              <Button
+                                variant="outline"
+                                size="icon"
+                                onClick={() => handleCopyAIAnswer(question.id, question.ai_answer || "")}
+                                disabled={saving === question.id}
+                                className="hover:bg-primary hover:shadow-[0_4px_16px_-4px_rgba(24,187,112,0.5)] group"
+                                title="Copy AI answer to your edited answer"
+                              >
+                                <Copy className="h-4 w-4 text-primary group-hover:text-background" />
+                              </Button>
+                            </div>
+                          )}
+
+                          <div>
+                            <p className="text-xs text-muted-foreground mb-1">
+                              Your edited answer (saved privately for this application)
+                            </p>
+                            <Textarea
+                              ref={(el) => {
+                                if (el) textareaRefs.set(question.id, el)
+                              }}
+                              defaultValue={question.manual_answer || ""}
+                              rows={4}
+                              onBlur={(e) =>
+                                e.target.value !== (question.manual_answer || "")
+                                  ? handleSaveManual(question.id, e.target.value)
+                                  : undefined
+                              }
+                              disabled={saving === question.id}
+                            />
+                            {saving === question.id && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Saving...
+                              </p>
+                            )}
+                          </div>
+                        </CardContent>
+                      </Card>
+                    </motion.div>
+                  ))
+                )}
               </div>
+            </TabsContent>
 
-              {questions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  No questions found for this application yet. {application.url ? "Click 'Extract Questions' above to automatically extract questions from the application URL, or" : "You can"} add questions when creating or editing the application.
-                </p>
-              ) : (
-                questions.map((question, index) => (
+            {/* Cover Letter Tab */}
+            <TabsContent value="cover-letter" className="space-y-6 mt-0">
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+                    <Mail className="h-6 w-6 text-foreground dark:text-primary" />
+                    Cover Letter
+                  </h2>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleGenerateCoverLetter}
+                    disabled={generatingCoverLetter}
+                  >
+                    {generatingCoverLetter ? (
+                      <>
+                        <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                        Generating...
+                      </>
+                    ) : (
+                      <>
+                        <Sparkles className="mr-2 h-4 w-4" />
+                        Generate Cover Letter
+                      </>
+                    )}
+                  </Button>
+                </div>
+
+                {application?.ai_cover_letter && (
                   <motion.div
-                    key={question.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.3, delay: index * 0.1 }}
+                    transition={{ duration: 0.3 }}
                   >
                     <Card>
                       <CardHeader className="p-4 sm:p-6">
-                        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4">
-                          <div className="flex-1 min-w-0">
-                            <CardTitle className="text-base sm:text-lg">
-                              Question {index + 1}
-                            </CardTitle>
-                            <CardDescription className="text-sm sm:text-base font-medium text-foreground break-words">
-                              {question.question_text}
-                            </CardDescription>
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRegenerate(question.id)}
-                            disabled={regenerating === question.id || regenerating === "all"}
-                            className="shrink-0 text-xs sm:text-sm self-end sm:self-start"
-                          >
-                            {regenerating === question.id ? (
-                              <>
-                                <Loader2 className="mr-1.5 h-3 w-3 animate-spin" />
-                                {question.ai_answer ? "Regenerating" : "Generating"}
-                              </>
-                            ) : (
-                              <>
-                                <RotateCw className="mr-1.5 h-3 w-3" />
-                                {question.ai_answer ? "Regenerate" : "Generate"}
-                              </>
-                            )}
-                          </Button>
-                        </div>
+                        <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
                       </CardHeader>
-                      <CardContent className="space-y-4">
-                        <div>
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            <p className="text-sm font-medium">AI-Generated Answer</p>
+                      <CardContent className="p-4 sm:p-6">
+                        <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
+                          {/* AI-Generated Cover Letter */}
+                          <div className="flex-1 flex flex-col">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <Sparkles className="h-4 w-4 text-primary" />
+                              <p className="text-sm font-medium">AI-Generated Cover Letter</p>
+                            </div>
+                            <Textarea
+                              value={application.ai_cover_letter || ""}
+                              className="resize-none flex-1 min-h-[400px]"
+                              readOnly
+                              placeholder="No AI-generated cover letter yet."
+                            />
                           </div>
-                          <Textarea
-                            value={question.ai_answer || ""}
-                            rows={5}
-                            className="resize-none"
-                            readOnly
-                            placeholder="No AI-generated answer yet."
-                          />
-                        </div>
 
-                        {question.ai_answer && (
-                          <div className="flex justify-center">
+                          {/* Copy Button */}
+                          <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
                             <Button
                               variant="outline"
                               size="icon"
-                              onClick={() => handleCopyAIAnswer(question.id, question.ai_answer || "")}
-                              disabled={saving === question.id}
-                              className="glow-effect hover:bg-primary group"
-                              title="Copy AI answer to your edited answer"
+                              onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
+                              disabled={savingCoverLetter}
+                              className="hover:bg-primary hover:shadow-[0_4px_16px_-4px_rgba(24,187,112,0.5)] group"
+                              title="Copy AI cover letter to your edited cover letter"
                             >
                               <Copy className="h-4 w-4 text-primary group-hover:text-background" />
                             </Button>
                           </div>
-                        )}
 
-                        <div>
-                          <p className="text-xs text-muted-foreground mb-1">
-                            Your edited answer (saved privately for this application)
-                          </p>
-                          <Textarea
-                            ref={(el) => {
-                              if (el) textareaRefs.set(question.id, el)
-                            }}
-                            defaultValue={question.manual_answer || ""}
-                            rows={4}
-                            onBlur={(e) =>
-                              e.target.value !== (question.manual_answer || "")
-                                ? handleSaveManual(question.id, e.target.value)
-                                : undefined
-                            }
-                            disabled={saving === question.id}
-                          />
-                          {saving === question.id && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Saving...
+                          {/* Your Edited Cover Letter */}
+                          <div className="flex-1 flex flex-col">
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Your edited cover letter (saved privately for this application)
                             </p>
-                          )}
+                            <Textarea
+                              ref={coverLetterTextareaRef}
+                              defaultValue={application.manual_cover_letter || ""}
+                              className="resize-none flex-1 min-h-[400px]"
+                              onBlur={(e) =>
+                                e.target.value !== (application.manual_cover_letter || "")
+                                  ? handleSaveManualCoverLetter(e.target.value)
+                                  : undefined
+                              }
+                              disabled={savingCoverLetter}
+                            />
+                            {savingCoverLetter && (
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Saving...
+                              </p>
+                            )}
+                          </div>
                         </div>
                       </CardContent>
                     </Card>
                   </motion.div>
-                ))
-              )}
-            </div>
-          </TabsContent>
-
-          {/* Cover Letter Tab */}
-          <TabsContent value="cover-letter" className="space-y-6 mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  <Mail className="h-6 w-6 text-foreground dark:text-primary" />
-                  Cover Letter
-                </h2>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleGenerateCoverLetter}
-                  disabled={generatingCoverLetter}
-                >
-                  {generatingCoverLetter ? (
-                    <>
-                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
-                      Generating...
-                    </>
-                  ) : (
-                    <>
-                      <Sparkles className="mr-2 h-4 w-4" />
-                      Generate Cover Letter
-                    </>
-                  )}
-                </Button>
+                )}
               </div>
+            </TabsContent>
 
-              {application?.ai_cover_letter && (
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.3 }}
-                >
-                  <Card>
-                    <CardHeader className="p-4 sm:p-6">
-                      <CardTitle className="text-base sm:text-lg">Generated Cover Letter</CardTitle>
-                    </CardHeader>
-                    <CardContent className="p-4 sm:p-6">
-                      <div className="flex flex-col lg:flex-row gap-4 lg:gap-6">
-                        {/* AI-Generated Cover Letter */}
-                        <div className="flex-1 flex flex-col">
-                          <div className="flex items-center space-x-2 mb-2">
-                            <Sparkles className="h-4 w-4 text-primary" />
-                            <p className="text-sm font-medium">AI-Generated Cover Letter</p>
-                          </div>
-                          <Textarea
-                            value={application.ai_cover_letter || ""}
-                            className="resize-none flex-1 min-h-[400px]"
-                            readOnly
-                            placeholder="No AI-generated cover letter yet."
-                          />
-                        </div>
+            {/* Analysis Tab */}
+            <TabsContent value="analysis" className="mt-6">
+              <AnalysisTab
+                application={application}
+                documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
+              />
+            </TabsContent>
 
-                        {/* Copy Button */}
-                        <div className="flex items-center justify-center lg:flex-col gap-2 lg:gap-0">
-                          <Button
-                            variant="outline"
-                            size="icon"
-                            onClick={() => handleCopyAICoverLetter(application.ai_cover_letter || "")}
-                            disabled={savingCoverLetter}
-                            className="glow-effect hover:bg-primary group"
-                            title="Copy AI cover letter to your edited cover letter"
-                          >
-                            <Copy className="h-4 w-4 text-primary group-hover:text-background" />
-                          </Button>
-                        </div>
+            {/* Job Fit Tab */}
+            <TabsContent value="job-fit" className="mt-6">
+              <JobFitCard
+                jobDescription={application.job_description}
+                documentId={selectedDocumentIds[0]}
+              />
+            </TabsContent>
 
-                        {/* Your Edited Cover Letter */}
-                        <div className="flex-1 flex flex-col">
-                          <p className="text-xs text-muted-foreground mb-2">
-                            Your edited cover letter (saved privately for this application)
-                          </p>
-                          <Textarea
-                            ref={coverLetterTextareaRef}
-                            defaultValue={application.manual_cover_letter || ""}
-                            className="resize-none flex-1 min-h-[400px]"
-                            onBlur={(e) =>
-                              e.target.value !== (application.manual_cover_letter || "")
-                                ? handleSaveManualCoverLetter(e.target.value)
-                                : undefined
-                            }
-                            disabled={savingCoverLetter}
-                          />
-                          {savingCoverLetter && (
-                            <p className="text-xs text-muted-foreground mt-1">
-                              Saving...
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </motion.div>
-              )}
-            </div>
-          </TabsContent>
+            {/* Contacts Tab */}
+            <TabsContent value="contacts" className="mt-6">
+              <ContactsTab applicationId={application.id} />
+            </TabsContent>
 
-          {/* Analysis Tab */}
-          <TabsContent value="analysis" className="mt-6">
-            <AnalysisTab
-              application={application}
-              documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
-            />
-          </TabsContent>
-
-          {/* Job Fit Tab */}
-          <TabsContent value="job-fit" className="mt-6">
-            <JobFitCard
-              jobDescription={application.job_description}
-              documentId={selectedDocumentIds[0]}
-            />
-          </TabsContent>
-
-          {/* Contacts Tab */}
-          <TabsContent value="contacts" className="mt-6">
-            <ContactsTab applicationId={application.id} />
-          </TabsContent>
-
-          {/* Notes Tab */}
-          <TabsContent value="notes" className="space-y-6 mt-0">
-            <div className="space-y-4">
-              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                  <StickyNote className="h-6 w-6 text-foreground dark:text-primary" />
-                  Notes
-                </h2>
-                <div className="flex flex-wrap gap-2">
-                  <div className="flex items-center gap-1 border border-input rounded-lg p-1">
+            {/* Notes Tab */}
+            <TabsContent value="notes" className="space-y-6 mt-0">
+              <div className="space-y-4">
+                <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+                    <StickyNote className="h-6 w-6 text-foreground dark:text-primary" />
+                    Notes
+                  </h2>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="flex items-center gap-1 border border-input rounded-lg p-1">
+                      <Button
+                        variant={notesViewType === "card" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => {
+                          setNotesViewType("card")
+                          localStorage.setItem(`notes-view-${id}`, "card")
+                        }}
+                        className="text-xs"
+                      >
+                        Card View
+                      </Button>
+                      <Button
+                        variant={notesViewType === "timeline" ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => {
+                          setNotesViewType("timeline")
+                          localStorage.setItem(`notes-view-${id}`, "timeline")
+                        }}
+                        className="text-xs"
+                      >
+                        Timeline
+                      </Button>
+                    </div>
                     <Button
-                      variant={notesViewType === "card" ? "default" : "ghost"}
-                      size="sm"
+                      variant="outline"
                       onClick={() => {
-                        setNotesViewType("card")
-                        localStorage.setItem(`notes-view-${id}`, "card")
+                        const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
+                        setNotesSortOrder(newOrder)
+                        localStorage.setItem(`notes-sort-${id}`, newOrder)
                       }}
-                      className="text-xs"
+                      title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
                     >
-                      Card View
+                      <ArrowUpDown className="h-4 w-4 mr-2" />
+                      {notesSortOrder === "newest" ? "Newest" : "Oldest"}
                     </Button>
                     <Button
-                      variant={notesViewType === "timeline" ? "default" : "ghost"}
-                      size="sm"
-                      onClick={() => {
-                        setNotesViewType("timeline")
-                        localStorage.setItem(`notes-view-${id}`, "timeline")
-                      }}
-                      className="text-xs"
-                    >
-                      Timeline
-                    </Button>
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      const newOrder = notesSortOrder === "newest" ? "oldest" : "newest"
-                      setNotesSortOrder(newOrder)
-                      localStorage.setItem(`notes-sort-${id}`, newOrder)
-                    }}
-                    title={`Currently: ${notesSortOrder === "newest" ? "Newest First" : "Oldest First"}`}
-                  >
-                    <ArrowUpDown className="h-4 w-4 mr-2" />
-                    {notesSortOrder === "newest" ? "Newest" : "Oldest"}
-                  </Button>
-                  <Button
-                    onClick={handleNewNote}
-                    className="glow-effect flex-1 sm:flex-none"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Add Note
-                  </Button>
-                </div>
-              </div>
-
-              {notesLoading ? (
-                <div className="flex items-center justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : (() => {
-                // Sort notes based on notesSortOrder
-                const sortedNotes = [...notes].sort((a, b) => {
-                  // Keep pinned notes first
-                  if (a.is_pinned !== b.is_pinned) {
-                    return a.is_pinned ? -1 : 1
-                  }
-                  // Then sort by date
-                  const dateA = new Date(a.created_at).getTime()
-                  const dateB = new Date(b.created_at).getTime()
-                  return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
-                })
-
-                return notesViewType === "card" ? (
-                  <NotesCardView
-                    notes={sortedNotes}
-                    onEdit={handleEditNote}
-                    onDelete={handleDeleteNote}
-                    onTogglePin={handleTogglePinNote}
-                  />
-                ) : (
-                  <NotesTimelineView
-                    notes={sortedNotes}
-                    onEdit={handleEditNote}
-                    onDelete={handleDeleteNote}
-                    onTogglePin={handleTogglePinNote}
-                  />
-                )
-              })()}
-            </div>
-          </TabsContent>
-
-          {/* Interview Tab */}
-          <TabsContent value="interview" className="mt-0">
-            <div>
-              {selectedSessionId ? (
-                // Show session detail when a session is selected
-                <InterviewModeWrapper
-                  sessionId={selectedSessionId}
-                  onComplete={async () => {
-                    // Reload sessions to update completion status
-                    try {
-                      const sessions = await getInterviewSessions(id!)
-                      setInterviewSessions(sessions)
-                      setSelectedSessionId(null) // Go back to list
-                    } catch (err) {
-                      console.error('Error reloading sessions:', err)
-                    }
-                  }}
-                  onBack={() => setSelectedSessionId(null)}
-                />
-              ) : (
-                <>
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                    <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                      <Mic className="h-6 w-6 text-foreground dark:text-primary" />
-                      Mock Interview
-                    </h2>
-                    <Button
-                      className="glow-effect flex-1 sm:flex-none"
-                      onClick={() => setShowNewInterviewModal(true)}
+                      onClick={handleNewNote}
+                      className="flex-1 rounded-lg font-semibold shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] sm:flex-none"
                     >
                       <Plus className="h-4 w-4 mr-2" />
-                      New Interview
+                      Add Note
                     </Button>
                   </div>
+                </div>
 
-                  {interviewSessions.length === 0 ? (
-                    // Empty state when no sessions
-                    <Card className="border-2">
-                      <CardContent className="pt-6">
-                        <div className="text-center py-12">
-                          <Mic className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
-                          <h3 className="text-lg font-semibold mb-2">AI-Powered Interview Practice</h3>
-                          <p className="text-muted-foreground max-w-md mx-auto mb-6">
-                            Practice your interview skills with AI-generated questions tailored to your application.
-                            Get real-time feedback and improve your responses.
-                          </p>
-                          <Button
-                            className="glow-effect"
-                            onClick={() => setShowNewInterviewModal(true)}
-                          >
-                            <Plus className="h-5 w-5 mr-2" />
-                            Start Your First Interview
-                          </Button>
-                        </div>
-                      </CardContent>
-                    </Card>
+                {notesLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                  </div>
+                ) : (() => {
+                  // Sort notes based on notesSortOrder
+                  const sortedNotes = [...notes].sort((a, b) => {
+                    // Keep pinned notes first
+                    if (a.is_pinned !== b.is_pinned) {
+                      return a.is_pinned ? -1 : 1
+                    }
+                    // Then sort by date
+                    const dateA = new Date(a.created_at).getTime()
+                    const dateB = new Date(b.created_at).getTime()
+                    return notesSortOrder === "newest" ? dateB - dateA : dateA - dateB
+                  })
+
+                  return notesViewType === "card" ? (
+                    <NotesCardView
+                      notes={sortedNotes}
+                      onEdit={handleEditNote}
+                      onDelete={handleDeleteNote}
+                      onTogglePin={handleTogglePinNote}
+                    />
                   ) : (
-                    // Session list when sessions exist
-                    <div className="grid grid-cols-1 gap-4">
-                      {interviewSessions.map((session) => {
-                        const sessionTypeLabels: Record<string, string> = {
-                          behavioral: "Behavioral",
-                          technical: "Technical",
-                          mixed: "Mixed",
-                          resume_grill: "Resume Grill",
-                          company_specific: "Company-Specific"
-                        }
+                    <NotesTimelineView
+                      notes={sortedNotes}
+                      onEdit={handleEditNote}
+                      onDelete={handleDeleteNote}
+                      onTogglePin={handleTogglePinNote}
+                    />
+                  )
+                })()}
+              </div>
+            </TabsContent>
 
-                        const difficultyColors = {
-                          easy: "bg-green-500/10 text-green-700 dark:text-green-400",
-                          medium: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
-                          hard: "bg-red-500/10 text-red-700 dark:text-red-400"
-                        }
+            {/* Interview Tab */}
+            <TabsContent value="interview" className="mt-0">
+              <div>
+                {selectedSessionId ? (
+                  // Show session detail when a session is selected
+                  <InterviewModeWrapper
+                    sessionId={selectedSessionId}
+                    onComplete={async () => {
+                      // Reload sessions to update completion status
+                      try {
+                        const sessions = await getInterviewSessions(id!)
+                        setInterviewSessions(sessions)
+                        setSelectedSessionId(null) // Go back to list
+                      } catch (err) {
+                        console.error('Error reloading sessions:', err)
+                      }
+                    }}
+                    onBack={() => setSelectedSessionId(null)}
+                  />
+                ) : (
+                  <>
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <h2 className="font-display flex items-center gap-2 text-xl font-bold tracking-tight sm:text-2xl">
+                        <Mic className="h-6 w-6 text-foreground dark:text-primary" />
+                        Mock Interview
+                      </h2>
+                      <Button
+                        className="flex-1 rounded-lg font-semibold shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)] sm:flex-none"
+                        onClick={() => setShowNewInterviewModal(true)}
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Interview
+                      </Button>
+                    </div>
 
-                        const progress = session.total_questions > 0
-                          ? (session.answered_questions / session.total_questions) * 100
-                          : 0
-
-                        const avgScore = session.average_score || 0
-
-                        return (
-                          <motion.div
-                            key={session.id}
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.3 }}
-                            whileHover={{ scale: 1.01 }}
-                          >
-                            <Card
-                              className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm"
-                              onClick={() => setSelectedSessionId(session.id)}
+                    {interviewSessions.length === 0 ? (
+                      // Empty state when no sessions
+                      <Card className="border-2">
+                        <CardContent className="pt-6">
+                          <div className="text-center py-12">
+                            <Mic className="h-16 w-16 mx-auto mb-4 text-muted-foreground/50" />
+                            <h3 className="font-display mb-2 text-lg font-bold tracking-tight">AI-Powered Interview Practice</h3>
+                            <p className="text-muted-foreground max-w-md mx-auto mb-6">
+                              Practice your interview skills with AI-generated questions tailored to your application.
+                              Get real-time feedback and improve your responses.
+                            </p>
+                            <Button
+                              className="rounded-lg font-semibold shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
+                              onClick={() => setShowNewInterviewModal(true)}
                             >
-                              {/* Gradient overlay on hover */}
-                              <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                              <Plus className="h-5 w-5 mr-2" />
+                              Start Your First Interview
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ) : (
+                      // Session list when sessions exist
+                      <div className="grid grid-cols-1 gap-4">
+                        {interviewSessions.map((session) => {
+                          const sessionTypeLabels: Record<string, string> = {
+                            behavioral: "Behavioral",
+                            technical: "Technical",
+                            mixed: "Mixed",
+                            resume_grill: "Resume Grill",
+                            company_specific: "Company-Specific"
+                          }
 
-                              <CardHeader className="pb-3">
-                                <div className="flex items-start justify-between gap-3">
-                                  <div className="flex-1 min-w-0">
-                                    <div className="flex items-center gap-2 flex-wrap mb-2">
-                                      <CardTitle className="text-lg font-bold">
-                                        {sessionTypeLabels[session.session_type] || session.session_type}
-                                      </CardTitle>
-                                      {session.company_name && (
-                                        <Badge variant="outline" className="text-xs font-medium">
-                                          {session.company_name}
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    <CardDescription className="text-xs flex items-center gap-2">
-                                      <Calendar className="h-3 w-3" />
-                                      {new Date(session.created_at).toLocaleDateString()} at{' '}
-                                      {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                    </CardDescription>
-                                  </div>
-                                  <div className="flex flex-col gap-2 items-end shrink-0">
-                                    <div className="flex items-center gap-2">
-                                      <Badge
-                                        variant="outline"
-                                        className={`capitalize font-semibold ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
-                                      >
-                                        {session.difficulty || 'medium'}
-                                      </Badge>
-                                      {(session.status === 'completed' || progress === 100) && (
-                                        <Badge className="bg-green-600 text-white border-0 shadow-sm">
-                                          ✓ Completed
-                                        </Badge>
-                                      )}
-                                    </div>
-                                    {session.answered_questions > 0 && (
-                                      <div className="flex items-center gap-1.5">
-                                        <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-green-500/10 border border-green-500/30' :
-                                          avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
-                                            'bg-red-500/10 border border-red-500/30'
-                                          }`}>
-                                          <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-green-600 dark:text-green-400' :
-                                            avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
-                                              'text-red-600 dark:text-red-400'
-                                            }`}>
-                                            {avgScore.toFixed(1)}
-                                          </span>
-                                        </div>
-                                        <span className="text-xs text-muted-foreground font-medium">Avg Score</span>
+                          const difficultyColors = {
+                            easy: "bg-primary/10 text-primary-strong dark:text-primary",
+                            medium: "bg-yellow-500/10 text-yellow-700 dark:text-yellow-400",
+                            hard: "bg-destructive/10 text-destructive"
+                          }
+
+                          const progress = session.total_questions > 0
+                            ? (session.answered_questions / session.total_questions) * 100
+                            : 0
+
+                          const avgScore = session.average_score || 0
+
+                          return (
+                            <motion.div
+                              key={session.id}
+                              initial={{ opacity: 0, y: 20 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.3 }}
+                            >
+                              <Card
+                                className="group cursor-pointer hover:border-primary/50 transition-all duration-300 hover:shadow-lg hover:shadow-primary/10 relative overflow-hidden bg-card/50 backdrop-blur-sm"
+                                onClick={() => setSelectedSessionId(session.id)}
+                              >
+                                {/* Gradient overlay on hover */}
+                                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+
+                                <CardHeader className="pb-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 flex-wrap mb-2">
+                                        <CardTitle className="text-lg font-bold">
+                                          {sessionTypeLabels[session.session_type] || session.session_type}
+                                        </CardTitle>
+                                        {session.company_name && (
+                                          <Badge variant="outline" className="text-xs font-medium">
+                                            {session.company_name}
+                                          </Badge>
+                                        )}
                                       </div>
+                                      <CardDescription className="text-xs flex items-center gap-2">
+                                        <Calendar className="h-3 w-3" />
+                                        {new Date(session.created_at).toLocaleDateString()} at{' '}
+                                        {new Date(session.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                      </CardDescription>
+                                    </div>
+                                    <div className="flex flex-col gap-2 items-end shrink-0">
+                                      <div className="flex items-center gap-2">
+                                        <Badge
+                                          variant="outline"
+                                          className={`capitalize font-semibold ${session.difficulty ? difficultyColors[session.difficulty] : ''}`}
+                                        >
+                                          {session.difficulty || 'medium'}
+                                        </Badge>
+                                        {(session.status === 'completed' || progress === 100) && (
+                                          <Badge className="border-0 bg-primary text-primary-foreground shadow-sm">
+                                            ✓ Completed
+                                          </Badge>
+                                        )}
+                                      </div>
+                                      {session.answered_questions > 0 && (
+                                        <div className="flex items-center gap-1.5">
+                                          <div className={`flex items-center justify-center h-7 w-7 rounded-full ${avgScore >= 8 ? 'bg-primary/10 border border-primary/30' :
+                                            avgScore >= 6 ? 'bg-yellow-500/10 border border-yellow-500/30' :
+                                              'bg-destructive/10 border border-destructive/30'
+                                            }`}>
+                                            <span className={`text-xs font-bold ${avgScore >= 8 ? 'text-primary-strong dark:text-primary' :
+                                              avgScore >= 6 ? 'text-yellow-600 dark:text-yellow-400' :
+                                                'text-destructive'
+                                              }`}>
+                                              {avgScore.toFixed(1)}
+                                            </span>
+                                          </div>
+                                          <span className="text-xs text-muted-foreground font-medium">Avg Score</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </CardHeader>
+
+                                <CardContent className="space-y-4 pb-4">
+                                  {/* Progress Section */}
+                                  <div className="space-y-2">
+                                    <div className="flex justify-between items-center text-sm">
+                                      <span className="text-muted-foreground font-medium">Progress</span>
+                                      <div className="flex items-center gap-2">
+                                        <span className="font-semibold text-foreground">
+                                          {session.answered_questions} / {session.total_questions}
+                                        </span>
+                                        <span className="text-xs text-muted-foreground">
+                                          ({Math.round(progress)}%)
+                                        </span>
+                                      </div>
+                                    </div>
+                                    <div className="relative h-2.5 w-full bg-secondary/50 rounded-full overflow-hidden border border-border/50">
+                                      <div
+                                        className="h-full bg-gradient-to-r from-primary via-primary to-primary/80 transition-all duration-500 ease-out relative"
+                                        style={{ width: `${progress}%` }}
+                                      >
+                                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
+                                      </div>
+                                    </div>
+                                  </div>
+
+                                  {/* Action Buttons */}
+                                  <div className="flex gap-2 pt-2">
+                                    {(session.status === 'completed' || progress === 100) && (
+                                      <Button
+                                        variant="outline"
+                                        size="sm"
+                                        className="flex-1 rounded-lg text-primary border-primary/50 shadow-sm transition-all hover:bg-primary hover:text-primary-foreground hover:shadow-[0_4px_16px_-4px_rgba(24,187,112,0.5)] group/btn"
+                                        onClick={(e) => {
+                                          e.stopPropagation()
+                                          handleViewReport(session.id)
+                                        }}
+                                      >
+                                        <FileText className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
+                                        View Report
+                                      </Button>
                                     )}
-                                  </div>
-                                </div>
-                              </CardHeader>
-
-                              <CardContent className="space-y-4 pb-4">
-                                {/* Progress Section */}
-                                <div className="space-y-2">
-                                  <div className="flex justify-between items-center text-sm">
-                                    <span className="text-muted-foreground font-medium">Progress</span>
-                                    <div className="flex items-center gap-2">
-                                      <span className="font-semibold text-foreground">
-                                        {session.answered_questions} / {session.total_questions}
-                                      </span>
-                                      <span className="text-xs text-muted-foreground">
-                                        ({Math.round(progress)}%)
-                                      </span>
-                                    </div>
-                                  </div>
-                                  <div className="relative h-2.5 w-full bg-secondary/50 rounded-full overflow-hidden border border-border/50">
-                                    <div
-                                      className="h-full bg-gradient-to-r from-primary via-primary to-primary/80 transition-all duration-500 ease-out relative"
-                                      style={{ width: `${progress}%` }}
-                                    >
-                                      <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
-                                    </div>
-                                  </div>
-                                </div>
-
-                                {/* Action Buttons */}
-                                <div className="flex gap-2 pt-2">
-                                  {(session.status === 'completed' || progress === 100) && (
                                     <Button
                                       variant="outline"
                                       size="sm"
-                                      className="flex-1 text-primary border-primary/50 hover:bg-primary hover:text-primary-foreground glow-effect group/btn transition-all"
+                                      className={`rounded-lg text-destructive border-destructive/50 hover:bg-destructive hover:text-white transition-all ${!(session.status === 'completed' || progress === 100) ? 'flex-1' : ''
+                                        }`}
                                       onClick={(e) => {
                                         e.stopPropagation()
-                                        handleViewReport(session.id)
+                                        setSessionToDelete(session.id)
                                       }}
+                                      disabled={deletingSessionId === session.id}
                                     >
-                                      <FileText className="h-4 w-4 mr-2 group-hover/btn:scale-110 transition-transform" />
-                                      View Report
+                                      {deletingSessionId === session.id ? (
+                                        <>
+                                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                          Deleting...
+                                        </>
+                                      ) : (
+                                        <>
+                                          <Trash2 className="h-4 w-4 mr-2" />
+                                          Delete
+                                        </>
+                                      )}
                                     </Button>
-                                  )}
-                                  <Button
-                                    variant="outline"
-                                    size="sm"
-                                    className={`text-red-600 border-red-600/50 hover:bg-red-600 hover:text-white transition-all ${!(session.status === 'completed' || progress === 100) ? 'flex-1' : ''
-                                      }`}
-                                    onClick={(e) => {
-                                      e.stopPropagation()
-                                      setSessionToDelete(session.id)
-                                    }}
-                                    disabled={deletingSessionId === session.id}
-                                  >
-                                    {deletingSessionId === session.id ? (
-                                      <>
-                                        <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                                        Deleting...
-                                      </>
-                                    ) : (
-                                      <>
-                                        <Trash2 className="h-4 w-4 mr-2" />
-                                        Delete
-                                      </>
-                                    )}
-                                  </Button>
-                                </div>
-                              </CardContent>
-                            </Card>
-                          </motion.div>
-                        )
-                      })}
-                    </div>
-                  )}
-                </>
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            </motion.div>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
+            </TabsContent>
+          </Tabs>
+          </div>
 
+          {/* Rail — the details you want visible while working in any tab */}
+          <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
+            <section className="rounded-2xl border border-border/70 bg-card">
+              <div className="border-b border-border/60 px-4 py-3">
+                <h2 className="font-display text-[14px] font-bold tracking-tight text-foreground">Details</h2>
+              </div>
+              <dl className="divide-y divide-border/50 text-[13px]">
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <dt className="text-muted-foreground">Status</dt>
+                  <dd className="relative">
+                    <button
+                      onClick={() => setStatusDropdownOpen(!statusDropdownOpen)}
+                      className="inline-flex items-center gap-1.5 rounded-lg border border-border/70 bg-background px-2.5 py-1 text-[13px] font-medium capitalize transition-colors hover:border-primary/40"
+                      aria-haspopup="listbox"
+                      aria-expanded={statusDropdownOpen}
+                    >
+                      <span className={`h-1.5 w-1.5 rounded-full ${STATUS_META[application.status].dot}`} aria-hidden />
+                      {statusLabel[pendingStatus || application.status]}
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                    {statusDropdownOpen && (
+                      <div className="absolute right-0 top-full z-50 mt-1.5 w-44 rounded-xl border border-border/70 bg-card p-1 shadow-xl">
+                        {(Object.keys(statusLabel) as Array<keyof typeof statusLabel>).map((status) => (
+                          <button
+                            key={status}
+                            onClick={() => {
+                              handleStatusChange(status)
+                              setStatusDropdownOpen(false)
+                            }}
+                            className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[13px] transition-colors ${
+                              pendingStatus === status
+                                ? "bg-primary/10 font-medium text-primary-strong dark:text-primary"
+                                : "text-foreground hover:bg-muted/70"
+                            }`}
+                          >
+                            <span className={`h-1.5 w-1.5 rounded-full ${STATUS_META[status].dot}`} aria-hidden />
+                            {statusLabel[status]}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </dd>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <dt className="text-muted-foreground">Priority</dt>
+                  <dd>
+                    <PriorityDot priority={application.priority} />
+                  </dd>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <dt className="text-muted-foreground">Deadline</dt>
+                  <dd className="font-medium text-foreground">
+                    {application.deadline
+                      ? new Date(application.deadline).toLocaleDateString(undefined, {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })
+                      : "No deadline"}
+                  </dd>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <dt className="text-muted-foreground">Type</dt>
+                  <dd className="font-medium capitalize text-foreground">{application.type}</dd>
+                </div>
+
+                <div className="flex items-center justify-between gap-3 px-4 py-3">
+                  <dt className="text-muted-foreground">Added</dt>
+                  <dd className="font-medium text-foreground">
+                    {new Date(application.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                  </dd>
+                </div>
+              </dl>
+            </section>
+
+            <section className="rounded-2xl border border-border/70 bg-card">
+              <div className="flex items-center justify-between gap-2 border-b border-border/60 px-4 py-3">
+                <h2 className="font-display text-[14px] font-bold tracking-tight text-foreground">Context</h2>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => setShowDocumentModal(true)}
+                >
+                  <Plus className="mr-1 h-3 w-3" />
+                  Add
+                </Button>
+              </div>
+
+              {selectedDocumentIds.length === 0 ? (
+                <p className="px-4 py-4 text-xs leading-relaxed text-muted-foreground">
+                  No documents linked. Add a resume or cover letter to ground this application&apos;s AI answers.
+                </p>
+              ) : (
+                <ul className="divide-y divide-border/50">
+                  {selectedDocumentIds.map((docId) => {
+                    const doc = documents.find((d) => d.id === docId)
+                    if (!doc) return null
+                    return (
+                      <li key={doc.id} className="group flex items-center gap-2.5 px-4 py-2.5">
+                        <FileText className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[13px] font-medium text-foreground">{doc.file_name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {((doc.file_size || 0) / 1024).toFixed(0)} KB ·{" "}
+                            {doc.analysis_status === "success" ? "Analyzed" : "Not analyzed"}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => removeDocument(doc.id)}
+                          className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+                          title="Remove document"
+                          aria-label={`Remove ${doc.file_name}`}
+                        >
+                          <X className="h-3 w-3" />
+                        </button>
+                      </li>
+                    )
+                  })}
+                </ul>
+              )}
+            </section>
+
+            {application.job_description ? (
+              <section className="rounded-2xl border border-border/70 bg-card">
+                <div className="border-b border-border/60 px-4 py-3">
+                  <h2 className="font-display text-[14px] font-bold tracking-tight text-foreground">
+                    {application.type === "scholarship" ? "Scholarship notes" : "Job description"}
+                  </h2>
+                </div>
+                <p className="max-h-64 overflow-y-auto whitespace-pre-wrap px-4 py-3 text-[13px] leading-relaxed text-muted-foreground">
+                  {application.job_description}
+                </p>
+              </section>
+            ) : null}
+          </aside>
+        </div>
       </div>
 
       {/* Note Modal */}

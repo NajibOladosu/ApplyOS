@@ -38,6 +38,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const [showResults, setShowResults] = useState(false)
   const [selectedIndex, setSelectedIndex] = useState(-1)
   const searchRef = useRef<HTMLDivElement>(null)
+  const searchInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -58,6 +59,19 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     }
   }, [user])
 
+  // ⌘K / Ctrl+K focuses search
+  useEffect(() => {
+    const handleShortcut = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault()
+        searchInputRef.current?.focus()
+        searchInputRef.current?.select()
+      }
+    }
+    document.addEventListener("keydown", handleShortcut)
+    return () => document.removeEventListener("keydown", handleShortcut)
+  }, [])
+
   // Handle search logic
   useEffect(() => {
     const performSearch = async () => {
@@ -69,33 +83,29 @@ export function TopBar({ onMenuClick }: TopBarProps) {
 
       setIsSearching(true)
       try {
-        const [apps, docs] = await Promise.all([
-          getApplications(),
-          getDocuments()
-        ])
+        const [apps, docs] = await Promise.all([getApplications(), getDocuments()])
 
         const filteredApps: SearchResult[] = apps
-          .filter(app =>
-            app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            app.company?.toLowerCase().includes(searchQuery.toLowerCase())
+          .filter(
+            (app) =>
+              app.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              app.company?.toLowerCase().includes(searchQuery.toLowerCase())
           )
-          .map(app => ({
+          .map((app) => ({
             id: app.id,
             title: app.title,
             subtitle: app.company ?? undefined,
             type: "application",
-            href: `/applications/${app.id}`
+            href: `/applications/${app.id}`,
           }))
 
         const filteredDocs: SearchResult[] = docs
-          .filter(doc =>
-            doc.file_name.toLowerCase().includes(searchQuery.toLowerCase())
-          )
-          .map(doc => ({
+          .filter((doc) => doc.file_name.toLowerCase().includes(searchQuery.toLowerCase()))
+          .map((doc) => ({
             id: doc.id,
             title: doc.file_name,
             type: "document",
-            href: `/documents/${doc.id}`
+            href: `/documents/${doc.id}`,
           }))
 
         const combined = [...filteredApps, ...filteredDocs].slice(0, 8)
@@ -127,10 +137,10 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === "ArrowDown") {
       e.preventDefault()
-      setSelectedIndex(prev => (prev < searchResults.length - 1 ? prev + 1 : prev))
+      setSelectedIndex((prev) => (prev < searchResults.length - 1 ? prev + 1 : prev))
     } else if (e.key === "ArrowUp") {
       e.preventDefault()
-      setSelectedIndex(prev => (prev > 0 ? prev - 1 : prev))
+      setSelectedIndex((prev) => (prev > 0 ? prev - 1 : prev))
     } else if (e.key === "Enter" && selectedIndex >= 0) {
       e.preventDefault()
       const selected = searchResults[selectedIndex]
@@ -143,161 +153,176 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   }
 
   const name =
-    (user?.user_metadata && (user.user_metadata.name || user.user_metadata.full_name)) ||
+    (user?.user_metadata &&
+      (user.user_metadata.name || user.user_metadata.full_name)) ||
     user?.email?.split("@")[0] ||
     "User"
 
   const email = user?.email || ""
 
-  const initials = name
-    .split(" ")
-    .filter((part: string) => Boolean(part))
-    .slice(0, 2)
-    .map((part: string) => part[0]?.toUpperCase())
-    .join("") || "U"
+  const initials =
+    name
+      .split(" ")
+      .filter((part: string) => Boolean(part))
+      .slice(0, 2)
+      .map((part: string) => part[0]?.toUpperCase())
+      .join("") || "U"
 
   return (
-    <header className="sticky top-0 z-30 flex h-16 items-center justify-between border-b border-border bg-background/80 backdrop-blur-xl px-4 sm:px-6 md:px-8 gap-4">
+    <header className="sticky top-0 z-30 flex h-14 items-center justify-between gap-4 border-b border-border/60 bg-background/80 px-4 backdrop-blur-xl sm:px-6 md:px-8">
       {/* Mobile Menu Button */}
       <Button
         variant="ghost"
         size="icon"
-        className="md:hidden flex-shrink-0"
+        className="h-9 w-9 flex-shrink-0 md:hidden"
         onClick={onMenuClick}
         aria-label="Toggle menu"
       >
-        <Menu className="h-5 w-5" />
+        <Menu className="h-[18px] w-[18px]" />
       </Button>
 
-      {/* Search Bar - Hidden on mobile, shown on tablet and up */}
-      <div className="hidden sm:flex flex-1 max-w-xl relative" ref={searchRef}>
-        <div className="relative w-full">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+      {/* Search Bar */}
+      <div className="relative hidden flex-1 sm:block" ref={searchRef}>
+        <div className="relative mx-auto w-full max-w-lg">
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-[15px] w-[15px] -translate-y-1/2 text-muted-foreground/70" />
           <Input
+            ref={searchInputRef}
             type="search"
-            placeholder="Search applications, documents..."
-            className="pl-10 text-sm focus-visible:ring-primary/20 transition-all"
+            placeholder="Search applications, documents…"
+            className="h-9 rounded-lg border-transparent bg-muted/50 pl-9 pr-14 text-sm transition-all focus-visible:border-primary/40 focus-visible:bg-card focus-visible:ring-primary/20"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            onFocus={() => searchQuery.length >= 2 && searchResults.length > 0 && setShowResults(true)}
+            onFocus={() =>
+              searchQuery.length >= 2 && searchResults.length > 0 && setShowResults(true)
+            }
             onKeyDown={handleKeyDown}
           />
-          {isSearching && (
-            <div className="absolute right-3 top-1/2 -translate-y-1/2">
-              <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-            </div>
-          )}
-          {searchQuery && !isSearching && (
-            <button
-              onClick={() => setSearchQuery("")}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
-            >
-              <X className="h-4 w-4" />
-            </button>
-          )}
+
+          {/* Right cluster: kbd hint / loader / clear */}
+          <div className="absolute right-2.5 top-1/2 -translate-y-1/2">
+            {isSearching ? (
+              <Loader2 className="h-3.5 w-3.5 animate-spin text-muted-foreground" />
+            ) : searchQuery ? (
+              <button
+                onClick={() => {
+                  setSearchQuery("")
+                  searchInputRef.current?.focus()
+                }}
+                className="text-muted-foreground transition-colors hover:text-foreground"
+                aria-label="Clear search"
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            ) : (
+              <kbd className="hidden rounded border border-border/70 bg-background px-1.5 py-0.5 font-mono text-[10px] text-muted-foreground/70 lg:block">
+                ⌘K
+              </kbd>
+            )}
+          </div>
         </div>
 
         {/* Search Results Dropdown */}
         <AnimatePresence>
           {showResults && (
             <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 10 }}
-              className="absolute top-full left-0 right-0 mt-2 bg-card border border-border rounded-xl shadow-2xl overflow-hidden z-50 max-h-[400px] overflow-y-auto backdrop-blur-xl"
+              initial={{ opacity: 0, y: 8, scale: 0.99 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.99 }}
+              transition={{ duration: 0.16, ease: "easeOut" }}
+              className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[400px] overflow-y-auto rounded-xl border border-border/70 bg-card p-1.5 shadow-2xl"
             >
-              <div className="p-2">
-                {searchResults.map((result, index) => (
-                  <button
-                    key={`${result.type}-${result.id}`}
-                    onClick={() => {
-                      router.push(result.href)
-                      setShowResults(false)
-                      setSearchQuery("")
-                    }}
-                    onMouseEnter={() => setSelectedIndex(index)}
+              {searchResults.map((result, index) => (
+                <button
+                  key={`${result.type}-${result.id}`}
+                  onClick={() => {
+                    router.push(result.href)
+                    setShowResults(false)
+                    setSearchQuery("")
+                  }}
+                  onMouseEnter={() => setSelectedIndex(index)}
+                  className={cn(
+                    "flex w-full items-center gap-3 rounded-lg p-2.5 text-left transition-colors",
+                    selectedIndex === index ? "bg-primary/10" : "hover:bg-muted/60"
+                  )}
+                >
+                  <span
                     className={cn(
-                      "w-full flex items-center gap-3 p-3 rounded-lg text-left transition-all",
-                      selectedIndex === index ? "bg-primary/10 text-primary" : "hover:bg-accent/10"
+                      "flex h-9 w-9 shrink-0 items-center justify-center rounded-lg",
+                      result.type === "application"
+                        ? "bg-primary/10 text-primary-strong dark:text-primary"
+                        : "bg-muted text-muted-foreground"
                     )}
                   >
-                    <div className={cn(
-                      "h-10 w-10 rounded-lg flex items-center justify-center shrink-0 shadow-sm",
-                      result.type === 'application' ? "bg-primary/20 text-primary" : "bg-primary/20 text-primary"
-                    )}>
-                      {result.type === 'application' ? (
-                        <Briefcase className="h-5 w-5" />
-                      ) : (
-                        <FileText className="h-5 w-5" />
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold truncate">{result.title}</p>
-                      {result.subtitle && (
-                        <p className="text-xs text-muted-foreground truncate">{result.subtitle}</p>
-                      )}
-                      <p className="text-[10px] uppercase tracking-wider text-muted-foreground mt-1 font-bold">
-                        {result.type}
-                      </p>
-                    </div>
-                  </button>
-                ))}
-              </div>
+                    {result.type === "application" ? (
+                      <Briefcase className="h-4 w-4" />
+                    ) : (
+                      <FileText className="h-4 w-4" />
+                    )}
+                  </span>
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-medium text-foreground">
+                      {result.title}
+                    </span>
+                    <span className="block truncate text-xs text-muted-foreground">
+                      {result.subtitle || result.type}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground/50">
+                    {result.type}
+                  </span>
+                </button>
+              ))}
             </motion.div>
           )}
         </AnimatePresence>
       </div>
 
       {/* Right Side Actions */}
-      <div className="flex items-center gap-2 md:gap-4 flex-shrink-0">
-
-        {/* Theme Toggle */}
+      <div className="flex flex-shrink-0 items-center gap-1.5 md:gap-3">
         <ThemeToggle />
 
         {/* Notifications Bell */}
         <Button
           variant="ghost"
           size="icon"
-          className="relative"
+          className="relative h-9 w-9"
           onClick={() => router.push("/notifications")}
           aria-label="Notifications"
         >
-          <Bell className="h-5 w-5" />
+          <Bell className="h-[18px] w-[18px]" />
           {unreadCount > 0 && (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 min-w-[1.25rem] rounded-full p-0 flex items-center justify-center text-[0.6rem]"
+              className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full p-0 text-[10px] font-bold"
             >
               {unreadCount > 9 ? "9+" : unreadCount}
             </Badge>
           )}
         </Button>
 
-        {/* User Profile Section - Hidden on small mobile, shown on larger screens */}
-        <div className="hidden sm:flex items-center gap-2 md:gap-3 cursor-pointer hover:opacity-75 transition-opacity" onClick={() => router.push('/profile')}>
-          <div className="text-right">
-            <p className="text-sm font-medium truncate max-w-[100px] md:max-w-[140px]">
-              {name}
-            </p>
-            {email && (
-              <p className="text-xs text-muted-foreground truncate max-w-[100px] md:max-w-[160px]">
-                {email}
-              </p>
-            )}
-          </div>
-          <div className="h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center shadow-lg shadow-primary/20">
-            <span className="text-sm font-bold text-primary-foreground">
-              {initials}
-            </span>
-          </div>
-        </div>
+        <div className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden />
 
-        {/* Avatar Only on Small Mobile */}
-        <div className="sm:hidden h-10 w-10 flex-shrink-0 rounded-full bg-gradient-to-br from-primary to-primary/60 flex items-center justify-center cursor-pointer hover:opacity-75 transition-opacity" onClick={() => router.push('/profile')}>
-          <span className="text-sm font-bold text-primary-foreground">
-            {initials}
+        {/* User chip */}
+        <button
+          type="button"
+          onClick={() => router.push("/profile")}
+          className="group flex items-center gap-2.5 rounded-lg p-1 pr-2 transition-colors hover:bg-secondary/60"
+          aria-label="Open profile"
+        >
+          <span className="hidden text-right sm:block">
+            <span className="block max-w-[120px] truncate text-[13px] font-semibold leading-tight text-foreground md:max-w-[140px]">
+              {name}
+            </span>
+            {email && (
+              <span className="block max-w-[120px] truncate text-[11px] leading-tight text-muted-foreground md:max-w-[150px]">
+                {email}
+              </span>
+            )}
           </span>
-        </div>
+          <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-primary to-primary/60 shadow-sm shadow-primary/20">
+            <span className="text-xs font-bold text-primary-foreground">{initials}</span>
+          </span>
+        </button>
       </div>
     </header>
   )

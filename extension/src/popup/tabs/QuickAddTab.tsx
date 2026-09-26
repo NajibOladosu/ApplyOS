@@ -1,205 +1,345 @@
-import React, { useState, useEffect } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Building, Check, ExternalLink, RefreshCw, Save } from 'lucide-react'
+
 import { APIClient } from '../../lib/api/api-client'
 import { AuthManager } from '../../lib/auth/auth-manager'
-import { Loader2, Check, AlertCircle, Building, MapPin, DollarSign, Briefcase, Save, RefreshCw } from 'lucide-react'
+import { cn } from '../../lib/cn'
+import { Card, ErrorNote, SectionHeading, Skeleton, Spinner } from '../components/ui'
+
+interface ExtractedData {
+    title?: string | null
+    company?: string | null
+    location?: string | null
+    description?: string | null
+    url?: string | null
+    salary?: string | null
+    employmentType?: string | null
+    platform?: string
+    confidence?: number
+    manual_entry?: boolean
+}
+
+type Step = 'scanning' | 'review' | 'saving' | 'saved'
 
 export function QuickAddTab() {
-    const [step, setStep] = useState<'analyzing' | 'review' | 'saving' | 'success' | 'error'>('analyzing')
-    const [data, setData] = useState<any>({})
-    const [errorMsg, setErrorMsg] = useState<string | null>(null)
+    const [step, setStep] = useState<Step>('scanning')
+    const [data, setData] = useState<ExtractedData>({})
+    const [error, setError] = useState<string | null>(null)
+    const [existingId, setExistingId] = useState<string | null>(null)
+    const [duplicateOf, setDuplicateOf] = useState<{ id: string; title: string } | null>(null)
 
-    const hasAnalyzed = React.useRef(false)
+    // Guards the initial scan against React 19 StrictMode's double-invoke, which
+    // would otherwise inject the content script twice and race two extractions.
+    const hasScanned = useRef(false)
 
-    useEffect(() => {
-        if (!hasAnalyzed.current) {
-            hasAnalyzed.current = true
-            analyzePage()
-        }
-    }, [])
-
-    const analyzePage = async () => {
-        setStep('analyzing')
-        setErrorMsg(null)
+    const analyzePage = useCallback(async () => {
+        setStep('scanning')
+        setError(null)
+        setDuplicateOf(null)
 
         try {
             const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
+            if (!tab?.id) throw new Error('No active tab found.')
 
-            if (!tab?.id) {
-                throw new Error('No active tab found')
-            }
-
-            const sendMessage = () => {
-                return new Promise((resolve, reject) => {
+            const request = (): Promise<any> =>
+                new Promise((resolve, reject) => {
                     chrome.tabs.sendMessage(tab.id!, { type: 'EXTRACT_PAGE' }, (response) => {
-                        if (chrome.runtime.lastError) {
-                            // Failed? Try injecting script
-                            reject(chrome.runtime.lastError)
-                        } else {
-                            resolve(response)
-                        }
+                        if (chrome.runtime.lastError) reject(chrome.runtime.lastError)
+                        else resolve(response)
                     })
                 })
-            }
 
+            let response: any
             try {
-                // Try contacting existing script
-                const response: any = await sendMessage()
-                handleResponse(response, tab)
-            } catch (e) {
-                console.log('Script likely missing, injecting...', e)
-                // Inject script
-                await chrome.scripting.executeScript({
-                    target: { tabId: tab.id },
-                    files: ['content.js']
-                })
-
-                // Wait for script to initialize (increased for reliability)
-                await new Promise(r => setTimeout(r, 500))
-
-                console.log('Retrying extraction message...')
-                // Retry message
-                const response: any = await sendMessage()
-                handleResponse(response, tab)
+                response = await request()
+            } catch {
+                // The content script only auto-injects on supported hosts. On any
+                // other site the user has explicitly asked us to scan, so inject
+                // on demand via activeTab and retry.
+                await chrome.scripting.executeScript({ target: { tabId: tab.id }, files: ['content.js'] })
+                // The script registers its message listener synchronously, but give
+                // the isolated world a beat to settle before the retry.
+                await new Promise((resolve) => setTimeout(resolve, 400))
+                response = await request()
             }
 
-        } catch (e: any) {
-            console.error(e)
-            // If still failing, fallback to manual
-            setData({
-                title: '',
-                url: '',
-                platform: 'unknown',
-                manual_entry: true
-            })
+            applyExtraction(response?.success ? response.data : null, tab)
+        } catch (caught: any) {
+            console.warn('[ApplyOS] scan failed, falling back to manual entry', caught)
+            setData({ manual_entry: true, platform: 'unknown' })
             setStep('review')
         }
-    }
+    }, [])
 
-    const handleResponse = (response: any, tab: chrome.tabs.Tab) => {
-        if (response && response.success) {
-            setData(response.data)
-            setStep('review')
+    useEffect(() => {
+        if (hasScanned.current) return
+        hasScanned.current = true
+        void analyzePage()
+    }, [analyzePage])
+
+    const applyExtraction = (extracted: ExtractedData | null, tab: chrome.tabs.Tab) => {
+        if (extracted && (extracted.title || extracted.company)) {
+            setData({ ...extracted, url: extracted.url || tab.url || null })
         } else {
             setData({
-                title: tab.title || '',
-                url: tab.url || '',
+                manual_entry: true,
                 platform: 'unknown',
-                manual_entry: true
+                title: tab.title || null,
+                url: tab.url || null,
             })
-            setStep('review')
         }
+        setStep('review')
     }
+
+    const title = data.title?.trim() ?? ''
+    const canSave = title.length > 0
+
+    const confidence = useMemo(() => {
+        if (typeof data.confidence !== 'number') return null
+        return Math.round(data.confidence * 100)
+    }, [data.confidence])
 
     const handleSave = async () => {
-        const user = await AuthManager.getCurrentUser()
-        if (!user || !data.title) return
-
+        if (!canSave) return
         setStep('saving')
+        setError(null)
+
         try {
-            await APIClient.createApplication({
+            const user = await AuthManager.getCurrentUser()
+            if (!user) throw new Error('Your session expired. Sign in again.')
+
+            // Duplicate guard. Applying to the same posting twice is the most
+            // common data-quality problem in a job tracker, and the popup is the
+            // only place that can catch it before it is written.
+            if (!existingId && data.url) {
+                const existing = await APIClient.findApplicationByUrl(data.url)
+                if (existing) {
+                    setDuplicateOf({ id: existing.id, title: existing.title })
+                    setExistingId(existing.id)
+                }
+            }
+
+            // Only columns that exist on public.applications. PostgREST rejects
+            // the entire insert if any key is unknown, so a stray field here
+            // silently breaks saving.
+            const payload = {
                 user_id: user.id,
-                title: data.title,
-                company: data.company || null,
-                url: data.url,
+                title,
+                company: data.company?.trim() || null,
+                url: data.url || null,
                 job_description: data.description || null,
-                status: 'draft'
-            })
-            setStep('success')
-        } catch (e: any) {
-            console.error(e)
-            alert(`Error saving: ${e.message || JSON.stringify(e)}`)
+                status: (existingId ? 'submitted' : 'draft') as 'submitted' | 'draft',
+            }
+
+            if (existingId) {
+                await APIClient.updateApplication(existingId, payload)
+            } else {
+                await APIClient.createApplication(payload)
+            }
+
+            chrome.runtime.sendMessage({ type: 'BADGE_REFRESH' }).catch(() => {})
+            setStep('saved')
+        } catch (caught: any) {
+            console.error('[ApplyOS] save failed', caught)
+            setError(caught?.message || 'Could not save this application.')
             setStep('review')
         }
     }
 
-    if (step === 'analyzing') {
+    // ---- Scanning -----------------------------------------------------------
+    if (step === 'scanning') {
         return (
-            <div className="flex flex-col items-center justify-center h-64 text-center p-6 bg-card m-4 rounded-xl border border-border">
-                <Loader2 className="w-8 h-8 animate-spin text-primary mb-3" />
-                <h3 className="font-bold text-foreground">Analyzing Page...</h3>
-                <p className="text-xs text-muted-foreground mt-1">Looking for job details</p>
+            <div className="space-y-3 p-4">
+                <SectionHeading overline="This job" title="Reading the page…" />
+                <Card className="space-y-2.5 p-4">
+                    <Skeleton className="h-3 w-1/3" />
+                    <Skeleton className="h-8 w-full" />
+                    <Skeleton className="h-3 w-1/4" />
+                    <Skeleton className="h-8 w-2/3" />
+                    <Skeleton className="mt-1 h-20 w-full" />
+                </Card>
+                <p className="text-center text-[11px] text-muted-foreground">
+                    Looking for the title, company and description.
+                </p>
             </div>
         )
     }
 
-    if (step === 'success') {
+    // ---- Saved --------------------------------------------------------------
+    if (step === 'saved') {
         return (
-            <div className="flex flex-col items-center justify-center h-64 text-center p-6 bg-card m-4 rounded-xl border border-primary/30">
-                <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-3 text-primary">
-                    <Check className="w-6 h-6" />
+            <div className="flex h-full flex-col items-center justify-center p-6 text-center">
+                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Check className="h-6 w-6" />
                 </div>
-                <h3 className="font-bold text-foreground">Saved Successfully!</h3>
-                <p className="text-xs text-muted-foreground mt-1">Application added to your list.</p>
-                <button
-                    onClick={() => window.location.reload()} // Reset state
-                    className="mt-4 text-xs text-primary hover:underline"
-                >
-                    Add another
-                </button>
+                <h2 className="display-title">
+                    {existingId ? 'Application updated' : 'Saved to your pipeline'}
+                </h2>
+                <p className="mt-1 max-w-[260px] text-[11px] leading-relaxed text-muted-foreground">
+                    {existingId
+                        ? 'We matched this posting to an application you already had, so it was updated rather than duplicated.'
+                        : 'It is now a draft in your ApplyOS pipeline, ready for analysis and a cover letter.'}
+                </p>
+
+                <div className="mt-5 flex items-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => {
+                            hasScanned.current = true
+                            setExistingId(null)
+                            setDuplicateOf(null)
+                            void analyzePage()
+                        }}
+                        className="btn-secondary h-9"
+                    >
+                        <RefreshCw className="h-3.5 w-3.5" />
+                        Add another
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => {
+                            const base = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
+                            chrome.tabs.create({ url: `${base}/applications` })
+                        }}
+                        className="btn-primary h-9"
+                    >
+                        Open ApplyOS
+                        <ExternalLink className="h-3.5 w-3.5" />
+                    </button>
+                </div>
             </div>
         )
     }
+
+    // ---- Review -------------------------------------------------------------
+    const platformLabel = data.manual_entry ? 'Manual entry' : (data.platform ?? 'Detected').toUpperCase()
 
     return (
-        <div className="p-4 space-y-4 pb-20">
-            {/* Header Info */}
-            <div className="flex items-center justify-between">
-                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground bg-secondary px-2 py-1 rounded">
-                    {data.platform || 'MANUAL ENTRY'}
-                </span>
-                <button
-                    onClick={analyzePage}
-                    className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                >
-                    <RefreshCw className="w-3 h-3" /> Re-scan
-                </button>
-            </div>
+        <div className="flex h-full flex-col">
+            <div className="scrollbar-thin flex-1 space-y-3 overflow-y-auto p-4 pb-3">
+                <SectionHeading
+                    overline="This job"
+                    title={data.manual_entry ? 'Enter the details' : 'Confirm the details'}
+                    action={
+                        <button type="button" onClick={() => void analyzePage()} className="btn-ghost">
+                            <RefreshCw className="h-3 w-3" />
+                            Re-scan
+                        </button>
+                    }
+                />
 
-            {/* Form */}
-            <div className="space-y-3">
-                <div>
-                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Job Title</label>
-                    <input
-                        value={data.title || ''}
-                        onChange={e => setData({ ...data, title: e.target.value })}
-                        className="input-field text-sm font-semibold"
-                        placeholder="e.g. Senior Frontend Engineer"
-                    />
-                </div>
-
-                <div>
-                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Company</label>
-                    <div className="relative">
-                        <Building className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-muted-foreground" />
-                        <input
-                            value={data.company || ''}
-                            onChange={e => setData({ ...data, company: e.target.value })}
-                            className="input-field pl-8 text-sm"
-                            placeholder="Company"
+                {/* Where the data came from — this is the trust question a user
+                    actually has when a tool reads a page for them. */}
+                <div className="flex items-center gap-2">
+                    <span
+                        className={cn(
+                            'inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[10px] font-semibold',
+                            data.manual_entry
+                                ? 'border-border/70 bg-muted/60 text-muted-foreground'
+                                : 'border-primary/25 bg-primary/10 text-primary-strong dark:text-primary'
+                        )}
+                    >
+                        <span
+                            className={cn(
+                                'h-1.5 w-1.5 rounded-full',
+                                data.manual_entry ? 'bg-muted-foreground/50' : 'bg-primary'
+                            )}
+                            aria-hidden
                         />
-                    </div>
+                        {platformLabel}
+                    </span>
+                    {confidence !== null && !data.manual_entry && confidence > 0 ? (
+                        <span className="text-[10px] text-muted-foreground">
+                            {confidence}% match
+                        </span>
+                    ) : null}
                 </div>
 
-                <div>
-                    <label className="text-[10px] uppercase font-bold text-muted-foreground ml-1">Job Description</label>
-                    <textarea
-                        value={data.description || ''}
-                        onChange={e => setData({ ...data, description: e.target.value })}
-                        className="input-field text-xs h-32 py-2 leading-relaxed resize-none"
-                        placeholder="Paste job description here..."
-                    />
-                </div>
+                {duplicateOf ? (
+                    <div className="rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-[11px] leading-relaxed text-amber-700 dark:text-amber-400">
+                        You already have <strong>{duplicateOf.title}</strong> for this URL. Saving will
+                        update it and mark it as submitted.
+                    </div>
+                ) : null}
+
+                {error ? <ErrorNote>{error}</ErrorNote> : null}
+
+                <Card className="p-3.5">
+                    <div className="space-y-3">
+                        <div className="space-y-1.5">
+                            <label htmlFor="job-title" className="overline block">
+                                Job title <span className="text-destructive">*</span>
+                            </label>
+                            <input
+                                id="job-title"
+                                value={data.title ?? ''}
+                                onChange={(event) => setData({ ...data, title: event.target.value })}
+                                className="input-field font-semibold"
+                                placeholder="Senior Frontend Engineer"
+                                autoFocus={data.manual_entry}
+                            />
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label htmlFor="job-company" className="overline block">
+                                Company
+                            </label>
+                            <div className="relative">
+                                <Building className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-muted-foreground" />
+                                <input
+                                    id="job-company"
+                                    value={data.company ?? ''}
+                                    onChange={(event) => setData({ ...data, company: event.target.value })}
+                                    className="input-field pl-8"
+                                    placeholder="Acme Inc."
+                                />
+                            </div>
+                        </div>
+
+                        <div className="space-y-1.5">
+                            <label htmlFor="job-description" className="overline block">
+                                Job description
+                            </label>
+                            <textarea
+                                id="job-description"
+                                value={data.description ?? ''}
+                                onChange={(event) => setData({ ...data, description: event.target.value })}
+                                className="input-field h-32 resize-none py-2 text-[11px] leading-relaxed"
+                                placeholder="Paste the job description, or let ApplyOS read it from the page."
+                            />
+                            {data.description ? (
+                                <p className="text-right text-[10px] text-muted-foreground">
+                                    {data.description.length.toLocaleString()} characters
+                                </p>
+                            ) : null}
+                        </div>
+                    </div>
+                </Card>
+
             </div>
 
-            {/* Footer Action */}
-            <div className="fixed bottom-0 left-0 right-0 p-4 bg-background border-t border-border">
+            {/* Sticky action bar */}
+            <div className="shrink-0 border-t border-border/70 bg-card/80 p-4 backdrop-blur-md">
                 <button
-                    onClick={handleSave}
-                    className="w-full btn-primary h-10 shadow-[0_0_15px_rgba(24,187,112,0.2)]"
+                    type="button"
+                    onClick={() => void handleSave()}
+                    disabled={!canSave || step === 'saving'}
+                    className="btn-primary h-10 w-full"
                 >
-                    <Save className="w-4 h-4 mr-2" />
-                    Add Application
+                    {step === 'saving' ? (
+                        <Spinner className="h-4 w-4" />
+                    ) : (
+                        <>
+                            <Save className="h-4 w-4" />
+                            {existingId ? 'Update application' : 'Save to ApplyOS'}
+                        </>
+                    )}
                 </button>
+                {!canSave ? (
+                    <p className="mt-1.5 text-center text-[10px] text-muted-foreground">
+                        A job title is required.
+                    </p>
+                ) : null}
             </div>
         </div>
     )

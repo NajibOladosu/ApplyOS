@@ -1,11 +1,12 @@
-@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   :root {
+    /* Display face for marketing headlines and numerals */
+    --font-display: var(--font-display-face), var(--font-sans), system-ui, sans-serif;
+
     /* "Daylight Mode" - Premium Light Theme */
     --background: #F4F4F5;
     /* Zinc-100: Soft off-white system surface */
@@ -19,6 +20,9 @@
     --primary: #18bb70;
     /* Soft Vibrant Green */
     --primary-foreground: #0A0A0A;
+    --primary-strong: #0E8F52;
+    /* AA-contrast green for text on light surfaces */
+    --primary-neon: #18bb70;
     --secondary: #E4E4E7;
     /* Zinc-200 */
     --secondary-foreground: #18181B;
@@ -50,6 +54,9 @@
     --popover-foreground: #EDEDED;
     --primary: #18bb70;
     --primary-foreground: #0A0A0A;
+    --primary-strong: #18bb70;
+    --primary-neon: #2BE58B;
+    /* Bright accent reserved for dark surfaces */
     --secondary: #101010;
     --secondary-foreground: #B5B5B5;
     --muted: #101010;
@@ -148,10 +155,44 @@
   }
 
   .text-gradient {
-    background: linear-gradient(135deg, #18bb70 0%, #128f55 100%);
+    background: linear-gradient(92deg, #18bb70 0%, #14b8a6 100%);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+  }
+
+  .dark .text-gradient {
+    background: linear-gradient(92deg, #2BE58B 0%, #2DD4BF 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Marketing sections: keep icons line-based (overrides the app-wide light-mode fill) */
+  .icons-outline .lucide {
+    fill: none !important;
+  }
+
+  /* Gentle vertical bob for floating chips (compositor-only) */
+  @keyframes hero-bob {
+    0%, 100% {
+      transform: translateY(0);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+
+  /* Soft expanding ring for the extension CTA mock */
+  @keyframes hero-ping {
+    0% {
+      opacity: 0.45;
+      transform: scale(1);
+    }
+    70%, 100% {
+      opacity: 0;
+      transform: scale(1.45);
+    }
   }
 
   .animate-shimmer {

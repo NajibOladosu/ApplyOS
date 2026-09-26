@@ -111,6 +111,21 @@ export async function getAllPostSlugs(): Promise<string[]> {
 /**
  * Format date for display
  */
+/**
+ * Base URL for the main (non-blog) app, used to build cross-app links from
+ * the blog. In production the blog lives on the `blog.` subdomain, so links
+ * to the app must be absolute. In development/preview the whole app is served
+ * from a single origin, so an empty string keeps links relative (which is what
+ * makes them work behind the preview proxy).
+ */
+export function getMainAppUrl(): string {
+  if (process.env.NODE_ENV === "production") {
+    const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://applyos.io"
+    return appUrl.replace(/\/$/, "")
+  }
+  return ""
+}
+
 export function formatDate(dateString: string): string {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', {

@@ -13,9 +13,18 @@
     "test:e2e": "playwright test",
     "test:all": "npm run test && npm run test:integration && npm run test:e2e",
     "test:coverage": "vitest run --coverage --config vitest.unit.config.ts",
-    "test:nuke": "tsx tests/helpers/nuke-test-data.ts"
+    "test:nuke": "tsx tests/helpers/nuke-test-data.ts",
+    "critic": "node scripts/critic.mjs",
+    "critic:selftest": "node scripts/critic.mjs --selftest",
+    "fix": "node scripts/fixer.mjs",
+    "fix:dry": "node scripts/fixer.mjs --dry-run",
+    "fix:selftest": "node scripts/fixer.mjs --selftest",
+    "loop": "node scripts/critic.mjs; node scripts/fixer.mjs --verify; node scripts/critic.mjs"
   },
   "dependencies": {
+    "@fontsource-variable/manrope": "^5.3.0",
+    "@fontsource-variable/space-grotesk": "^5.3.0",
+    "@fontsource/crimson-text": "^5.3.0",
     "@google/generative-ai": "^0.24.1",
     "@napi-rs/canvas": "^0.1.81",
     "@radix-ui/react-accordion": "^1.2.12",
@@ -33,7 +42,6 @@
     "@react-email/render": "^2.0.0",
     "@react-three/drei": "^10.7.7",
     "@react-three/fiber": "^9.4.2",
-    "@sparticuz/chromium": "^143.0.4",
     "@supabase/auth-helpers-nextjs": "^0.10.0",
     "@supabase/ssr": "^0.7.0",
     "@supabase/supabase-js": "^2.43.0",
@@ -80,6 +88,7 @@
   },
   "devDependencies": {
     "@playwright/test": "^1.60.0",
+    "@sparticuz/chromium": "^153.0.0",
     "@tailwindcss/typography": "^0.5.19",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",

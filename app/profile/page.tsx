@@ -6,7 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/sha
 import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Badge } from "@/shared/ui/badge"
-import { User, Mail, Calendar, Github, Linkedin, Loader2, Edit2, Upload } from "lucide-react"
+import { Calendar, Loader2, Edit2, Upload, BadgeCheck, FileSpreadsheet, ShieldAlert } from "lucide-react"
+import { PageHeader } from "@/components/layout/page-header"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { PromptModal } from "@/components/modals/prompt-modal"
@@ -178,7 +179,6 @@ export default function ProfilePage() {
     setDeleteError(null)
 
     try {
-      console.log("🗑️ Calling account deletion API...")
       const response = await fetch("/api/account/delete", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -193,7 +193,6 @@ export default function ProfilePage() {
         return
       }
 
-      console.log("✅ Account deleted successfully")
 
       // Wait a moment for backend to process, then redirect to home
       setTimeout(() => {
@@ -230,273 +229,181 @@ export default function ProfilePage() {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6 max-w-4xl">
-        {/* Header */}
-        <div>
-          <h1 className="text-3xl font-bold mb-2">Profile</h1>
-          <p className="text-muted-foreground">
-            Manage your personal information and preferences
-          </p>
-        </div>
+      <div className="mx-auto max-w-4xl space-y-6">
+        <PageHeader
+          overline="Account"
+          title="Profile"
+          description="How you appear in ApplyOS, and the data the AI uses when it drafts for you."
+        />
 
-        {/* Profile Card */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Personal Information</CardTitle>
-            <CardDescription>
-              Update your profile details and photo
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8 items-start">
-              {/* Avatar Section */}
-              <div className="flex flex-col items-center md:items-start space-y-2">
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarUpload}
-                  className="hidden"
-                  disabled={uploadingAvatar}
-                />
-                <button
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={uploadingAvatar}
-                  className="relative h-32 w-32 rounded-full bg-gradient-to-br from-primary to-primary/60 overflow-hidden shadow-lg shadow-primary/20 flex items-center justify-center flex-shrink-0 transition-opacity hover:opacity-80 disabled:opacity-50"
-                  title="Click to change avatar"
-                >
-                  {/* Always show initials as fallback */}
-                  <span className="text-4xl font-bold text-primary-foreground select-none">
-                    {initials}
-                  </span>
-                  {/* Show image on top if available */}
-                  {avatarUrl && (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
-                      src={avatarUrl}
-                      alt=""
-                      className="absolute inset-0 h-full w-full object-cover rounded-full"
-                      onError={(e) => {
-                        // Hide broken image to show initials beneath
-                        (e.target as HTMLImageElement).style.display = 'none'
-                      }}
-                    />
+        {/* Identity card — the old layout repeated this information across two
+            cards (a form plus a three-tile "Account Overview"). */}
+        <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+          <div className="flex flex-col gap-5 p-5 sm:flex-row sm:items-center sm:gap-6">
+            <div className="flex flex-col items-center gap-2 sm:items-start">
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+                disabled={uploadingAvatar}
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="group relative h-24 w-24 shrink-0 overflow-hidden rounded-2xl border border-border/60 bg-muted/60 transition-opacity hover:opacity-90 disabled:opacity-50"
+                title="Change photo"
+                aria-label="Change profile photo"
+              >
+                <span className="flex h-full w-full items-center justify-center font-display text-2xl font-bold text-foreground/70 select-none">
+                  {initials}
+                </span>
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={avatarUrl}
+                    alt=""
+                    className="absolute inset-0 h-full w-full rounded-2xl object-cover"
+                    onError={(e) => {
+                      ;(e.target as HTMLImageElement).style.display = "none"
+                    }}
+                  />
+                ) : null}
+                <span className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/50 opacity-0 transition-opacity group-hover:opacity-100">
+                  {uploadingAvatar ? (
+                    <Loader2 className="h-5 w-5 animate-spin text-white" />
+                  ) : (
+                    <Edit2 className="h-5 w-5 text-white" />
                   )}
-                  {/* Edit Icon Overlay */}
-                  <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 hover:opacity-100 transition-opacity">
-                    {uploadingAvatar ? (
-                      <Loader2 className="h-6 w-6 text-white animate-spin" />
-                    ) : (
-                      <Edit2 className="h-6 w-6 text-white" />
-                    )}
-                  </div>
-                </button>
-                {avatarError && (
-                  <p className="text-xs text-destructive text-center">{avatarError}</p>
-                )}
+                </span>
+              </button>
+              <span className="text-[11px] text-muted-foreground">PNG or JPG</span>
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
+                {name || profile.name || "Your name"}
+              </h2>
+              <p className="mt-0.5 truncate text-sm text-muted-foreground">{profile.email}</p>
+
+              <div className="mt-3 flex flex-wrap items-center gap-2">
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/25 bg-primary/10 px-2.5 py-1 text-[11px] font-medium text-primary-strong dark:text-primary">
+                  <BadgeCheck className="h-3.5 w-3.5" />
+                  Email verified
+                </span>
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-border/70 bg-muted/60 px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
+                  Free plan
+                </span>
+                <span className="inline-flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Member since{" "}
+                  {profile.created_at
+                    ? new Date(profile.created_at).toLocaleDateString(undefined, { month: "long", year: "numeric" })
+                    : "—"}
+                </span>
               </div>
 
-              {/* Form Fields Section */}
-              <div className="md:col-span-2 space-y-4">
-                <div className="space-y-2">
-                  <label htmlFor="name" className="text-sm font-medium">
-                    Full Name
-                  </label>
-                  <Input
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                  />
-                </div>
+              {avatarError ? <p className="mt-2 text-xs text-destructive">{avatarError}</p> : null}
+            </div>
+          </div>
 
-                <div className="space-y-2">
-                  <label htmlFor="email" className="text-sm font-medium">
-                    Email
-                  </label>
-                  <Input
-                    id="email"
-                    type="email"
-                    value={profile.email}
-                    disabled
-                  />
-                </div>
+          <div className="border-t border-border/60 px-5 py-4">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <label htmlFor="name" className="text-[13px] font-medium text-foreground">
+                  Full name
+                </label>
+                <Input id="name" value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" />
+              </div>
+              <div className="space-y-2">
+                <label htmlFor="email" className="text-[13px] font-medium text-foreground">
+                  Email
+                </label>
+                <Input id="email" type="email" value={profile.email} disabled className="text-muted-foreground" />
+                <p className="text-[11px] text-muted-foreground">
+                  Contact support to change the email on your account.
+                </p>
               </div>
             </div>
 
-            <div className="flex items-center space-x-3">
+            <div className="mt-5 flex flex-wrap items-center gap-3">
               <Button
-                className="glow-effect"
+                className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
                 onClick={handleSave}
                 disabled={saving}
               >
                 {saving ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Saving...
+                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                    Saving…
                   </>
                 ) : (
-                  "Save Changes"
+                  "Save changes"
                 )}
               </Button>
-              {success && (
-                <span className="text-xs text-primary">
-                  Profile updated.
-                </span>
-              )}
-              {error && (
-                <span className="text-xs text-destructive">
-                  {error}
-                </span>
-              )}
+              {success ? <span className="text-xs text-primary-strong dark:text-primary">Profile updated.</span> : null}
+              {error ? <span className="text-xs text-destructive">{error}</span> : null}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </section>
 
-        {/* Account Stats */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Account Overview</CardTitle>
-            <CardDescription>
-              Your ApplyOS account statistics
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
-                  <Calendar className="h-6 w-6 text-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Member Since</p>
-                  <p className="font-semibold">
-                    {profile.created_at
-                      ? new Date(profile.created_at).toLocaleDateString()
-                      : "—"}
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
-                  <User className="h-6 w-6 text-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Plan</p>
-                  <Badge variant="default">Free</Badge>
-                </div>
-              </div>
-
-              <div className="flex items-center space-x-4">
-                <div className="h-12 w-12 rounded-full bg-secondary flex items-center justify-center">
-                  <Mail className="h-6 w-6 text-foreground" />
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Email Status</p>
-                  <Badge variant="default">Verified</Badge>
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Import Applications */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Import Applications</CardTitle>
-            <CardDescription>
-              Import applications from Google Sheets or Excel
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <p className="text-sm text-muted-foreground">
-                Upload a CSV file to import application data. Your applications will be added to your account with all the details like status, priority, deadline, and notes.
-              </p>
-              <Button
-                onClick={() => setShowImportModal(true)}
-                className="glow-effect"
-              >
-                <Upload className="h-4 w-4 mr-2" />
-                Import from CSV
-              </Button>
-              {importSuccess && (
-                <div className="bg-primary/10 border border-primary/30 p-3 rounded-lg">
-                  <p className="text-sm text-primary font-medium">{importSuccess}</p>
-                </div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Connected Accounts (placeholder, no fake connections) */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Connected Accounts</CardTitle>
-            <CardDescription>
-              Link your professional profiles for better AI responses
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between p-4 rounded-lg border border-border">
-              <div className="flex items-center space-x-3">
-                <Linkedin className="h-5 w-5 text-blue-500" />
-                <div>
-                  <p className="font-medium">LinkedIn</p>
-                  <p className="text-sm text-muted-foreground">
-                    Integration not configured
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                Coming soon
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 rounded-lg border border-border">
-              <div className="flex items-center space-x-3">
-                <Github className="h-5 w-5" />
-                <div>
-                  <p className="font-medium">GitHub</p>
-                  <p className="text-sm text-muted-foreground">
-                    Integration not configured
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                Coming soon
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Danger Zone */}
-        <Card className="border-destructive/50">
-          <CardHeader>
-            <CardTitle className="text-destructive">Danger Zone</CardTitle>
-            <CardDescription>
-              Permanently delete your account and all associated data.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <p className="font-medium">Delete Account</p>
-                <p className="text-sm text-muted-foreground">
-                  This will delete your ApplyOS profile, applications, questions,
-                  documents, notifications, and status history. This action cannot
-                  be undone.
+        {/* Data — import lives beside the account facts instead of in its own
+            near-empty card, and the dead "Connected Accounts" card (two rows
+            both labelled Coming soon) is gone. */}
+        <section className="grid gap-2 overflow-hidden rounded-2xl border border-border/70 bg-card">
+          <div className="flex flex-col gap-3 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/50">
+                <FileSpreadsheet className="h-4 w-4 text-muted-foreground" />
+              </span>
+              <div>
+                <p className="text-[13.5px] font-semibold text-foreground">Import applications</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Bring your existing tracker across from a CSV export — statuses, priorities and deadlines included.
                 </p>
               </div>
-              <Button
-                variant="destructive"
-                onClick={() => setShowDeletePrompt(true)}
-                className="flex-shrink-0 whitespace-nowrap"
-              >
-                Delete Account
-              </Button>
             </div>
-          </CardContent>
-        </Card>
+            <Button
+              variant="outline"
+              onClick={() => setShowImportModal(true)}
+              className="h-9 shrink-0 rounded-lg border-border/80 text-[13px] font-medium"
+            >
+              <Upload className="mr-2 h-3.5 w-3.5" />
+              Import CSV
+            </Button>
+          </div>
+          {importSuccess ? (
+            <p className="border-t border-primary/20 bg-primary/[0.06] px-5 py-3 text-xs text-primary-strong dark:text-primary">
+              {importSuccess}
+            </p>
+          ) : null}
+        </section>
+
+        {/* Danger zone */}
+        <section className="overflow-hidden rounded-2xl border border-destructive/30 bg-card">
+          <div className="flex flex-col gap-4 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex items-start gap-3">
+              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-destructive/25 bg-destructive/10">
+                <ShieldAlert className="h-4 w-4 text-destructive" />
+              </span>
+              <div>
+                <p className="text-[13.5px] font-semibold text-foreground">Delete account</p>
+                <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
+                  Removes your profile, applications, questions, documents, notifications and status history. This
+                  cannot be undone.
+                </p>
+              </div>
+            </div>
+            <Button
+              variant="destructive"
+              onClick={() => setShowDeletePrompt(true)}
+              className="h-9 shrink-0 rounded-lg text-[13px] font-semibold"
+            >
+              Delete account
+            </Button>
+          </div>
+        </section>
 
         {/* Delete Account Prompt Modal */}
         <PromptModal

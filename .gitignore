@@ -81,3 +81,7 @@ Thumbs.db
 .idea/
 *.swp
 *.swo
+
+# Extension build output and store upload artifacts
+extension/dist/
+extension/*.zip
