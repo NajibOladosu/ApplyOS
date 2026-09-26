@@ -23,21 +23,21 @@ export function Card({
 }
 
 export function SectionHeading({
-    overline,
     title,
+    sub,
     action,
     className,
 }: {
-    overline?: string
     title: string
+    sub?: string
     action?: React.ReactNode
     className?: string
 }) {
     return (
         <div className={cn('flex items-end justify-between gap-3', className)}>
             <div className="min-w-0">
-                {overline ? <p className="overline mb-0.5">{overline}</p> : null}
-                <h2 className="display-title truncate">{title}</h2>
+                <h2 className="font-display text-[15px] font-bold tracking-tight text-foreground">{title}</h2>
+                {sub ? <p className="mt-0.5 text-[11px] text-muted-foreground">{sub}</p> : null}
             </div>
             {action}
         </div>
@@ -223,7 +223,7 @@ function ScoreRingBase({
                     {Math.round(score)}
                 </span>
             </div>
-            {label ? <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{label}</p> : null}
+            {label ? <p className="text-[10px] font-medium text-muted-foreground">{label}</p> : null}
         </div>
     )
 }

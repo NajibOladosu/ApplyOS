@@ -1,29 +1,28 @@
 import React, { useCallback, useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
 import '../styles/globals.css'
-import { Loader2, LayoutGrid, Settings, LogOut, Compass, Zap } from 'lucide-react'
+import { Loader2, LayoutGrid, LogOut, MousePointerClick, Settings } from 'lucide-react'
 
 import { Login } from './components/Login'
 import { ErrorBoundary } from './components/ErrorBoundary'
-import { AutofillTab } from './tabs/AutofillTab'
-import { QuickAddTab } from './tabs/QuickAddTab'
+import { ThisPage } from './views/ThisPage'
 import { ApplicationsTab } from './tabs/ApplicationsTab'
 import { AuthManager } from '../lib/auth/auth-manager'
 import { initTheme, watchSystemTheme, type ThemePreference } from '../lib/theme'
 import { cn } from '../lib/cn'
 
-type TabId = 'autofill' | 'current-job' | 'applications'
+type ViewId = 'page' | 'applications'
 
-const TABS: { id: TabId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
-    { id: 'autofill', label: 'Autofill', icon: Zap },
-    { id: 'current-job', label: 'This job', icon: Compass },
+const VIEWS: { id: ViewId; label: string; icon: React.ComponentType<{ className?: string }> }[] = [
+    { id: 'page', label: 'This page', icon: MousePointerClick },
     { id: 'applications', label: 'Applications', icon: LayoutGrid },
 ]
 
 function Popup() {
     const [session, setSession] = useState<any>(null)
     const [loading, setLoading] = useState(true)
-    const [activeTab, setActiveTab] = useState<TabId>('autofill')
+    const [activeView, setActiveView] = useState<ViewId>('page')
+    const [focusAppId, setFocusAppId] = useState<string | null>(null)
     const [themeRef] = useState<{ current: ThemePreference }>({ current: 'system' })
 
     // Apply the stored theme before anything renders, so the popup never flashes
@@ -65,6 +64,12 @@ function Popup() {
         await AuthManager.signOut()
         setSession(null)
     }
+
+    /** Jump to the Applications view, optionally opening one application. */
+    const goApplications = useCallback((appId?: string) => {
+        if (appId) setFocusAppId(appId)
+        setActiveView('applications')
+    }, [])
 
     if (loading) {
         return (
@@ -129,23 +134,23 @@ function Popup() {
                 </div>
             </header>
 
-            {/* Segmented tab switcher, matching the web app's tab pattern */}
+            {/* Two views: act on the current page, or manage the pipeline. */}
             <nav className="shrink-0 px-4 pt-3">
                 <div className="segmented" role="tablist" aria-label="Extension sections">
-                    {TABS.map((tab) => {
-                        const Icon = tab.icon
-                        const isActive = activeTab === tab.id
+                    {VIEWS.map((view) => {
+                        const Icon = view.icon
+                        const isActive = activeView === view.id
                         return (
                             <button
-                                key={tab.id}
+                                key={view.id}
                                 type="button"
                                 role="tab"
                                 aria-selected={isActive}
-                                onClick={() => setActiveTab(tab.id)}
+                                onClick={() => setActiveView(view.id)}
                                 className={cn('segmented-item', isActive && 'segmented-item-active')}
                             >
                                 <Icon className="h-3.5 w-3.5" />
-                                {tab.label}
+                                {view.label}
                             </button>
                         )
                     })}
@@ -155,13 +160,14 @@ function Popup() {
             {/* Content */}
             <main className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
                 <ErrorBoundary>
-                    {activeTab === 'autofill' ? (
-                            <AutofillTab />
-                        ) : activeTab === 'current-job' ? (
-                            <QuickAddTab />
-                        ) : (
-                            <ApplicationsTab />
-                        )}
+                    {activeView === 'page' ? (
+                        <ThisPage onGoApplications={goApplications} />
+                    ) : (
+                        <ApplicationsTab
+                            focusAppId={focusAppId}
+                            onFocusHandled={() => setFocusAppId(null)}
+                        />
+                    )}
                 </ErrorBoundary>
             </main>
         </div>
