@@ -267,7 +267,7 @@ export function QuickAddTab() {
                 <Card className="p-3.5">
                     <div className="space-y-3">
                         <div className="space-y-1.5">
-                            <label htmlFor="job-title" className="overline block">
+                            <label htmlFor="job-title" className="block text-[11px] font-medium text-muted-foreground">
                                 Job title <span className="text-destructive">*</span>
                             </label>
                             <input
@@ -281,7 +281,7 @@ export function QuickAddTab() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label htmlFor="job-company" className="overline block">
+                            <label htmlFor="job-company" className="block text-[11px] font-medium text-muted-foreground">
                                 Company
                             </label>
                             <div className="relative">
@@ -297,7 +297,7 @@ export function QuickAddTab() {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label htmlFor="job-description" className="overline block">
+                            <label htmlFor="job-description" className="block text-[11px] font-medium text-muted-foreground">
                                 Job description
                             </label>
                             <textarea

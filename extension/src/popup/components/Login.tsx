@@ -50,7 +50,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
                         {error ? <ErrorNote>{error}</ErrorNote> : null}
 
                         <div className="space-y-1.5">
-                            <label htmlFor="email" className="overline block">
+                            <label htmlFor="email" className="block text-[11px] font-medium text-muted-foreground">
                                 Email
                             </label>
                             <input
@@ -66,7 +66,7 @@ export function Login({ onLoginSuccess }: LoginProps) {
                         </div>
 
                         <div className="space-y-1.5">
-                            <label htmlFor="password" className="overline block">
+                            <label htmlFor="password" className="block text-[11px] font-medium text-muted-foreground">
                                 Password
                             </label>
                             <input

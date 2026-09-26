@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { APIClient, type Application } from '../../lib/api/api-client'
 import {
+    AlertTriangle,
     ArrowLeft,
     Building,
     Trash2,
@@ -11,6 +12,7 @@ import {
     Copy,
     RefreshCw,
     FileText,
+    Paperclip,
     Loader2,
     ChevronDown,
     ExternalLink,
@@ -41,16 +43,46 @@ const TABS: { id: Tab, label: string }[] = [
     { id: 'notes', label: 'Notes' },
 ]
 
-/** Small card header: overline + title, optional right-hand slot. */
-function BlockHead({ overline, title, action }: { overline: string; title: string; action?: React.ReactNode }) {
+/**
+ * Small card header, mirroring the web app's section headers: an icon chip +
+ * bold display title + muted sub. (No overline — the web only uses those on
+ * the page title.)
+ */
+function BlockHead({
+    icon: Icon,
+    title,
+    sub,
+    action,
+}: {
+    icon: React.ComponentType<{ className?: string }>
+    title: string
+    sub?: string
+    action?: React.ReactNode
+}) {
     return (
         <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
-            <div className="min-w-0">
-                <p className="overline mb-0.5">{overline}</p>
-                <h3 className="display-title !text-[13px] truncate">{title}</h3>
+            <div className="flex min-w-0 items-center gap-2.5">
+                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary-strong dark:text-primary">
+                    <Icon className="h-3.5 w-3.5" />
+                </span>
+                <div className="min-w-0">
+                    <h3 className="truncate font-display text-[13.5px] font-bold tracking-tight text-foreground">
+                        {title}
+                    </h3>
+                    {sub ? <p className="truncate text-[11px] text-muted-foreground">{sub}</p> : null}
+                </div>
             </div>
             {action}
         </div>
+    )
+}
+
+/** Plain sentence-case field label — the web app never uppercases field labels. */
+function Label({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+    return (
+        <label htmlFor={htmlFor} className="mb-1 block text-[11px] font-medium text-muted-foreground">
+            {children}
+        </label>
     )
 }
 
@@ -439,10 +471,10 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                     {activeTab === 'overview' && (
                         <div className="space-y-4 animate-in fade-in duration-200">
                             <Card className="overflow-hidden">
-                                <BlockHead overline="Status" title="Pipeline position" />
+                                <BlockHead icon={Building} title="Details" sub="Where this application stands" />
                                 <div className="grid grid-cols-2 divide-x divide-border/50">
                                     <div className="p-4">
-                                        <p className="overline mb-1.5">Status</p>
+                                        <Label>Status</Label>
                                         <div className="relative group/status">
                                             <select
                                                 value={status}
@@ -460,7 +492,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                         </div>
                                     </div>
                                     <div className="p-4">
-                                        <p className="overline mb-1.5">Created</p>
+                                        <Label>Created</Label>
                                         <p className="text-[12px] font-semibold text-foreground">
                                             {new Date(application.created_at || Date.now()).toLocaleDateString()}
                                         </p>
@@ -468,7 +500,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 </div>
                                 {application.url && (
                                     <div className="border-t border-border/50 px-4 py-3">
-                                        <p className="overline mb-1.5">Job URL</p>
+                                        <Label>Job URL</Label>
                                         <a
                                             href={application.url}
                                             target="_blank"
@@ -484,7 +516,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
 
                             {application.job_description && (
                                 <Card className="overflow-hidden">
-                                    <BlockHead overline="Posting" title="Job description" />
+                                    <BlockHead icon={FileText} title="Job description" sub="As read from the posting" />
                                     <div className="p-4">
                                         <p
                                             className={cn(
@@ -509,8 +541,9 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
 
                             <Card className="overflow-hidden">
                                 <BlockHead
-                                    overline="Attached"
+                                    icon={Paperclip}
                                     title="Documents"
+                                    sub="Linked resumes are used for analysis"
                                     action={
                                         selectedDocIds.length > 0 ? (
                                             <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
@@ -579,8 +612,9 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                         <div className="space-y-4 animate-in fade-in duration-200">
                             <Card className="overflow-hidden">
                                 <BlockHead
-                                    overline="AI"
+                                    icon={Bot}
                                     title="Application questions"
+                                    sub="Scan the form or add them manually"
                                     action={
                                         <div className="flex items-center gap-1.5">
                                             <button
@@ -605,9 +639,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     }
                                 />
                                 <div className="p-4">
-                                    <label className="overline mb-1.5 block" htmlFor="q-context">
-                                        Instructions
-                                    </label>
+                                    <Label htmlFor="q-context">Instructions</Label>
                                     <textarea
                                         id="q-context"
                                         value={aiContext}
@@ -726,8 +758,9 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                 <>
                                     <Card className="overflow-hidden">
                                         <BlockHead
-                                            overline="Analysis"
+                                            icon={Target}
                                             title="Job match"
+                                            sub="How well your resume fits"
                                             action={
                                                 <button
                                                     type="button"
@@ -752,8 +785,9 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                         )}
                                     >
                                         <BlockHead
-                                            overline="Keywords"
-                                            title="Missing from your resume"
+                                            icon={AlertTriangle}
+                                            title="Missing keywords"
+                                            sub="Terms in the posting your resume doesn't cover"
                                         />
                                         {analysis.missingKeywords?.length > 0 ? (
                                             <div className="flex flex-wrap gap-1.5 p-4">
@@ -787,8 +821,9 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                         <div className="space-y-4 animate-in fade-in duration-200">
                             <Card className="overflow-hidden">
                                 <BlockHead
-                                    overline="AI"
+                                    icon={Wand2}
                                     title="Cover letter"
+                                    sub="Tailored to this job"
                                     action={
                                         <button
                                             type="button"
@@ -802,9 +837,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     }
                                 />
                                 <div className="p-4">
-                                    <label className="overline mb-1.5 block" htmlFor="cl-instructions">
-                                        Instructions
-                                    </label>
+                                    <Label htmlFor="cl-instructions">Instructions</Label>
                                     <textarea
                                         id="cl-instructions"
                                         value={clInstructions}
@@ -817,7 +850,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
 
                             <Card className="overflow-hidden">
                                 <BlockHead
-                                    overline="Draft"
+                                    icon={FileText}
                                     title="Generated letter"
                                     action={
                                         <button
