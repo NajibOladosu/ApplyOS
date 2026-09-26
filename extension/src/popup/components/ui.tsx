@@ -81,8 +81,8 @@ export function EmptyState({
             )}
         >
             {Icon ? (
-                <div className="mb-2.5 flex h-9 w-9 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Icon className="h-4 w-4" />
+                <div className="icon-chip mb-3 h-10 w-10">
+                    <Icon className="h-5 w-5" />
                 </div>
             ) : null}
             <p className="text-[13px] font-semibold text-foreground">{title}</p>
@@ -152,6 +152,78 @@ export function FieldRow({
                     </span>
                 ) : null}
             </span>
+        </div>
+    )
+}
+
+/**
+ * Circular score meter — a mirror of ScoreRing in components/data/status-pill.tsx
+ * so a 74 on the popup and a 74 on the dashboard are the same green/amber/red.
+ */
+export function ScoreRing({
+    score,
+    size = 64,
+    label,
+    className,
+}: {
+    score: number
+    size?: number
+    label?: string
+    className?: string
+}) {
+    if (score >= 80) {
+        const tone = 'text-primary-strong dark:text-primary'
+        return <ScoreRingBase score={score} size={size} label={label} tone={tone} className={className} />
+    }
+    if (score >= 60) {
+        const tone = 'text-amber-600 dark:text-amber-400'
+        return <ScoreRingBase score={score} size={size} label={label} tone={tone} className={className} />
+    }
+    return <ScoreRingBase score={score} size={size} label={label} tone="text-destructive" className={className} />
+}
+
+function ScoreRingBase({
+    score,
+    size,
+    label,
+    tone,
+    className,
+}: {
+    score: number
+    size: number
+    label?: string
+    tone: string
+    className?: string
+}) {
+    const r = (size - 6) / 2
+    const c = 2 * Math.PI * r
+    const pct = Math.max(0, Math.min(100, score)) / 100
+
+    return (
+        <div className={cn('inline-flex flex-col items-center gap-2', className)}>
+            <div className="relative" style={{ width: size, height: size }}>
+                <svg width={size} height={size} className="-rotate-90">
+                    <circle cx={size / 2} cy={size / 2} r={r} fill="none" strokeWidth="4" className="stroke-muted" />
+                    <circle
+                        cx={size / 2}
+                        cy={size / 2}
+                        r={r}
+                        fill="none"
+                        strokeWidth="4"
+                        strokeLinecap="round"
+                        strokeDasharray={`${c * pct} ${c}`}
+                        stroke="currentColor"
+                        className={cn('transition-[stroke-dasharray] duration-700', tone)}
+                    />
+                </svg>
+                <span
+                    className={cn('absolute inset-0 flex items-center justify-center font-display font-bold tabular-nums', tone)}
+                    style={{ fontSize: size / 3.4 }}
+                >
+                    {Math.round(score)}
+                </span>
+            </div>
+            {label ? <p className="text-[10px] font-medium uppercase tracking-[0.1em] text-muted-foreground">{label}</p> : null}
         </div>
     )
 }

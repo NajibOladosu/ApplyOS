@@ -120,12 +120,12 @@
     }
 
     .btn-primary {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-all hover:-translate-y-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60 disabled:translate-y-0;
         box-shadow: 0 4px 14px -4px rgba(24, 187, 112, 0.5);
     }
 
     .btn-secondary {
-        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-secondary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60;
+        @apply inline-flex items-center justify-center gap-2 rounded-lg border border-border bg-card px-4 py-2 text-sm font-medium text-foreground transition-all hover:-translate-y-0.5 hover:border-primary/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-1 focus-visible:ring-offset-background disabled:cursor-not-allowed disabled:opacity-60 disabled:translate-y-0;
     }
 
     .btn-ghost {
@@ -157,6 +157,22 @@
 
     .segmented-item-active {
         @apply bg-card text-foreground shadow-sm;
+    }
+
+    /* Pill filter chips, matching the web app's applications/documents lists:
+       active fills with the foreground (not a tint), idle is borderless. */
+    .chip {
+        @apply inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-medium text-muted-foreground transition-all duration-150 hover:bg-muted/70 hover:text-foreground;
+    }
+
+    .chip-active {
+        @apply bg-foreground text-background shadow-sm;
+    }
+
+    /* The app's empty-state / feature icon box: a bordered primary-tinted
+       square, not a circle. */
+    .icon-chip {
+        @apply flex h-12 w-12 items-center justify-center rounded-2xl border border-primary/25 bg-primary/10 text-primary-strong dark:text-primary;
     }
 }
 

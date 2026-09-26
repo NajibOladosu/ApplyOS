@@ -326,8 +326,10 @@ export function AutofillTab() {
     if (phase === 'idle' || phase === 'scanning') {
         return (
             <div className="space-y-3 px-4 pb-6 pt-4">
-                <Card className="relative overflow-hidden p-5">
-                    <div className="pointer-events-none absolute -right-10 -top-10 h-32 w-32 rounded-full bg-primary/15 blur-2xl" />
+                <Card className="flex flex-col items-center p-6 text-center">
+                    <div className="icon-chip mb-3">
+                        <ScanSearch className="h-5 w-5" />
+                    </div>
                     <p className="overline mb-1">Autofill</p>
                     <h2 className="display-title">Fill this application</h2>
                     <p className="mt-2 text-[12px] leading-relaxed text-muted-foreground">
