@@ -203,7 +203,7 @@ export async function proxy(request: NextRequest) {
   const user = previewSession ? { id: "preview-user", email: "ada.okafor@example.com" } : realUser
 
   // Protected routes
-  const protectedRoutes = ['/dashboard', '/apply', '/applications', '/documents', '/upload', '/notifications', '/profile', '/settings']
+  const protectedRoutes = ['/dashboard', '/apply', '/applications', '/documents', '/upload', '/interview', '/profile', '/settings']
   const isProtectedRoute = protectedRoutes.some(route => request.nextUrl.pathname.startsWith(route))
 
   // Redirect to login if accessing protected route without auth

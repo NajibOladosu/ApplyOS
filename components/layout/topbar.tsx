@@ -1,13 +1,14 @@
 "use client"
 
 import { useEffect, useState, useRef } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { Bell, Search, Menu, FileText, Briefcase, X, Loader2 } from "lucide-react"
 import { Input } from "@/shared/ui/input"
 import { Button } from "@/shared/ui/button"
 import { Badge } from "@/shared/ui/badge"
 import { useAuth } from "@/contexts/AuthContext"
-import { getNotifications } from "@/lib/services/notifications"
+import { getRecentNotifications } from "@/lib/services/notifications"
+import { NotificationFlyout } from "@/components/layout/notification-flyout"
 import { getApplications } from "@/modules/applications/services/application.service"
 import { getDocuments } from "@/modules/documents/services/document.service"
 import { motion, AnimatePresence } from "framer-motion"
@@ -28,8 +29,15 @@ type SearchResult = {
 
 export function TopBar({ onMenuClick }: TopBarProps) {
   const router = useRouter()
+  const pathname = usePathname()
   const { user } = useAuth()
   const [unreadCount, setUnreadCount] = useState<number>(0)
+  const [notifOpen, setNotifOpen] = useState(false)
+
+  // A navigation should always dismiss the flyout.
+  useEffect(() => {
+    setNotifOpen(false)
+  }, [pathname])
 
   // Search state
   const [searchQuery, setSearchQuery] = useState("")
@@ -40,10 +48,12 @@ export function TopBar({ onMenuClick }: TopBarProps) {
   const searchRef = useRef<HTMLDivElement>(null)
   const searchInputRef = useRef<HTMLInputElement>(null)
 
+  // Badge counts the same 30-day window the flyout shows, so the number in
+  // the top bar and the dots in the panel always agree.
   useEffect(() => {
     const loadNotifications = async () => {
       try {
-        const notifications = await getNotifications()
+        const notifications = await getRecentNotifications(30)
         const unread = notifications.filter((n) => !n.is_read).length
         setUnreadCount(unread)
       } catch (error) {
@@ -57,7 +67,7 @@ export function TopBar({ onMenuClick }: TopBarProps) {
     } else {
       setUnreadCount(0)
     }
-  }, [user])
+  }, [user, notifOpen])
 
   // ⌘K / Ctrl+K focuses search
   useEffect(() => {
@@ -281,24 +291,31 @@ export function TopBar({ onMenuClick }: TopBarProps) {
       <div className="flex flex-shrink-0 items-center gap-1.5 md:gap-3">
         <ThemeToggle />
 
-        {/* Notifications Bell */}
-        <Button
-          variant="ghost"
-          size="icon"
-          className="relative h-9 w-9"
-          onClick={() => router.push("/notifications")}
-          aria-label="Notifications"
-        >
-          <Bell className="h-[18px] w-[18px]" />
-          {unreadCount > 0 && (
-            <Badge
-              variant="destructive"
-              className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full p-0 text-[10px] font-bold"
-            >
-              {unreadCount > 9 ? "9+" : unreadCount}
-            </Badge>
-          )}
-        </Button>
+        {/* Notifications Bell — opens the 30-day activity flyout */}
+        <div className="relative">
+          <Button
+            variant="ghost"
+            size="icon"
+            className={
+              "relative h-9 w-9 " +
+              (notifOpen ? "bg-muted/80 text-foreground" : "")
+            }
+            onClick={() => setNotifOpen((v) => !v)}
+            aria-label="Notifications"
+            aria-expanded={notifOpen}
+          >
+            <Bell className="h-[18px] w-[18px]" />
+            {unreadCount > 0 && (
+              <Badge
+                variant="destructive"
+                className="absolute -right-0.5 -top-0.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full p-0 text-[10px] font-bold"
+              >
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </Badge>
+            )}
+          </Button>
+          <NotificationFlyout open={notifOpen} onClose={() => setNotifOpen(false)} />
+        </div>
 
         <div className="mx-1 hidden h-6 w-px bg-border sm:block" aria-hidden />
 

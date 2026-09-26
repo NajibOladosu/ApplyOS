@@ -12,6 +12,7 @@ import {
   Trash2,
   Eye,
   MoreVertical,
+  Search,
   Loader2,
   AlertTriangle,
   CheckCircle2,
@@ -80,6 +81,7 @@ export default function DocumentsPage() {
   const [error, setError] = useState<string | null>(null)
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; fileUrl: string; fileName: string } | null>(null)
   const [docFilter, setDocFilter] = useState<"all" | "analyzed" | "attention">("all")
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
     const load = async () => {
@@ -265,6 +267,8 @@ export default function DocumentsPage() {
   const failedCount = documents.filter((d) => d.analysis_status === "failed").length
 
   const visibleDocuments = documents.filter((doc) => {
+    const matchesSearch = doc.file_name.toLowerCase().includes(searchQuery.toLowerCase())
+    if (!matchesSearch) return false
     if (docFilter === "all") return true
     if (docFilter === "analyzed") return doc.analysis_status === "success"
     if (docFilter === "attention")
@@ -345,25 +349,43 @@ export default function DocumentsPage() {
               />
             </div>
 
-            {/* Filter bar with counts — the grid previously had no way to
-                isolate the files that still need processing. */}
-            <div className="flex flex-wrap items-center gap-2">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.key}
-                  onClick={() => setDocFilter(f.key)}
-                  className={`inline-flex items-center gap-2 rounded-lg border px-3 py-1.5 text-[13px] font-medium transition-colors ${
-                    docFilter === f.key
-                      ? "border-primary/40 bg-primary/10 text-primary-strong dark:text-primary"
-                      : "border-border/70 bg-card text-muted-foreground hover:border-border hover:text-foreground"
-                  }`}
-                >
-                  {f.label}
-                  <span className="rounded-full bg-muted px-1.5 text-[11px] tabular-nums text-muted-foreground">
-                    {f.count}
-                  </span>
-                </button>
-              ))}
+            {/* Search + status chips in one card — the same filter language
+                as the applications list, so both library pages feel related. */}
+            <div className="rounded-2xl border border-border/70 bg-card p-4">
+              <div className="relative">
+                <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground/70" />
+                <input
+                  type="search"
+                  placeholder="Search by file name…"
+                  className="h-9 w-full rounded-lg border border-transparent bg-muted/50 pl-9 pr-3 text-sm text-foreground transition-all placeholder:text-muted-foreground focus-visible:border-primary/40 focus-visible:bg-card focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/20"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                />
+              </div>
+
+              <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-border/50 pt-3">
+                {FILTERS.map((f) => {
+                  const active = docFilter === f.key
+                  return (
+                    <button
+                      key={f.key}
+                      type="button"
+                      onClick={() => setDocFilter(f.key)}
+                      className={cn(
+                        "flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-medium transition-all duration-150",
+                        active
+                          ? "bg-foreground text-background shadow-sm"
+                          : "text-muted-foreground hover:bg-muted/70 hover:text-foreground"
+                      )}
+                    >
+                      {f.label}
+                      <span className={cn("text-[11px] tabular-nums", active ? "opacity-60" : "opacity-50")}>
+                        {f.count}
+                      </span>
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
@@ -557,9 +579,13 @@ export default function DocumentsPage() {
               {visibleDocuments.length === 0 ? (
                 <div className="md:col-span-2 xl:col-span-3">
                   <EmptyState
-                    icon={<CheckCircle2 className="h-5 w-5" />}
-                    title="Nothing here"
-                    description="Every document in this view is already analyzed."
+                    icon={searchQuery ? <Search className="h-5 w-5" /> : <CheckCircle2 className="h-5 w-5" />}
+                    title={searchQuery ? "No matching files" : "Nothing here"}
+                    description={
+                      searchQuery
+                        ? `No documents match “${searchQuery}”. Try a different name or clear the filter.`
+                        : "Every document in this view is already analyzed."
+                    }
                     variant="page"
                   />
                 </div>
