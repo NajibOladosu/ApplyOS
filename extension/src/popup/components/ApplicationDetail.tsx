@@ -1,6 +1,27 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect } from 'react'
 import { APIClient, type Application } from '../../lib/api/api-client'
-import { ArrowLeft, Building, Trash2, Save, CheckCircle2, Bot, Wand2, Target, Copy, RefreshCw, FileText, StickyNote, Loader2, ChevronDown, ExternalLink, Briefcase, MapPin, Calendar, Globe, CheckCircle, XCircle, AlertTriangle, Info, Plus, Minus, ChevronUp, ChevronLeft, ChevronRight } from 'lucide-react'
+import {
+    ArrowLeft,
+    Building,
+    Trash2,
+    Save,
+    Bot,
+    Wand2,
+    Target,
+    Copy,
+    RefreshCw,
+    FileText,
+    Loader2,
+    ChevronDown,
+    ExternalLink,
+    Check,
+    ChevronLeft,
+    ChevronRight,
+} from 'lucide-react'
+
+import { cn } from '../../lib/cn'
+import { statusMeta, STATUS_ORDER } from '../../lib/design/status'
+import { Card, ScoreRing, Skeleton, Spinner, StatusPill } from '../components/ui'
 import { NoteEditor } from './NoteEditor'
 
 interface ApplicationDetailProps {
@@ -17,8 +38,21 @@ const TABS: { id: Tab, label: string }[] = [
     { id: 'questions', label: 'Questions' },
     { id: 'cover-letter', label: 'Cover Letter' },
     { id: 'analysis', label: 'Analysis' },
-    { id: 'notes', label: 'Notes' }
+    { id: 'notes', label: 'Notes' },
 ]
+
+/** Small card header: overline + title, optional right-hand slot. */
+function BlockHead({ overline, title, action }: { overline: string; title: string; action?: React.ReactNode }) {
+    return (
+        <div className="flex items-center justify-between gap-3 border-b border-border/60 px-4 py-3">
+            <div className="min-w-0">
+                <p className="overline mb-0.5">{overline}</p>
+                <h3 className="display-title !text-[13px] truncate">{title}</h3>
+            </div>
+            {action}
+        </div>
+    )
+}
 
 export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: ApplicationDetailProps) {
     const [activeTab, setActiveTab] = useState<Tab>('overview')
@@ -34,7 +68,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const [questions, setQuestions] = useState<any[]>([])
     const [scanning, setScanning] = useState(false)
     const [generating, setGenerating] = useState(false)
-    const [compatibility, setCompatibility] = useState<any>(null)
+    const [analysis, setAnalysis] = useState<any>(null)
     const [checkingComp, setCheckingComp] = useState(false)
     const [aiContext, setAiContext] = useState('')
     const [newQuestion, setNewQuestion] = useState('')
@@ -47,7 +81,6 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     const [clInstructions, setClInstructions] = useState('')
 
     // Analysis state
-    const [analysis, setAnalysis] = useState<any>(null)
     const [loadingAnalysis, setLoadingAnalysis] = useState(false)
 
     // Document state
@@ -247,9 +280,9 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         try {
             await APIClient.deleteQuestion(id)
             loadQuestions()
-        } catch (e: any) {
+        } catch (e) {
             console.error(e)
-            alert(`Failed to delete question: ${e.message}`)
+            alert(`Failed to delete question: ${e}`)
         }
     }
 
@@ -278,24 +311,6 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         }
     }
 
-    const getScoreColor = (score: number) => {
-        if (score >= 80) return "text-green-600"
-        if (score >= 60) return "text-orange-600"
-        return "text-red-600"
-    }
-
-    const getScoreBg = (score: number) => {
-        if (score >= 80) return "bg-primary"
-        if (score >= 60) return "bg-orange-500"
-        return "bg-red-500"
-    }
-
-    const getScoreCardTextColor = (score: number) => {
-        if (score >= 80) return "text-green-600"
-        if (score >= 60) return "text-orange-600"
-        return "text-red-600"
-    }
-
     const handleGenerateCL = async () => {
         setGeneratingCL(true)
         try {
@@ -312,17 +327,18 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
         }
     }
 
-    const statuses = ['draft', 'submitted', 'in_review', 'interview', 'offer', 'rejected']
-
     const renderTabButton = (id: Tab, label: string) => {
         const isActive = activeTab === id
         return (
             <button
+                type="button"
                 onClick={() => setActiveTab(id)}
-                className={`flex-1 flex items-center justify-center py-2 px-1 rounded-md text-[10px] font-medium transition-all ${isActive
-                    ? 'bg-primary text-black shadow-sm'
-                    : 'text-muted-foreground hover:text-foreground hover:bg-background/20'
-                    }`}
+                className={cn(
+                    'flex-1 rounded-md px-1 py-1.5 text-[10.5px] font-medium transition-all',
+                    isActive
+                        ? 'bg-card text-foreground shadow-sm'
+                        : 'text-muted-foreground hover:text-foreground'
+                )}
             >
                 {label}
             </button>
@@ -330,277 +346,349 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
     }
 
     return (
-        <div className="flex flex-col h-full bg-background animate-in slide-in-from-right-4 duration-200 w-full overflow-hidden">
+        <div className="flex h-full flex-col w-full overflow-hidden bg-background">
             {/* Header */}
-            <div className="flex items-center gap-2 p-3 border-b border-border bg-card/50 sticky top-0 z-10 backdrop-blur-md">
+            <div className="sticky top-0 z-10 flex items-center gap-2 border-b border-border/70 bg-card/80 p-3 backdrop-blur-md">
                 <button
+                    type="button"
                     onClick={onBack}
-                    className="p-1.5 rounded-full hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
+                    className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                    aria-label="Back to applications"
                 >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="h-4 w-4" />
                 </button>
-                <div className="flex-1 min-w-0">
-                    <h2 className="font-bold text-sm truncate">{application.title}</h2>
-                    <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                        <Building className="w-3 h-3" />
-                        <span className="truncate">{application.company || 'Unknown Company'}</span>
+                <div className="min-w-0 flex-1">
+                    <h2 className="truncate font-display text-[13.5px] font-bold tracking-tight text-foreground">
+                        {application.title}
+                    </h2>
+                    <div className="mt-0.5 flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                        <Building className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{application.company || 'Unknown company'}</span>
+                        <StatusPill status={status} className="!px-1.5 !text-[9px]" />
                     </div>
                 </div>
-                <div className="flex gap-1">
+                <div className="flex shrink-0 items-center gap-0.5">
                     <button
+                        type="button"
                         onClick={() => {
                             const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
                             window.open(`${baseUrl}/applications/${application.id}`, '_blank')
                         }}
-                        className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
                         title="Open in ApplyOS"
+                        aria-label="Open in ApplyOS"
                     >
-                        <ExternalLink className="w-4 h-4" />
+                        <ExternalLink className="h-3.5 w-3.5" />
                     </button>
                     <button
+                        type="button"
                         onClick={handleSave}
                         disabled={saving}
-                        className="p-1.5 text-primary hover:bg-primary/10 rounded-lg transition-colors disabled:opacity-50"
-                        title="Save Changes"
+                        className="rounded-lg p-1.5 text-primary-strong transition-colors hover:bg-primary/10 disabled:opacity-50 dark:text-primary"
+                        title="Save changes"
+                        aria-label="Save changes"
                     >
-                        {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                        {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                     </button>
                     <button
+                        type="button"
                         onClick={handleDelete}
-                        className="p-1.5 text-red-400 hover:bg-red-400/10 rounded-lg transition-colors"
-                        title="Delete Application"
+                        className="rounded-lg p-1.5 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                        title="Delete application"
+                        aria-label="Delete application"
                     >
-                        <Trash2 className="w-4 h-4" />
+                        <Trash2 className="h-3.5 w-3.5" />
                     </button>
                 </div>
             </div>
 
-            {/* Pill Tabs */}
-            <div className="p-3 bg-card/30">
+            {/* Tab switcher — the app's segmented control, windowed to three
+                so five tabs fit a 400px popup. */}
+            <div className="shrink-0 border-b border-border/50 bg-card/30 px-3 py-2">
                 <div className="flex items-center gap-1">
                     <button
+                        type="button"
                         onClick={() => setViewStart(Math.max(0, viewStart - 1))}
                         disabled={viewStart === 0}
-                        className="p-1 rounded-md text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none hover:bg-secondary transition-colors"
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
+                        aria-label="Previous tabs"
                     >
-                        <ChevronLeft className="w-4 h-4" />
+                        <ChevronLeft className="h-3.5 w-3.5" />
                     </button>
 
-                    <div className="flex-1 flex p-1 bg-secondary rounded-lg gap-1 border border-border overflow-hidden">
+                    <div className="flex flex-1 gap-0.5 rounded-lg bg-muted/70 p-1">
                         {TABS.slice(viewStart, viewStart + 3).map(tab => renderTabButton(tab.id, tab.label))}
                     </div>
 
                     <button
+                        type="button"
                         onClick={() => setViewStart(Math.min(TABS.length - 3, viewStart + 1))}
                         disabled={viewStart >= TABS.length - 3}
-                        className="p-1 rounded-md text-muted-foreground hover:text-foreground disabled:opacity-30 disabled:pointer-events-none hover:bg-secondary transition-colors"
+                        className="rounded-md p-1 text-muted-foreground transition-colors hover:text-foreground hover:bg-secondary disabled:pointer-events-none disabled:opacity-30"
+                        aria-label="Next tabs"
                     >
-                        <ChevronRight className="w-4 h-4" />
+                        <ChevronRight className="h-3.5 w-3.5" />
                     </button>
                 </div>
             </div>
 
             {/* Content Container */}
-            <div className="flex-1 overflow-y-auto min-h-0">
-                <div className="p-4 space-y-6">
+            <div className="scrollbar-thin min-h-0 flex-1 overflow-y-auto">
+                <div className="space-y-4 p-4">
                     {/* OVERVIEW TAB */}
                     {activeTab === 'overview' && (
-                        <div className="space-y-6 animate-in fade-in duration-200">
-                            {/* Application Information Grid */}
-                            <div className="grid grid-cols-2 gap-x-4 gap-y-6">
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Status</p>
-                                    <div className="relative group/status">
-                                        <select
-                                            value={status}
-                                            onChange={(e) => setStatus(e.target.value as any)}
-                                            className="w-full text-xs font-medium bg-card border border-border rounded-md px-2 py-1.5 outline-none appearance-none cursor-pointer focus:border-primary transition-colors"
-                                        >
-                                            {statuses.map(s => (
-                                                <option key={s} value={s}>{s.replace('_', ' ')}</option>
-                                            ))}
-                                        </select>
-                                        <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-muted-foreground">
-                                            <ChevronDown className="w-3 h-3" />
+                        <div className="space-y-4 animate-in fade-in duration-200">
+                            <Card className="overflow-hidden">
+                                <BlockHead overline="Status" title="Pipeline position" />
+                                <div className="grid grid-cols-2 divide-x divide-border/50">
+                                    <div className="p-4">
+                                        <p className="overline mb-1.5">Status</p>
+                                        <div className="relative group/status">
+                                            <select
+                                                value={status}
+                                                onChange={(e) => setStatus(e.target.value as any)}
+                                                className="input-field h-8 appearance-none pr-7 text-[12px] font-medium"
+                                                aria-label="Application status"
+                                            >
+                                                {STATUS_ORDER.map(s => (
+                                                    <option key={s} value={s}>{statusMeta(s).label}</option>
+                                                ))}
+                                            </select>
+                                            <span className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 text-muted-foreground">
+                                                <ChevronDown className="h-3 w-3" />
+                                            </span>
                                         </div>
                                     </div>
-                                </div>
-                                <div>
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Created</p>
-                                    <div className="h-[29px] flex items-center">
-                                        <p className="text-xs font-semibold">{new Date(application.created_at || Date.now()).toLocaleDateString()}</p>
+                                    <div className="p-4">
+                                        <p className="overline mb-1.5">Created</p>
+                                        <p className="text-[12px] font-semibold text-foreground">
+                                            {new Date(application.created_at || Date.now()).toLocaleDateString()}
+                                        </p>
                                     </div>
                                 </div>
                                 {application.url && (
-                                    <div className="col-span-2">
-                                        <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1.5">Job URL</p>
-                                        <a href={application.url} target="_blank" rel="noopener noreferrer" className="text-xs text-primary truncate block hover:underline font-medium">
-                                            {application.url}
+                                    <div className="border-t border-border/50 px-4 py-3">
+                                        <p className="overline mb-1.5">Job URL</p>
+                                        <a
+                                            href={application.url}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="inline-flex max-w-full items-center gap-1.5 text-[12px] font-medium text-primary-strong hover:underline dark:text-primary"
+                                        >
+                                            <span className="truncate">{application.url}</span>
+                                            <ExternalLink className="h-3 w-3 shrink-0" />
                                         </a>
                                     </div>
                                 )}
-                            </div>
+                            </Card>
 
-                            {/* Job Description */}
                             {application.job_description && (
-                                <div className="space-y-2 border-t border-border pt-4">
-                                    <p className="text-[10px] text-muted-foreground uppercase font-bold">Job Description</p>
-                                    <div className="relative">
-                                        <div
-                                            className={`text-xs text-muted-foreground bg-card/40 p-3 rounded-lg border border-border leading-relaxed transition-all ${jobDescriptionExpanded ? "" : "line-clamp-[4]"
-                                                }`}
+                                <Card className="overflow-hidden">
+                                    <BlockHead overline="Posting" title="Job description" />
+                                    <div className="p-4">
+                                        <p
+                                            className={cn(
+                                                'text-[11.5px] leading-relaxed text-muted-foreground',
+                                                !jobDescriptionExpanded && 'line-clamp-[4]'
+                                            )}
                                         >
                                             {application.job_description}
-                                        </div>
+                                        </p>
                                         {application.job_description.length > 200 && (
                                             <button
+                                                type="button"
                                                 onClick={() => setJobDescriptionExpanded(!jobDescriptionExpanded)}
-                                                className="mt-1 text-[10px] text-primary hover:underline font-medium"
+                                                className="mt-2 text-[11px] font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
                                             >
-                                                {jobDescriptionExpanded ? "Show Less" : "Show More"}
+                                                {jobDescriptionExpanded ? 'Show less' : 'Show more'}
                                             </button>
                                         )}
                                     </div>
-                                </div>
+                                </Card>
                             )}
 
-                            {/* Attached Documents */}
-                            <div className="space-y-2 border-t border-border pt-4">
-                                <p className="text-[10px] text-muted-foreground uppercase font-bold">Attached Documents</p>
+                            <Card className="overflow-hidden">
+                                <BlockHead
+                                    overline="Attached"
+                                    title="Documents"
+                                    action={
+                                        selectedDocIds.length > 0 ? (
+                                            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-semibold tabular-nums text-muted-foreground">
+                                                {selectedDocIds.length} linked
+                                            </span>
+                                        ) : null
+                                    }
+                                />
                                 {docsLoading ? (
-                                    <div className="flex items-center gap-2 py-2">
-                                        <Loader2 className="w-3 h-3 animate-spin text-muted-foreground" />
-                                        <span className="text-[10px] text-muted-foreground">Loading...</span>
+                                    <div className="space-y-2 p-4">
+                                        <Skeleton className="h-8 w-full" />
+                                        <Skeleton className="h-8 w-full" />
                                     </div>
                                 ) : userDocuments.length === 0 ? (
-                                    <p className="text-[10px] text-muted-foreground/60 py-2">No documents uploaded yet. Upload in the main app.</p>
+                                    <p className="px-4 py-4 text-[11px] leading-relaxed text-muted-foreground">
+                                        No documents in your library yet. Upload a resume in the
+                                        ApplyOS app and it will show up here.
+                                    </p>
                                 ) : (
-                                    <div className="space-y-1.5">
+                                    <ul className="divide-y divide-border/50">
                                         {userDocuments.map(doc => {
                                             const isSelected = selectedDocIds.includes(doc.id)
                                             return (
-                                                <button
-                                                    key={doc.id}
-                                                    onClick={() => toggleDocumentSelection(doc.id)}
-                                                    className={`w-full flex items-center gap-2 px-2.5 py-2 rounded-lg border transition-all text-left ${isSelected
-                                                        ? 'border-primary bg-primary/5'
-                                                        : 'border-border bg-card hover:border-primary/30'
-                                                        }`}
-                                                >
-                                                    <FileText className={`w-3.5 h-3.5 flex-shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
-                                                    <span className={`text-xs truncate flex-1 ${isSelected ? 'font-medium' : 'text-muted-foreground'}`}>
-                                                        {doc.file_name}
-                                                    </span>
-                                                    <div className={`w-3.5 h-3.5 rounded-full border flex items-center justify-center flex-shrink-0 ${isSelected ? 'bg-primary border-primary' : 'border-border'
-                                                        }`}>
-                                                        {isSelected && <CheckCircle2 className="w-2.5 h-2.5 text-black" />}
-                                                    </div>
-                                                </button>
+                                                <li key={doc.id}>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => toggleDocumentSelection(doc.id)}
+                                                        className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left transition-colors hover:bg-muted/40"
+                                                    >
+                                                        <span
+                                                            className={cn(
+                                                                'flex h-4 w-4 shrink-0 items-center justify-center rounded border transition-colors',
+                                                                isSelected
+                                                                    ? 'border-primary bg-primary text-primary-foreground'
+                                                                    : 'border-border bg-card'
+                                                            )}
+                                                        >
+                                                            {isSelected ? <Check className="h-3 w-3" strokeWidth={3} /> : null}
+                                                        </span>
+                                                        <FileText
+                                                            className={cn(
+                                                                'h-3.5 w-3.5 shrink-0',
+                                                                isSelected ? 'text-primary-strong dark:text-primary' : 'text-muted-foreground'
+                                                            )}
+                                                        />
+                                                        <span
+                                                            className={cn(
+                                                                'min-w-0 flex-1 truncate text-[12px]',
+                                                                isSelected ? 'font-medium text-foreground' : 'text-muted-foreground'
+                                                            )}
+                                                        >
+                                                            {doc.file_name}
+                                                        </span>
+                                                    </button>
+                                                </li>
                                             )
                                         })}
-                                    </div>
+                                    </ul>
                                 )}
-                            </div>
+                            </Card>
                         </div>
                     )}
 
                     {/* QUESTIONS TAB */}
                     {activeTab === 'questions' && (
                         <div className="space-y-4 animate-in fade-in duration-200">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-sm font-bold flex items-center gap-2">
-                                    <Bot className="w-4 h-4 text-primary" />
-                                    Application Questions
-                                </h3>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleScanQuestions}
-                                        disabled={scanning}
-                                        className="text-[10px] bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1.5 rounded-full flex items-center gap-1 transition-colors"
-                                    >
-                                        {scanning ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Target className="w-3 h-3" />}
-                                        Scan Page
-                                    </button>
-                                    <button
-                                        onClick={handleGenerateAnswers}
-                                        disabled={generating || questions.length === 0}
-                                        className="text-[10px] bg-primary hover:bg-primary/90 text-background px-3 py-1.5 rounded-full flex items-center gap-1 font-semibold transition-colors disabled:opacity-50"
-                                    >
-                                        {generating ? <Wand2 className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                                        Generate
-                                    </button>
-                                </div>
-                            </div>
-
-                            {/* Context Input */}
-                            <div className="space-y-1">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Instructions</label>
-                                <textarea
-                                    value={aiContext}
-                                    onChange={e => setAiContext(e.target.value)}
-                                    className="w-full h-20 p-2 text-xs bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-                                    placeholder="E.g., 'Focus on my leadership experience' or 'Keep answers concise under 100 words'"
+                            <Card className="overflow-hidden">
+                                <BlockHead
+                                    overline="AI"
+                                    title="Application questions"
+                                    action={
+                                        <div className="flex items-center gap-1.5">
+                                            <button
+                                                type="button"
+                                                onClick={handleScanQuestions}
+                                                disabled={scanning}
+                                                className="btn-secondary h-7 !px-2.5 !text-[11px]"
+                                            >
+                                                {scanning ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Target className="h-3 w-3" />}
+                                                Scan
+                                            </button>
+                                            <button
+                                                type="button"
+                                                onClick={handleGenerateAnswers}
+                                                disabled={generating || questions.length === 0}
+                                                className="btn-primary h-7 !px-2.5 !text-[11px]"
+                                            >
+                                                <Wand2 className="h-3 w-3" />
+                                                Generate
+                                            </button>
+                                        </div>
+                                    }
                                 />
-                            </div>
-
-
+                                <div className="p-4">
+                                    <label className="overline mb-1.5 block" htmlFor="q-context">
+                                        Instructions
+                                    </label>
+                                    <textarea
+                                        id="q-context"
+                                        value={aiContext}
+                                        onChange={e => setAiContext(e.target.value)}
+                                        className="input-field h-16 resize-none py-1.5 text-[11px]"
+                                        placeholder="E.g. 'Focus on my leadership experience' or 'Keep answers under 100 words'"
+                                    />
+                                </div>
+                            </Card>
 
                             {questions.length === 0 ? (
-                                <div className="text-center py-10 bg-secondary/20 rounded-lg border border-dashed border-border">
-                                    <p className="text-xs text-muted-foreground mb-2">No questions saved yet.</p>
-                                    <p className="text-[10px] text-muted-foreground/60">Navigate to the application page and click "Scan".</p>
-                                </div>
+                                <Card className="flex flex-col items-center px-5 py-8 text-center">
+                                    <div className="icon-chip mb-3 h-10 w-10">
+                                        <Bot className="h-5 w-5" />
+                                    </div>
+                                    <p className="text-[13px] font-semibold text-foreground">No questions yet</p>
+                                    <p className="mt-1 max-w-[240px] text-[11px] leading-relaxed text-muted-foreground">
+                                        Open the application page and use <strong>Scan</strong> — or add
+                                        one below.
+                                    </p>
+                                </Card>
                             ) : (
-                                <div className="space-y-4">
+                                <div className="space-y-3">
                                     {questions.map((q, i) => (
-                                        <div key={i} className="bg-card border border-border/50 rounded-lg p-3 space-y-2 relative group-card">
-                                            <div className="flex justify-between items-start gap-2 mb-2">
-                                                <p className="text-xs font-bold text-foreground">{q.question_text}</p>
-                                                <div className="flex gap-1">
+                                        <Card key={q.id ?? i} className="overflow-hidden">
+                                            <div className="flex items-start justify-between gap-2 px-4 py-3">
+                                                <p className="min-w-0 flex-1 text-[12px] font-semibold leading-snug text-foreground">
+                                                    {q.question_text}
+                                                </p>
+                                                <div className="flex shrink-0 items-center gap-0.5">
                                                     <button
+                                                        type="button"
                                                         onClick={() => navigator.clipboard.writeText(q.ai_answer || '')}
-                                                        className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                                        title="Copy Answer"
+                                                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
+                                                        title="Copy answer"
+                                                        aria-label="Copy answer"
                                                     >
-                                                        <Copy className="w-3 h-3" />
+                                                        <Copy className="h-3 w-3" />
                                                     </button>
                                                     <button
+                                                        type="button"
                                                         onClick={() => handleDeleteQuestion(q.id)}
-                                                        className="p-1 text-muted-foreground hover:text-red-400 transition-colors"
-                                                        title="Delete Question"
+                                                        className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-destructive/10 hover:text-destructive"
+                                                        title="Delete question"
+                                                        aria-label="Delete question"
                                                     >
-                                                        <Trash2 className="w-3 h-3" />
+                                                        <Trash2 className="h-3 w-3" />
                                                     </button>
                                                 </div>
                                             </div>
-
-                                            <textarea
-                                                value={q.ai_answer || ''}
-                                                readOnly
-                                                className="w-full h-32 p-3 text-xs bg-card border border-border rounded-lg outline-none resize-none leading-relaxed"
-                                                placeholder="Answer will be generated here..."
-                                            />
-                                        </div>
+                                            <div className="border-t border-border/50 p-3">
+                                                <textarea
+                                                    value={q.ai_answer || ''}
+                                                    onChange={e => handleQuestionChange(q.id, e.target.value)}
+                                                    className="h-28 w-full resize-none rounded-lg border border-border/60 bg-muted/30 p-2.5 text-[11px] leading-relaxed text-foreground outline-none transition-colors placeholder:text-muted-foreground/60 focus:border-primary/40 focus:ring-1 focus:ring-primary/30"
+                                                    placeholder="Answer will be generated here…"
+                                                />
+                                            </div>
+                                        </Card>
                                     ))}
                                 </div>
                             )}
 
-                            {/* Manual Question Entry */}
                             <div className="flex gap-2">
                                 <input
                                     type="text"
                                     value={newQuestion}
                                     onChange={e => setNewQuestion(e.target.value)}
                                     onKeyDown={e => e.key === 'Enter' && handleAddQuestion()}
-                                    placeholder="Add manual question (e.g. why us?)"
-                                    className="flex-1 text-xs bg-card border border-border rounded-lg px-3 py-2 focus:border-primary outline-none"
+                                    placeholder="Add a question manually…"
+                                    className="input-field h-9 flex-1 text-[12px]"
+                                    aria-label="Add question"
                                 />
                                 <button
+                                    type="button"
                                     onClick={handleAddQuestion}
                                     disabled={addingQuestion || !newQuestion.trim()}
-                                    className="p-2 bg-primary text-black rounded-lg disabled:opacity-50"
+                                    className="btn-primary h-9 !px-3"
+                                    aria-label="Add question"
                                 >
-                                    {addingQuestion ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+                                    {addingQuestion ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
                                 </button>
                             </div>
                         </div>
@@ -608,170 +696,156 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
 
                     {/* ANALYSIS TAB */}
                     {activeTab === 'analysis' && (
-                        <div className="space-y-6 animate-in fade-in duration-200">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-sm font-bold flex items-center gap-2">
-                                    <Target className="w-4 h-4 text-primary" />
-                                    Job Analysis
-                                </h3>
-                                {(analysis || !loadingAnalysis) && (
-                                    <button
-                                        onClick={handleCheckCompatibility}
-                                        disabled={checkingComp}
-                                        className="text-[10px] bg-secondary hover:bg-secondary/80 text-foreground px-3 py-1 rounded-full flex items-center gap-1 font-medium transition-colors disabled:opacity-50"
-                                    >
-                                        {checkingComp ? <RefreshCw className="w-3 h-3 animate-spin" /> : <RefreshCw className="w-3 h-3" />}
-                                        Re-Analyze
-                                    </button>
-                                )}
-                            </div>
-
+                        <div className="space-y-4 animate-in fade-in duration-200">
                             {loadingAnalysis && !analysis ? (
-                                <div className="flex flex-col items-center justify-center py-10 space-y-3">
-                                    <RefreshCw className="w-8 h-8 text-primary animate-spin" />
-                                    <p className="text-xs text-muted-foreground">Loading analysis...</p>
-                                </div>
+                                <Card className="flex flex-col items-center justify-center gap-3 py-10">
+                                    <Spinner className="h-6 w-6 text-primary" />
+                                    <p className="text-[12px] text-muted-foreground">Loading analysis…</p>
+                                </Card>
                             ) : !analysis ? (
-                                <div className="flex flex-col items-center justify-center py-10 space-y-4 text-center">
-                                    <div className="p-4 bg-secondary/30 rounded-full">
-                                        <Target className="w-8 h-8 text-muted-foreground" />
+                                <Card className="flex flex-col items-center px-5 py-8 text-center">
+                                    <div className="icon-chip mb-3 h-10 w-10">
+                                        <Target className="h-5 w-5" />
                                     </div>
-                                    <div className="text-center space-y-1">
-                                        <p className="text-sm font-semibold">No Analysis Found</p>
-                                        <p className="text-xs text-muted-foreground max-w-[200px]">
-                                            Analyze your resume against this job description to get a match score and tips.
-                                        </p>
-                                    </div>
+                                    <p className="text-[13px] font-semibold text-foreground">No analysis yet</p>
+                                    <p className="mt-1 max-w-[240px] text-[11px] leading-relaxed text-muted-foreground">
+                                        Match your resume against this job description to get a score
+                                        and the keywords to close.
+                                    </p>
                                     <button
+                                        type="button"
                                         onClick={handleCheckCompatibility}
                                         disabled={checkingComp}
-                                        className="bg-primary hover:bg-primary/90 text-background px-6 py-2 rounded-full text-xs font-bold transition-all flex items-center gap-2"
+                                        className="btn-primary mt-4 h-9 !px-4 !text-[12px]"
                                     >
-                                        {checkingComp ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Wand2 className="w-4 h-4" />}
-                                        Run Analysis
+                                        {checkingComp ? <Spinner className="h-3.5 w-3.5" /> : <Wand2 className="h-3.5 w-3.5" />}
+                                        Run analysis
                                     </button>
-                                </div>
+                                </Card>
                             ) : (
-                                <div className="space-y-4">
-                                    {/* Score Card */}
-                                    <div className={`text-center p-6 border rounded-xl relative overflow-hidden ${getScoreBg(analysis.score)} bg-opacity-10 border-opacity-20`}>
-                                        <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent pointer-events-none" />
-
-                                        <div className="relative flex items-center justify-center h-24 w-24 mx-auto mb-2">
-                                            <svg className="h-full w-full -rotate-90 text-muted-foreground/20" viewBox="0 0 100 100">
-                                                <circle cx="50" cy="50" r="40" fill="none" stroke="currentColor" strokeWidth="8" />
-                                            </svg>
-                                            <svg className="h-full w-full -rotate-90 absolute inset-0" viewBox="0 0 100 100">
-                                                <circle
-                                                    cx="50" cy="50" r="40"
-                                                    fill="none"
-                                                    stroke="currentColor"
-                                                    strokeWidth="8"
-                                                    strokeDasharray="251.2"
-                                                    strokeDashoffset={251.2 - (251.2 * analysis.score) / 100}
-                                                    strokeLinecap="round"
-                                                    className={`transition-all duration-1000 ease-out ${getScoreColor(analysis.score)}`}
-                                                />
-                                            </svg>
-                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                                <span className={`text-2xl font-bold ${getScoreCardTextColor(analysis.score)}`}>
-                                                    {analysis.score}
-                                                </span>
-                                                <span className={`text-[10px] font-medium uppercase tracking-wider opacity-70 ${getScoreCardTextColor(analysis.score)}`}>/ 100</span>
-                                            </div>
+                                <>
+                                    <Card className="overflow-hidden">
+                                        <BlockHead
+                                            overline="Analysis"
+                                            title="Job match"
+                                            action={
+                                                <button
+                                                    type="button"
+                                                    onClick={handleCheckCompatibility}
+                                                    disabled={checkingComp}
+                                                    className="btn-secondary h-7 !px-2.5 !text-[11px]"
+                                                >
+                                                    {checkingComp ? <RefreshCw className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                                                    Re-run
+                                                </button>
+                                            }
+                                        />
+                                        <div className="flex flex-col items-center px-4 py-6">
+                                            <ScoreRing score={analysis.score} size={96} label="Match score" />
                                         </div>
-                                        <div className={`text-xs font-medium uppercase tracking-wider ${getScoreCardTextColor(analysis.score)}`}>Match Score</div>
-                                    </div>
+                                    </Card>
 
-                                    {/* Missing Keywords */}
-                                    <div className={`rounded-lg border p-4 ${analysis.score < 60 ? "border-red-500/30 bg-red-500/5" : "border-border bg-card"}`}>
-                                        <div className="flex items-center gap-2 mb-3">
-                                            <AlertTriangle className={`h-4 w-4 ${analysis.score < 60 ? "text-red-500" : "text-orange-500"}`} />
-                                            <h4 className={`text-xs font-bold uppercase ${analysis.score < 60 ? "text-red-500" : "text-foreground"}`}>Missing Keywords</h4>
-                                        </div>
+                                    <Card
+                                        className={cn(
+                                            'overflow-hidden',
+                                            (analysis.score ?? 100) < 60 && 'border-destructive/30'
+                                        )}
+                                    >
+                                        <BlockHead
+                                            overline="Keywords"
+                                            title="Missing from your resume"
+                                        />
                                         {analysis.missingKeywords?.length > 0 ? (
-                                            <div className="flex flex-wrap gap-1.5">
+                                            <div className="flex flex-wrap gap-1.5 p-4">
                                                 {analysis.missingKeywords.map((kw: string, i: number) => (
-                                                    <span key={i} className={`text-[10px] px-2 py-1 rounded-md border ${analysis.score < 60
-                                                        ? "bg-red-500/10 text-red-500 border-red-500/20"
-                                                        : "bg-orange-500/10 text-orange-500 border-orange-500/20"
-                                                        }`}>
+                                                    <span
+                                                        key={i}
+                                                        className={cn(
+                                                            'rounded-md border px-2 py-0.5 text-[10.5px] font-medium',
+                                                            (analysis.score ?? 100) < 60
+                                                                ? 'border-destructive/25 bg-destructive/10 text-destructive'
+                                                                : 'border-amber-500/25 bg-amber-500/10 text-amber-700 dark:text-amber-400'
+                                                        )}
+                                                    >
                                                         {kw}
                                                     </span>
                                                 ))}
                                             </div>
                                         ) : (
-                                            <div className="text-xs text-muted-foreground italic">None! Great job coverage.</div>
+                                            <p className="p-4 text-[11.5px] leading-relaxed text-muted-foreground">
+                                                None — your resume covers the posting&apos;s keywords.
+                                            </p>
                                         )}
-                                    </div>
-
-
-                                </div>
+                                    </Card>
+                                </>
                             )}
                         </div>
                     )}
 
                     {/* COVER LETTER TAB */}
                     {activeTab === 'cover-letter' && (
-                        <div className="space-y-6 animate-in fade-in duration-200">
-                            <div className="flex justify-between items-center">
-                                <h3 className="text-sm font-bold flex items-center gap-2">
-                                    <FileText className="w-4 h-4 text-primary" />
-                                    Cover Letter
-                                </h3>
-                                <div className="flex gap-2">
-                                    <button
-                                        onClick={handleGenerateCL}
-                                        disabled={generatingCL}
-                                        className="text-[10px] bg-primary hover:bg-primary/90 text-background px-4 py-1.5 rounded-full flex items-center gap-1 font-semibold transition-colors disabled:opacity-50"
-                                    >
-                                        {generatingCL ? <RefreshCw className="w-3 h-3 animate-spin" /> : <Wand2 className="w-3 h-3" />}
-                                        {aiCoverLetter ? 'Regenerate' : 'Generate'}
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className="space-y-1 mb-3">
-                                <label className="text-[10px] uppercase font-bold text-muted-foreground">Instructions</label>
-                                <textarea
-                                    value={clInstructions}
-                                    onChange={e => setClInstructions(e.target.value)}
-                                    className="w-full h-16 p-2 text-xs bg-card border border-border rounded-lg focus:border-primary focus:ring-1 focus:ring-primary outline-none resize-none"
-                                    placeholder="E.g. 'Emphasize my Python experience' or 'Keep it under 200 words'"
-                                />
-                            </div>
-
-                            <div className="bg-card border border-border rounded-lg p-3 space-y-2 relative group-card">
-                                <div className="flex justify-between items-start gap-2 mb-2">
-                                    <p className="text-xs font-bold text-foreground">Generated Cover Letter</p>
-                                    <div className="flex gap-1">
+                        <div className="space-y-4 animate-in fade-in duration-200">
+                            <Card className="overflow-hidden">
+                                <BlockHead
+                                    overline="AI"
+                                    title="Cover letter"
+                                    action={
                                         <button
-                                            onClick={() => navigator.clipboard.writeText(mCL)}
-                                            className="p-1 text-muted-foreground hover:text-primary transition-colors"
-                                            title="Copy Cover Letter"
+                                            type="button"
+                                            onClick={handleGenerateCL}
+                                            disabled={generatingCL}
+                                            className="btn-primary h-7 !px-2.5 !text-[11px]"
                                         >
-                                            <Copy className="w-3 h-3" />
+                                            {generatingCL ? <RefreshCw className="h-3 w-3 animate-spin" /> : <Wand2 className="h-3 w-3" />}
+                                            {aiCoverLetter ? 'Regenerate' : 'Generate'}
                                         </button>
-                                    </div>
-                                </div>
-                                <textarea
-                                    value={mCL}
-                                    readOnly
-                                    className="w-full h-[400px] p-4 text-sm bg-card border border-border rounded-lg outline-none resize-none leading-relaxed"
-                                    placeholder="Generate a cover letter..."
+                                    }
                                 />
-                            </div>
+                                <div className="p-4">
+                                    <label className="overline mb-1.5 block" htmlFor="cl-instructions">
+                                        Instructions
+                                    </label>
+                                    <textarea
+                                        id="cl-instructions"
+                                        value={clInstructions}
+                                        onChange={e => setClInstructions(e.target.value)}
+                                        className="input-field h-14 resize-none py-1.5 text-[11px]"
+                                        placeholder="E.g. 'Emphasise my Python experience' or 'Keep it under 200 words'"
+                                    />
+                                </div>
+                            </Card>
+
+                            <Card className="overflow-hidden">
+                                <BlockHead
+                                    overline="Draft"
+                                    title="Generated letter"
+                                    action={
+                                        <button
+                                            type="button"
+                                            onClick={() => navigator.clipboard.writeText(mCL)}
+                                            className="btn-ghost"
+                                            aria-label="Copy cover letter"
+                                        >
+                                            <Copy className="h-3 w-3" />
+                                            Copy
+                                        </button>
+                                    }
+                                />
+                                <div className="p-3">
+                                    <textarea
+                                        value={mCL}
+                                        readOnly
+                                        className="h-[380px] w-full resize-none rounded-lg border border-border/60 bg-muted/30 p-3 text-[12px] leading-relaxed text-foreground outline-none placeholder:text-muted-foreground/60"
+                                        placeholder="Generate a cover letter…"
+                                    />
+                                </div>
+                            </Card>
                         </div>
                     )}
 
                     {/* NOTES TAB */}
-                    {/* NOTES TAB */}
                     {activeTab === 'notes' && (
-                        <div className="h-full animate-in fade-in duration-200 pb-4">
-                            <h3 className="text-sm font-bold flex items-center gap-2 mb-4">
-                                <StickyNote className="w-4 h-4 text-primary" />
-                                Application Notes
-                            </h3>
+                        <div className="animate-in fade-in duration-200 pb-4">
                             <NoteEditor
                                 content={notes}
                                 onChangeContent={setNotes}

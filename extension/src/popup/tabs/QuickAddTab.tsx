@@ -169,8 +169,8 @@ export function QuickAddTab() {
     if (step === 'saved') {
         return (
             <div className="flex h-full flex-col items-center justify-center p-6 text-center">
-                <div className="mb-3 flex h-12 w-12 items-center justify-center rounded-full bg-primary/10 text-primary">
-                    <Check className="h-6 w-6" />
+                <div className="icon-chip mb-3">
+                    <Check className="h-5 w-5" />
                 </div>
                 <h2 className="display-title">
                     {existingId ? 'Application updated' : 'Saved to your pipeline'}

@@ -139,12 +139,7 @@ export function ApplicationsTab() {
                         key={option.id}
                         type="button"
                         onClick={() => setFilter(option.id)}
-                        className={cn(
-                            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                            filter === option.id
-                                ? 'border-primary/30 bg-primary/10 text-primary-strong dark:text-primary'
-                                : 'border-border/70 bg-card text-muted-foreground hover:text-foreground'
-                        )}
+                        className={cn('chip', filter === option.id && 'chip-active')}
                     >
                         {option.label}
                         <span className="tabular-nums opacity-60">{counts[option.id]}</span>

@@ -208,7 +208,7 @@ function Options() {
                         title="Theme"
                         description="The popup follows your system by default."
                     >
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted/70 p-1">
                             {THEME_OPTIONS.map((option) => {
                                 const Icon = option.icon
                                 const isActive = theme === option.id
@@ -218,10 +218,10 @@ function Options() {
                                         type="button"
                                         onClick={() => void handleThemeChange(option.id)}
                                         className={cn(
-                                            'inline-flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors',
+                                            'inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-[12px] font-medium transition-all',
                                             isActive
-                                                ? 'border-primary/40 bg-primary/10 text-primary-strong dark:text-primary'
-                                                : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                                                ? 'bg-card text-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
                                         )}
                                         aria-pressed={isActive}
                                     >
