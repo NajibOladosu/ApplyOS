@@ -2,7 +2,6 @@
 
 import { useEffect, useRef } from 'react'
 import { sankey, sankeyLinkHorizontal, SankeyGraph, SankeyNode } from 'd3-sankey'
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
 
 interface SankeyData {
   nodes: Array<{ name: string; value?: number }>
@@ -16,6 +15,7 @@ type SankeyNodeDatum = SankeyNode<NodeProps, LinkProps>
 interface SankeyChartProps {
   data: SankeyData
   title?: string
+  subtitle?: string
 }
 
 // Status colors matching the app theme
@@ -30,7 +30,7 @@ const STATUS_COLORS: Record<string, string> = {
   Pending: '#d1d5db', // lighter gray
 }
 
-export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyChartProps) {
+export function SankeyChart({ data, title = 'Application Status Flow', subtitle }: SankeyChartProps) {
   const svgRef = useRef<SVGSVGElement>(null)
 
   useEffect(() => {
@@ -193,27 +193,27 @@ export function SankeyChart({ data, title = 'Application Status Flow' }: SankeyC
   // Show "no data" message when there are no nodes
   if (!data || data.nodes.length === 0) {
     return (
-      <Card>
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex items-center justify-center h-[400px] text-muted-foreground">
-            No data to display application status flow
-          </div>
-        </CardContent>
-      </Card>
+      <div className="rounded-2xl border border-border/70 bg-card">
+        <div className="border-b border-border/60 px-5 py-4">
+          <h3 className="font-display text-[15px] font-bold tracking-tight text-foreground">{title}</h3>
+          {subtitle ? <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p> : null}
+        </div>
+        <div className="flex h-[320px] items-center justify-center px-5">
+          <p className="text-sm text-muted-foreground">No data to display application status flow</p>
+        </div>
+      </div>
     )
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent>
+    <div className="rounded-2xl border border-border/70 bg-card">
+      <div className="border-b border-border/60 px-5 py-4">
+        <h3 className="font-display text-[15px] font-bold tracking-tight text-foreground">{title}</h3>
+        {subtitle ? <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p> : null}
+      </div>
+      <div className="p-2">
         <svg ref={svgRef} className="w-full h-[400px]" />
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

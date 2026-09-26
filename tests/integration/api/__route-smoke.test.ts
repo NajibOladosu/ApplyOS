@@ -164,7 +164,14 @@ describe('API route smoke — unauthenticated requests are non-500', () => {
     const { GET } = await import('@/app/api/documents/[id]/route')
     const ctx = { params: Promise.resolve({ id: 'fake-id' }) }
     const res = await assertGated(GET, '/api/documents/fake-id', 'GET', undefined, ctx)
-    expect([401, 403, 404]).toContain(res.status)
+    expect([401, 403]).toContain(res.status)
+  })
+
+  it('GET /api/documents/[id]/applications is auth-gated', async () => {
+    const { GET } = await import('@/app/api/documents/[id]/applications/route')
+    const ctx = { params: Promise.resolve({ id: 'fake-id' }) }
+    const res = await assertGated(GET, '/api/documents/fake-id/applications', 'GET', undefined, ctx)
+    expect([401, 403]).toContain(res.status)
   })
 
   it('POST /api/documents/[id]/report is auth-gated', async () => {

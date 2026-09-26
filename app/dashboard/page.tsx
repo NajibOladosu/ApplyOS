@@ -20,7 +20,6 @@ import {
   CheckCircle2,
   Clock,
   FileText,
-  FolderOpen,
   Loader2,
   Plus,
   Target,
@@ -34,7 +33,7 @@ import { Stat, Sparkline, MiniBar } from "@/components/data/stat"
 import { StatusPill, STATUS_META, PRIORITY_META, ScoreRing } from "@/components/data/status-pill"
 import { ActivityHeatmap } from "@/components/data/activity-heatmap"
 import { EmptyState } from "@/components/data/empty-state"
-import type { Application, ApplicationStatus, ApplicationPriority } from "@/types/database"
+import type { Application, ApplicationStatus } from "@/types/database"
 import type { TimeRange } from "@/modules/analytics/services/analytics.service"
 
 /** Funnel order used by the pipeline band — the story of an application. */
@@ -602,14 +601,15 @@ export default function DashboardPage() {
 
           {/* Analytics Tab */}
           <TabsContent value="analytics" className="mt-2 space-y-6">
-            {/* Time Range Selector */}
-            <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            {/* Time Range Selector — scoped to a single row: label left,
+                segmented control right (the old block repeated the page title). */}
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
-                <h2 className="font-display text-xl font-bold tracking-tight text-foreground">
-                  Analytics
+                <h2 className="font-display text-[17px] font-bold tracking-tight text-foreground">
+                  Insights
                 </h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Insights into your application journey
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Conversion, volume and outcomes for your application journey
                 </p>
               </div>
 
@@ -620,25 +620,25 @@ export default function DashboardPage() {
                 <TabsList className="flex w-fit rounded-lg border-0 bg-muted/70 p-1">
                   <TabsTrigger
                     value="7d"
-                    className="rounded-md px-3 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    className="rounded-md px-3.5 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     7d
                   </TabsTrigger>
                   <TabsTrigger
                     value="30d"
-                    className="rounded-md px-3 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    className="rounded-md px-3.5 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     30d
                   </TabsTrigger>
                   <TabsTrigger
                     value="90d"
-                    className="rounded-md px-3 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    className="rounded-md px-3.5 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     90d
                   </TabsTrigger>
                   <TabsTrigger
                     value="all"
-                    className="rounded-md px-3 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
+                    className="rounded-md px-3.5 text-[13px] font-medium data-[state=active]:bg-card data-[state=active]:text-foreground data-[state=active]:shadow-sm"
                   >
                     All
                   </TabsTrigger>
@@ -708,22 +708,24 @@ export default function DashboardPage() {
                   </div>
 
                   {/* Sankey Diagram */}
-                  <SankeyChart data={analyticsData.statusFlow} title="Application Status Flow" />
+                  <SankeyChart
+                    data={analyticsData.statusFlow}
+                    title="Application status flow"
+                    subtitle="Where each application moved to, from creation to outcome"
+                  />
 
                   {/* Timeline and Funnel */}
                   <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="min-h-[400px]">
-                      <TimelineChart
-                        data={analyticsData.timeline}
-                        title="Applications Over Time"
-                      />
-                    </div>
-                    <div className="min-h-[400px]">
-                      <ConversionFunnel
-                        data={analyticsData.funnel}
-                        title="Application Conversion Funnel"
-                      />
-                    </div>
+                    <TimelineChart
+                      data={analyticsData.timeline}
+                      title="Applications over time"
+                      subtitle="New applications per day in the selected range"
+                    />
+                    <ConversionFunnel
+                      data={analyticsData.funnel}
+                      title="Conversion funnel"
+                      subtitle="How far applications get, stage by stage"
+                    />
                   </div>
 
                   {/* Type and Priority Breakdown */}
@@ -733,6 +735,9 @@ export default function DashboardPage() {
                         <h3 className="font-display text-[15px] font-bold tracking-tight text-foreground">
                           Applications by type
                         </h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Jobs, internships and scholarships in play
+                        </p>
                       </div>
                       <div className="space-y-4 p-5">
                         {analyticsData.byType.length > 0 ? (
@@ -767,6 +772,9 @@ export default function DashboardPage() {
                         <h3 className="font-display text-[15px] font-bold tracking-tight text-foreground">
                           Applications by priority
                         </h3>
+                        <p className="mt-0.5 text-xs text-muted-foreground">
+                          Where your attention is weighted
+                        </p>
                       </div>
                       <div className="space-y-4 p-5">
                         {analyticsData.byPriority.length > 0 ? (

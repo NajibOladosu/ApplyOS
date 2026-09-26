@@ -1,7 +1,5 @@
 'use client'
 
-import { Card, CardContent, CardHeader, CardTitle } from '@/shared/ui/card'
-
 interface ConversionFunnelStage {
   stage: string
   count: number
@@ -11,82 +9,70 @@ interface ConversionFunnelStage {
 interface ConversionFunnelProps {
   data: ConversionFunnelStage[]
   title?: string
+  subtitle?: string
 }
 
-export function ConversionFunnel({ data, title = 'Application Conversion Funnel' }: ConversionFunnelProps) {
+/**
+ * Funnel bars step down in the app's primary tone — the previous rainbow
+ * palette (blue/cyan/lime) fought the green accent on every other chart.
+ */
+export function ConversionFunnel({ data, title = 'Application Conversion Funnel', subtitle }: ConversionFunnelProps) {
   if (!data || data.length === 0) {
     return (
-      <Card className="flex flex-col h-full">
-        <CardHeader>
-          <CardTitle>{title}</CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 flex items-center justify-center">
-          <div className="text-muted-foreground">
-            No funnel data available
-          </div>
-        </CardContent>
-      </Card>
+      <div className="flex h-full min-h-[320px] flex-col rounded-2xl border border-border/70 bg-card">
+        <div className="border-b border-border/60 px-5 py-4">
+          <h3 className="font-display text-[15px] font-bold tracking-tight text-foreground">{title}</h3>
+          {subtitle ? <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p> : null}
+        </div>
+        <div className="flex flex-1 items-center justify-center px-5 py-8">
+          <p className="text-sm text-muted-foreground">No funnel data available</p>
+        </div>
+      </div>
     )
   }
 
   // Calculate max width for the first stage (100%)
   const maxCount = data[0]?.count || 1
 
-
-
   return (
-    <Card className="flex flex-col h-full">
-      <CardHeader>
-        <CardTitle>{title}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex-1 space-y-3">
+    <div className="flex h-full min-h-[320px] flex-col rounded-2xl border border-border/70 bg-card">
+      <div className="border-b border-border/60 px-5 py-4">
+        <h3 className="font-display text-[15px] font-bold tracking-tight text-foreground">{title}</h3>
+        {subtitle ? <p className="mt-0.5 text-xs text-muted-foreground">{subtitle}</p> : null}
+      </div>
+      <div className="flex-1 space-y-4 p-5">
         {data.map((stage, index) => {
           // Only show bar if count > 0, no minimum width for empty stages
           const widthPercentage = stage.count > 0
             ? Math.max((stage.count / maxCount) * 100, 8)
             : 0
 
-          // Color palette for funnel stages
-          const colors = [
-            '#3b82f6', // blue
-            '#06b6d4', // cyan
-            '#10b981', // emerald
-            '#84cc16', // lime
-            '#18BB70', // primary green
-          ]
-          const barColor = colors[index % colors.length]
+          // Dimmer as you go down the funnel — one hue, stepped opacity.
+          const opacity = Math.max(1 - index * 0.16, 0.25)
 
           return (
             <div key={stage.stage} className="space-y-1.5">
               {/* Stage label and count */}
-              <div className="flex items-center justify-between text-sm">
+              <div className="flex items-center justify-between text-[13px]">
                 <span className="font-medium text-foreground">{stage.stage}</span>
-                <div className="flex items-center gap-2">
-                  <span className="font-semibold text-foreground">{stage.count}</span>
-                  <span className="text-muted-foreground text-xs">
-                    ({stage.percentage}%)
-                  </span>
-                </div>
+                <span className="text-muted-foreground">
+                  <span className="font-semibold tabular-nums text-foreground">{stage.count}</span>
+                  <span className="tabular-nums"> ({stage.percentage}%)</span>
+                </span>
               </div>
 
               {/* Progress bar */}
-              <div className="relative h-8 bg-muted rounded-md overflow-hidden">
-                {/* Colored fill bar - only render if count > 0 */}
+              <div className="relative h-7 overflow-hidden rounded-md bg-muted">
                 {stage.count > 0 && (
                   <div
-                    className="absolute inset-y-0 left-0 h-full rounded-md"
-                    style={{
-                      width: `${widthPercentage}%`,
-                      backgroundColor: barColor,
-                      boxShadow: `0 2px 8px ${barColor}50`
-                    }}
+                    className="absolute inset-y-0 left-0 h-full rounded-md bg-primary"
+                    style={{ width: `${widthPercentage}%`, opacity }}
                   />
                 )}
-                {/* Centered stats label */}
                 <div className="absolute inset-0 flex items-center justify-center">
                   <span
-                    className={`text-sm font-bold drop-shadow-sm ${widthPercentage >= 50
-                      ? 'text-white'
+                    className={`text-xs font-semibold tabular-nums ${widthPercentage >= 50
+                      ? 'text-primary-foreground'
                       : 'text-foreground'
                       }`}
                   >
@@ -95,21 +81,19 @@ export function ConversionFunnel({ data, title = 'Application Conversion Funnel'
                 </div>
               </div>
 
-              {/* Drop-off indicator - styled more subtly */}
-              {index < data.length - 1 && data[index + 1] && stage.count > 0 && (
-                <div className="flex items-center gap-2 text-xs text-muted-foreground py-1">
-                  <div className="h-px flex-1 bg-border/50" />
+              {/* Drop-off indicator */}
+              {index < data.length - 1 && data[index + 1] && stage.count > 0 ? (
+                <div className="flex items-center gap-2 text-xs text-muted-foreground py-0.5">
                   <span className="flex items-center gap-1 text-muted-foreground/70">
-                    <span className="text-destructive/70">↓</span>
+                    <span className="text-destructive/80">↓</span>
                     {Math.round(((stage.count - data[index + 1].count) / stage.count) * 100)}% drop
                   </span>
-                  <div className="h-px flex-1 bg-border/50" />
                 </div>
-              )}
+              ) : null}
             </div>
           )
         })}
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   )
 }

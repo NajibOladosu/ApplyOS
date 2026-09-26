@@ -1,15 +1,13 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter, useParams } from "next/navigation"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardHeader, CardTitle } from "@/shared/ui/card"
-import { Badge } from "@/shared/ui/badge"
+import { Card } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
 import {
   Loader2,
   ArrowLeft,
-  ArrowUpRight,
   ExternalLink,
   RefreshCw,
   FileText,
@@ -21,14 +19,24 @@ import {
   ArrowRight,
   Sparkles,
   Trophy,
+  GitBranch,
 } from "lucide-react"
 import Link from "next/link"
 import { useToast } from "@/shared/ui/use-toast"
 import { cn } from "@/shared/lib/utils"
 import { MiniBar } from "@/components/data/stat"
-import { ScoreRing } from "@/components/data/status-pill"
+import { ScoreRing, StatusPill } from "@/components/data/status-pill"
 import { EmptyState } from "@/components/data/empty-state"
-import type { DocumentReport } from "@/types/database"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/shared/ui/dropdown-menu"
+import { getDocuments } from "@/modules/documents/services/document.service"
+import type { ApplicationStatus, Document, DocumentReport } from "@/types/database"
 
 type ParsedEducation = {
   institution: string
@@ -96,18 +104,25 @@ type DocumentDetail = {
   application_id: string | null
 }
 
+type LinkedApplication = {
+  id: string
+  title: string
+  company: string | null
+  status: ApplicationStatus
+  type: string
+  priority: string
+  deadline: string | null
+  created_at: string | null
+}
+
+/** How many linked applications fit before the list collapses behind "show more". */
+const LINKED_VISIBLE = 3
+
 function formatFileSize(bytes: number | null): string {
   if (!bytes || bytes <= 0) return "Unknown size"
   if (bytes < 1024) return `${bytes} B`
   if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-}
-
-function formatDate(value: string | null): string {
-  if (!value) return "Unknown"
-  const d = new Date(value)
-  if (Number.isNaN(d.getTime())) return "Unknown"
-  return d.toLocaleString()
 }
 
 /** Short, unambiguous date — the long toLocaleString is for the header line only. */
@@ -127,6 +142,31 @@ function formatRelativeDay(value: string | null): string {
   if (days === 1) return "Updated yesterday"
   if (days < 30) return `Updated ${days} days ago`
   return `Updated ${new Date(value).toLocaleDateString()}`
+}
+
+/**
+ * Groups uploads of "the same file" into a version family: identical base name
+ * ignoring the extension and browser copy suffixes ("resume.pdf",
+ * "resume (2).pdf", "resume 3.pdf" all resolve to "resume").
+ */
+function familyKey(fileName: string): string {
+  const noExt = fileName.replace(/\.[a-z0-9]{1,6}$/i, "").trim().toLowerCase()
+  return noExt
+    .replace(/\s*\(\d{1,3}\)$/, "")
+    .replace(/\s\d{1,3}$/, "")
+    .trim()
+}
+
+function initialsFor(app: { title: string; company: string | null }) {
+  const source = app.company || app.title
+  return (
+    source
+      .split(" ")
+      .filter(Boolean)
+      .slice(0, 2)
+      .map((p) => p[0]?.toUpperCase())
+      .join("") || "AP"
+  )
 }
 
 /** Card header used by both columns: overline + title, optional right-hand slot. */
@@ -211,7 +251,36 @@ export default function DocumentDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
+  // Version family: every upload of this same file, so the header can switch
+  // between v1…vN instead of only showing the one currently open.
+  const [allDocs, setAllDocs] = useState<Document[]>([])
+  // Applications that use this document (junction + legacy single link).
+  const [linkedApps, setLinkedApps] = useState<LinkedApplication[]>([])
+  const [linkedLoading, setLinkedLoading] = useState(false)
+  const [showAllLinked, setShowAllLinked] = useState(false)
+
   const documentId = typeof params?.id === "string" ? params.id : Array.isArray(params?.id) ? params.id[0] : ""
+
+  useEffect(() => {
+    getDocuments()
+      .then(setAllDocs)
+      .catch(() => setAllDocs([]))
+  }, [])
+
+  const fetchLinked = async (id: string) => {
+    setLinkedLoading(true)
+    setShowAllLinked(false)
+    try {
+      const res = await fetch(`/api/documents/${id}/applications`)
+      if (!res.ok) return
+      const payload = await res.json().catch(() => ({}))
+      setLinkedApps(Array.isArray(payload.applications) ? payload.applications : [])
+    } catch (err) {
+      console.error("Error loading linked applications:", err)
+    } finally {
+      setLinkedLoading(false)
+    }
+  }
 
   useEffect(() => {
     if (!documentId) return
@@ -219,6 +288,7 @@ export default function DocumentDetailPage() {
     const fetchDocument = async () => {
       setLoading(true)
       setError(null)
+      setLinkedApps([])
       try {
         const res = await fetch(`/api/documents/${documentId}`)
         const payload = await res.json().catch(() => ({}))
@@ -260,6 +330,7 @@ export default function DocumentDetailPage() {
         }
 
         setDoc(mapped)
+        void fetchLinked(documentId)
       } catch (err) {
         console.error("Error loading document detail:", err)
         setError("Unable to load document. Please try again.")
@@ -491,6 +562,23 @@ export default function DocumentDetailPage() {
     if (next.has(categoryName)) next.delete(categoryName)
     else next.add(categoryName)
     setExpandedCategories(next)
+  }
+
+  /** This file's version family, oldest first, so v1 is the first upload. */
+  const versions = useMemo(() => {
+    if (!doc) return []
+    const key = familyKey(doc.file_name)
+    return allDocs
+      .filter((d) => familyKey(d.file_name) === key)
+      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
+  }, [allDocs, doc])
+
+  const versionIndex = doc ? versions.findIndex((v) => v.id === doc.id) : -1
+  const isLatest = versionIndex === versions.length - 1
+
+  const handleSwitchVersion = (id: string) => {
+    if (!doc || id === doc.id) return
+    router.replace(`/documents/${id}`)
   }
 
   /* ---------- Report column ---------- */
@@ -865,6 +953,94 @@ export default function DocumentDetailPage() {
     )
   }
 
+  /* ---------- Linked applications column card ---------- */
+  const renderLinked = () => {
+    if (!doc) return null
+    const visible = showAllLinked ? linkedApps : linkedApps.slice(0, LINKED_VISIBLE)
+
+    return (
+      <Card className="overflow-hidden rounded-2xl border-border/70">
+        <CardHead
+          overline="Linked"
+          title="Applications using this file"
+          action={
+            linkedApps.length > 0 ? (
+              <span className="rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold tabular-nums text-muted-foreground">
+                {linkedApps.length}
+              </span>
+            ) : null
+          }
+        />
+        {linkedLoading ? (
+          <div className="flex items-center justify-center gap-2 px-5 py-8 text-sm text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin text-primary" />
+            Loading applications…
+          </div>
+        ) : linkedApps.length === 0 ? (
+          <div className="px-5 py-6">
+            <p className="text-sm font-medium text-muted-foreground">Not linked</p>
+            <p className="mt-1 text-xs leading-relaxed text-muted-foreground/80">
+              Attach this document from an application&apos;s details page and it will
+              show up here with its status.
+            </p>
+          </div>
+        ) : (
+          <>
+            <ul className="divide-y divide-border/50">
+              {visible.map((app) => (
+                <li key={app.id}>
+                  <Link
+                    href={`/applications/${app.id}`}
+                    className="group flex items-center gap-3 px-5 py-3 transition-colors hover:bg-muted/40"
+                  >
+                    <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border/60 bg-muted/60 font-display text-[11px] font-bold text-foreground/80">
+                      {initialsFor(app)}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-[13.5px] font-semibold text-foreground">
+                        {app.title}
+                      </span>
+                      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                        <span className="truncate">{app.company || app.type}</span>
+                        {app.created_at ? (
+                          <>
+                            <span aria-hidden className="text-muted-foreground/40">·</span>
+                            <span className="shrink-0">{formatDay(app.created_at)}</span>
+                          </>
+                        ) : null}
+                      </span>
+                    </span>
+                    <StatusPill status={app.status} size="sm" className="shrink-0" />
+                    <ArrowRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground/40 transition-transform duration-200 group-hover:translate-x-0.5 group-hover:text-foreground" />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+            {linkedApps.length > LINKED_VISIBLE ? (
+              <div className="border-t border-border/50 p-3">
+                <button
+                  type="button"
+                  onClick={() => setShowAllLinked((v) => !v)}
+                  className="mx-auto flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-[13px] font-semibold text-primary-strong transition-colors hover:bg-primary/10 dark:text-primary"
+                >
+                  <ChevronDown
+                    className={cn(
+                      "h-3.5 w-3.5 transition-transform",
+                      showAllLinked && "rotate-180"
+                    )}
+                  />
+                  {showAllLinked
+                    ? "Show less"
+                    : `Show ${linkedApps.length - LINKED_VISIBLE} more`}
+                </button>
+              </div>
+            ) : null}
+          </>
+        )}
+      </Card>
+    )
+  }
+
   if (!documentId) {
     return (
       <DashboardLayout>
@@ -945,28 +1121,84 @@ export default function DocumentDetailPage() {
                 <span>{formatFileSize(doc.file_size)}</span>
                 <span aria-hidden className="text-muted-foreground/40">·</span>
                 <span>Uploaded {formatDay(doc.created_at)}</span>
-                {doc.version ? (
+                {versions.length > 1 ? (
                   <>
                     <span aria-hidden className="text-muted-foreground/40">·</span>
-                    <span>v{doc.version}</span>
+                    <span className="inline-flex items-center gap-1.5">
+                      <GitBranch className="h-3 w-3" />
+                      Version {versionIndex + 1} of {versions.length}
+                      {isLatest ? (
+                        <span className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary-strong dark:text-primary">
+                          Latest
+                        </span>
+                      ) : null}
+                    </span>
                   </>
                 ) : null}
-                {doc.application_id ? (
-                  <>
-                    <span aria-hidden className="text-muted-foreground/40">·</span>
-                    <Link
-                      href={`/applications/${doc.application_id}`}
-                      className="inline-flex items-center gap-1 font-medium text-primary-strong hover:underline dark:text-primary"
-                    >
-                      Linked application
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Link>
-                  </>
+                {!linkedLoading ? (
+                  linkedApps.length > 0 ? (
+                    <>
+                      <span aria-hidden className="text-muted-foreground/40">·</span>
+                      <span>
+                        {linkedApps.length} linked{" "}
+                        {linkedApps.length === 1 ? "application" : "applications"}
+                      </span>
+                    </>
+                  ) : null
                 ) : null}
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              {versions.length > 1 ? (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <button
+                      type="button"
+                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:border-primary/40"
+                    >
+                      <GitBranch className="h-3.5 w-3.5" />
+                      {isLatest ? "Latest version" : `v${versionIndex + 1}`}
+                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                    </button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-72">
+                    <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                      Versions of this file
+                    </DropdownMenuLabel>
+                    <DropdownMenuSeparator />
+                    {[...versions].reverse().map((v, i) => {
+                      const versionNo = versions.length - i
+                      const isCurrent = v.id === doc.id
+                      const isNewest = versionNo === versions.length
+                      return (
+                        <DropdownMenuItem
+                          key={v.id}
+                          onClick={() => handleSwitchVersion(v.id)}
+                          className="cursor-pointer gap-3 py-2.5"
+                        >
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
+                              v{versionNo}
+                              {isNewest && !isCurrent ? (
+                                <span className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary-strong dark:text-primary">
+                                  Latest
+                                </span>
+                              ) : null}
+                            </span>
+                            <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
+                              {formatDay(v.created_at)} · {formatFileSize(v.file_size)}
+                            </span>
+                          </span>
+                          {isCurrent ? (
+                            <Check className="h-4 w-4 shrink-0 text-primary" />
+                          ) : null}
+                        </DropdownMenuItem>
+                      )
+                    })}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              ) : null}
               <Button variant="outline" size="sm" className="h-9 rounded-lg" onClick={handleOpenOriginal}>
                 <ExternalLink className="mr-1.5 h-3.5 w-3.5" />
                 View original
@@ -995,27 +1227,20 @@ export default function DocumentDetailPage() {
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start">
           <div className="space-y-5">
             {renderReport()}
+            {renderLinked()}
             <FileFacts
               rows={[
                 { label: "File type", value: doc.file_type ?? "Unknown" },
                 { label: "Size", value: formatFileSize(doc.file_size) },
-                { label: "Version", value: doc.version ? `v${doc.version}` : "—" },
+                {
+                  label: "Version",
+                  value:
+                    versions.length > 1
+                      ? `v${versionIndex + 1} of ${versions.length}${isLatest ? " (latest)" : ""}`
+                      : "v1",
+                },
                 { label: "Uploaded", value: formatDay(doc.created_at) },
                 { label: "Last parsed", value: doc.parsed_at ? formatDay(doc.parsed_at) : "Never" },
-                {
-                  label: "Application",
-                  value: doc.application_id ? (
-                    <Link
-                      href={`/applications/${doc.application_id}`}
-                      className="inline-flex items-center gap-1 text-primary-strong hover:underline dark:text-primary"
-                    >
-                      Open
-                      <ArrowUpRight className="h-3 w-3" />
-                    </Link>
-                  ) : (
-                    "Not linked"
-                  ),
-                },
               ]}
             />
           </div>

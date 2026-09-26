@@ -24,17 +24,17 @@ interface StatProps {
   href?: string
 }
 
-const ACCENT: Record<NonNullable<StatProps["accent"]>, { ring: string; icon: string }> = {
-  primary: { ring: "before:bg-primary", icon: "bg-primary/10 text-primary-strong dark:text-primary" },
-  muted: { ring: "before:bg-border", icon: "bg-muted text-muted-foreground" },
-  warning: { ring: "before:bg-amber-500", icon: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
-  danger: { ring: "before:bg-destructive", icon: "bg-destructive/10 text-destructive" },
+const ACCENT: Record<NonNullable<StatProps["accent"]>, { icon: string }> = {
+  primary: { icon: "bg-primary/10 text-primary-strong dark:text-primary" },
+  muted: { icon: "bg-muted text-muted-foreground" },
+  warning: { icon: "bg-amber-500/10 text-amber-600 dark:text-amber-400" },
+  danger: { icon: "bg-destructive/10 text-destructive" },
 }
 
 /**
  * A stat that carries information beyond its number: direction, comparison
- * basis and a micro-visual. The old dashboard shipped four identical
- * icon/label/number boxes, which is what made it read as a template.
+ * basis and a micro-visual. Tone is carried by the icon chip only — the
+ * previous left-edge stripe made a row of four stats read like four alerts.
  */
 export function Stat({ label, value, icon, trend, visual, hint, accent = "muted" }: StatProps) {
   const a = ACCENT[accent]
@@ -49,16 +49,7 @@ export function Stat({ label, value, icon, trend, visual, hint, accent = "muted"
     direction === "flat" ? "text-muted-foreground" : direction === good ? "text-primary-strong dark:text-primary" : "text-destructive"
 
   return (
-    <div
-      className={cn(
-        "group relative overflow-hidden rounded-2xl border border-border/70 bg-card p-5 transition-colors hover:border-border",
-        // a left stripe only when the value is asking for attention — four
-        // tinted stripes in a row read as four simultaneous alerts
-        accent !== "primary" && "before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:content-['']",
-        a.ring,
-        accent === "primary" && "before:hidden"
-      )}
-    >
+    <div className="group rounded-2xl border border-border/70 bg-card p-5 transition-colors hover:border-border">
       <div className="flex items-start justify-between gap-3">
         <p className="text-[13px] font-medium leading-snug text-muted-foreground">{label}</p>
         <span className={cn("flex h-8 w-8 shrink-0 items-center justify-center rounded-lg", a.icon)}>{icon}</span>

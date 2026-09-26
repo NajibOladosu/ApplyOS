@@ -54,6 +54,7 @@ vi.mock("@/modules/documents/services/document.service", () => ({
 
 vi.mock("@/lib/services/notifications", () => ({
   getNotifications: vi.fn(async () => []),
+  getRecentNotifications: vi.fn(async () => []),
 }))
 
 // the page's analytics effects fetch relative URLs, which jsdom cannot resolve
