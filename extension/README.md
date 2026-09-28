@@ -41,9 +41,10 @@ tracker current — without leaving the page.
   sites without a dedicated extractor.
 - **Applications tab** — browse, search, and update statuses from the popup;
   deep-links into the web app for the full record.
-- **Follow-up reminders** — an hourly sweep raises OS notifications for
-  applications that have gone quiet (7 days: nudge, 21: decide), once per
-  application per threshold. Badge shows the count due.
+- **Follow-up reminders** — opening the popup (or clicking **Check now** in
+  Settings) checks for applications that have gone quiet (7 days: nudge, 21:
+  decide) and raises an OS notification once per application per threshold.
+  No background timer runs when the popup is closed.
 
 ### Profile
 
@@ -65,8 +66,9 @@ permission (*Purple Potassium*). Two mechanisms keep that from recurring:
 - [`PERMISSIONS.md`](./PERMISSIONS.md) — the justification for every
   permission, written to be pasted into the Developer Dashboard.
 - `npm run audit` — fails the build if any declared permission has no matching
-  API call or any host permission has no reachable code path. Runs as part of
-  `npm run build` and `npm run package`.
+  API call, an alarm call remains, or a host grant has no network use. Runs as
+  part of `npm run build` and `npm run package`; packaging also checks that the
+  built manifest matches the audited source.
 
 ## Development setup
 
@@ -95,6 +97,7 @@ npm run build:firefox
 npm run build:edge
 
 # Chrome Web Store zip (deterministic; refuses to package if the audit fails)
+# Configure the production Supabase and ApplyOS URLs before building/uploading.
 npm run package
 ```
 
@@ -123,7 +126,7 @@ npm run verify:zip  # store-zip check: every manifest path must resolve to a
 ```text
 extension/
 ├── src/
-│   ├── background/        # Service worker: reminders, context menus, commands,
+│   ├── background/        # Service worker: on-demand reminders, context menus, commands,
 │   │                      # AI answer proxy, background capture
 │   ├── content/           # Content script: page detection, extraction,
 │   │                      # autofill runtime, step navigation

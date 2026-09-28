@@ -60,6 +60,15 @@ function Popup() {
         return () => subscription.unsubscribe()
     }, [checkAuth])
 
+    // The popup is the reminder trigger: no background timer or alarms permission.
+    // Wait for auth to restore/refresh the session before the worker reads it.
+    useEffect(() => {
+        if (!session) return
+        void chrome.runtime.sendMessage({ type: 'REMINDERS_CHECK_ON_OPEN' }).catch((error) => {
+            console.warn('[ApplyOS] reminder check failed', error)
+        })
+    }, [session])
+
     const handleLogout = async () => {
         await AuthManager.signOut()
         setSession(null)

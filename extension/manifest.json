@@ -1,11 +1,10 @@
 {
     "manifest_version": 3,
     "name": "ApplyOS - Job Application Manager",
-    "version": "2.2.0",
+    "version": "2.2.1",
     "description": "Autofill job applications, generate tailored cover letters, and track every application in one place.",
     "permissions": [
         "activeTab",
-        "alarms",
         "contextMenus",
         "notifications",
         "scripting",
@@ -27,15 +26,7 @@
     },
     "host_permissions": [
         "https://*.applyos.io/*",
-        "https://applyos.io/*",
-        "https://*.ashbyhq.com/*",
-        "https://*.glassdoor.com/*",
-        "https://*.greenhouse.io/*",
-        "https://*.indeed.com/*",
-        "https://*.lever.co/*",
-        "https://*.linkedin.com/*",
-        "https://*.myworkdayjobs.com/*",
-        "https://*.smartrecruiters.com/*"
+        "https://*.supabase.co/*"
     ],
     "background": {
         "service_worker": "background.js",
