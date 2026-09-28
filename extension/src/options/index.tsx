@@ -163,14 +163,14 @@ function Options() {
 
     const handleSave = () => {
         chrome.storage.local.set({ settings }, () => {
-            // Let the service worker re-evaluate the badge and reminder schedule.
+            // Let the service worker refresh the badge; there is no background schedule.
             chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' }).catch(() => {})
             setSaved(true)
             setTimeout(() => setSaved(false), 2000)
         })
     }
 
-    /** Fires the real sweep so the user can confirm notifications actually appear. */
+    /** Explicitly check for due reminders, without a background timer. */
     const handleTestReminders = async () => {
         setTesting(true)
         setTestResult(null)
@@ -246,7 +246,7 @@ function Options() {
                     <Section
                         icon={Bell}
                         title="Follow-up reminders"
-                        description="ApplyOS watches the applications you are waiting on and nudges you when it is worth chasing one."
+                        description="Checks for due follow-ups when you open the popup or press Check now. No background checks run."
                     >
                         <div className="mb-3 flex items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2">
                             {remindersEnabled ? (
@@ -256,8 +256,8 @@ function Options() {
                             )}
                             <span className="text-[11px] text-muted-foreground">
                                 {remindersEnabled
-                                    ? 'Reminders are on. Each application is nudged once per threshold.'
-                                    : 'Reminders are off. You will not receive any notifications.'}
+                                    ? 'Reminders are checked when you open the popup or press Check now.'
+                                    : 'Follow-up reminders are off. Job capture notifications may still appear.'}
                             </span>
                         </div>
 

@@ -2,18 +2,16 @@
 /**
  * Permission audit — guards against the "Purple Potassium" takedown recurring.
  *
- * Chrome removed ApplyOS 1.0.0 because `notifications` was declared in the
- * manifest while no code ever called `chrome.notifications.*`. Reviewers check
- * exactly one thing: does every declared permission have a matching API call?
+ * Verify that the declared permissions still correspond to code that ships.
+ * The store rejected the alarm permission; no background schedule ships now.
  *
  * This script answers that question mechanically, so the answer can never drift
  * again. It runs on every build and fails the build on any unjustified entry.
  *
  * Two directions are checked:
  *   1. Every declared permission must be *used* somewhere in src/.
- *   2. Every declared host must be *reachable* — referenced by a content script
- *      match or a network/base-URL constant. Stale hosts are the "HOST
- *      permission not used" variant of the same violation.
+ *   2. Every declared host must back a network call, not just a declarative
+ *      content-script match. Stale hosts are the host-permission variant.
  *
  * Usage: node scripts/audit-permissions.mjs [--json]
  */
@@ -45,11 +43,7 @@ const PERMISSION_RULES = {
     },
     notifications: {
         test: /chrome\.notifications\.create\(/,
-        note: 'Follow-up reminders ("7 days since you applied to X") and application deadline alerts the user opts into.',
-    },
-    alarms: {
-        test: /chrome\.alarms\.create\(/,
-        note: 'Schedules the periodic check that produces the reminders above. A service worker cannot hold a timer, so this API is required to deliver them at all.',
+        note: 'Follow-up checks triggered from the popup/settings, plus job capture results from context menus and keyboard shortcuts.',
     },
     activeTab: {
         // activeTab is a user-gesture grant, not an API. It is justified by the
@@ -64,10 +58,11 @@ const PERMISSION_RULES = {
  * strictly broader version of something already declared.
  */
 const FORBIDDEN = {
+    alarms: { reason: 'Reminders are checked on popup open or on request; no scheduled background checks ship.' },
     tabs: {
         reason:
             'Reading url/title on the active tab is already covered by activeTab. The `tabs` permission ' +
-            'would additionally expose browsing history is not used anywhere.',
+            'would additionally expose tab metadata across the browser, which is not needed.',
         unless: /chrome\.tabs\.(query|get)\([^)]*\)[\s\S]{0,200}?(pendingUrl|favIconUrl)/,
     },
     webRequest: { reason: 'No request interception is performed.' },
@@ -77,7 +72,7 @@ const FORBIDDEN = {
     downloads: { reason: 'Files are created via Blob URLs, not chrome.downloads.' },
     geolocation: { reason: 'Location comes from the user\'s saved profile, not the device sensor.' },
     clipboardRead: { reason: 'The clipboard is never read.' },
-    '<all_urls>': { reason: 'Host access is limited to the platforms the product actually supports.' },
+    '<all_urls>': { reason: 'Persistent host access is limited to the API endpoints the extension contacts.' },
 }
 
 function walk(dir, acc = []) {
@@ -108,7 +103,6 @@ function main() {
 
     const permissions = manifest.permissions ?? []
     const hosts = manifest.host_permissions ?? []
-    const matchPatterns = (manifest.content_scripts ?? []).flatMap((cs) => cs.matches ?? [])
 
     const problems = []
     const ok = []
@@ -138,6 +132,12 @@ function main() {
         }
     }
 
+    // No alarm API call may survive the removal of its permission, even if
+    // another entry point keeps the service worker alive.
+    if (/chrome\.alarms\./.test(haystack)) {
+        problems.push({ id: 'PERM-API-WITHOUT-GRANT', permission: 'alarms', detail: 'Remove the background alarm code along with its permission.' })
+    }
+
     // Direction 1b: forbidden / broader-than-needed permissions.
     for (const [permission, rule] of Object.entries(FORBIDDEN)) {
         const present = permission === '<all_urls>' ? hosts.includes(permission) : permissions.includes(permission)
@@ -150,17 +150,19 @@ function main() {
         })
     }
 
-    // Direction 2: every host must be reachable from a match pattern or a
-    // network call. Catches hosts left behind when a platform is dropped.
+    // Direction 2: each persistent host grant must back a network call.
+    // Declarative content_scripts.matches do NOT need duplicate host_permissions;
+    // activeTab grants one-off injection after a user gesture.
     const hostUsed = (host) => {
         if (host === '*://*/*' || host === '<all_urls>') return true
         // Normalise "https://*.foo.com/*" -> "foo.com"
         const bare = host.replace(/^https?:\/\//, '').replace(/\/(\*)?$/, '').replace(/^\*\./, '')
         const apex = bare.replace(/^www\./, '')
-        return (
-            matchPatterns.some((m) => m.includes(apex)) ||
-            haystack.includes(apex)
-        )
+        // ApplyOS API URLs are in api-client; Supabase is an
+        // environment-configured endpoint used by the client and REST worker.
+        return apex === 'supabase.co'
+            ? /createClient\(supabaseUrl,/.test(haystack) && /fetch\(`\$\{SUPABASE_URL\}/.test(haystack)
+            : apex === 'applyos.io' && /fetch\(`\$\{baseUrl\}\/api\//.test(haystack)
     }
 
     for (const host of hosts) {
@@ -168,7 +170,7 @@ function main() {
             problems.push({
                 id: 'HOST-UNUSED',
                 permission: host,
-                detail: 'Declared as a host permission but no content script matches it and no code references it. Remove it, or wire up the feature that needs it.',
+                detail: 'Declared as a host permission but no network code uses it. Content-script matches alone do not justify a host permission.',
             })
         }
     }
@@ -187,7 +189,7 @@ function main() {
             console.log(`      ${problem.detail}`)
         }
         if (problems.length === 0) {
-            console.log('\nAll declared permissions have a matching API call.')
+            console.log('\nAll declared permissions and host grants have a matching use.')
         } else {
             console.log(`\n${problems.length} problem(s). Chrome Web Store rejects unused permissions (Purple Potassium).`)
         }
