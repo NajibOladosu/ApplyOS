@@ -18,7 +18,14 @@ const FILTERS: { id: Filter; label: string }[] = [
 const ACTIVE_STATUSES = new Set(['submitted', 'in_review', 'interview'])
 const CLOSED_STATUSES = new Set(['offer', 'rejected'])
 
-export function ApplicationsTab() {
+export function ApplicationsTab({
+    focusAppId,
+    onFocusHandled,
+}: {
+    /** When set, open this application as soon as the list has loaded. */
+    focusAppId?: string | null
+    onFocusHandled?: () => void
+}) {
     const [apps, setApps] = useState<Application[]>([])
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -29,6 +36,13 @@ export function ApplicationsTab() {
     useEffect(() => {
         void loadApps()
     }, [])
+
+    useEffect(() => {
+        if (!focusAppId || loading || selectedApp) return
+        const app = apps.find((candidate) => candidate.id === focusAppId)
+        if (app) setSelectedApp(app)
+        onFocusHandled?.()
+    }, [focusAppId, loading, selectedApp, apps, onFocusHandled])
 
     const loadApps = async () => {
         try {
@@ -111,7 +125,6 @@ export function ApplicationsTab() {
     return (
         <div className="space-y-3 p-4">
             <SectionHeading
-                overline="Pipeline"
                 title="Applications"
                 action={
                     <span className="text-[11px] text-muted-foreground">
@@ -139,12 +152,7 @@ export function ApplicationsTab() {
                         key={option.id}
                         type="button"
                         onClick={() => setFilter(option.id)}
-                        className={cn(
-                            'inline-flex items-center gap-1 rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors',
-                            filter === option.id
-                                ? 'border-primary/30 bg-primary/10 text-primary-strong dark:text-primary'
-                                : 'border-border/70 bg-card text-muted-foreground hover:text-foreground'
-                        )}
+                        className={cn('chip', filter === option.id && 'chip-active')}
                     >
                         {option.label}
                         <span className="tabular-nums opacity-60">{counts[option.id]}</span>
@@ -164,7 +172,7 @@ export function ApplicationsTab() {
                     title={apps.length === 0 ? 'No applications yet' : 'Nothing matches'}
                     description={
                         apps.length === 0
-                            ? 'Open a job posting and use the "This job" tab to add your first one.'
+                            ? 'Open a job posting and use "This page" → Save this job to add your first one.'
                             : 'Try a different search term or filter.'
                     }
                 />

@@ -6,8 +6,6 @@ import { usePathname, useRouter } from "next/navigation"
 import { cn } from "@/shared/lib/utils"
 import { useAuth } from "@/contexts/AuthContext"
 import {
-  Bell,
-  BookOpen,
   Briefcase,
   FileText,
   FolderOpen,
@@ -49,8 +47,6 @@ const NAV_GROUPS: Array<{ label: string; items: NavItem[] }> = [
   {
     label: "Account",
     items: [
-      { href: "/resources", label: "Resources", icon: BookOpen },
-      { href: "/notifications", label: "Notifications", icon: Bell },
       { href: "/profile", label: "Profile", icon: User },
       { href: "/settings", label: "Settings", icon: Settings },
     ],

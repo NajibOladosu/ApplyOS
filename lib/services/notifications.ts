@@ -13,6 +13,24 @@ export async function getNotifications() {
   return data as Notification[]
 }
 
+/**
+ * Notifications from the last N days, newest first.
+ * Powers the top-bar Notification Flyout (last 30 days of activity).
+ */
+export async function getRecentNotifications(days = 30, limit = 50) {
+  const supabase = createClient()
+  const since = new Date(Date.now() - days * 86_400_000).toISOString()
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .gte('created_at', since)
+    .order('created_at', { ascending: false })
+    .limit(limit)
+
+  if (error) throw error
+  return data as Notification[]
+}
+
 export async function markAsRead(id: string) {
   const supabase = createClient()
   const { error } = await supabase

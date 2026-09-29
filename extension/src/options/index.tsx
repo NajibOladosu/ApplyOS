@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { createRoot } from 'react-dom/client'
-import { Bell, BellOff, Check, ExternalLink, Monitor, Moon, Palette, RefreshCw, Sun } from 'lucide-react'
+import { Bell, BellOff, Briefcase, Check, ExternalLink, Monitor, Moon, Palette, RefreshCw, ShieldCheck, Sun } from 'lucide-react'
 
 import '../styles/globals.css'
 import { cn } from '../lib/cn'
@@ -91,25 +91,36 @@ function Toggle({
     )
 }
 
+/**
+ * Card with the web app's section header: an icon chip, a bold display title
+ * and a muted one-line description. No overline — the web app only uses those
+ * on the page title itself.
+ */
 function Section({
-    overline,
+    icon: Icon,
     title,
     description,
     children,
 }: {
-    overline: string
+    icon: React.ComponentType<{ className?: string }>
     title: string
     description?: string
     children: React.ReactNode
 }) {
     return (
-        <section className="rounded-2xl border border-border/70 bg-card p-5">
-            <p className="overline mb-0.5">{overline}</p>
-            <h2 className="font-display text-base font-bold tracking-[-0.02em]">{title}</h2>
-            {description ? (
-                <p className="mt-1 text-[12px] leading-relaxed text-muted-foreground">{description}</p>
-            ) : null}
-            <div className="mt-3">{children}</div>
+        <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
+            <div className="flex items-center gap-3 border-b border-border/60 px-5 py-4">
+                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary-strong dark:text-primary">
+                    <Icon className="h-4 w-4" />
+                </span>
+                <div className="min-w-0">
+                    <h2 className="font-display text-[15px] font-bold tracking-tight">{title}</h2>
+                    {description ? (
+                        <p className="mt-0.5 text-[12px] leading-relaxed text-muted-foreground">{description}</p>
+                    ) : null}
+                </div>
+            </div>
+            <div className="p-5">{children}</div>
         </section>
     )
 }
@@ -152,14 +163,14 @@ function Options() {
 
     const handleSave = () => {
         chrome.storage.local.set({ settings }, () => {
-            // Let the service worker re-evaluate the badge and reminder schedule.
+            // Let the service worker refresh the badge; there is no background schedule.
             chrome.runtime.sendMessage({ type: 'SETTINGS_CHANGED' }).catch(() => {})
             setSaved(true)
             setTimeout(() => setSaved(false), 2000)
         })
     }
 
-    /** Fires the real sweep so the user can confirm notifications actually appear. */
+    /** Explicitly check for due reminders, without a background timer. */
     const handleTestReminders = async () => {
         setTesting(true)
         setTestResult(null)
@@ -194,7 +205,6 @@ function Options() {
                             <span className="text-primary">Apply</span>OS
                         </span>
                     </div>
-                    <p className="overline mb-1">Extension</p>
                     <h1 className="font-display text-[26px] font-bold tracking-[-0.02em]">Settings</h1>
                     <p className="mt-1.5 max-w-xl text-[13px] leading-relaxed text-muted-foreground">
                         Everything here is stored on your device. ApplyOS only reads a page when you ask
@@ -204,11 +214,11 @@ function Options() {
 
                 <div className="space-y-4">
                     <Section
-                        overline="Appearance"
+                        icon={Palette}
                         title="Theme"
                         description="The popup follows your system by default."
                     >
-                        <div className="flex gap-2">
+                        <div className="grid grid-cols-3 gap-1 rounded-lg bg-muted/70 p-1">
                             {THEME_OPTIONS.map((option) => {
                                 const Icon = option.icon
                                 const isActive = theme === option.id
@@ -218,10 +228,10 @@ function Options() {
                                         type="button"
                                         onClick={() => void handleThemeChange(option.id)}
                                         className={cn(
-                                            'inline-flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2 text-[12px] font-medium transition-colors',
+                                            'inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-[12px] font-medium transition-all',
                                             isActive
-                                                ? 'border-primary/40 bg-primary/10 text-primary-strong dark:text-primary'
-                                                : 'border-border bg-card text-muted-foreground hover:text-foreground'
+                                                ? 'bg-card text-foreground shadow-sm'
+                                                : 'text-muted-foreground hover:text-foreground'
                                         )}
                                         aria-pressed={isActive}
                                     >
@@ -234,9 +244,9 @@ function Options() {
                     </Section>
 
                     <Section
-                        overline="Notifications"
+                        icon={Bell}
                         title="Follow-up reminders"
-                        description="ApplyOS watches the applications you are waiting on and nudges you when it is worth chasing one."
+                        description="Checks for due follow-ups when you open the popup or press Check now. No background checks run."
                     >
                         <div className="mb-3 flex items-center gap-2 rounded-lg border border-border/70 bg-muted/40 px-3 py-2">
                             {remindersEnabled ? (
@@ -246,8 +256,8 @@ function Options() {
                             )}
                             <span className="text-[11px] text-muted-foreground">
                                 {remindersEnabled
-                                    ? 'Reminders are on. Each application is nudged once per threshold.'
-                                    : 'Reminders are off. You will not receive any notifications.'}
+                                    ? 'Reminders are checked when you open the popup or press Check now.'
+                                    : 'Follow-up reminders are off. Job capture notifications may still appear.'}
                             </span>
                         </div>
 
@@ -268,7 +278,7 @@ function Options() {
 
                         <div className="mt-3 flex items-end gap-3 border-b border-border/50 pb-3">
                             <div>
-                                <label htmlFor="followUpDays" className="overline mb-1 block">
+                                <label htmlFor="followUpDays" className="mb-1 block text-[11px] font-medium text-muted-foreground">
                                     Follow up after
                                 </label>
                                 <select
@@ -308,7 +318,7 @@ function Options() {
                     </Section>
 
                     <Section
-                        overline="Jobs"
+                        icon={Briefcase}
                         title="Platforms"
                         description="Where ApplyOS reads postings automatically. Use the popup on any other site and it will scan on request."
                     >
@@ -342,7 +352,7 @@ function Options() {
                     {/* Anything written in the popup stays on the device; this states
                         plainly what leaves it, which is the question a permissions
                         reviewer is really asking. */}
-                    <Section overline="Privacy" title="What leaves your device">
+                    <Section icon={ShieldCheck} title="What leaves your device" description="A plain account of what is stored locally versus what is sent to ApplyOS.">
                         <ul className="space-y-2 text-[12px] leading-relaxed text-muted-foreground">
                             <li className="flex gap-2">
                                 <span className="mt-1.5 h-1 w-1 shrink-0 rounded-full bg-primary" />

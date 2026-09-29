@@ -59,7 +59,7 @@ export function ExtensionSection() {
           </p>
           <div className="mt-8 flex flex-wrap items-center gap-4">
             <a
-              href="https://chromewebstore.google.com/detail/gikepikgajfppgebbgcikhocdeejandg"
+              href="https://chrome.google.com/webstore/detail/gikepikgajfppgebbgcikhocdeejandg"
               target="_blank"
               rel="noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-lg bg-primary px-5 text-sm font-semibold text-primary-foreground shadow-[0_8px_24px_-8px_rgba(24,187,112,0.55)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_10px_32px_-8px_rgba(24,187,112,0.7)] active:scale-[0.98]"

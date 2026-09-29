@@ -3,15 +3,16 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import {
+  Briefcase,
   Check,
   ClipboardPaste,
   ExternalLink,
   FileText,
+  GraduationCap,
   Link2,
   Loader2,
   RefreshCw,
   Sparkles,
-  Wand2,
 } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
 import { PageHeader } from "@/components/layout/page-header"
@@ -189,6 +190,23 @@ export function ApplyKitScreen() {
         : "border-border/70 hover:border-primary/30"
     )
 
+  const selectedDoc = docs.find((d) => d.id === documentId) ?? null
+
+  const resumeStats = useMemo(() => {
+    if (!selectedDoc?.parsed_data) return null
+    const parsed = selectedDoc.parsed_data
+    const skills = [
+      ...(parsed.skills?.technical ?? []),
+      ...(parsed.skills?.soft ?? []),
+      ...(parsed.skills?.other ?? []),
+    ]
+    return {
+      experience: parsed.experience?.length ?? 0,
+      education: parsed.education?.length ?? 0,
+      skills,
+    }
+  }, [selectedDoc])
+
   // The pipeline is the page's mental model: show it before, during and after
   // the run so the empty state is not just a lone form.
   const steps: Array<{ label: string; detail: string; status: StepStatus | "idle" | "skipped" }> = [
@@ -220,6 +238,15 @@ export function ApplyKitScreen() {
         overline="Apply Kit"
         title="Turn a posting into a ready application"
         description="Paste a job description or link, choose your resume, and ApplyOS builds the rest."
+        actions={
+          <Link
+            href="/applications"
+            className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:border-primary/40"
+          >
+            <Briefcase className="h-3.5 w-3.5" />
+            View applications
+          </Link>
+        }
       />
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -472,7 +499,7 @@ export function ApplyKitScreen() {
         </div>
 
         {/* Pipeline rail — visible from the start, so the form is not a lone box */}
-        <aside className="lg:sticky lg:top-6 lg:self-start">
+        <aside className="space-y-5 lg:sticky lg:top-6 lg:self-start">
           <section className="rounded-2xl border border-border/70 bg-card">
             <div className="border-b border-border/60 px-4 py-3">
               <h2 className="font-display text-[14px] font-bold tracking-tight text-foreground">What runs</h2>
@@ -524,6 +551,77 @@ export function ApplyKitScreen() {
               })}
             </ol>
           </section>
+
+          {/* The selected resume at a glance — what the kit will draw from */}
+          {selectedDoc ? (
+            <section className="rounded-2xl border border-border/70 bg-card">
+              <div className="border-b border-border/60 px-4 py-3">
+                <h2 className="font-display text-[14px] font-bold tracking-tight text-foreground">
+                  Your resume
+                </h2>
+                <p className="mt-0.5 truncate text-xs text-muted-foreground">
+                  {selectedDoc.file_name}
+                </p>
+              </div>
+              <div className="p-4">
+                {resumeStats ? (
+                  <>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Briefcase className="h-3.5 w-3.5" />
+                          <span className="text-[11px] font-medium">Experience</span>
+                        </div>
+                        <p className="mt-1.5 font-display text-lg font-bold leading-none text-foreground tabular-nums">
+                          {resumeStats.experience}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-border/60 bg-muted/30 p-3">
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <GraduationCap className="h-3.5 w-3.5" />
+                          <span className="text-[11px] font-medium">Education</span>
+                        </div>
+                        <p className="mt-1.5 font-display text-lg font-bold leading-none text-foreground tabular-nums">
+                          {resumeStats.education}
+                        </p>
+                      </div>
+                    </div>
+                    {resumeStats.skills.length > 0 && (
+                      <div className="mt-3">
+                        <p className="mb-1.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                          Skills on file
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {resumeStats.skills.slice(0, 6).map((skill) => (
+                            <Badge key={skill} variant="outline" className="rounded-full font-normal">
+                              {skill}
+                            </Badge>
+                          ))}
+                          {resumeStats.skills.length > 6 && (
+                            <span className="text-[11px] text-muted-foreground">
+                              +{resumeStats.skills.length - 6} more
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </>
+                ) : (
+                  <p className="text-xs leading-relaxed text-muted-foreground">
+                    This resume has not been analyzed yet, so the kit will work
+                    from the raw text.
+                  </p>
+                )}
+                <Link
+                  href={`/documents/${selectedDoc.id}`}
+                  className="mt-3 inline-flex items-center gap-1 text-[13px] font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
+                >
+                  Open in library
+                  <ExternalLink className="h-3 w-3" />
+                </Link>
+              </div>
+            </section>
+          ) : null}
         </aside>
       </div>
     </div>

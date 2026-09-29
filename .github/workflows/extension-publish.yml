@@ -1,0 +1,117 @@
+name: Publish extension
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extension/**'
+      - '!extension/**/*.md'
+      - '.github/workflows/extension-publish.yml'
+  workflow_dispatch:
+
+# One publish at a time; the store rejects an upload while another is processing.
+concurrency:
+  group: extension-publish
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: extension
+    env:
+      CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+      CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+      CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+      CWS_PUBLISHER_ID: ${{ secrets.CWS_PUBLISHER_ID }}
+      CWS_EXTENSION_ID: gikepikgajfppgebbgcikhocdeejandg
+      STORE_URL: https://chrome.google.com/webstore/detail/gikepikgajfppgebbgcikhocdeejandg
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24'
+          cache: 'npm'
+          cache-dependency-path: extension/package-lock.json
+
+      - run: npm ci
+      - run: npm test
+
+      # The store refuses an upload whose version is not higher than what it
+      # already has, so bump the patch number whenever the manifest lags.
+      - name: Resolve version
+        id: version
+        run: |
+          store=$(node scripts/webstore.mjs version)
+          node -e '
+            const fs = require("fs")
+            const [store] = process.argv.slice(1)
+            const cmp = (a, b) => {
+              const pa = a.split(".").map(Number), pb = b.split(".").map(Number)
+              for (let i = 0; i < 3; i++) if ((pa[i] ?? 0) !== (pb[i] ?? 0)) return (pa[i] ?? 0) - (pb[i] ?? 0)
+              return 0
+            }
+            const manifest = JSON.parse(fs.readFileSync("manifest.json", "utf8"))
+            let version = manifest.version
+            if (cmp(version, store) <= 0) {
+              const [major, minor, patch] = store.split(".").map(Number)
+              version = `${major}.${minor ?? 0}.${(patch ?? 0) + 1}`
+            }
+            for (const file of ["manifest.json", "package.json"]) {
+              const json = JSON.parse(fs.readFileSync(file, "utf8"))
+              json.version = version
+              fs.writeFileSync(file, JSON.stringify(json, null, 2) + "\n")
+            }
+            fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${version}\n`)
+            console.log(`store: ${store}  manifest: ${manifest.version}  publishing: ${version}`)
+          ' "$store"
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.EXTENSION_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.EXTENSION_SUPABASE_ANON_KEY }}
+          NEXT_PUBLIC_APP_URL: https://www.applyos.io
+        run: |
+          if [ -z "$NEXT_PUBLIC_SUPABASE_URL" ] || [ -z "$NEXT_PUBLIC_SUPABASE_ANON_KEY" ]; then
+            echo "EXTENSION_SUPABASE_URL / EXTENSION_SUPABASE_ANON_KEY secrets are required." >&2
+            exit 1
+          fi
+          npm run build
+          npm run package
+
+      - name: Upload and publish to Chrome Web Store
+        run: node scripts/webstore.mjs publish "applyos-extension-v${{ steps.version.outputs.version }}.zip"
+
+      - name: Commit version bump
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898283+github-actions[bot]@users.noreply.github.com"
+          git add manifest.json package.json
+          if ! git diff --cached --quiet; then
+            git commit -m "chore(extension): release v${{ steps.version.outputs.version }} [skip ci]"
+            git push origin HEAD:main
+          fi
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          gh release create "v$VERSION" "applyos-extension-v$VERSION.zip" \
+            --target "$(git rev-parse HEAD)" \
+            --title "ApplyOS Extension v$VERSION" \
+            --notes "Submitted to the Chrome Web Store. It goes live once Google finishes review.
+
+          ## Install
+          [Add to Chrome from the Chrome Web Store]($STORE_URL)
+
+          ## Changes
+          $(git log --format='- %s' -20 "$(git describe --tags --abbrev=0 2>/dev/null || git rev-list --max-parents=0 HEAD)..HEAD" -- . | grep -v 'chore(extension): release' || true)"

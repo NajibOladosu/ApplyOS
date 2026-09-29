@@ -1,13 +1,12 @@
 // Background service worker for ApplyOS.
 //
 // Responsibilities, in order of importance:
-//   1. Own the reminder schedule (chrome.alarms) and deliver notifications.
+//   1. Check for follow-ups when requested by the popup or settings page.
 //   2. Route messages between the popup and content scripts.
-//   3. Keep the toolbar badge showing how many follow-ups are due.
+//   3. Keep the toolbar badge updated after user-initiated checks.
 //
-// The reminder code is the reason the `alarms` and `notifications` permissions
-// are declared. See PERMISSIONS.md — scripts/audit-permissions.mjs fails the
-// build if either API call disappears.
+// No background timer is needed: reminders are checked when the user opens the
+// popup or presses "Check now" in settings.
 
 import {
     countInFlightApplications,
@@ -19,14 +18,11 @@ import { captureJobFromCommand, fillFieldFromContextMenu, fillFormFromCommand, p
 
 /**
  * A service worker is torn down constantly, so this is only a fast path to stop
- * a second alarm firing during an in-flight run. Durable state lives in
+ * duplicate user-initiated checks during an in-flight run. Durable state lives in
  * chrome.storage — never in these variables.
  */
 const notifiedThisSession = new Set<string>()
 
-const REMINDER_ALARM = 'applyos:reminder-sweep'
-/** Chrome enforces a 30s floor on alarm periods; an hourly sweep is plenty. */
-const SWEEP_PERIOD_MINUTES = 60
 const STORAGE_NOTIFIED = 'reminderHistory'
 const STORAGE_SETTINGS = 'settings'
 const BADGE_COLOR = '#18bb70'
@@ -84,7 +80,7 @@ async function showReminder(decision: ReminderDecision): Promise<void> {
     })
 }
 
-async function runReminderSweep(trigger: 'alarm' | 'manual' = 'alarm'): Promise<{ shown: number; skipped: string | null }> {
+async function runReminderSweep(trigger: 'popup' | 'manual'): Promise<{ shown: number; skipped: string | null }> {
     const settings = await getSettings()
 
     if (!settings.followUpReminders && !settings.staleReminders) {
@@ -92,7 +88,7 @@ async function runReminderSweep(trigger: 'alarm' | 'manual' = 'alarm'): Promise<
     }
 
     // No stored session means no data to read and nothing to notify about.
-    // Bailing here also avoids a pointless request every hour for signed-out users.
+    // Bailing here also avoids a pointless request for signed-out users.
     const session = await getStoredSession()
     if (!session?.access_token) {
         await updateBadge(0)
@@ -102,7 +98,7 @@ async function runReminderSweep(trigger: 'alarm' | 'manual' = 'alarm'): Promise<
     const rows = await fetchInFlightApplications(settings.followUpAfterDays)
     if (rows === null) {
         // Covers offline, a stale token, or a rejected request. None of these
-        // warrant a notification, and the next sweep retries.
+        // warrant a notification; the next user-initiated check can retry.
         return { shown: 0, skipped: 'no data' }
     }
 
@@ -115,7 +111,7 @@ async function runReminderSweep(trigger: 'alarm' | 'manual' = 'alarm'): Promise<
         if (decision.kind === 'follow_up' && !settings.followUpReminders) return false
         // A notification already shown for this application stays shown; the
         // history check is what makes reminders once-per-threshold rather than
-        // once-per-hour.
+        // on every popup open.
         return !history[decision.notificationId]
     })
 
@@ -162,24 +158,11 @@ async function refreshBadgeFromApplications(): Promise<void> {
 // Lifecycle
 // ---------------------------------------------------------------------------
 
-async function scheduleReminderSweep(): Promise<void> {
-    const existing = await chrome.alarms.get(REMINDER_ALARM)
-    if (existing) return
-
-    await chrome.alarms.create(REMINDER_ALARM, {
-        // First run shortly after install/browser start so a returning user sees
-        // value immediately, then hourly.
-        delayInMinutes: 1,
-        periodInMinutes: SWEEP_PERIOD_MINUTES,
-    })
-}
-
 chrome.runtime.onInstalled.addListener((details) => {
     void (async () => {
         if (details.reason === 'install') {
             await chrome.storage.local.set({ [STORAGE_SETTINGS]: DEFAULT_SETTINGS })
         }
-        await scheduleReminderSweep()
         await registerContextMenus()
         if (details.reason === 'install') {
             await refreshBadgeFromApplications()
@@ -187,16 +170,7 @@ chrome.runtime.onInstalled.addListener((details) => {
     })()
 })
 
-// Alarms survive restarts, but the handler must be re-registered each time the
-// worker spins up, so this listener is registered at the top level.
-chrome.alarms.onAlarm.addListener((alarm) => {
-    if (alarm.name !== REMINDER_ALARM) return
-    void runReminderSweep('alarm')
-})
-
-// Re-arm if the browser dropped the alarm (e.g. after an update).
 chrome.runtime.onStartup.addListener(() => {
-    void scheduleReminderSweep()
     void registerContextMenus()
 })
 
@@ -305,6 +279,12 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
                 .catch((error) => sendResponse({ success: false, error: String(error) }))
             return true
 
+        case 'REMINDERS_CHECK_ON_OPEN':
+            runReminderSweep('popup')
+                .then((result) => sendResponse({ success: true, ...result }))
+                .catch((error) => sendResponse({ success: false, error: String(error) }))
+            return true
+
         case 'BADGE_REFRESH':
             refreshBadgeFromApplications()
                 .then(() => sendResponse({ success: true }))
@@ -320,8 +300,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
             return true
 
         case 'SETTINGS_CHANGED':
-            // Rescheduling is not needed (period is fixed), but the badge may now
-            // be stale if the user just turned reminders off.
+            // No schedule to adjust; refresh the badge after settings change.
             void refreshBadgeFromApplications()
             sendResponse({ success: true })
             return false
@@ -336,5 +315,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     }
 })
 
-// Exported for tests and for the popup's "Check now" button.
-export { runReminderSweep, updateBadge, scheduleReminderSweep }
+// Exported for tests and for the popup and settings reminder checks.
+export { runReminderSweep, updateBadge }

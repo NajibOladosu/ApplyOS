@@ -434,7 +434,7 @@ export default function SettingsPage() {
         >
           <SettingsRow label="Chrome extension" hint="Available on the Chrome Web Store">
             <a
-              href="https://chromewebstore.google.com/"
+              href="https://chrome.google.com/webstore/detail/gikepikgajfppgebbgcikhocdeejandg"
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3.5 text-[13px] font-medium text-foreground transition-colors hover:border-primary/40"

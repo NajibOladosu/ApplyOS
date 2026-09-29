@@ -51,6 +51,14 @@ async function main() {
         process.exit(1)
     }
 
+    // A successful source audit says nothing about an old dist/ directory.
+    // Reject stale output so the uploaded manifest is the one just audited.
+    const sourceManifest = JSON.parse(readFileSync(join(ROOT, 'manifest.json'), 'utf8'))
+    if (JSON.stringify(manifest) !== JSON.stringify(sourceManifest)) {
+        console.error('Built manifest differs from source manifest. Run `npm run build` before packaging.')
+        process.exit(1)
+    }
+
     // jszip is a devDependency; fail with a useful message rather than a stack.
     let JSZip
     try {

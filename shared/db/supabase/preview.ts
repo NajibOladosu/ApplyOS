@@ -196,6 +196,47 @@ const documents = [
     report: null, report_generated_at: null, analysis_status: "not_analyzed", analysis_error: null,
     parsed_at: null, application_id: null, extracted_text: null, analysis_result: null,
   },
+  // Older versions of the CV — same file family, so the detail page's
+  // version switcher groups them with doc-001 (v1 → v3).
+  {
+    id: "doc-005", user_id: USER_ID, file_name: "Ada_Okafor_CV_2026 (1).pdf",
+    file_url: "/preview/cv-v1.pdf", file_type: "application/pdf", file_size: 261_400,
+    parsed_data: {
+      education: [
+        { institution: "University of Lagos", degree: "BSc", field: "Computer Science", start_date: "2016", end_date: "2020", description: "" },
+      ],
+      experience: [
+        { company: "Paystack", role: "Frontend Engineer", start_date: "2021", end_date: "Present", description: "Checkout flows and shared components." },
+      ],
+      projects: [],
+      skills: { technical: ["React", "TypeScript"], soft: ["Mentoring"], other: [] },
+      achievements: [],
+      certifications: [],
+    },
+    version: 1, created_at: daysAgo(64), updated_at: daysAgo(64),
+    report: null, report_generated_at: null, analysis_status: "success", analysis_error: null,
+    parsed_at: daysAgo(64), application_id: null, extracted_text: null, analysis_result: null,
+  },
+  {
+    id: "doc-006", user_id: USER_ID, file_name: "Ada_Okafor_CV_2026 (2).pdf",
+    file_url: "/preview/cv-v2.pdf", file_type: "application/pdf", file_size: 273_014,
+    parsed_data: {
+      education: [
+        { institution: "University of Lagos", degree: "BSc", field: "Computer Science", start_date: "2016", end_date: "2020", description: "" },
+      ],
+      experience: [
+        { company: "Paystack", role: "Frontend Engineer", start_date: "2021", end_date: "2023", description: "Checkout flows and shared components." },
+        { company: "Andela", role: "Frontend Engineer", start_date: "2020", end_date: "2021", description: "Talent matching tooling." },
+      ],
+      projects: [],
+      skills: { technical: ["React", "TypeScript", "Next.js"], soft: ["Mentoring"], other: ["Figma"] },
+      achievements: [],
+      certifications: [],
+    },
+    version: 2, created_at: daysAgo(42), updated_at: daysAgo(42),
+    report: null, report_generated_at: null, analysis_status: "success", analysis_error: null,
+    parsed_at: daysAgo(42), application_id: null, extracted_text: null, analysis_result: null,
+  },
 ]
 
 const interviewSessions = [
