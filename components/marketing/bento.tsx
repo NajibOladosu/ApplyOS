@@ -331,7 +331,7 @@ export function FeaturesBento() {
                 </p>
               </div>
               <a
-                href="https://chromewebstore.google.com/detail/gikepikgajfppgebbgcikhocdeejandg"
+                href="https://chrome.google.com/webstore/detail/gikepikgajfppgebbgcikhocdeejandg"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex h-10 shrink-0 items-center gap-2 rounded-lg border border-primary/30 bg-primary/10 px-4 text-sm font-semibold text-primary-strong transition-all duration-200 hover:bg-primary hover:text-primary-foreground dark:text-primary"
