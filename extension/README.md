@@ -101,6 +101,27 @@ npm run build:edge
 npm run package
 ```
 
+### Publishing
+
+Installed users get the extension from the
+[Chrome Web Store](https://chrome.google.com/webstore/detail/gikepikgajfppgebbgcikhocdeejandg).
+
+`.github/workflows/extension-publish.yml` publishes on every push to `main`
+that touches `extension/` (Markdown excluded), and can be run manually. It
+tests, builds, packages, uploads the zip through the Chrome Web Store API v2,
+and submits it for review. If the manifest version is not newer than the
+store's, it bumps the patch number and commits the bump back to `main`. It then
+creates a `vX.Y.Z` GitHub release with the zip attached.
+
+Repository secrets it needs:
+
+| Secret | Value |
+| --- | --- |
+| `CWS_CLIENT_ID` / `CWS_CLIENT_SECRET` | OAuth client (Desktop app) from a Google Cloud project with the Chrome Web Store API enabled |
+| `CWS_REFRESH_TOKEN` | Refresh token for the publisher account, scope `https://www.googleapis.com/auth/chromewebstore` |
+| `CWS_PUBLISHER_ID` | Developer Dashboard → Publisher → Settings |
+| `EXTENSION_SUPABASE_URL` / `EXTENSION_SUPABASE_ANON_KEY` | Production Supabase URL and anon key baked into the build |
+
 ### Load unpacked
 
 1. Run `npm run build`.
