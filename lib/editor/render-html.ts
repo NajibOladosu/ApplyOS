@@ -54,14 +54,14 @@ interface RenderOpts {
     docSettings?: DocSettings
 }
 
+// The PDF renderer must not load fonts from third-party hosts (it runs server-side
+// and waits for network idle). Font stacks fall back to locally installed fonts.
 const baseStylesFor = (s?: DocSettings) => {
     const top = s?.marginTopMm ?? 20
     const right = s?.marginRightMm ?? 20
     const bottom = s?.marginBottomMm ?? 20
     const left = s?.marginLeftMm ?? 20
     return `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap');
-
 @page {
     size: A4;
     margin: ${top}mm ${right}mm ${bottom}mm ${left}mm;
