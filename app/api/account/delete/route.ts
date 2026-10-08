@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/shared/db/supabase/server";
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit";
+import { createAdminClient } from "@/shared/db/supabase/admin";
+import { deleteAllUserStorageObjects } from "@/shared/infrastructure/storage/user-files";
 
 /**
  * Secure account deletion endpoint.
@@ -57,6 +59,21 @@ export async function POST(request: NextRequest) {
 
     const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.auth, async () => userId);
     if (rateLimitResponse) return rateLimitResponse;
+
+    // Step 0: Remove the user's uploaded files (documents and avatars). This runs
+    // before any row is deleted: if it fails, nothing has been removed and the
+    // user can retry. Database cascades do not remove storage objects.
+    console.log(`   Step 2b: removing stored files...`);
+    try {
+      const fileResult = await deleteAllUserStorageObjects(createAdminClient(), userId);
+      console.log(`   ✓ Removed ${fileResult.removed} stored file(s); skipped ${fileResult.skippedFolders} folder(s)`);
+    } catch (storageErr) {
+      console.error(`   ✗ Storage cleanup failed; account not deleted:`, storageErr instanceof Error ? storageErr.message : storageErr);
+      return NextResponse.json(
+        { error: "Account deletion could not remove your stored files. Please try again." },
+        { status: 500 }
+      );
+    }
 
     // Step 1: Delete from public.users; cascades will remove related data
     console.log(`3️⃣  Deleting user profile and related data...`);
