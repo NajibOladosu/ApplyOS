@@ -11,6 +11,7 @@ import VerifyEmailTemplate from '@/emails/verify-email';
 import { sendEmail } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import crypto from 'crypto';
+import { hashVerificationToken } from '@/shared/infrastructure/auth/verification-token'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
 import { redactEmail } from '@/shared/infrastructure/logging/redact'
 
@@ -128,7 +129,7 @@ export async function POST(request: NextRequest) {
       const { error: updateError } = await adminClient
         .from('users')
         .update({
-          verification_token: verificationToken,
+          verification_token: hashVerificationToken(verificationToken),
           verification_token_expires_at: expiresAt.toISOString(),
         })
         .eq('id', data.user.id);

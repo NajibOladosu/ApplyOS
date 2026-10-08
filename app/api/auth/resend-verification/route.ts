@@ -1,7 +1,13 @@
 /**
  * Resend Verification Email Endpoint
  * POST /api/auth/resend-verification
- * Generates new verification token and resends email
+ * Generates a new verification token and resends the email.
+ *
+ * Unauthenticated by design (the user may not be signed in), so it:
+ * - returns the same generic response whether or not the address exists,
+ * - sends only to accounts that are still unverified,
+ * - allows at most one email per address per RESEND_MIN_INTERVAL_MS,
+ * - stores only a hash of the token (raw token is sent in the link only).
  */
 
 import { NextRequest, NextResponse } from 'next/server';
@@ -14,8 +20,15 @@ import { emailConfig } from '@/shared/infrastructure/email/config';
 import crypto from 'crypto';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
 import { redactEmail } from '@/shared/infrastructure/logging/redact'
+import { hashVerificationToken } from '@/shared/infrastructure/auth/verification-token'
 
 export const dynamic = 'force-dynamic'
+
+const RESEND_MIN_INTERVAL_MS = 60 * 1000
+const GENERIC_RESPONSE = {
+  success: true,
+  message: 'If the email exists, a verification link has been sent.',
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -29,14 +42,12 @@ export async function POST(request: NextRequest) {
 
     const { email } = await request.json();
 
-    if (!email) {
+    if (!email || typeof email !== 'string') {
       return NextResponse.json(
         { error: 'Email is required' },
         { status: 400 }
       );
     }
-
-    console.log(`📧 Resending verification email to ${redactEmail(email)}...`);
 
     // Use admin client to bypass RLS (user may not be authenticated)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -55,31 +66,48 @@ export async function POST(request: NextRequest) {
     // Find user with this email (using admin API to bypass RLS)
     const { data: users, error: findError } = await adminClient
       .from('users')
-      .select('id, full_name')
+      .select('id, name, email_verified, last_verification_email_sent')
       .eq('email', email)
       .limit(1);
 
-    if (findError || !users || users.length === 0) {
-      console.error('❌ User not found:', redactEmail(email));
+    if (findError) {
+      console.error('❌ Resend lookup failed:', findError.message);
+      return NextResponse.json(GENERIC_RESPONSE, { status: 200 });
+    }
+
+    if (!users || users.length === 0) {
+      console.log('ℹ️ Resend requested for unknown email:', redactEmail(email));
       // Don't reveal if email exists for security
-      return NextResponse.json(
-        { success: true, message: 'If the email exists, a verification link has been sent.' },
-        { status: 200 }
-      );
+      return NextResponse.json(GENERIC_RESPONSE, { status: 200 });
     }
 
     const user = users[0];
 
-    // Generate new verification token
+    if (user.email_verified) {
+      console.log('ℹ️ Resend requested for verified account:', redactEmail(email));
+      return NextResponse.json(GENERIC_RESPONSE, { status: 200 });
+    }
+
+    const lastSent = user.last_verification_email_sent
+      ? new Date(user.last_verification_email_sent).getTime()
+      : 0;
+    if (lastSent && Date.now() - lastSent < RESEND_MIN_INTERVAL_MS) {
+      console.log('ℹ️ Resend throttled for:', redactEmail(email));
+      return NextResponse.json(GENERIC_RESPONSE, { status: 200 });
+    }
+
+    // Generate new verification token (raw value goes in the email; hash is stored)
     const verificationToken = crypto.randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours from now
+    const sentAt = new Date();
 
     // Update user with new token (using admin API to bypass RLS)
     const { error: updateError } = await adminClient
       .from('users')
       .update({
-        verification_token: verificationToken,
+        verification_token: hashVerificationToken(verificationToken),
         verification_token_expires_at: expiresAt.toISOString(),
+        last_verification_email_sent: sentAt.toISOString(),
       })
       .eq('id', user.id);
 
@@ -93,7 +121,7 @@ export async function POST(request: NextRequest) {
 
     // Send verification email directly (not queued)
     try {
-      const userName = user.full_name || email.split('@')[0];
+      const userName = user.name || email.split('@')[0];
       const verificationUrl = `${emailConfig.appUrl}/api/auth/verify-email?token=${verificationToken}`;
 
       // Render React Email template (both HTML and plain text)
@@ -120,13 +148,9 @@ export async function POST(request: NextRequest) {
       // Still return success as token is stored
     }
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: 'Verification email has been sent.',
-      },
-      { status: 200 }
-    );
+    // Same body as the unknown-address path so the response does not reveal
+    // whether the address exists.
+    return NextResponse.json(GENERIC_RESPONSE, { status: 200 });
   } catch (error) {
     console.error('❌ Resend verification error:', error);
     return NextResponse.json(

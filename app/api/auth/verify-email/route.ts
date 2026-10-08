@@ -8,6 +8,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
 import { redactEmail } from '@/shared/infrastructure/logging/redact'
+import { hashVerificationToken } from '@/shared/infrastructure/auth/verification-token'
 
 export const dynamic = 'force-dynamic'
 
@@ -50,7 +51,7 @@ export async function GET(request: NextRequest) {
     const { data: users, error: findError } = await adminClient
       .from('users')
       .select('id, email, verification_token_expires_at')
-      .eq('verification_token', token)
+      .eq('verification_token', hashVerificationToken(token))
       .limit(1);
 
     if (findError || !users || users.length === 0) {

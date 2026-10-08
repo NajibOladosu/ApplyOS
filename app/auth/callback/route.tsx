@@ -2,6 +2,7 @@ import { createClient } from '@/shared/db/supabase/server'
 import { createClient as createAdminClient, SupabaseClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import crypto from 'crypto'
+import { hashVerificationToken } from '@/shared/infrastructure/auth/verification-token'
 import { render } from '@react-email/render'
 import VerifyEmailTemplate from '@/emails/verify-email'
 import { sendEmail } from '@/shared/infrastructure/email'
@@ -39,7 +40,7 @@ async function sendVerificationEmail(
     const { error: updateError } = await adminClient
       .from('users')
       .update({
-        verification_token: verificationToken,
+        verification_token: hashVerificationToken(verificationToken),
         verification_token_expires_at: expiresAt.toISOString(),
         last_verification_email_sent: new Date().toISOString(),
       })
