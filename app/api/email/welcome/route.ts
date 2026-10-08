@@ -34,9 +34,9 @@ export async function POST(request: NextRequest) {
     )
     if (rateLimitResponse) return rateLimitResponse
 
-    // Get email from request body or use user's email
-    const { email } = await request.json().catch(() => ({}));
-    const userEmail = email || user.email;
+    // Always send to the signed-in user's own address. Accepting an arbitrary
+    // address let any account make the app email third parties.
+    const userEmail = user.email;
 
     if (!userEmail) {
       return NextResponse.json(
@@ -73,7 +73,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log email sent
-    console.log(`✓ Welcome email sent to ${userEmail}`);
+    console.log("✓ Welcome email sent");
 
     return NextResponse.json(
       {

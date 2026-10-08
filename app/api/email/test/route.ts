@@ -31,9 +31,9 @@ export async function POST(request: NextRequest) {
     )
     if (rateLimitResponse) return rateLimitResponse
 
-    // Get email from request or use user's email
-    const { email } = await request.json();
-    const testEmail = email || user.email;
+    // Always send to the signed-in user's own address. Accepting an arbitrary
+    // address let any account make the app email third parties.
+    const testEmail = user.email;
 
     if (!testEmail) {
       return NextResponse.json(
