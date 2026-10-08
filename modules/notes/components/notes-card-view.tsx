@@ -1,5 +1,6 @@
 "use client"
 
+import { sanitizeNoteHtml } from '../lib/sanitize-note-html'
 import { useState } from "react"
 import { Card, CardContent } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
@@ -85,7 +86,7 @@ export function NotesCardView({
                 <div className="prose prose-sm dark:prose-invert max-w-none line-clamp-3 h-full">
                   <div
                     dangerouslySetInnerHTML={{
-                      __html: note.content,
+                      __html: sanitizeNoteHtml(note.content),
                     }}
                   />
                 </div>
