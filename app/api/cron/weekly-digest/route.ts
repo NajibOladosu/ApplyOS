@@ -6,10 +6,11 @@
  */
 
 import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/shared/db/supabase/server';
+import { createAdminClient } from '@/shared/db/supabase/admin';
 import { sendEmail } from '@/shared/infrastructure/email';
 import { weeklyDigestEmailTemplate } from '@/shared/infrastructure/email/templates/weekly-digest';
 import { emailConfig } from '@/shared/infrastructure/email/config';
+import { isEmailCategoryEnabled } from '@/shared/infrastructure/email/preferences';
 import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 
 export const dynamic = 'force-dynamic'
@@ -21,7 +22,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const supabase = await createClient();
+    // Scheduled job: no user session, so use the service-role client (see admin.ts).
+    const supabase = createAdminClient();
 
     // Calculate week date range (last 7 days)
     const now = new Date();
@@ -68,8 +70,8 @@ export async function POST(request: NextRequest) {
         }
 
         const metadata = userData.user.user_metadata || {};
-        if (metadata.email_notifications === false) {
-          console.log(`Skipping user ${userId} - email notifications disabled`);
+        if (!isEmailCategoryEnabled(metadata, 'weekly_digest')) {
+          console.log(`Skipping user ${userId} - weekly digest emails disabled`);
           continue;
         }
 

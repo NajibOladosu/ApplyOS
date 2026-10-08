@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/shared/db/supabase/server'
+import type { SupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/shared/db/supabase/admin'
 import RetryQueueService from '@/shared/infrastructure/ai/retry-queue'
 import { parseDocument } from '@/shared/infrastructure/ai'
 import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
@@ -31,7 +32,7 @@ interface AIRetryTask {
 }
 
 async function retryParseDocument(
-  supabaseClient: Awaited<ReturnType<typeof createClient>>,
+  supabaseClient: SupabaseClient,
   task: AIRetryTask
 ): Promise<boolean> {
   try {
@@ -110,7 +111,7 @@ async function retryParseDocument(
 }
 
 async function retryGenerateReport(
-  supabaseClient: Awaited<ReturnType<typeof createClient>>,
+  supabaseClient: SupabaseClient,
   task: AIRetryTask
 ): Promise<boolean> {
   try {
@@ -142,7 +143,7 @@ async function retryGenerateReport(
 }
 
 async function retryGenerateAnswer(
-  supabaseClient: Awaited<ReturnType<typeof createClient>>,
+  supabaseClient: SupabaseClient,
   task: AIRetryTask
 ): Promise<boolean> {
   try {
@@ -181,7 +182,8 @@ export async function POST(req: NextRequest) {
 
     console.log('[Cron] Starting AI task retry job')
 
-    const supabaseClient = await createClient()
+    // Scheduled job: no user session, so use the service-role client (see admin.ts).
+    const supabaseClient = createAdminClient()
 
     // Get pending tasks
     const pendingTasks = await RetryQueueService.getPendingTasks(10)

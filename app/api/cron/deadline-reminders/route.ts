@@ -10,6 +10,7 @@ import { createClient as createServerClient } from '@supabase/supabase-js';
 import { sendEmail } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import { signUnsubscribeToken } from '@/shared/infrastructure/email/unsubscribe-token';
+import { isEmailCategoryEnabled } from '@/shared/infrastructure/email/preferences';
 import { isAuthorizedCronRequest } from '@/lib/security/cron-auth';
 
 export const dynamic = 'force-dynamic'
@@ -122,8 +123,10 @@ export async function POST(request: NextRequest) {
             continue;
           }
 
-          // Send email notification directly using ApplyOS theme
-          try {
+          // Send the email only if the user has not opted out (global email switch,
+          // deadline-reminder setting, or an unsubscribe link). The in-app
+          // notification above is not an email and is still created.
+          if (isEmailCategoryEnabled(userData.user.user_metadata, 'deadline_reminders')) try {
             const urgencyEmoji =
               daysUntil === 1 ? '🔴' : daysUntil <= 3 ? '🟠' : '🟡';
             const urgencyColor =
@@ -340,7 +343,7 @@ export async function POST(request: NextRequest) {
 
           emailsSent++;
           console.log(
-            `✓ Deadline reminder sent for ${app.title} (${daysUntil} days)`
+            `✓ Deadline reminder processed for ${app.title} (${daysUntil} days)`
           );
         } catch (error) {
           console.error(
