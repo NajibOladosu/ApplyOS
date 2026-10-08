@@ -13,6 +13,7 @@ import { sendEmail } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import crypto from 'crypto';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
+import { redactEmail } from '@/shared/infrastructure/logging/redact'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📧 Resending verification email to ${email}...`);
+    console.log(`📧 Resending verification email to ${redactEmail(email)}...`);
 
     // Use admin client to bypass RLS (user may not be authenticated)
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -59,7 +60,7 @@ export async function POST(request: NextRequest) {
       .limit(1);
 
     if (findError || !users || users.length === 0) {
-      console.error('❌ User not found:', email);
+      console.error('❌ User not found:', redactEmail(email));
       // Don't reveal if email exists for security
       return NextResponse.json(
         { success: true, message: 'If the email exists, a verification link has been sent.' },
@@ -113,7 +114,7 @@ export async function POST(request: NextRequest) {
         from: 'noreply',
       });
 
-      console.log(`✅ Verification email resent to ${email}`);
+      console.log(`✅ Verification email resent to ${redactEmail(email)}`);
     } catch (emailError) {
       console.error('⚠️ Failed to send verification email:', emailError);
       // Still return success as token is stored

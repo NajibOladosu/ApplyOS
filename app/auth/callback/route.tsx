@@ -6,6 +6,7 @@ import { render } from '@react-email/render'
 import VerifyEmailTemplate from '@/emails/verify-email'
 import { sendEmail } from '@/shared/infrastructure/email'
 import { getEmailConfig } from '@/shared/infrastructure/email/config'
+import { redactEmail } from '@/shared/infrastructure/logging/redact'
 
 // Rate limit: 5 minutes between verification email sends
 const VERIFICATION_EMAIL_RATE_LIMIT_MS = 5 * 60 * 1000
@@ -75,7 +76,7 @@ async function sendVerificationEmail(
       from: 'noreply',
     })
 
-    console.log(`✅ Verification email sent to ${email}`)
+    console.log(`✅ Verification email sent to ${redactEmail(email)}`)
     return true
   } catch (error) {
     console.error('❌ Failed to send verification email:', error)
@@ -142,7 +143,7 @@ export async function GET(request: Request) {
       return NextResponse.redirect(new URL('/auth/login?error=user', requestUrl.origin + '/'))
     }
 
-    console.log(`👤 User: ${user.email}`)
+    console.log(`👤 User: ${redactEmail(user.email)}`)
 
     // Query existing profile
     const { data: existingProfile, error: profileError } = await adminClient
@@ -162,7 +163,7 @@ export async function GET(request: Request) {
 
     // ===== INTENT: SIGNUP =====
     if (intent === 'signup') {
-      console.log(`✨ Processing signup for ${user.email}`)
+      console.log(`✨ Processing signup for ${redactEmail(user.email)}`)
 
       if (profileExists) {
         if (existingProfile.email_verified) {
@@ -209,7 +210,7 @@ export async function GET(request: Request) {
 
     // ===== INTENT: RECOVERY =====
     if (intent === 'recovery') {
-      console.log(`✨ Processing password recovery for ${user.email}`)
+      console.log(`✨ Processing password recovery for ${redactEmail(user.email)}`)
       // Session is already established by exchangeCodeForSession above
       // Just redirect to the update password page
       return NextResponse.redirect(new URL('/auth/update-password', requestUrl.origin + '/'))
@@ -219,7 +220,7 @@ export async function GET(request: Request) {
     if (intent === 'login') {
       if (!profileExists) {
         // No account found - delete the auth.users record created by trigger
-        console.log(`❌ Login failed: No profile found for ${user.email}`)
+        console.log(`❌ Login failed: No profile found for ${redactEmail(user.email)}`)
 
         try {
           await adminClient.auth.admin.deleteUser(user.id)

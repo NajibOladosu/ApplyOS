@@ -6,6 +6,7 @@ import { sendEmail } from '@/shared/infrastructure/email'
 import { getEmailConfig } from '@/shared/infrastructure/email/config'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { Database } from '@/types/supabase'
+import { redactEmail } from '@/shared/infrastructure/logging/redact'
 
 export async function POST(request: NextRequest) {
     try {
@@ -41,7 +42,7 @@ export async function POST(request: NextRequest) {
         // If no user found, return success immediately to prevent enumeration
         // and strictly ensure we DO NOT send an email
         if (!users || users.length === 0) {
-            console.log(`ℹ️ Reset requested for non-existent email: ${email}`)
+            console.log(`ℹ️ Reset requested for non-existent email: ${redactEmail(email)}`)
             return NextResponse.json({ message: 'If an account exists, a reset link has been sent' })
         }
 
@@ -93,7 +94,7 @@ export async function POST(request: NextRequest) {
             from: 'noreply',
         })
 
-        console.log(`✅ Custom reset email sent to ${email}`)
+        console.log(`✅ Custom reset email sent to ${redactEmail(email)}`)
         return NextResponse.json({ message: 'Reset email sent successfully' })
     } catch (error) {
         console.error('❌ Reset password route error:', error)

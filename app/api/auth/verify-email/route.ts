@@ -7,6 +7,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient as createAdminClient } from '@supabase/supabase-js';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
+import { redactEmail } from '@/shared/infrastructure/logging/redact'
 
 export const dynamic = 'force-dynamic'
 
@@ -87,7 +88,7 @@ export async function GET(request: NextRequest) {
         console.error('⚠️ Failed to confirm email in auth:', authError);
         // Continue anyway - we'll still mark as verified in our database
       } else {
-        console.log(`✅ Email confirmed in Supabase Auth: ${user.email}`);
+        console.log(`✅ Email confirmed in Supabase Auth: ${redactEmail(user.email)}`);
       }
     } catch (authError) {
       console.error('⚠️ Auth confirmation error:', authError);
@@ -112,7 +113,7 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    console.log(`✅ Email verified for user: ${user.email}`);
+    console.log(`✅ Email verified for user: ${redactEmail(user.email)}`);
 
     // Redirect to success page
     const successUrl = new URL('/auth/verified', request.url);

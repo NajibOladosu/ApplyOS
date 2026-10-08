@@ -12,6 +12,7 @@ import { sendEmail } from '@/shared/infrastructure/email';
 import { emailConfig } from '@/shared/infrastructure/email/config';
 import crypto from 'crypto';
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit';
+import { redactEmail } from '@/shared/infrastructure/logging/redact'
 
 export const dynamic = 'force-dynamic'
 
@@ -35,7 +36,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`📝 Signing up user: ${email}`);
+    console.log(`📝 Signing up user: ${redactEmail(email)}`);
 
     // Get Supabase admin client for user creation without auto-sending confirmation email
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -66,7 +67,7 @@ export async function POST(request: NextRequest) {
 
     // If user already exists in auth, handle re-registration case
     if (createError && createError.message.includes('already')) {
-      console.log(`⚠️ User already exists: ${email}, checking verification status...`);
+      console.log(`⚠️ User already exists: ${redactEmail(email)}, checking verification status...`);
       userExisted = true;
 
       // Check if user is verified in our database
@@ -88,7 +89,7 @@ export async function POST(request: NextRequest) {
 
       // If user is already verified, don't allow re-registration
       if (existingUser.email_verified) {
-        console.log(`❌ User already verified: ${email}`);
+        console.log(`❌ User already verified: ${redactEmail(email)}`);
         return NextResponse.json(
           { error: 'Email already registered. Please log in.' },
           { status: 400 }
@@ -96,7 +97,7 @@ export async function POST(request: NextRequest) {
       }
 
       // User exists but not verified - allow re-sending verification email
-      console.log(`✅ User exists but unverified: ${email}, will send new verification email`);
+      console.log(`✅ User exists but unverified: ${redactEmail(email)}, will send new verification email`);
       data = { user: { id: existingUser.id } };
     } else if (createError) {
       console.error('❌ User creation error:', createError);
@@ -116,7 +117,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(`✅ User ${userExisted ? 're-registration' : 'created'}: ${email}`);
+    console.log(`✅ User ${userExisted ? 're-registration' : 'created'}: ${redactEmail(email)}`);
 
     // Generate verification token
     const verificationToken = crypto.randomBytes(32).toString('hex');
@@ -149,7 +150,7 @@ export async function POST(request: NextRequest) {
 
     // Send verification email directly (not queued, so it sends immediately)
     try {
-      console.log(`📧 Sending verification email to ${email}...`);
+      console.log(`📧 Sending verification email to ${redactEmail(email)}...`);
 
       const userName = name || email.split('@')[0];
       const verificationUrl = `${emailConfig.appUrl}/api/auth/verify-email?token=${verificationToken}`;
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
         from: 'noreply',
       });
 
-      console.log(`✅ Verification email sent to ${email}`);
+      console.log(`✅ Verification email sent to ${redactEmail(email)}`);
     } catch (emailError) {
       console.error('⚠️ Failed to send verification email:', emailError);
 
