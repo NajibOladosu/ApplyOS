@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { SchemaType, type GenerationConfig } from "@google/generative-ai"
 import type { JSONContent } from "@tiptap/core"
 import { createClient } from "@/shared/db/supabase/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
@@ -29,6 +30,90 @@ export const maxDuration = 120
 const MAX_PLAN_REQUIREMENTS = 30
 const MAX_PLAN_EDITS = 40
 
+const RESUME_BLOCKS_JSON_CONFIG: Partial<GenerationConfig> = {
+    temperature: 0.2,
+    responseMimeType: "application/json",
+    responseSchema: {
+        type: SchemaType.OBJECT,
+        properties: {
+            blocks: {
+                type: SchemaType.ARRAY,
+                maxItems: 160,
+                items: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                        type: {
+                            type: SchemaType.STRING,
+                            format: "enum",
+                            enum: ["h1", "h2", "h3", "paragraph", "bullet"],
+                        },
+                        content: { type: SchemaType.STRING },
+                    },
+                    required: ["type", "content"],
+                },
+            },
+        },
+        required: ["blocks"],
+    },
+}
+
+const TAILORING_PLAN_JSON_CONFIG: Partial<GenerationConfig> = {
+    temperature: 0.2,
+    responseMimeType: "application/json",
+    responseSchema: {
+        type: SchemaType.OBJECT,
+        properties: {
+            requirements: {
+                type: SchemaType.ARRAY,
+                maxItems: MAX_PLAN_REQUIREMENTS,
+                items: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                        requirement: { type: SchemaType.STRING },
+                        priority: {
+                            type: SchemaType.STRING,
+                            format: "enum",
+                            enum: ["required", "preferred"],
+                        },
+                    },
+                    required: ["requirement", "priority"],
+                },
+            },
+            edits: {
+                type: SchemaType.ARRAY,
+                maxItems: MAX_PLAN_EDITS,
+                items: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                        blockIndex: { type: SchemaType.INTEGER },
+                        originalText: { type: SchemaType.STRING },
+                        replacementText: { type: SchemaType.STRING },
+                        keywordsAdded: {
+                            type: SchemaType.ARRAY,
+                            maxItems: 12,
+                            items: { type: SchemaType.STRING },
+                        },
+                        reason: { type: SchemaType.STRING },
+                    },
+                    required: [
+                        "blockIndex",
+                        "originalText",
+                        "replacementText",
+                        "keywordsAdded",
+                        "reason",
+                    ],
+                },
+            },
+            familiaritySkills: {
+                type: SchemaType.ARRAY,
+                maxItems: 12,
+                items: { type: SchemaType.STRING },
+            },
+        },
+        required: ["requirements", "edits", "familiaritySkills"],
+    },
+}
+
 const parseJsonObject = (response: string): unknown => {
     const fenced = response.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]
     const candidate = (fenced ?? response).trim()
@@ -36,6 +121,30 @@ const parseJsonObject = (response: string): unknown => {
     const end = candidate.lastIndexOf("}")
     if (start < 0 || end <= start) throw new Error("AI returned invalid JSON")
     return JSON.parse(candidate.slice(start, end + 1))
+}
+
+const generateStructuredJson = async (
+    prompt: string,
+    generationConfig: Partial<GenerationConfig>,
+    operation: string,
+): Promise<unknown> => {
+    let lastError: unknown
+    for (let attempt = 1; attempt <= 2; attempt += 1) {
+        try {
+            const retryInstruction = attempt === 1
+                ? ""
+                : "\n\nYour previous response was malformed or incomplete. Return one complete, compact JSON object that satisfies the response schema."
+            const response = await callGeminiWithFallback(`${prompt}${retryInstruction}`, "COMPLEX", {
+                generationConfig,
+                disableThinking: true,
+            })
+            return parseJsonObject(response)
+        } catch (error) {
+            lastError = error
+            console.warn(`[Apply Recommendations] ${operation} JSON attempt ${attempt} failed`)
+        }
+    }
+    throw lastError instanceof Error ? lastError : new Error(`${operation} returned invalid JSON`)
 }
 
 const cleanString = (value: unknown, maxLength: number) =>
@@ -113,16 +222,19 @@ STRICT RULES:
 Return ONLY JSON in this shape:
 {
   "blocks": [
-    { "type": "h1", "content": "Candidate Name", "styles": { "bold": true, "align": "center" } },
-    { "type": "paragraph", "content": "email@example.com | City", "styles": { "align": "center" } },
-    { "type": "h2", "content": "EXPERIENCE", "styles": { "bold": true } },
-    { "type": "h3", "content": "Role | Employer | Dates", "styles": { "bold": true } },
-    { "type": "bullet", "content": "Exact source achievement", "styles": {} }
+    { "type": "h1", "content": "Candidate Name" },
+    { "type": "paragraph", "content": "email@example.com | City" },
+    { "type": "h2", "content": "EXPERIENCE" },
+    { "type": "h3", "content": "Role | Employer | Dates" },
+    { "type": "bullet", "content": "Exact source achievement" }
   ]
 }`
 
-    const response = await callGeminiWithFallback(prompt, "MEDIUM")
-    const parsed = parseJsonObject(response) as { blocks?: unknown }
+    const parsed = await generateStructuredJson(
+        prompt,
+        RESUME_BLOCKS_JSON_CONFIG,
+        "structural repair",
+    ) as { blocks?: unknown }
     const normalizedBlocks = normalizeGeneratedResumeBlocks(parsed.blocks)
     const reconciledBlocks = reconcileGeneratedResumeBlocks(source, normalizedBlocks)
     if (!reconciledBlocks) {
@@ -295,8 +407,11 @@ Return ONLY JSON in this shape:
   "familiaritySkills": []
 }`
 
-        const response = await callGeminiWithFallback(prompt, "COMPLEX")
-        const plan = normalizePlan(parseJsonObject(response))
+        const plan = normalizePlan(await generateStructuredJson(
+            prompt,
+            TAILORING_PLAN_JSON_CONFIG,
+            "tailoring plan",
+        ))
         const result = applyEvidenceLedTailoring(tailoringSource, plan, mode)
         result.report.safety.structureRepaired = structureRepaired
         if (structureRepaired) result.report.safety.sourceStructurePreserved = false

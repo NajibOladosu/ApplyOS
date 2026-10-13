@@ -2,6 +2,7 @@ import 'server-only'
 import type { DocumentReport } from '@/types/database'
 import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 import { getGenerativeModel, isGeminiConfigured } from '@/shared/infrastructure/ai/client'
+import type { GenerationConfig } from '@google/generative-ai'
 import { classifyError, logAICall } from '@/shared/infrastructure/ai/telemetry'
 
 /**
@@ -58,9 +59,16 @@ function getRetryAfterFromError(error: unknown, status: number | null): string |
  * - Queue integration when all models are exhausted
  * - Structured JSON telemetry per call
  */
+interface GeminiCallOptions {
+  generationConfig?: Partial<GenerationConfig>
+  /** Disable Gemini 2.5's token-consuming reasoning for strict formatting tasks. */
+  disableThinking?: boolean
+}
+
 export async function callGeminiWithFallback(
   prompt: string,
-  complexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX' = 'MEDIUM'
+  complexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX' = 'MEDIUM',
+  options: GeminiCallOptions = {},
 ): Promise<string> {
   const startedAt = Date.now()
   const fallbackPath: string[] = []
@@ -110,7 +118,13 @@ export async function callGeminiWithFallback(
     fallbackPath.push(model)
 
     try {
-      const generationConfig = GENERATION_CONFIGS[complexity]
+      const generationConfig = {
+        ...GENERATION_CONFIGS[complexity],
+        ...options.generationConfig,
+        ...(options.disableThinking && model.includes('gemini-2.5')
+          ? { thinkingConfig: { thinkingBudget: 0 } }
+          : {}),
+      } as GenerationConfig
       const genModel = getGenerativeModel(model, generationConfig)
 
       const result = await genModel.generateContent(prompt)
