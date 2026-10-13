@@ -6,6 +6,7 @@ import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import { MAX_LENGTHS } from "@/lib/validation"
 import {
     normalizeGeneratedResumeBlocks,
+    reconcileGeneratedResumeBlocks,
     resumeBlocksFromTextLines,
     validateStructuralRepair,
 } from "@/lib/resume-tailoring/structure"
@@ -100,11 +101,17 @@ Rules:
             return NextResponse.json({ blocks: fallbackBlocks })
         }
 
-        const blocks = normalizeGeneratedResumeBlocks(parsed.blocks)
+        const generatedBlocks = normalizeGeneratedResumeBlocks(parsed.blocks)
         const sourceDocument: JSONContent = {
             type: "doc",
             content: [{ type: "paragraph", content: [{ type: "text", text: extractedText }] }],
         }
+        const blocks = reconcileGeneratedResumeBlocks(sourceDocument, generatedBlocks)
+        if (!blocks) {
+            console.warn("[parse-text] Structural conversion did not align with the source text")
+            return NextResponse.json({ blocks: fallbackBlocks })
+        }
+
         const validation = validateStructuralRepair(sourceDocument, blocksToTipTap(blocks))
         if (!validation.valid) {
             console.warn("[parse-text] Unsafe structural conversion rejected:", validation.reason)
