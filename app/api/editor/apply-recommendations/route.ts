@@ -24,7 +24,7 @@ import type {
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
-export const maxDuration = 60
+export const maxDuration = 120
 
 const MAX_PLAN_REQUIREMENTS = 30
 const MAX_PLAN_EDITS = 40
@@ -121,7 +121,7 @@ Return ONLY JSON in this shape:
   ]
 }`
 
-    const response = await callGeminiWithFallback(prompt, "COMPLEX")
+    const response = await callGeminiWithFallback(prompt, "MEDIUM")
     const parsed = parseJsonObject(response) as { blocks?: unknown }
     const normalizedBlocks = normalizeGeneratedResumeBlocks(parsed.blocks)
     const reconciledBlocks = reconcileGeneratedResumeBlocks(source, normalizedBlocks)
