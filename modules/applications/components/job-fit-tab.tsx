@@ -52,6 +52,15 @@ function formatVersionDate(value: string) {
     return date.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" })
 }
 
+function requiresVersionMigration(error: unknown) {
+    if (!error || typeof error !== "object") return false
+    const candidate = error as { code?: string; message?: string }
+    return candidate.code === "42703"
+        || candidate.message?.includes("is_original") === true
+        || candidate.message?.includes("version_number") === true
+        || candidate.message?.includes("resume_version_id") === true
+}
+
 export function JobFitTab({ application, documents, analyses = [] }: JobFitTabProps) {
     const initialDocumentId = documents.some((doc) => doc.id === application.last_analyzed_document_id)
         ? application.last_analyzed_document_id
@@ -113,7 +122,13 @@ export function JobFitTab({ application, documents, analyses = [] }: JobFitTabPr
                 if (!cancelled) setVersionsByDocument(Object.fromEntries(entries))
             } catch (loadError) {
                 console.error("Failed to load resume versions:", loadError)
-                if (!cancelled) setError("Resume versions could not be loaded. Please refresh and try again.")
+                if (!cancelled) {
+                    setError(
+                        requiresVersionMigration(loadError)
+                            ? "Job Fit needs the latest database migration before resume versions can be used."
+                            : "Resume versions could not be loaded. Please refresh and try again.",
+                    )
+                }
             } finally {
                 if (!cancelled) setVersionsLoading(false)
             }

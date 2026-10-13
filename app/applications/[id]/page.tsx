@@ -127,7 +127,13 @@ export default function ApplicationDetailPage() {
           getApplicationDocuments(id),
           getNotesByApplicationId(id),
           getInterviewSessions(id),
-          getApplicationDocumentDetails(id),
+          // Job Fit history is supplementary. A stale database schema or a
+          // transient analyses query must not prevent the application itself
+          // from opening.
+          getApplicationDocumentDetails(id).catch((analysisError) => {
+            console.warn("Unable to load Job Fit history:", analysisError)
+            return []
+          }),
         ])
 
         // Merge application-specific analysis into documents
