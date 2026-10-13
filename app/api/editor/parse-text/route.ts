@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { SchemaType, type GenerationConfig } from "@google/generative-ai"
+import type { GenerationConfig } from "@google/generative-ai"
 import type { JSONContent } from "@tiptap/core"
 import { createClient } from "@/shared/db/supabase/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
@@ -13,31 +13,9 @@ import {
 } from "@/lib/resume-tailoring/structure"
 import { blocksToTipTap } from "@/modules/applications/components/editor/blocks-to-tiptap"
 
-const RESUME_BLOCKS_JSON_CONFIG: Partial<GenerationConfig> = {
+const STRICT_JSON_CONFIG: Partial<GenerationConfig> = {
     temperature: 0.2,
     responseMimeType: "application/json",
-    responseSchema: {
-        type: SchemaType.OBJECT,
-        properties: {
-            blocks: {
-                type: SchemaType.ARRAY,
-                maxItems: 160,
-                items: {
-                    type: SchemaType.OBJECT,
-                    properties: {
-                        type: {
-                            type: SchemaType.STRING,
-                            format: "enum",
-                            enum: ["h1", "h2", "h3", "paragraph", "bullet"],
-                        },
-                        content: { type: SchemaType.STRING },
-                    },
-                    required: ["type", "content"],
-                },
-            },
-        },
-        required: ["blocks"],
-    },
 }
 
 export async function POST(req: NextRequest) {
@@ -107,7 +85,7 @@ Rules:
 - Return ONLY the JSON object, nothing else`
 
         const response = await callGeminiWithFallback(prompt, 'COMPLEX', {
-            generationConfig: RESUME_BLOCKS_JSON_CONFIG,
+            generationConfig: STRICT_JSON_CONFIG,
             disableThinking: true,
         })
 

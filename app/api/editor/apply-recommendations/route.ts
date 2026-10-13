@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { SchemaType, type GenerationConfig } from "@google/generative-ai"
+import type { GenerationConfig } from "@google/generative-ai"
 import type { JSONContent } from "@tiptap/core"
 import { createClient } from "@/shared/db/supabase/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
@@ -30,88 +30,9 @@ export const maxDuration = 120
 const MAX_PLAN_REQUIREMENTS = 30
 const MAX_PLAN_EDITS = 40
 
-const RESUME_BLOCKS_JSON_CONFIG: Partial<GenerationConfig> = {
+const STRICT_JSON_CONFIG: Partial<GenerationConfig> = {
     temperature: 0.2,
     responseMimeType: "application/json",
-    responseSchema: {
-        type: SchemaType.OBJECT,
-        properties: {
-            blocks: {
-                type: SchemaType.ARRAY,
-                maxItems: 160,
-                items: {
-                    type: SchemaType.OBJECT,
-                    properties: {
-                        type: {
-                            type: SchemaType.STRING,
-                            format: "enum",
-                            enum: ["h1", "h2", "h3", "paragraph", "bullet"],
-                        },
-                        content: { type: SchemaType.STRING },
-                    },
-                    required: ["type", "content"],
-                },
-            },
-        },
-        required: ["blocks"],
-    },
-}
-
-const TAILORING_PLAN_JSON_CONFIG: Partial<GenerationConfig> = {
-    temperature: 0.2,
-    responseMimeType: "application/json",
-    responseSchema: {
-        type: SchemaType.OBJECT,
-        properties: {
-            requirements: {
-                type: SchemaType.ARRAY,
-                maxItems: MAX_PLAN_REQUIREMENTS,
-                items: {
-                    type: SchemaType.OBJECT,
-                    properties: {
-                        requirement: { type: SchemaType.STRING },
-                        priority: {
-                            type: SchemaType.STRING,
-                            format: "enum",
-                            enum: ["required", "preferred"],
-                        },
-                    },
-                    required: ["requirement", "priority"],
-                },
-            },
-            edits: {
-                type: SchemaType.ARRAY,
-                maxItems: MAX_PLAN_EDITS,
-                items: {
-                    type: SchemaType.OBJECT,
-                    properties: {
-                        blockIndex: { type: SchemaType.INTEGER },
-                        originalText: { type: SchemaType.STRING },
-                        replacementText: { type: SchemaType.STRING },
-                        keywordsAdded: {
-                            type: SchemaType.ARRAY,
-                            maxItems: 12,
-                            items: { type: SchemaType.STRING },
-                        },
-                        reason: { type: SchemaType.STRING },
-                    },
-                    required: [
-                        "blockIndex",
-                        "originalText",
-                        "replacementText",
-                        "keywordsAdded",
-                        "reason",
-                    ],
-                },
-            },
-            familiaritySkills: {
-                type: SchemaType.ARRAY,
-                maxItems: 12,
-                items: { type: SchemaType.STRING },
-            },
-        },
-        required: ["requirements", "edits", "familiaritySkills"],
-    },
 }
 
 const parseJsonObject = (response: string): unknown => {
@@ -232,7 +153,7 @@ Return ONLY JSON in this shape:
 
     const parsed = await generateStructuredJson(
         prompt,
-        RESUME_BLOCKS_JSON_CONFIG,
+        STRICT_JSON_CONFIG,
         "structural repair",
     ) as { blocks?: unknown }
     const normalizedBlocks = normalizeGeneratedResumeBlocks(parsed.blocks)
@@ -409,7 +330,7 @@ Return ONLY JSON in this shape:
 
         const plan = normalizePlan(await generateStructuredJson(
             prompt,
-            TAILORING_PLAN_JSON_CONFIG,
+            STRICT_JSON_CONFIG,
             "tailoring plan",
         ))
         const result = applyEvidenceLedTailoring(tailoringSource, plan, mode)
