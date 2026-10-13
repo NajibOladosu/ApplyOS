@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { SchemaType, type GenerationConfig } from "@google/generative-ai"
 import type { JSONContent } from "@tiptap/core"
 import { createClient } from "@/shared/db/supabase/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
@@ -11,6 +12,33 @@ import {
     validateStructuralRepair,
 } from "@/lib/resume-tailoring/structure"
 import { blocksToTipTap } from "@/modules/applications/components/editor/blocks-to-tiptap"
+
+const RESUME_BLOCKS_JSON_CONFIG: Partial<GenerationConfig> = {
+    temperature: 0.2,
+    responseMimeType: "application/json",
+    responseSchema: {
+        type: SchemaType.OBJECT,
+        properties: {
+            blocks: {
+                type: SchemaType.ARRAY,
+                maxItems: 160,
+                items: {
+                    type: SchemaType.OBJECT,
+                    properties: {
+                        type: {
+                            type: SchemaType.STRING,
+                            format: "enum",
+                            enum: ["h1", "h2", "h3", "paragraph", "bullet"],
+                        },
+                        content: { type: SchemaType.STRING },
+                    },
+                    required: ["type", "content"],
+                },
+            },
+        },
+        required: ["blocks"],
+    },
+}
 
 export async function POST(req: NextRequest) {
     let fallbackBlocks: ReturnType<typeof resumeBlocksFromTextLines> = []
@@ -51,17 +79,17 @@ ${extractedText}
 Return ONLY valid JSON in this exact format (no markdown, no code fences):
 {
   "blocks": [
-    { "type": "h1", "content": "Full Name", "styles": { "align": "center", "bold": true } },
-    { "type": "paragraph", "content": "email@example.com | phone | location", "styles": { "align": "center" } },
-    { "type": "h2", "content": "Professional Summary", "styles": { "bold": true } },
+    { "type": "h1", "content": "Full Name" },
+    { "type": "paragraph", "content": "email@example.com | phone | location" },
+    { "type": "h2", "content": "Professional Summary" },
     { "type": "paragraph", "content": "Summary text here..." },
-    { "type": "h2", "content": "Experience", "styles": { "bold": true } },
-    { "type": "h3", "content": "Job Title at Company Name", "styles": { "bold": true } },
-    { "type": "paragraph", "content": "Jan 2020 - Present | Location", "styles": { "italic": true } },
+    { "type": "h2", "content": "Experience" },
+    { "type": "h3", "content": "Job Title at Company Name" },
+    { "type": "paragraph", "content": "Jan 2020 - Present | Location" },
     { "type": "bullet", "content": "Achievement or responsibility" },
-    { "type": "h2", "content": "Education", "styles": { "bold": true } },
-    { "type": "paragraph", "content": "Degree - University Name", "styles": { "bold": true } },
-    { "type": "h2", "content": "Skills", "styles": { "bold": true } },
+    { "type": "h2", "content": "Education" },
+    { "type": "paragraph", "content": "Degree - University Name" },
+    { "type": "h2", "content": "Skills" },
     { "type": "paragraph", "content": "Skill1 • Skill2 • Skill3" }
   ]
 }
@@ -78,7 +106,10 @@ Rules:
 - If contact info is on multiple lines, keep each value exact and combine them with " | " separators
 - Return ONLY the JSON object, nothing else`
 
-        const response = await callGeminiWithFallback(prompt, 'COMPLEX')
+        const response = await callGeminiWithFallback(prompt, 'COMPLEX', {
+            generationConfig: RESUME_BLOCKS_JSON_CONFIG,
+            disableThinking: true,
+        })
 
         let jsonText = response.trim()
         const codeBlockMatch = jsonText.match(/```(?:json)?\s*([\s\S]*?)```/)
