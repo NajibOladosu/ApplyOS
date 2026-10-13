@@ -150,7 +150,10 @@ export async function getApplicationDocumentDetails(applicationId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('document_analyses')
-    .select('id, application_id, document_id, resume_version_id, analysis_result, analysis_status, summary_generated_at, created_at, updated_at')
+    // Keep application detail compatible while the version-aware migration is
+    // rolling out. An explicit resume_version_id projection makes PostgREST
+    // reject the entire request on databases that have not applied migration 034.
+    .select('*')
     .eq('application_id', applicationId)
 
   if (error) throw error

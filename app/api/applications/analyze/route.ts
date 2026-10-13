@@ -8,6 +8,22 @@ import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
 
+const isVersionSchemaMissing = (error: unknown) => {
+    if (!error || typeof error !== 'object') return false
+    const candidate = error as { code?: string; message?: string }
+    return candidate.code === '42703'
+        || candidate.message?.includes('resume_version_id') === true
+        || candidate.message?.includes('is_original') === true
+}
+
+const migrationRequiredResponse = () => NextResponse.json(
+    {
+        error: 'Job Fit requires the latest database migration. Apply migration 034_unify_job_fit_resume_versions.sql and try again.',
+        code: 'DATABASE_MIGRATION_REQUIRED',
+    },
+    { status: 503 },
+)
+
 export async function POST(req: NextRequest) {
     try {
         let supabase
@@ -89,6 +105,7 @@ export async function POST(req: NextRequest) {
             : versionQuery.eq('is_original', true)
 
         const { data: resumeVersion, error: versionError } = await versionQuery.maybeSingle()
+        if (isVersionSchemaMissing(versionError)) return migrationRequiredResponse()
         if (versionError || !resumeVersion) {
             return NextResponse.json(
                 { error: 'Resume version not found. Refresh the page and choose a saved version.' },
@@ -139,6 +156,7 @@ export async function POST(req: NextRequest) {
 
         if (pendingError) {
             console.error('Failed to initialize versioned Job Fit analysis:', pendingError)
+            if (isVersionSchemaMissing(pendingError)) return migrationRequiredResponse()
             return NextResponse.json({ error: 'Unable to save Job Fit analysis' }, { status: 500 })
         }
 

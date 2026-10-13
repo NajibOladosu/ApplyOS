@@ -283,6 +283,7 @@ describe('getApplicationDocumentDetails', () => {
         mockSupabase.eq.mockResolvedValueOnce({ data: mockDetails, error: null })
         const result = await getApplicationDocumentDetails('a1')
         expect(mockSupabase.from).toHaveBeenCalledWith('document_analyses')
+        expect(mockSupabase.select).toHaveBeenCalledWith('*')
         expect(mockSupabase.eq).toHaveBeenCalledWith('application_id', 'a1')
         expect(result).toEqual(mockDetails)
     })

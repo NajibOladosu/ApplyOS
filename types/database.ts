@@ -90,7 +90,9 @@ export interface DocumentAnalysis {
   id: string
   application_id: string
   document_id: string
-  resume_version_id: string
+  // Undefined/null only while migration 034 is being rolled out. New analyses
+  // always point to a concrete resume version.
+  resume_version_id?: string | null
   analysis_result: ResumeAnalysisResult | null
   analysis_status: 'not_analyzed' | 'pending' | 'success' | 'failed'
   summary_generated_at: string | null
