@@ -49,6 +49,7 @@ export interface ResumeTailoringReport {
         factsAndMetricsPreserved: boolean
         unsupportedClaimsBlocked: number
         sourceStructurePreserved: boolean
+        structureRepaired: boolean
     }
 }
 

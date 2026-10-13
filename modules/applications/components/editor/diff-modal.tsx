@@ -77,10 +77,19 @@ export function DiffModal({
     onAcceptAll,
     onAcceptPartial,
 }: DiffModalProps) {
+    const structureRepaired = report?.safety.structureRepaired === true
     const changes = useMemo<NodeChange[]>(() => {
         if (!originalDoc || !proposedDoc) return []
         const original = collectTextNodes(originalDoc)
         const proposed = collectTextNodes(proposedDoc)
+        if (structureRepaired) {
+            return [{
+                path: [],
+                originalText: original.map((item) => item.text).join("\n"),
+                proposedText: proposed.map((item) => item.text).join("\n"),
+                accepted: true,
+            }]
+        }
         const result: NodeChange[] = []
         const len = Math.min(original.length, proposed.length)
         for (let i = 0; i < len; i++) {
@@ -94,7 +103,7 @@ export function DiffModal({
             }
         }
         return result
-    }, [originalDoc, proposedDoc])
+    }, [originalDoc, proposedDoc, structureRepaired])
 
     const [accepted, setAccepted] = useState<Set<number>>(new Set())
 
@@ -120,6 +129,7 @@ export function DiffModal({
             `- Accepted edits: ${report.acceptedEdits.length}`,
             `- Rejected unsafe edits: ${report.rejectedEdits.length}`,
             `- Unsupported claims blocked: ${report.safety.unsupportedClaimsBlocked}`,
+            `- Imported structure reconstructed: ${report.safety.structureRepaired ? "Yes" : "No"}`,
             "",
             "## Requirement evidence",
             "",
@@ -182,7 +192,11 @@ export function DiffModal({
                         </div>
                         <div>
                             <h3 className="font-semibold text-foreground text-base">Apply Recommendations</h3>
-                            <p className="text-xs text-muted-foreground">Review proposed rewrites before applying</p>
+                            <p className="text-xs text-muted-foreground">
+                                {structureRepaired
+                                    ? "Review the reconstructed resume and safe rewrites"
+                                    : "Review proposed rewrites before applying"}
+                            </p>
                         </div>
                     </div>
                     <div className="flex items-center gap-1.5">
@@ -229,6 +243,14 @@ export function DiffModal({
                                         : " Unsupported requirements were kept out of the generated resume."}
                                 </span>
                             </div>
+                            {structureRepaired ? (
+                                <div className="mt-3 flex items-start gap-2 rounded-lg border border-primary/25 bg-background/70 px-3 py-2 text-xs text-foreground">
+                                    <ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+                                    <span>
+                                        The imported PDF had lost its spacing and hierarchy. ApplyOS safely rebuilt the name/contact header, sections, entry headings, and bullet lists before tailoring. Protected facts were verified, and this reconstruction must be accepted as one complete document.
+                                    </span>
+                                </div>
+                            ) : null}
                             {report.rejectedEdits.length > 0 ? (
                                 <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
                                     <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
@@ -251,13 +273,15 @@ export function DiffModal({
                     ) : (
                         <div className="space-y-4">
                             <p className="text-xs text-muted-foreground">
-                                {changes.length} change{changes.length === 1 ? '' : 's'} proposed.
-                                Click any item to toggle acceptance, or accept all.
+                                {structureRepaired
+                                    ? "Full-document reconstruction shown below. Review it as one protected change."
+                                    : `${changes.length} change${changes.length === 1 ? "" : "s"} proposed. Click any item to toggle acceptance, or accept all.`}
                             </p>
                             {changes.map((change, idx) => (
                                 <button
                                     key={idx}
                                     onClick={() => toggle(idx)}
+                                    disabled={structureRepaired}
                                     className={cn(
                                         "w-full text-left rounded-lg border transition-all overflow-hidden",
                                         accepted.has(idx)
@@ -297,7 +321,11 @@ export function DiffModal({
                             onClick={applyPartial}
                             disabled={isLoading || hasStructuralChanges || accepted.size === 0 || accepted.size === changes.length}
                             className="border-primary/40 text-foreground hover:bg-primary/10 hover:text-primary"
-                            title={hasStructuralChanges ? "Interview-prep familiarity changes must be accepted as a complete, clearly labelled section" : undefined}
+                            title={structureRepaired
+                                ? "Reconstructed headings and lists must be accepted as one complete document"
+                                : hasStructuralChanges
+                                    ? "Interview-prep familiarity changes must be accepted as a complete, clearly labelled section"
+                                    : undefined}
                         >
                             Apply selected ({accepted.size})
                         </Button>
