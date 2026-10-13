@@ -39,9 +39,10 @@ export async function POST(req: NextRequest) {
         )
         if (rateLimitResponse) return rateLimitResponse
 
-        const { applicationId, documentId, contentJson, recommendations } = await req.json() as {
+        const { applicationId, documentId, resumeVersionId, contentJson, recommendations } = await req.json() as {
             applicationId?: string
             documentId?: string
+            resumeVersionId?: string | null
             contentJson?: unknown
             recommendations?: string[]
         }
@@ -91,6 +92,22 @@ export async function POST(req: NextRequest) {
             .single()
         if (docError || !doc || doc.user_id !== user.id) {
             return new NextResponse("Document not found or forbidden", { status: 403 })
+        }
+
+        if (resumeVersionId) {
+            const { data: version, error: versionError } = await supabase
+                .from("resume_versions")
+                .select("id, user_id, document_id")
+                .eq("id", resumeVersionId)
+                .single()
+            if (
+                versionError
+                || !version
+                || version.user_id !== user.id
+                || version.document_id !== documentId
+            ) {
+                return new NextResponse("Resume version not found or forbidden", { status: 403 })
+            }
         }
 
         const prompt = `You are an expert resume writer following the Harvard (Mignone Center for Career Success) resume style. Revamp the following TipTap JSON resume to address the analysis recommendations and tailor it to the target role — WITHOUT changing the candidate's actual history. Preserve the document STRUCTURE exactly: same number of nodes, same node types, same ordering, same heading levels, same list lengths. Only change the TEXT inside text nodes. Do NOT add, remove, or reorder nodes.

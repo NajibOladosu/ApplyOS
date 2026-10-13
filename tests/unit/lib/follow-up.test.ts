@@ -19,6 +19,7 @@ function app(overrides: Partial<Application>): Application {
     ai_cover_letter: null,
     manual_cover_letter: null,
     last_analyzed_document_id: null,
+    last_analyzed_resume_version_id: null,
     archived: false,
     created_at: '2026-08-01T00:00:00.000Z',
     updated_at: '2026-08-01T00:00:00.000Z',

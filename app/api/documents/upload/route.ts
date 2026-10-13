@@ -185,6 +185,9 @@ export async function POST(req: NextRequest) {
         continue
       }
 
+      // The database trigger creates the immutable "Original upload" resume
+      // version for every documents row, regardless of which client uploaded it.
+
       // Now analyze with AI using the ACTUAL extracted text
       let parsed_data = null
 

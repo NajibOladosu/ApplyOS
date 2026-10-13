@@ -32,11 +32,10 @@ import {
   Mail,
 } from "lucide-react"
 import Link from "next/link"
-import type { Application, Question, Document, ApplicationNote } from "@/types/database"
+import type { Application, Question, Document, ApplicationNote, DocumentAnalysis } from "@/types/database"
 import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/modules/applications/services/application.service"
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/modules/interviews/services/question.service"
 import { getDocuments } from "@/modules/documents/services/document.service"
-import { JobFitCard } from "@/modules/applications/components/job-fit-card"
 import { JdSummaryCard } from "@/modules/applications/components/jd-summary-card"
 import { ContactsTab } from "@/modules/applications/components/contacts-tab"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/modules/notes/services/note.service"
@@ -58,7 +57,7 @@ const InterviewModeWrapper = dynamic(() => import("@/modules/interviews/componen
   loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
 })
 
-const AnalysisTab = dynamic(() => import("@/modules/applications/components/analysis-tab").then(mod => mod.AnalysisTab), {
+const JobFitTab = dynamic(() => import("@/modules/applications/components/job-fit-tab").then(mod => mod.JobFitTab), {
   loading: () => <div className="flex items-center justify-center py-12"><Loader2 className="h-8 w-8 animate-spin text-primary" /></div>
 })
 
@@ -71,6 +70,7 @@ export default function ApplicationDetailPage() {
   const [application, setApplication] = useState<Application | null>(null)
   const [questions, setQuestions] = useState<Question[]>([])
   const [documents, setDocuments] = useState<Document[]>([])
+  const [documentAnalyses, setDocumentAnalyses] = useState<DocumentAnalysis[]>([])
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([])
   const [pendingDocumentIds, setPendingDocumentIds] = useState<string[]>([])
   const [initialSelectedDocumentIds, setInitialSelectedDocumentIds] = useState<string[]>([])
@@ -147,6 +147,7 @@ export default function ApplicationDetailPage() {
         setApplication(app)
         setQuestions(qs)
         setDocuments(docsWithAnalysis)
+        setDocumentAnalyses(appDocDetails as DocumentAnalysis[])
         setNotes(appNotes)
         setInterviewSessions(sessions)
         setPendingStatus(app.status)
@@ -180,7 +181,8 @@ export default function ApplicationDetailPage() {
     const session = searchParams?.get('session')
 
     if (tab) {
-      setActiveTab(tab)
+      // Preserve old deep links after Analysis and Job Fit were combined.
+      setActiveTab(tab === "analysis" ? "job-fit" : tab)
     }
 
     if (session) {
@@ -821,7 +823,6 @@ export default function ApplicationDetailPage() {
               <TabsList className="w-full min-w-0 sm:w-auto">
                 <TabsTrigger value="questions">Questions</TabsTrigger>
                 <TabsTrigger value="cover-letter">Cover Letter</TabsTrigger>
-                <TabsTrigger value="analysis">Analysis</TabsTrigger>
                 <TabsTrigger value="job-fit">Job Fit</TabsTrigger>
                 <TabsTrigger value="contacts">Contacts</TabsTrigger>
                 <TabsTrigger value="notes">Notes</TabsTrigger>
@@ -1093,19 +1094,12 @@ export default function ApplicationDetailPage() {
               </div>
             </TabsContent>
 
-            {/* Analysis Tab */}
-            <TabsContent value="analysis" className="mt-6">
-              <AnalysisTab
+            {/* Combined Job Fit + resume analysis workflow */}
+            <TabsContent value="job-fit" className="mt-6">
+              <JobFitTab
                 application={application}
                 documents={documents.filter(d => selectedDocumentIds.includes(d.id))}
-              />
-            </TabsContent>
-
-            {/* Job Fit Tab */}
-            <TabsContent value="job-fit" className="mt-6">
-              <JobFitCard
-                jobDescription={application.job_description}
-                documentId={selectedDocumentIds[0]}
+                analyses={documentAnalyses}
               />
             </TabsContent>
 

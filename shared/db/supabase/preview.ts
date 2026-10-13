@@ -44,6 +44,7 @@ const applications = [
     url: "https://stripe.com/jobs", status: "interview", priority: "high", type: "job",
     deadline: daysAhead(3), job_description: "Build payment surfaces used by millions. React, TypeScript, design systems.",
     ai_cover_letter: null, manual_cover_letter: null, last_analyzed_document_id: "doc-001",
+    last_analyzed_resume_version_id: "rv-003",
     archived: false, created_at: daysAgo(21), updated_at: daysAgo(1),
   },
   {
@@ -351,10 +352,42 @@ const TABLES: Record<string, Record<string, unknown>[]> = {
     { id: "ad-001", application_id: "app-001", document_id: "doc-001", user_id: USER_ID, created_at: daysAgo(9) },
     { id: "ad-002", application_id: "app-001", document_id: "doc-002", user_id: USER_ID, created_at: daysAgo(9) },
   ],
-  document_analyses: [],
+  document_analyses: [
+    {
+      id: "da-001", application_id: "app-001", document_id: "doc-001", resume_version_id: "rv-003",
+      analysis_result: {
+        score: 82,
+        matchingKeywords: ["React", "TypeScript", "design systems"],
+        missingKeywords: ["payments", "GraphQL"],
+        strengths: ["Strong senior frontend experience", "Quantified design-system impact"],
+        weaknesses: ["Payments domain experience is not explicit", "The summary is not tailored to the role"],
+        recommendations: ["Reframe the checkout work around payment reliability", "Add a concise role-specific summary using supported skills"],
+      },
+      analysis_status: "success", summary_generated_at: daysAgo(1), created_at: daysAgo(1), updated_at: daysAgo(1),
+    },
+  ],
   status_history: [],
   resume_versions: [
-    { id: "rv-001", user_id: USER_ID, document_id: "doc-001", version: 3, created_at: daysAgo(24) },
+    {
+      id: "rv-001", user_id: USER_ID, document_id: "doc-001", application_id: null,
+      version_name: "Original upload", version_number: 1, blocks: null, content_json: null, template_id: "modern",
+      source_format: "pdf", is_starred: false, is_original: true, parent_document_id: "doc-001",
+      detected_layout: null, created_at: daysAgo(24), updated_at: daysAgo(24),
+    },
+    {
+      id: "rv-002", user_id: USER_ID, document_id: "doc-001", application_id: "app-001",
+      version_name: "Stripe draft", version_number: 2, blocks: null,
+      content_json: { type: "doc", content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Ada Okafor" }] }, { type: "paragraph", content: [{ type: "text", text: "Senior Frontend Engineer — React, TypeScript, Design Systems" }] }] },
+      template_id: "modern", source_format: "pdf", is_starred: false, is_original: false,
+      parent_document_id: "doc-001", detected_layout: null, created_at: daysAgo(6), updated_at: daysAgo(6),
+    },
+    {
+      id: "rv-003", user_id: USER_ID, document_id: "doc-001", application_id: "app-001",
+      version_name: "Stripe — final", version_number: 3, blocks: null,
+      content_json: { type: "doc", content: [{ type: "heading", attrs: { level: 1 }, content: [{ type: "text", text: "Ada Okafor" }] }, { type: "paragraph", content: [{ type: "text", text: "Senior Frontend Engineer building reliable payment surfaces with React and TypeScript." }] }, { type: "paragraph", content: [{ type: "text", text: "Led a design system migration across 40+ screens and reduced bundle size by 38%." }] }] },
+      template_id: "modern", source_format: "pdf", is_starred: true, is_original: false,
+      parent_document_id: "doc-001", detected_layout: null, created_at: daysAgo(2), updated_at: daysAgo(2),
+    },
   ],
   ai_retry_queue: [],
   company_interview_templates: [],

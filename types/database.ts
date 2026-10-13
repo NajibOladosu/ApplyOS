@@ -49,6 +49,7 @@ export interface Application {
   ai_cover_letter: string | null
   manual_cover_letter: string | null
   last_analyzed_document_id: string | null
+  last_analyzed_resume_version_id: string | null
   archived: boolean
   created_at: string
   updated_at: string
@@ -83,6 +84,18 @@ export interface Document {
   application_id: string | null
   extracted_text: string | null
   analysis_result: ResumeAnalysisResult | null
+}
+
+export interface DocumentAnalysis {
+  id: string
+  application_id: string
+  document_id: string
+  resume_version_id: string
+  analysis_result: ResumeAnalysisResult | null
+  analysis_status: 'not_analyzed' | 'pending' | 'success' | 'failed'
+  summary_generated_at: string | null
+  created_at: string
+  updated_at: string
 }
 
 export interface Notification {
