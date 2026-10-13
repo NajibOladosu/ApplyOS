@@ -16,6 +16,8 @@ import {
     ChevronDown,
     FileText,
     FileType2,
+    BookOpenCheck,
+    ShieldCheck,
 } from "lucide-react"
 import {
     DropdownMenu,
@@ -55,6 +57,7 @@ import type { TemplateId, EditorBlock, ResumeDoc, DocSettings } from "./editor/t
 import { DEFAULT_DOC_SETTINGS } from "./editor/types"
 import { EditorToolbar } from "./editor/toolbar"
 import { DiffModal } from "./editor/diff-modal"
+import type { ResumeTailoringReport, TailoringMode } from "@/lib/resume-tailoring/types"
 
 // Re-export legacy types so existing imports keep working until callers migrate.
 export type { EditorBlock, BlockType, BlockStyles } from "./editor/types"
@@ -111,6 +114,9 @@ export function ResumeEditor({
     const [diffOriginal, setDiffOriginal] = useState<ResumeDoc | null>(null)
     const [diffProposed, setDiffProposed] = useState<ResumeDoc | null>(null)
     const [diffLoading, setDiffLoading] = useState(false)
+    const [tailoringDialogOpen, setTailoringDialogOpen] = useState(false)
+    const [tailoringReport, setTailoringReport] = useState<ResumeTailoringReport | null>(null)
+    const [suggestedDocSettings, setSuggestedDocSettings] = useState<Partial<DocSettings> | null>(null)
     const [selectionEmpty, setSelectionEmpty] = useState(true)
     const [docSettings, setDocSettings] = useState<DocSettings>(DEFAULT_DOC_SETTINGS)
     const [isDirty, setIsDirty] = useState(false)
@@ -447,16 +453,26 @@ export function ResumeEditor({
         }
     }
 
-    const handleApplyRecommendations = async () => {
+    const handleApplyRecommendations = () => {
         if (!editor || !analysis?.recommendations?.length) {
             toast({ title: "No recommendations to apply", variant: "destructive" })
             return
         }
+        setTailoringDialogOpen(true)
+    }
+
+    const generateTailoredResume = async (mode: TailoringMode) => {
+        if (!editor || !analysis?.recommendations?.length) return
+
         const original = editor.getJSON()
+        setTailoringDialogOpen(false)
+        setTailoringReport(null)
+        setSuggestedDocSettings(null)
         setDiffOriginal(original)
         setDiffProposed(null)
         setDiffOpen(true)
         setDiffLoading(true)
+
         try {
             const res = await fetch('/api/editor/apply-recommendations', {
                 method: 'POST',
@@ -467,22 +483,20 @@ export function ResumeEditor({
                     resumeVersionId: currentVersionId,
                     contentJson: original,
                     recommendations: analysis.recommendations,
+                    mode,
                 }),
             })
-            if (!res.ok) {
-                const errText = await res.text()
-                throw new Error(errText || "Bulk apply failed")
-            }
-            const data = await res.json()
-            if (data.contentJson) {
-                setDiffProposed(data.contentJson as ResumeDoc)
-            } else {
-                throw new Error("AI returned no content")
-            }
+            const data = await res.json().catch(() => ({}))
+            if (!res.ok) throw new Error(data.error || "Tailored resume generation failed")
+            if (!data.contentJson || !data.report) throw new Error("AI returned no validated resume")
+
+            setDiffProposed(data.contentJson as ResumeDoc)
+            setTailoringReport(data.report as ResumeTailoringReport)
+            setSuggestedDocSettings(data.suggestedDocSettings ?? null)
         } catch (err) {
             setDiffOpen(false)
             toast({
-                title: "Failed to apply recommendations",
+                title: "Failed to generate tailored resume",
                 description: err instanceof Error ? err.message : String(err),
                 variant: "destructive",
             })
@@ -494,13 +508,22 @@ export function ResumeEditor({
     const acceptDiff = (mergedDoc: ResumeDoc) => {
         if (!editor) return
         editor.commands.setContent(mergedDoc as unknown as JSONContent)
+        if (tailoringReport) {
+            setTemplateId('ats')
+            updateDocSettings(suggestedDocSettings ?? {
+                marginTopMm: 12,
+                marginRightMm: 14,
+                marginBottomMm: 12,
+                marginLeftMm: 14,
+            })
+        }
         setIsDirty(true)
         setDiffOpen(false)
         setDiffProposed(null)
         setDiffOriginal(null)
         toast({
-            title: "Recommendations applied",
-            description: "Review the changes, make any edits, then save and name a new version.",
+            title: "Tailored resume ready",
+            description: "Applied the validated edits and ATS one-page layout. Review it, then save a named version.",
         })
     }
 
@@ -535,6 +558,7 @@ export function ResumeEditor({
                     templateId,
                     fileName,
                     docSettings,
+                    fitToOnePage: format === 'pdf' && templateId === 'ats',
                 }),
             })
 
@@ -559,7 +583,16 @@ export function ResumeEditor({
             a.click()
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
-            toast({ title: `Exported as ${format.toUpperCase()}` })
+            const pageCount = Number(res.headers.get('X-Resume-Page-Count') || 0)
+            const verified = res.headers.get('X-Resume-Layout-Verified') === 'true'
+            toast({
+                title: `Exported as ${format.toUpperCase()}`,
+                description: format === 'pdf' && pageCount > 0
+                    ? verified
+                        ? `Layout verified at ${pageCount} page${pageCount === 1 ? '' : 's'}.`
+                        : `Exported at ${pageCount} pages. Consider shortening lower-priority content.`
+                    : undefined,
+            })
         } catch (err) {
             console.error("Export error:", err)
             toast({
@@ -725,10 +758,13 @@ export function ResumeEditor({
                 originalDoc={diffOriginal}
                 proposedDoc={diffProposed}
                 isLoading={diffLoading}
+                report={tailoringReport}
                 onCancel={() => {
                     setDiffOpen(false)
                     setDiffProposed(null)
                     setDiffOriginal(null)
+                    setTailoringReport(null)
+                    setSuggestedDocSettings(null)
                 }}
                 onAcceptAll={() => {
                     if (diffProposed) acceptDiff(diffProposed)
@@ -755,6 +791,53 @@ export function ResumeEditor({
                     )}
                 </div>
             </div>
+
+            <Dialog open={tailoringDialogOpen} onOpenChange={setTailoringDialogOpen}>
+                <DialogContent className="sm:max-w-xl">
+                    <DialogHeader>
+                        <DialogTitle>Generate a tailored resume</DialogTitle>
+                        <DialogDescription>
+                            ApplyOS will propose small, evidence-backed edits, validate every claim, and switch the accepted result to the ATS one-page layout.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="grid gap-3 py-2 sm:grid-cols-2">
+                        <button
+                            type="button"
+                            onClick={() => void generateTailoredResume("truthful")}
+                            className="rounded-xl border border-primary/40 bg-primary/5 p-4 text-left transition-colors hover:border-primary hover:bg-primary/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/50"
+                        >
+                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary/15 text-primary">
+                                <ShieldCheck className="h-4 w-4" />
+                            </span>
+                            <span className="mt-3 block text-sm font-semibold text-foreground">Truthful mode</span>
+                            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                                Uses only claims and skills supported by this resume version. Best for submitting applications.
+                            </span>
+                            <span className="mt-3 inline-flex rounded-full bg-primary/10 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-primary">
+                                Recommended
+                            </span>
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => void generateTailoredResume("interview-prep")}
+                            className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-amber-500/50 hover:bg-amber-500/5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-amber-500/40"
+                        >
+                            <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-500/15 text-amber-700 dark:text-amber-300">
+                                <BookOpenCheck className="h-4 w-4" />
+                            </span>
+                            <span className="mt-3 block text-sm font-semibold text-foreground">Interview prep</span>
+                            <span className="mt-1 block text-xs leading-relaxed text-muted-foreground">
+                                Keeps normal claims evidence-backed and isolates adjacent skills in a clearly labelled Familiarity section.
+                            </span>
+                        </button>
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setTailoringDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
 
             <Dialog open={saveDialogOpen} onOpenChange={(open) => !isSaving && setSaveDialogOpen(open)}>
                 <DialogContent>

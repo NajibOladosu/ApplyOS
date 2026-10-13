@@ -39,7 +39,7 @@ const TABS: { id: Tab, label: string }[] = [
     { id: 'overview', label: 'Overview' },
     { id: 'questions', label: 'Questions' },
     { id: 'cover-letter', label: 'Cover Letter' },
-    { id: 'analysis', label: 'Analysis' },
+    { id: 'analysis', label: 'Job Fit' },
     { id: 'notes', label: 'Notes' },
 ]
 
@@ -726,7 +726,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                         </div>
                     )}
 
-                    {/* ANALYSIS TAB */}
+                    {/* JOB FIT TAB */}
                     {activeTab === 'analysis' && (
                         <div className="space-y-4 animate-in fade-in duration-200">
                             {loadingAnalysis && !analysis ? (
@@ -739,7 +739,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                     <div className="icon-chip mb-3 h-10 w-10">
                                         <Target className="h-5 w-5" />
                                     </div>
-                                    <p className="text-[13px] font-semibold text-foreground">No analysis yet</p>
+                                    <p className="text-[13px] font-semibold text-foreground">No Job Fit analysis yet</p>
                                     <p className="mt-1 max-w-[240px] text-[11px] leading-relaxed text-muted-foreground">
                                         Match your resume against this job description to get a score
                                         and the keywords to close.
@@ -751,7 +751,7 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                         className="btn-primary mt-4 h-9 !px-4 !text-[12px]"
                                     >
                                         {checkingComp ? <Spinner className="h-3.5 w-3.5" /> : <Wand2 className="h-3.5 w-3.5" />}
-                                        Run analysis
+                                        Run Job Fit
                                     </button>
                                 </Card>
                             ) : (
@@ -810,6 +810,31 @@ export function ApplicationDetail({ application, onBack, onUpdate, onDelete }: A
                                                 None — your resume covers the posting&apos;s keywords.
                                             </p>
                                         )}
+                                    </Card>
+
+                                    <Card className="overflow-hidden border-primary/25 bg-primary/5 p-4">
+                                        <div className="flex items-start gap-3">
+                                            <span className="icon-chip h-9 w-9 shrink-0">
+                                                <Wand2 className="h-4 w-4" />
+                                            </span>
+                                            <div className="min-w-0 flex-1">
+                                                <p className="text-[12.5px] font-semibold text-foreground">Generate a tailored resume</p>
+                                                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                                                    Open the full evidence-led editor to review safe changes, choose a mode, and export a verified layout.
+                                                </p>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://www.applyos.io'
+                                                        window.open(`${baseUrl}/applications/${application.id}?tab=job-fit`, '_blank')
+                                                    }}
+                                                    className="btn-primary mt-3 h-8 !px-3 !text-[11px]"
+                                                >
+                                                    <ExternalLink className="h-3 w-3" />
+                                                    Open resume generator
+                                                </button>
+                                            </div>
+                                        </div>
                                     </Card>
                                 </>
                             )}

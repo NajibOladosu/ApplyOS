@@ -4,14 +4,16 @@ import { useEffect, useMemo, useState } from "react"
 import type { JSONContent } from "@tiptap/core"
 import { diffWords } from "diff"
 import { Button } from "@/shared/ui/button"
-import { Check, X, Loader2, Sparkles } from "lucide-react"
+import { AlertTriangle, Check, Download, Loader2, ShieldCheck, Sparkles, X } from "lucide-react"
 import { cn } from "@/shared/lib/utils"
+import type { ResumeTailoringReport } from "@/lib/resume-tailoring/types"
 
 interface DiffModalProps {
     open: boolean
     originalDoc: JSONContent | null
     proposedDoc: JSONContent | null
     isLoading: boolean
+    report?: ResumeTailoringReport | null
     onCancel: () => void
     onAcceptAll: () => void
     onAcceptPartial: (mergedDoc: JSONContent) => void
@@ -70,6 +72,7 @@ export function DiffModal({
     originalDoc,
     proposedDoc,
     isLoading,
+    report = null,
     onCancel,
     onAcceptAll,
     onAcceptPartial,
@@ -101,6 +104,51 @@ export function DiffModal({
     }, [changes])
 
     if (!open) return null
+
+    const hasStructuralChanges = report?.safety.sourceStructurePreserved === false
+
+    const downloadReport = () => {
+        if (!report) return
+        const requirementRows = report.requirements.map((item) =>
+            `| ${item.requirement.replace(/\|/g, "\\|")} | ${item.priority} | ${item.status} | ${item.evidence.join("; ").replace(/\|/g, "\\|") || "—"} |`,
+        )
+        const markdown = [
+            "# Resume tailoring report",
+            "",
+            `- Mode: ${report.mode === "truthful" ? "Truthful" : "Interview preparation"}`,
+            `- Evidence coverage: ${report.score}%`,
+            `- Accepted edits: ${report.acceptedEdits.length}`,
+            `- Rejected unsafe edits: ${report.rejectedEdits.length}`,
+            `- Unsupported claims blocked: ${report.safety.unsupportedClaimsBlocked}`,
+            "",
+            "## Requirement evidence",
+            "",
+            "| Requirement | Priority | Status | Evidence |",
+            "|---|---|---|---|",
+            ...requirementRows,
+            ...(report.familiaritySkills.length > 0 ? [
+                "",
+                "## Clearly labelled familiarity",
+                "",
+                ...report.familiaritySkills.map((skill) => `- ${skill}`),
+            ] : []),
+            ...(report.rejectedEdits.length > 0 ? [
+                "",
+                "## Safety rejections",
+                "",
+                ...report.rejectedEdits.map((edit) => `- Block ${edit.blockIndex}: ${edit.rejectionReason}`),
+            ] : []),
+            "",
+        ].join("\n")
+        const url = URL.createObjectURL(new Blob([markdown], { type: "text/markdown" }))
+        const anchor = document.createElement("a")
+        anchor.href = url
+        anchor.download = "resume-tailoring-report.md"
+        document.body.appendChild(anchor)
+        anchor.click()
+        anchor.remove()
+        URL.revokeObjectURL(url)
+    }
 
     const toggle = (idx: number) => {
         setAccepted(prev => {
@@ -137,16 +185,59 @@ export function DiffModal({
                             <p className="text-xs text-muted-foreground">Review proposed rewrites before applying</p>
                         </div>
                     </div>
-                    <button
-                        onClick={onCancel}
-                        className="text-muted-foreground hover:text-foreground p-1 rounded-md hover:bg-muted transition-colors"
-                        title="Close"
-                    >
-                        <X className="h-5 w-5" />
-                    </button>
+                    <div className="flex items-center gap-1.5">
+                        {report ? (
+                            <Button variant="ghost" size="sm" onClick={downloadReport}>
+                                <Download className="mr-1.5 h-3.5 w-3.5" />
+                                Report
+                            </Button>
+                        ) : null}
+                        <button
+                            onClick={onCancel}
+                            className="rounded-md p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                            title="Close"
+                            aria-label="Close recommendation review"
+                        >
+                            <X className="h-5 w-5" />
+                        </button>
+                    </div>
                 </div>
 
                 <div className="flex-1 overflow-auto px-6 py-4 custom-scrollbar">
+                    {!isLoading && report ? (
+                        <div className="mb-5 rounded-xl border border-primary/20 bg-primary/5 p-4">
+                            <div className="grid gap-3 sm:grid-cols-3">
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Evidence coverage</p>
+                                    <p className="mt-1 text-2xl font-bold text-foreground">{report.score}%</p>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Safe edits</p>
+                                    <p className="mt-1 text-2xl font-bold text-foreground">{report.acceptedEdits.length}</p>
+                                </div>
+                                <div>
+                                    <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Blocked proposals</p>
+                                    <p className="mt-1 text-2xl font-bold text-foreground">{report.rejectedEdits.length}</p>
+                                </div>
+                            </div>
+                            <div className="mt-3 flex items-start gap-2 border-t border-primary/15 pt-3 text-xs text-muted-foreground">
+                                <ShieldCheck className="mt-0.5 h-4 w-4 shrink-0 text-primary" />
+                                <span>
+                                    Metrics and factual claims were checked against this exact resume version.
+                                    {report.mode === "interview-prep" && report.familiaritySkills.length > 0
+                                        ? ` ${report.familiaritySkills.length} unsupported skill${report.familiaritySkills.length === 1 ? " is" : "s are"} isolated in a clearly labelled Familiarity section.`
+                                        : " Unsupported requirements were kept out of the generated resume."}
+                                </span>
+                            </div>
+                            {report.rejectedEdits.length > 0 ? (
+                                <div className="mt-3 flex items-start gap-2 rounded-lg border border-amber-500/25 bg-amber-500/10 px-3 py-2 text-xs text-amber-800 dark:text-amber-300">
+                                    <AlertTriangle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                                    Unsafe or layout-breaking proposals were automatically excluded. Download the report for details.
+                                </div>
+                            ) : null}
+                        </div>
+                    ) : null}
+
                     {isLoading ? (
                         <div className="flex flex-col items-center justify-center py-16 gap-3">
                             <Loader2 className="h-8 w-8 animate-spin text-primary" />
@@ -204,17 +295,18 @@ export function DiffModal({
                         <Button
                             variant="outline"
                             onClick={applyPartial}
-                            disabled={isLoading || accepted.size === 0 || accepted.size === changes.length}
+                            disabled={isLoading || hasStructuralChanges || accepted.size === 0 || accepted.size === changes.length}
                             className="border-primary/40 text-foreground hover:bg-primary/10 hover:text-primary"
+                            title={hasStructuralChanges ? "Interview-prep familiarity changes must be accepted as a complete, clearly labelled section" : undefined}
                         >
                             Apply selected ({accepted.size})
                         </Button>
                         <Button
                             onClick={acceptAll}
-                            disabled={isLoading || changes.length === 0}
+                            disabled={isLoading || (!report && changes.length === 0)}
                             className="bg-primary text-primary-foreground hover:bg-primary/90"
                         >
-                            Accept all
+                            {changes.length === 0 ? "Apply ATS layout" : "Accept all"}
                         </Button>
                     </div>
                 </div>

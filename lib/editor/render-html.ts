@@ -47,11 +47,14 @@ const renderExtensions = [
  * Each template owns its own page CSS so the PDF preserves the template's look.
  */
 
+export type ResumeLayoutDensity = 'standard' | 'compact' | 'tight'
+
 interface RenderOpts {
     contentJson: JSONContent
     templateId: TemplateId
     fileName?: string
     docSettings?: DocSettings
+    density?: ResumeLayoutDensity
 }
 
 const baseStylesFor = (s?: DocSettings) => {
@@ -95,6 +98,18 @@ h1, h2, h3 { page-break-after: avoid; }
 }
 
 const templateStyles: Record<TemplateId, string> = {
+    'ats': `
+        body { font-family: Arial, Helvetica, sans-serif; font-size: 9.25pt; line-height: 1.24; color: #0f172a; }
+        h1 { font-size: 20pt; font-weight: 700; line-height: 1; margin: 0; text-align: center; letter-spacing: 0.02em; color: #000; }
+        h1 + p { margin-top: 3px; text-align: center; font-size: 9pt; line-height: 1.2; }
+        h2 { font-size: 10pt; font-weight: 700; line-height: 1.15; margin: 10px 0 3px 0; padding-bottom: 2px;
+             border-bottom: 1px solid #000; text-transform: uppercase; letter-spacing: 0.08em; color: #000; }
+        h3 { font-size: 9.5pt; font-weight: 700; line-height: 1.15; margin: 6px 0 1px 0; color: #000; }
+        p { margin: 2px 0; line-height: 1.24; color: #0f172a; }
+        ul, ol { margin: 2px 0 6px 0; padding-left: 16px; }
+        li { margin: 0; padding-left: 2px; line-height: 1.24; color: #0f172a; }
+        a { color: #000; text-decoration: underline; text-underline-offset: 2px; }
+    `,
     'modern': `
         body { font-family: 'Inter', -apple-system, sans-serif; font-size: 11pt; line-height: 1.5; }
         h1 { font-size: 28pt; font-weight: 700; margin: 0 0 6px 0; color: #000; line-height: 1.1; }
@@ -135,9 +150,20 @@ const templateStyles: Record<TemplateId, string> = {
     `,
 }
 
-export const renderResumeHTML = ({ contentJson, templateId, fileName, docSettings }: RenderOpts): string => {
+export const renderResumeHTML = ({
+    contentJson,
+    templateId,
+    fileName,
+    docSettings,
+    density = 'standard',
+}: RenderOpts): string => {
     const bodyHTML = generateHTML(contentJson, renderExtensions)
-    const styles = `${baseStylesFor(docSettings)}\n${templateStyles[templateId] ?? templateStyles['modern']}`
+    const densityStyles = density === 'compact'
+        ? `.resume-page { zoom: 0.94; }`
+        : density === 'tight'
+            ? `.resume-page { zoom: 0.88; }`
+            : ''
+    const styles = `${baseStylesFor(docSettings)}\n${templateStyles[templateId] ?? templateStyles['modern']}\n${densityStyles}`
 
     return `<!DOCTYPE html>
 <html lang="en">
