@@ -33,7 +33,15 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import type { Application, Question, Document, ApplicationNote, DocumentAnalysis } from "@/types/database"
-import { getApplication, updateApplication, getApplicationDocuments, updateApplicationDocuments, getApplicationDocumentDetails } from "@/modules/applications/services/application.service"
+import {
+  addApplicationDocuments,
+  getApplication,
+  getApplicationDocumentDetails,
+  getApplicationDocuments,
+  removeApplicationDocument,
+  updateApplication,
+  updateApplicationDocuments,
+} from "@/modules/applications/services/application.service"
 import { getQuestionsByApplicationId, updateQuestion, deleteQuestion, createQuestion } from "@/modules/interviews/services/question.service"
 import { getDocuments } from "@/modules/documents/services/document.service"
 import { JdSummaryCard } from "@/modules/applications/components/jd-summary-card"
@@ -41,6 +49,7 @@ import { ContactsTab } from "@/modules/applications/components/contacts-tab"
 import { getNotesByApplicationId, createNote, updateNote, deleteNote, togglePinNote } from "@/modules/notes/services/note.service"
 import { getInterviewSessions, deleteInterviewSession } from "@/modules/interviews/services/interview.service"
 import { EditApplicationModal } from "@/modules/applications/components/modals/edit-application-modal"
+import { AddDocumentsModal } from "@/modules/applications/components/modals/add-documents-modal"
 import { EditQuestionsModal } from "@/modules/interviews/components/modals/edit-questions-modal"
 import { ConfirmModal } from "@/components/modals/confirm-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
@@ -72,7 +81,6 @@ export default function ApplicationDetailPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [documentAnalyses, setDocumentAnalyses] = useState<DocumentAnalysis[]>([])
   const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([])
-  const [pendingDocumentIds, setPendingDocumentIds] = useState<string[]>([])
   const [initialSelectedDocumentIds, setInitialSelectedDocumentIds] = useState<string[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState<string | null>(null)
@@ -84,6 +92,10 @@ export default function ApplicationDetailPage() {
   const [initialStatus, setInitialStatus] = useState<Application["status"] | null>(null)
   const [statusDropdownOpen, setStatusDropdownOpen] = useState(false)
   const [showDocumentModal, setShowDocumentModal] = useState(false)
+  const [isAddingDocuments, setIsAddingDocuments] = useState(false)
+  const [removingDocumentId, setRemovingDocumentId] = useState<string | null>(null)
+  const [documentPickerError, setDocumentPickerError] = useState<string | null>(null)
+  const [documentActionError, setDocumentActionError] = useState<string | null>(null)
   const [_isSavingChanges, setIsSavingChanges] = useState(false)
   const [jobDescriptionExpanded, setJobDescriptionExpanded] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
@@ -158,7 +170,6 @@ export default function ApplicationDetailPage() {
         setInterviewSessions(sessions)
         setPendingStatus(app.status)
         setInitialStatus(app.status)
-        setPendingDocumentIds([])
         setInitialSelectedDocumentIds(relatedDocIds)
         setSelectedDocumentIds(relatedDocIds)
       } catch (err: unknown) {
@@ -420,53 +431,60 @@ export default function ApplicationDetailPage() {
     }
   }
 
-  const toggleDocumentSelection = (docId: string) => {
-    setPendingDocumentIds((prev) =>
-      prev.includes(docId) ? prev.filter((id) => id !== docId) : [...prev, docId]
-    )
+  const openDocumentPicker = () => {
+    setDocumentPickerError(null)
+    setShowDocumentModal(true)
   }
 
-  const addSelectedDocuments = async () => {
-    if (!application) return
-    setIsSavingChanges(true)
-
-    const newSelectedIds = [
-      ...new Set([...selectedDocumentIds, ...pendingDocumentIds]),
-    ]
-
-    // Optimistic update
-    setSelectedDocumentIds(newSelectedIds)
-    setPendingDocumentIds([])
+  const closeDocumentPicker = () => {
+    if (isAddingDocuments) return
     setShowDocumentModal(false)
+    setDocumentPickerError(null)
+  }
+
+  const addSelectedDocuments = async (selectedIds: string[]) => {
+    if (!application || isAddingDocuments) return
+
+    // The picker only adds new relationships. Existing links are deliberately
+    // left untouched so their application-specific analysis history survives.
+    const documentIdsToAdd = selectedIds.filter(
+      (documentId) => !selectedDocumentIds.includes(documentId)
+    )
+
+    if (documentIdsToAdd.length === 0) return
+
+    setIsAddingDocuments(true)
+    setDocumentPickerError(null)
 
     try {
-      await updateApplicationDocuments(application.id, newSelectedIds)
+      await addApplicationDocuments(application.id, documentIdsToAdd)
+      const newSelectedIds = [...new Set([...selectedDocumentIds, ...documentIdsToAdd])]
+      setSelectedDocumentIds(newSelectedIds)
       setInitialSelectedDocumentIds(newSelectedIds)
+      setShowDocumentModal(false)
     } catch (err) {
-      console.error("Error saving documents:", err)
-      // Revert logic would depend on complexity, for now just log
-      setError("Failed to update documents")
+      console.error("Error adding documents:", err)
+      setDocumentPickerError("We couldn't add the selected documents. Please try again.")
     } finally {
-      setIsSavingChanges(false)
+      setIsAddingDocuments(false)
     }
   }
 
   const removeDocument = async (docId: string) => {
-    if (!application) return
+    if (!application || removingDocumentId) return
 
-    const newSelectedIds = selectedDocumentIds.filter((id) => id !== docId)
-
-    // Optimistic update
-    setSelectedDocumentIds(newSelectedIds)
+    setRemovingDocumentId(docId)
+    setDocumentActionError(null)
 
     try {
-      await updateApplicationDocuments(application.id, newSelectedIds)
-      setInitialSelectedDocumentIds(newSelectedIds)
+      await removeApplicationDocument(application.id, docId)
+      setSelectedDocumentIds((current) => current.filter((id) => id !== docId))
+      setInitialSelectedDocumentIds((current) => current.filter((id) => id !== docId))
     } catch (err) {
       console.error("Error removing document:", err)
-      setError("Failed to remove document")
-      // Revert if needed
-      setSelectedDocumentIds(selectedDocumentIds)
+      setDocumentActionError("We couldn't remove this document from the application. Please try again.")
+    } finally {
+      setRemovingDocumentId(null)
     }
   }
 
@@ -514,7 +532,6 @@ export default function ApplicationDetailPage() {
       // Update initial states to reflect saved changes
       setInitialStatus(pendingStatus || application.status)
       setInitialSelectedDocumentIds(selectedDocumentIds)
-      setPendingDocumentIds([])
     } catch (err) {
       console.error("Error saving changes:", err)
     } finally {
@@ -1515,7 +1532,7 @@ export default function ApplicationDetailPage() {
                   variant="ghost"
                   size="sm"
                   className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => setShowDocumentModal(true)}
+                  onClick={openDocumentPicker}
                 >
                   <Plus className="mr-1 h-3 w-3" />
                   Add
@@ -1542,12 +1559,17 @@ export default function ApplicationDetailPage() {
                           </p>
                         </div>
                         <button
-                          onClick={() => removeDocument(doc.id)}
-                          className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus:opacity-100 group-hover:opacity-100"
+                          onClick={() => void removeDocument(doc.id)}
+                          disabled={removingDocumentId !== null}
+                          className="rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-destructive/10 hover:text-destructive focus:opacity-100 disabled:cursor-not-allowed disabled:opacity-50 group-hover:opacity-100"
                           title="Remove document"
                           aria-label={`Remove ${doc.file_name}`}
                         >
-                          <X className="h-3 w-3" />
+                          {removingDocumentId === doc.id ? (
+                            <Loader2 className="h-3 w-3 animate-spin" />
+                          ) : (
+                            <X className="h-3 w-3" />
+                          )}
                         </button>
                       </li>
                     )
@@ -1571,6 +1593,18 @@ export default function ApplicationDetailPage() {
           </aside>
         </div>
       </div>
+
+      {/* Document picker */}
+      <AddDocumentsModal
+        isOpen={showDocumentModal}
+        documents={documents}
+        linkedDocumentIds={selectedDocumentIds}
+        isSaving={isAddingDocuments}
+        error={documentPickerError}
+        onClose={closeDocumentPicker}
+        onAdd={(documentIds) => void addSelectedDocuments(documentIds)}
+        onClearError={() => setDocumentPickerError(null)}
+      />
 
       {/* Note Modal */}
       <NoteModal
@@ -1703,6 +1737,15 @@ export default function ApplicationDetailPage() {
         message={successMessage || ""}
         type="success"
         onClose={() => setSuccessMessage(null)}
+      />
+
+      {/* Document action error */}
+      <AlertModal
+        isOpen={!!documentActionError}
+        title="Document update failed"
+        message={documentActionError || ""}
+        type="error"
+        onClose={() => setDocumentActionError(null)}
       />
 
       {/* Delete Interview Confirmation Modal */}

@@ -160,18 +160,24 @@ export async function getApplicationDocumentDetails(applicationId: string) {
   return data || []
 }
 
-export async function addApplicationDocument(applicationId: string, documentId: string) {
+export async function addApplicationDocuments(applicationId: string, documentIds: string[]) {
+  if (documentIds.length === 0) return
+
   const supabase = createClient()
   const { error } = await supabase
     .from('application_documents')
-    .insert([
-      {
+    .insert(
+      documentIds.map(documentId => ({
         application_id: applicationId,
         document_id: documentId,
-      },
-    ])
+      }))
+    )
 
   if (error) throw error
+}
+
+export async function addApplicationDocument(applicationId: string, documentId: string) {
+  await addApplicationDocuments(applicationId, [documentId])
 }
 
 export async function removeApplicationDocument(applicationId: string, documentId: string) {

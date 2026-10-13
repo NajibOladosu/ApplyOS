@@ -127,6 +127,7 @@ import {
     getApplicationDocuments,
     getApplicationDocumentDetails,
     addApplicationDocument,
+    addApplicationDocuments,
     removeApplicationDocument,
     updateApplicationDocuments,
 } from './application.service'
@@ -319,6 +320,40 @@ describe('addApplicationDocument', () => {
     it('throws on insert error', async () => {
         mockSupabase.insert.mockResolvedValueOnce({ error: { message: 'fail' } })
         await expect(addApplicationDocument('a1', 'd1')).rejects.toMatchObject({ message: 'fail' })
+    })
+})
+
+describe('addApplicationDocuments', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        mockSupabase.from.mockReturnThis()
+        mockSupabase.insert.mockReturnThis()
+    })
+
+    it('inserts all selected relationships in one request', async () => {
+        mockSupabase.insert.mockResolvedValueOnce({ error: null })
+
+        await addApplicationDocuments('a1', ['d1', 'd2'])
+
+        expect(mockSupabase.from).toHaveBeenCalledWith('application_documents')
+        expect(mockSupabase.insert).toHaveBeenCalledWith([
+            { application_id: 'a1', document_id: 'd1' },
+            { application_id: 'a1', document_id: 'd2' },
+        ])
+    })
+
+    it('does not query the database when nothing is selected', async () => {
+        await addApplicationDocuments('a1', [])
+
+        expect(mockSupabase.from).not.toHaveBeenCalled()
+        expect(mockSupabase.insert).not.toHaveBeenCalled()
+    })
+
+    it('throws on insert error', async () => {
+        mockSupabase.insert.mockResolvedValueOnce({ error: { message: 'insert failed' } })
+
+        await expect(addApplicationDocuments('a1', ['d1', 'd2']))
+            .rejects.toMatchObject({ message: 'insert failed' })
     })
 })
 
