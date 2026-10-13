@@ -349,6 +349,7 @@ const factualFingerprintsMatch = (source: string, repaired: string) => {
 export function validateStructuralRepair(
     source: JSONContent,
     repaired: JSONContent,
+    options: { sourceDerived?: boolean } = {},
 ): { valid: true } | { valid: false; reason: string } {
     const sourceText = textFromDocument(source)
     const repairedText = textFromDocument(repaired)
@@ -357,6 +358,17 @@ export function validateStructuralRepair(
 
     if (repairedBlocks.length < 5 || headings.length < 2 || resumeNeedsStructuralRepair(repaired)) {
         return { valid: false, reason: "The reconstructed resume did not contain a usable section hierarchy." }
+    }
+
+    if (options.sourceDerived) {
+        const evidenceCharacters = (value: string) => value.replace(/[\s•●▪◦*]/gu, "")
+        if (evidenceCharacters(sourceText) !== evidenceCharacters(repairedText)) {
+            return {
+                valid: false,
+                reason: "The source-derived reconstruction did not preserve the exact evidence characters.",
+            }
+        }
+        return { valid: true }
     }
 
     const sourceCompact = compactForComparison(sourceText)

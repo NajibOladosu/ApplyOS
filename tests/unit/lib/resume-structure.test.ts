@@ -66,7 +66,26 @@ describe('resume structural repair safety', () => {
     expect(reconstructedText).toContain('Figma')
     expect(reconstructedText).not.toContain('Sketch')
     expect(reconstructedText).toContain('Reduced application abandonment')
-    expect(validateStructuralRepair(malformed, blocksToTipTap(reconciled ?? []))).toEqual({ valid: true })
+    expect(validateStructuralRepair(
+      malformed,
+      blocksToTipTap(reconciled ?? []),
+      { sourceDerived: true },
+    )).toEqual({ valid: true })
+  })
+
+  it('rejects any character change in a source-derived reconstruction', () => {
+    const changed = JSON.parse(JSON.stringify(repaired)) as JSONContent
+    const serialized = JSON.stringify(changed).replace('Example Labs', 'Example Labz')
+    const validation = validateStructuralRepair(
+      malformed,
+      JSON.parse(serialized) as JSONContent,
+      { sourceDerived: true },
+    )
+
+    expect(validation).toEqual({
+      valid: false,
+      reason: 'The source-derived reconstruction did not preserve the exact evidence characters.',
+    })
   })
 
   it('rejects a layout proposal that does not align with the source', () => {
