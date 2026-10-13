@@ -121,7 +121,11 @@ Rules:
             return NextResponse.json({ blocks: fallbackBlocks })
         }
 
-        const validation = validateStructuralRepair(sourceDocument, blocksToTipTap(blocks))
+        const validation = validateStructuralRepair(
+            sourceDocument,
+            blocksToTipTap(blocks),
+            { sourceDerived: true },
+        )
         if (!validation.valid) {
             console.warn("[parse-text] Unsafe structural conversion rejected:", validation.reason)
             return NextResponse.json({ blocks: fallbackBlocks })

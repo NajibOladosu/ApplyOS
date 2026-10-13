@@ -166,7 +166,7 @@ Return ONLY JSON in this shape:
     }
 
     const repaired = blocksToTipTap(reconciledBlocks)
-    const validation = validateStructuralRepair(source, repaired)
+    const validation = validateStructuralRepair(source, repaired, { sourceDerived: true })
 
     return validation.valid
         ? { valid: true as const, content: repaired }
