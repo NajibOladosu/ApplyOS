@@ -1,36 +1,94 @@
 import { NextRequest, NextResponse } from "next/server"
+import type { JSONContent } from "@tiptap/core"
 import { createClient } from "@/shared/db/supabase/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import { MAX_LENGTHS } from "@/lib/validation"
+import {
+    applyEvidenceLedTailoring,
+    collectEditableResumeBlocks,
+} from "@/lib/resume-tailoring/engine"
+import type {
+    ProposedResumeEdit,
+    ResumeTailoringPlan,
+    TailoringMode,
+    TailoringRequirement,
+} from "@/lib/resume-tailoring/types"
 
 export const runtime = "nodejs"
 export const dynamic = "force-dynamic"
 export const maxDuration = 60
 
-/**
- * Bulk-apply analysis recommendations to a TipTap resume document.
- *
- * Inputs:
- *   - applicationId: scopes the request and fetches job_description for grounding.
- *   - documentId:    enforces ownership; the AI is told this is a derivative.
- *   - contentJson:   current TipTap JSON document (source of truth in editor).
- *   - recommendations: string[] from analysis output.
- *
- * Output:
- *   - { contentJson: <new TipTap JSON> }
- *   - The model is instructed to preserve structure (paragraph counts, headings,
- *     list items) so a node-by-node diff in the UI is meaningful. Content of
- *     individual nodes is rewritten; new nodes are not introduced.
- */
+const MAX_PLAN_REQUIREMENTS = 30
+const MAX_PLAN_EDITS = 40
+
+const parseJsonObject = (response: string): unknown => {
+    const fenced = response.match(/```(?:json)?\s*([\s\S]*?)```/i)?.[1]
+    const candidate = (fenced ?? response).trim()
+    const start = candidate.indexOf("{")
+    const end = candidate.lastIndexOf("}")
+    if (start < 0 || end <= start) throw new Error("AI returned invalid JSON")
+    return JSON.parse(candidate.slice(start, end + 1))
+}
+
+const cleanString = (value: unknown, maxLength: number) =>
+    typeof value === "string" ? value.trim().slice(0, maxLength) : ""
+
+const normalizePlan = (value: unknown): ResumeTailoringPlan => {
+    if (!value || typeof value !== "object") throw new Error("AI returned an invalid tailoring plan")
+    const candidate = value as {
+        requirements?: unknown[]
+        edits?: unknown[]
+        familiaritySkills?: unknown[]
+    }
+
+    const requirements: TailoringRequirement[] = (candidate.requirements ?? [])
+        .slice(0, MAX_PLAN_REQUIREMENTS)
+        .map((item) => {
+            const input = item as { requirement?: unknown; priority?: unknown }
+            return {
+                requirement: cleanString(input?.requirement, 160),
+                priority: input?.priority === "preferred" ? "preferred" as const : "required" as const,
+            }
+        })
+        .filter((item) => item.requirement.length > 1)
+
+    const edits: ProposedResumeEdit[] = (candidate.edits ?? [])
+        .slice(0, MAX_PLAN_EDITS)
+        .map((item) => {
+            const input = item as {
+                blockIndex?: unknown
+                originalText?: unknown
+                replacementText?: unknown
+                keywordsAdded?: unknown[]
+                reason?: unknown
+            }
+            return {
+                blockIndex: typeof input?.blockIndex === "number" ? Math.trunc(input.blockIndex) : -1,
+                originalText: cleanString(input?.originalText, 1200),
+                replacementText: cleanString(input?.replacementText, 1200),
+                keywordsAdded: (input?.keywordsAdded ?? [])
+                    .slice(0, 12)
+                    .map((keyword) => cleanString(keyword, 100))
+                    .filter(Boolean),
+                reason: cleanString(input?.reason, 300),
+            }
+        })
+        .filter((item) => item.blockIndex >= 0 && item.originalText && item.replacementText)
+
+    const familiaritySkills = (candidate.familiaritySkills ?? [])
+        .slice(0, 12)
+        .map((skill) => cleanString(skill, 100))
+        .filter(Boolean)
+
+    return { requirements, edits, familiaritySkills }
+}
 
 export async function POST(req: NextRequest) {
     try {
         const supabase = await createClient()
         const { data: { user } } = await supabase.auth.getUser()
-        if (!user) {
-            return new NextResponse("Unauthorized", { status: 401 })
-        }
+        if (!user) return new NextResponse("Unauthorized", { status: 401 })
 
         const rateLimitResponse = await rateLimitMiddleware(
             req,
@@ -39,59 +97,61 @@ export async function POST(req: NextRequest) {
         )
         if (rateLimitResponse) return rateLimitResponse
 
-        const { applicationId, documentId, resumeVersionId, contentJson, recommendations } = await req.json() as {
-            applicationId?: string
-            documentId?: string
-            resumeVersionId?: string | null
+        const body = await req.json() as {
+            applicationId?: unknown
+            documentId?: unknown
+            resumeVersionId?: unknown
             contentJson?: unknown
-            recommendations?: string[]
+            recommendations?: unknown
+            mode?: unknown
         }
+        const applicationId = cleanString(body.applicationId, 100)
+        const documentId = cleanString(body.documentId, 100)
+        const resumeVersionId = cleanString(body.resumeVersionId, 100)
+        const mode: TailoringMode = body.mode === "interview-prep" ? "interview-prep" : "truthful"
+        const contentJson = body.contentJson as JSONContent | undefined
+        const recommendations = Array.isArray(body.recommendations) ? body.recommendations : []
 
-        if (!applicationId || !documentId || !contentJson) {
-            return new NextResponse("Missing required fields", { status: 400 })
+        if (!applicationId || !documentId || !contentJson || contentJson.type !== "doc") {
+            return new NextResponse("Missing or invalid required fields", { status: 400 })
         }
-        if (!Array.isArray(recommendations) || recommendations.length === 0) {
+        if (recommendations.length === 0) {
             return new NextResponse("No recommendations provided", { status: 400 })
         }
-
         if (recommendations.length > MAX_LENGTHS.MAX_RECOMMENDATIONS) {
             return new NextResponse(
                 `Too many recommendations (max ${MAX_LENGTHS.MAX_RECOMMENDATIONS})`,
-                { status: 400 }
+                { status: 400 },
             )
         }
-
-        const oversizedRec = recommendations.find(
-            (r: unknown) => typeof r !== 'string' || r.length > MAX_LENGTHS.recommendation
+        const normalizedRecommendations = recommendations.map((recommendation) =>
+            cleanString(recommendation, MAX_LENGTHS.recommendation),
         )
-        if (oversizedRec !== undefined) {
-            return new NextResponse(
-                `Each recommendation must be a string of at most ${MAX_LENGTHS.recommendation} characters`,
-                { status: 400 }
-            )
+        if (normalizedRecommendations.some((recommendation) => !recommendation)) {
+            return new NextResponse("Recommendations must be non-empty strings", { status: 400 })
         }
 
-        const { data: app, error: appError } = await supabase
-            .from("applications")
-            .select("id, user_id, job_description, title, company")
-            .eq("id", applicationId)
-            .single()
-
-        if (appError || !app) {
-            console.error("[Apply Recommendations] application lookup failed:", appError)
-            return new NextResponse("Application not found", { status: 404 })
-        }
-        if (app.user_id !== user.id) {
+        const [appResult, documentResult] = await Promise.all([
+            supabase
+                .from("applications")
+                .select("id, user_id, job_description, title, company")
+                .eq("id", applicationId)
+                .single(),
+            supabase
+                .from("documents")
+                .select("id, user_id")
+                .eq("id", documentId)
+                .single(),
+        ])
+        const app = appResult.data
+        const document = documentResult.data
+        if (appResult.error || !app) return new NextResponse("Application not found", { status: 404 })
+        if (documentResult.error || !document) return new NextResponse("Document not found", { status: 404 })
+        if (app.user_id !== user.id || document.user_id !== user.id) {
             return new NextResponse("Forbidden", { status: 403 })
         }
-
-        const { data: doc, error: docError } = await supabase
-            .from("documents")
-            .select("id, user_id")
-            .eq("id", documentId)
-            .single()
-        if (docError || !doc || doc.user_id !== user.id) {
-            return new NextResponse("Document not found or forbidden", { status: 403 })
+        if (!app.job_description?.trim()) {
+            return new NextResponse("Application has no job description", { status: 400 })
         }
 
         if (resumeVersionId) {
@@ -110,66 +170,81 @@ export async function POST(req: NextRequest) {
             }
         }
 
-        const prompt = `You are an expert resume writer following the Harvard (Mignone Center for Career Success) resume style. Revamp the following TipTap JSON resume to address the analysis recommendations and tailor it to the target role — WITHOUT changing the candidate's actual history. Preserve the document STRUCTURE exactly: same number of nodes, same node types, same ordering, same heading levels, same list lengths. Only change the TEXT inside text nodes. Do NOT add, remove, or reorder nodes.
+        const blocks = collectEditableResumeBlocks(contentJson)
+        if (blocks.length === 0) {
+            return new NextResponse("This resume contains no editable text", { status: 400 })
+        }
+
+        const modeInstructions = mode === "interview-prep"
+            ? `INTERVIEW PREP MODE: Normal resume edits must still be fully supported by the source resume. You may also return closely related but unsupported requirements in familiaritySkills. Do not put those skills inside experience, projects, summary, or normal skills edits.`
+            : `TRUTHFUL MODE: familiaritySkills must be empty. Never introduce a requirement unless the source blocks already contain direct or equivalent evidence for it.`
+
+        const prompt = `You are planning a careful, evidence-led resume tailoring pass. Return a small set of surgical block rewrites, not a replacement resume.
 
 Target role: ${app.title || "Unknown"}${app.company ? ` at ${app.company}` : ""}
-Job description:
-${(app.job_description || "").slice(0, 6000)}
 
-Analysis recommendations to address:
-${recommendations.map((r, i) => `${i + 1}. ${r}`).join("\n")}
+JOB DESCRIPTION:
+${app.job_description.slice(0, 9000)}
 
-TRUTHFULNESS RULES (non-negotiable — violating any of these is a failure):
-- This is the candidate's real history. Never invent employers, roles, dates, locations, degrees, schools, certifications, projects, or achievements.
-- Never fabricate numbers. Only use metrics, percentages, dollar amounts, team sizes, or scale indicators that already appear in the resume. If a bullet has no metric, improve the wording without adding one.
-- Understand what the candidate actually did in each role before rewriting it; every rewritten bullet must describe the same underlying work as the original.
-- Job titles may be reworded for clarity or alignment with the target role ONLY if the new title has the same meaning, scope, and seniority as the original (e.g. "Web Developer" -> "Frontend Engineer" is fine; "Engineer" -> "Engineering Manager" is not).
-- Weave in keywords from the job description naturally (for ATS), but only where the candidate's existing experience genuinely supports them. Never claim a skill, tool, or technology the resume does not already evidence.
+RECOMMENDATIONS:
+${normalizedRecommendations.map((item, index) => `${index + 1}. ${item}`).join("\n")}
 
-STYLE RULES (Harvard resume guidelines):
-- Start every experience bullet with a strong action verb (Led, Built, Reduced, Streamlined, Negotiated...). Never "Responsible for" or "Helped with".
-- Past tense for previous roles, present tense for the current role.
-- No personal pronouns (I, my, we).
-- Use the XYZ method where the facts allow: "Accomplished [X] as measured by [Y], by doing [Z]" — but only with a [Y] that already exists in the resume.
-- Keep bullets concise (one to two lines), specific, and free of empty buzzwords.
+MODE:
+${modeInstructions}
 
-OUTPUT RULES:
-- Keep formatting marks (bold/italic/underline) where they were.
-- Output ONLY a JSON object with this shape: { "contentJson": <full TipTap JSON document> }
-- Do NOT wrap in markdown code fences. Do NOT include any prose outside JSON.
+SOURCE RESUME BLOCKS:
+${blocks.map((block) => `[${block.blockIndex}] <${block.type}> ${block.text}`).join("\n")}
 
-Current TipTap JSON:
-${JSON.stringify(contentJson)}
-`
+NON-NEGOTIABLE RULES:
+- Extract the important required and preferred job requirements before proposing edits.
+- Every edit must reference one blockIndex and repeat that block's originalText exactly.
+- Never edit names, contact details, section labels, employers, job titles, schools, dates, or locations.
+- Never invent or alter metrics, percentages, currencies, team sizes, scale, certifications, degrees, employers, projects, responsibilities, tools, or outcomes.
+- A keyword may be added only when the source resume contains direct evidence for the same skill or a common naming variant.
+- Keep the meaning and tense of each source block. Start achievement bullets with a strong action verb where appropriate.
+- Keep each replacement within roughly 20 percent of the source word count so the layout remains stable.
+- Prefer 3 to 10 high-value edits. Do not rewrite blocks that are already strong.
+- keywordsAdded must list every job-description term newly introduced by that edit.
+- requirements should contain concise skill or qualification phrases, not whole sentences.
 
-        const response = await callGeminiWithFallback(prompt, 'COMPLEX')
+Return ONLY JSON in this shape:
+{
+  "requirements": [
+    { "requirement": "PostgreSQL", "priority": "required" }
+  ],
+  "edits": [
+    {
+      "blockIndex": 4,
+      "originalText": "exact source text",
+      "replacementText": "truthful improved text",
+      "keywordsAdded": ["PostgreSQL"],
+      "reason": "why this improves relevance"
+    }
+  ],
+  "familiaritySkills": []
+}`
 
-        let jsonText = response
-        const codeBlockMatch = response.match(/```(?:json)?\s*([\s\S]*?)```/)
-        if (codeBlockMatch) jsonText = codeBlockMatch[1].trim()
+        const response = await callGeminiWithFallback(prompt, "COMPLEX")
+        const plan = normalizePlan(parseJsonObject(response))
+        const result = applyEvidenceLedTailoring(contentJson, plan, mode)
 
-        const objectMatch = jsonText.match(/\{[\s\S]*\}\s*$/)
-        if (!objectMatch) {
-            return new NextResponse("AI returned invalid JSON", { status: 502 })
-        }
-
-        let parsed: { contentJson?: { type?: string } }
-        try {
-            parsed = JSON.parse(objectMatch[0])
-        } catch {
-            return new NextResponse("AI returned malformed JSON", { status: 502 })
-        }
-
-        if (!parsed.contentJson || parsed.contentJson.type !== 'doc') {
-            return new NextResponse("AI output missing valid contentJson", { status: 502 })
-        }
-
-        return NextResponse.json({ contentJson: parsed.contentJson })
+        return NextResponse.json({
+            ...result,
+            suggestedTemplate: "ats",
+            suggestedDocSettings: {
+                marginTopMm: 12,
+                marginRightMm: 14,
+                marginBottomMm: 12,
+                marginLeftMm: 14,
+            },
+        })
     } catch (error) {
         console.error("[Apply Recommendations] Error:", error)
-        return new NextResponse(
-            JSON.stringify({ error: "Internal Server Error" }),
-            { status: 500, headers: { "Content-Type": "application/json" } },
-        )
+        const message = error instanceof SyntaxError
+            ? "AI returned malformed JSON. Please try again."
+            : error instanceof Error && error.message.includes("AI is not configured")
+                ? error.message
+                : "Failed to generate a safe tailored resume. Please try again."
+        return NextResponse.json({ error: message }, { status: 500 })
     }
 }

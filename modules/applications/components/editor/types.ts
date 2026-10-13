@@ -1,6 +1,6 @@
 import type { JSONContent } from "@tiptap/react"
 
-export type TemplateId = 'modern' | 'classic' | 'compact' | 'two-column' | 'photo-header'
+export type TemplateId = 'ats' | 'modern' | 'classic' | 'compact' | 'two-column' | 'photo-header'
 
 export type BlockType = 'h1' | 'h2' | 'h3' | 'paragraph' | 'bullet'
 
@@ -60,6 +60,14 @@ export interface TemplateMetadata {
 }
 
 export const TEMPLATES: Record<TemplateId, TemplateMetadata> = {
+    'ats': {
+        id: 'ats',
+        label: 'ATS One-Page',
+        description: 'Polished, dense, single-column layout optimized for ATS parsing.',
+        supportsPhoto: false,
+        supportsSidebar: false,
+        columnCount: 1,
+    },
     'modern': {
         id: 'modern',
         label: 'Modern',

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
-import { renderResumeHTML } from "@/lib/editor/render-html"
+import { renderResumeHTML, type ResumeLayoutDensity } from "@/lib/editor/render-html"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import type { DocSettings, TemplateId } from "@/modules/applications/components/editor/types"
 import type { JSONContent } from "@tiptap/core"
@@ -54,39 +54,56 @@ export async function POST(req: NextRequest) {
         if (rateLimitResponse) return rateLimitResponse
 
         const body = await req.json()
-        const { contentJson, templateId, fileName, docSettings } = body as {
+        const { contentJson, templateId, fileName, docSettings, fitToOnePage } = body as {
             contentJson?: JSONContent
             templateId?: TemplateId
             fileName?: string
             docSettings?: DocSettings
+            fitToOnePage?: boolean
         }
 
         if (!contentJson) {
             return new NextResponse("Missing contentJson", { status: 400 })
         }
 
-        const html = renderResumeHTML({
-            contentJson,
-            templateId: templateId ?? "modern",
-            fileName,
-            docSettings,
-        })
-
+        const selectedTemplate = templateId ?? "modern"
         const top = `${docSettings?.marginTopMm ?? 20}mm`
         const right = `${docSettings?.marginRightMm ?? 20}mm`
         const bottom = `${docSettings?.marginBottomMm ?? 20}mm`
         const left = `${docSettings?.marginLeftMm ?? 20}mm`
+        const densities: ResumeLayoutDensity[] = fitToOnePage || selectedTemplate === "ats"
+            ? ["standard", "compact", "tight"]
+            : ["standard"]
 
         const browser = await launchBrowser()
         try {
+            const { PDFDocument } = await import("pdf-lib")
             const page = await browser.newPage()
-            await page.setContent(html, { waitUntil: "networkidle0" })
-            const pdf = await page.pdf({
-                format: "A4",
-                printBackground: true,
-                margin: { top, right, bottom, left },
-                preferCSSPageSize: true,
-            })
+            let pdf: Uint8Array | null = null
+            let pageCount = 0
+            let appliedDensity: ResumeLayoutDensity = "standard"
+
+            for (const density of densities) {
+                const html = renderResumeHTML({
+                    contentJson,
+                    templateId: selectedTemplate,
+                    fileName,
+                    docSettings,
+                    density,
+                })
+                await page.setContent(html, { waitUntil: "networkidle0" })
+                pdf = await page.pdf({
+                    format: "A4",
+                    printBackground: true,
+                    margin: { top, right, bottom, left },
+                    preferCSSPageSize: true,
+                })
+                pageCount = (await PDFDocument.load(pdf)).getPageCount()
+                appliedDensity = density
+                if (pageCount <= 1) break
+            }
+
+            if (!pdf) throw new Error("PDF renderer returned no output")
 
             const safeName = (fileName ?? "resume").replace(/\.[^.]+$/, "")
             return new NextResponse(pdf as unknown as BodyInit, {
@@ -95,6 +112,9 @@ export async function POST(req: NextRequest) {
                     "Content-Type": "application/pdf",
                     "Content-Disposition": `attachment; filename="${safeName}_edited.pdf"`,
                     "Cache-Control": "no-store",
+                    "X-Resume-Page-Count": String(pageCount),
+                    "X-Resume-Layout-Density": appliedDensity,
+                    "X-Resume-Layout-Verified": String(pageCount <= 1),
                 },
             })
         } finally {
