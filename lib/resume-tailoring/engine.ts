@@ -365,6 +365,7 @@ export function applyEvidenceLedTailoring(
                     || edit.rejectionReason.includes("no resume evidence")
                 ).length,
                 sourceStructurePreserved: familiaritySkills.length === 0,
+                structureRepaired: false,
             },
         },
     }
