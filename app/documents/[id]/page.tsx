@@ -35,8 +35,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/shared/ui/dropdown-menu"
-import { getDocuments } from "@/modules/documents/services/document.service"
-import type { ApplicationStatus, Document, DocumentReport } from "@/types/database"
+import type { ApplicationStatus, DocumentReport } from "@/types/database"
+import { resumeVersionsService, type ResumeVersion } from "@/lib/services/resume-versions"
+import { tipTapToPlainText, legacyBlocksToPlainText } from "@/lib/editor/plain-text"
 
 type ParsedEducation = {
   institution: string
@@ -144,19 +145,6 @@ function formatRelativeDay(value: string | null): string {
   return `Updated ${new Date(value).toLocaleDateString()}`
 }
 
-/**
- * Groups uploads of "the same file" into a version family: identical base name
- * ignoring the extension and browser copy suffixes ("resume.pdf",
- * "resume (2).pdf", "resume 3.pdf" all resolve to "resume").
- */
-function familyKey(fileName: string): string {
-  const noExt = fileName.replace(/\.[a-z0-9]{1,6}$/i, "").trim().toLowerCase()
-  return noExt
-    .replace(/\s*\(\d{1,3}\)$/, "")
-    .replace(/\s\d{1,3}$/, "")
-    .trim()
-}
-
 function initialsFor(app: { title: string; company: string | null }) {
   const source = app.company || app.title
   return (
@@ -251,9 +239,11 @@ export default function DocumentDetailPage() {
   const [error, setError] = useState<string | null>(null)
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set())
 
-  // Version family: every upload of this same file, so the header can switch
-  // between v1…vN instead of only showing the one currently open.
-  const [allDocs, setAllDocs] = useState<Document[]>([])
+  // True immutable version history for this document. Version 1 is the source
+  // upload; each editor save appends another named snapshot.
+  const [versions, setVersions] = useState<ResumeVersion[]>([])
+  const [selectedVersionId, setSelectedVersionId] = useState<string | null>(null)
+  const [versionsLoading, setVersionsLoading] = useState(true)
   // Applications that use this document (junction + legacy single link).
   const [linkedApps, setLinkedApps] = useState<LinkedApplication[]>([])
   const [linkedLoading, setLinkedLoading] = useState(false)
@@ -262,10 +252,40 @@ export default function DocumentDetailPage() {
   const documentId = typeof params?.id === "string" ? params.id : Array.isArray(params?.id) ? params.id[0] : ""
 
   useEffect(() => {
-    getDocuments()
-      .then(setAllDocs)
-      .catch(() => setAllDocs([]))
-  }, [])
+    if (!documentId || !doc?.file_name) return
+    let cancelled = false
+    setVersionsLoading(true)
+    resumeVersionsService.getVersions(documentId)
+      .then(async (items) => {
+        if (items.length === 0) {
+          const original = await resumeVersionsService.ensureOriginalVersion({
+            id: documentId,
+            file_name: doc.file_name,
+            created_at: doc.created_at,
+          })
+          items = [original]
+        }
+        if (cancelled) return
+        const ordered = [...items].sort((a, b) => {
+          if (a.is_original !== b.is_original) return a.is_original ? -1 : 1
+          return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+        })
+        setVersions(ordered)
+        setSelectedVersionId((current) =>
+          current && ordered.some((version) => version.id === current)
+            ? current
+            : ordered.at(-1)?.id ?? null,
+        )
+      })
+      .catch((versionError) => {
+        console.error("Error loading document versions:", versionError)
+        if (!cancelled) setVersions([])
+      })
+      .finally(() => {
+        if (!cancelled) setVersionsLoading(false)
+      })
+    return () => { cancelled = true }
+  }, [documentId, doc?.file_name, doc?.created_at])
 
   const fetchLinked = async (id: string) => {
     setLinkedLoading(true)
@@ -564,22 +584,22 @@ export default function DocumentDetailPage() {
     setExpandedCategories(next)
   }
 
-  /** This file's version family, oldest first, so v1 is the first upload. */
-  const versions = useMemo(() => {
-    if (!doc) return []
-    const key = familyKey(doc.file_name)
-    return allDocs
-      .filter((d) => familyKey(d.file_name) === key)
-      .sort((a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime())
-  }, [allDocs, doc])
+  const selectedVersion = useMemo(
+    () => versions.find((version) => version.id === selectedVersionId) ?? versions.at(-1) ?? null,
+    [selectedVersionId, versions],
+  )
+  const versionIndex = selectedVersion
+    ? versions.findIndex((version) => version.id === selectedVersion.id)
+    : -1
+  const isLatest = versionIndex >= 0 && versionIndex === versions.length - 1
+  const selectedVersionNumber = selectedVersion?.version_number ?? versionIndex + 1
+  const selectedVersionText = useMemo(() => {
+    if (!selectedVersion || selectedVersion.is_original) return ""
+    return tipTapToPlainText(selectedVersion.content_json)
+      || legacyBlocksToPlainText(selectedVersion.blocks)
+  }, [selectedVersion])
 
-  const versionIndex = doc ? versions.findIndex((v) => v.id === doc.id) : -1
-  const isLatest = versionIndex === versions.length - 1
-
-  const handleSwitchVersion = (id: string) => {
-    if (!doc || id === doc.id) return
-    router.replace(`/documents/${id}`)
-  }
+  const handleSwitchVersion = (id: string) => setSelectedVersionId(id)
 
   /* ---------- Report column ---------- */
   const renderReport = () => {
@@ -1121,12 +1141,12 @@ export default function DocumentDetailPage() {
                 <span>{formatFileSize(doc.file_size)}</span>
                 <span aria-hidden className="text-muted-foreground/40">·</span>
                 <span>Uploaded {formatDay(doc.created_at)}</span>
-                {versions.length > 1 ? (
+                {selectedVersion ? (
                   <>
                     <span aria-hidden className="text-muted-foreground/40">·</span>
                     <span className="inline-flex items-center gap-1.5">
                       <GitBranch className="h-3 w-3" />
-                      Version {versionIndex + 1} of {versions.length}
+                      {selectedVersion.version_name} · v{selectedVersionNumber} · {versions.length} total
                       {isLatest ? (
                         <span className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary-strong dark:text-primary">
                           Latest
@@ -1150,49 +1170,53 @@ export default function DocumentDetailPage() {
             </div>
 
             <div className="flex shrink-0 flex-wrap items-center gap-2">
-              {versions.length > 1 ? (
+              {versions.length > 0 ? (
                 <DropdownMenu>
                   <DropdownMenuTrigger asChild>
                     <button
                       type="button"
-                      className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:border-primary/40"
+                      disabled={versionsLoading}
+                      className="inline-flex h-9 max-w-64 items-center gap-1.5 rounded-lg border border-border/80 bg-card px-3 text-[13px] font-medium text-foreground shadow-sm transition-colors hover:border-primary/40 disabled:opacity-60"
                     >
-                      <GitBranch className="h-3.5 w-3.5" />
-                      {isLatest ? "Latest version" : `v${versionIndex + 1}`}
-                      <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" />
+                      <GitBranch className="h-3.5 w-3.5 shrink-0" />
+                      <span className="truncate">{selectedVersion?.version_name ?? "Choose version"}</span>
+                      <ChevronDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                     </button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-72">
+                  <DropdownMenuContent align="end" className="w-80">
                     <DropdownMenuLabel className="text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
-                      Versions of this file
+                      Version history
                     </DropdownMenuLabel>
                     <DropdownMenuSeparator />
-                    {[...versions].reverse().map((v, i) => {
-                      const versionNo = versions.length - i
-                      const isCurrent = v.id === doc.id
+                    {[...versions].reverse().map((version, index) => {
+                      const versionNo = version.version_number ?? versions.length - index
+                      const isCurrent = version.id === selectedVersion?.id
                       const isNewest = versionNo === versions.length
                       return (
                         <DropdownMenuItem
-                          key={v.id}
-                          onClick={() => handleSwitchVersion(v.id)}
+                          key={version.id}
+                          onClick={() => handleSwitchVersion(version.id)}
                           className="cursor-pointer gap-3 py-2.5"
                         >
                           <span className="min-w-0 flex-1">
                             <span className="flex items-center gap-2 text-[13px] font-semibold text-foreground">
-                              v{versionNo}
-                              {isNewest && !isCurrent ? (
+                              <span className="truncate">{version.version_name}</span>
+                              {isNewest ? (
                                 <span className="rounded-full border border-primary/25 bg-primary/10 px-1.5 py-px text-[10px] font-semibold text-primary-strong dark:text-primary">
                                   Latest
                                 </span>
                               ) : null}
+                              {version.is_original ? (
+                                <span className="rounded-full border border-border bg-muted px-1.5 py-px text-[10px] font-medium text-muted-foreground">
+                                  Original
+                                </span>
+                              ) : null}
                             </span>
                             <span className="mt-0.5 block truncate text-[11px] text-muted-foreground">
-                              {formatDay(v.created_at)} · {formatFileSize(v.file_size)}
+                              v{versionNo} · {formatDay(version.created_at)}
                             </span>
                           </span>
-                          {isCurrent ? (
-                            <Check className="h-4 w-4 shrink-0 text-primary" />
-                          ) : null}
+                          {isCurrent ? <Check className="h-4 w-4 shrink-0 text-primary" /> : null}
                         </DropdownMenuItem>
                       )
                     })}
@@ -1226,7 +1250,21 @@ export default function DocumentDetailPage() {
         {/* Content */}
         <div className="grid grid-cols-1 gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1fr)] xl:items-start">
           <div className="space-y-5">
-            {renderReport()}
+            {selectedVersion?.is_original !== false ? renderReport() : (
+              <Card className="overflow-hidden rounded-2xl border-primary/20 bg-primary/5">
+                <CardHead overline={`Version ${selectedVersionNumber}`} title={selectedVersion?.version_name ?? "Saved version"} />
+                <div className="space-y-3 px-5 py-4 text-sm">
+                  <div className="flex items-center gap-2 text-primary-strong dark:text-primary">
+                    <GitBranch className="h-4 w-4" />
+                    <span className="font-semibold">Saved resume snapshot</span>
+                  </div>
+                  <p className="leading-relaxed text-muted-foreground">
+                    This immutable revision was saved {formatDay(selectedVersion?.created_at ?? null)}.
+                    Choose another version above to compare its content or return to the original upload.
+                  </p>
+                </div>
+              </Card>
+            )}
             {renderLinked()}
             <FileFacts
               rows={[
@@ -1234,17 +1272,31 @@ export default function DocumentDetailPage() {
                 { label: "Size", value: formatFileSize(doc.file_size) },
                 {
                   label: "Version",
-                  value:
-                    versions.length > 1
-                      ? `v${versionIndex + 1} of ${versions.length}${isLatest ? " (latest)" : ""}`
-                      : "v1",
+                  value: selectedVersion
+                    ? `${selectedVersion.version_name} (v${selectedVersionNumber} · ${versions.length} total)${isLatest ? " · latest" : ""}`
+                    : "Original upload",
                 },
                 { label: "Uploaded", value: formatDay(doc.created_at) },
                 { label: "Last parsed", value: doc.parsed_at ? formatDay(doc.parsed_at) : "Never" },
               ]}
             />
           </div>
-          {renderParsed()}
+          {selectedVersion?.is_original !== false ? renderParsed() : (
+            <Card className="overflow-hidden rounded-2xl border-border/70">
+              <CardHead overline="Preview" title={selectedVersion?.version_name ?? "Saved version"} />
+              {selectedVersionText ? (
+                <div className="max-h-[760px] overflow-y-auto whitespace-pre-wrap px-5 py-5 text-sm leading-7 text-foreground">
+                  {selectedVersionText}
+                </div>
+              ) : (
+                <EmptyState
+                  icon={<FileText className="h-5 w-5" />}
+                  title="No text preview available"
+                  description="This older version does not contain editable resume content. The original upload is still available."
+                />
+              )}
+            </Card>
+          )}
         </div>
       </div>
     </DashboardLayout>

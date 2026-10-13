@@ -446,10 +446,10 @@ export function ApplyKitScreen() {
                 )}
                 {applicationId && (
                   <Link
-                    href={`/applications/${applicationId}?tab=analysis`}
+                    href={`/applications/${applicationId}?tab=job-fit`}
                     className="inline-flex items-center gap-1 text-sm font-semibold text-primary-strong transition-opacity hover:opacity-75 dark:text-primary"
                   >
-                    View full analysis
+                    View full Job Fit
                     <ExternalLink className="h-3 w-3" />
                   </Link>
                 )}

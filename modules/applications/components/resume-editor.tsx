@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import { useEditor } from "@tiptap/react"
 import type { JSONContent } from "@tiptap/react"
 import { Button } from "@/shared/ui/button"
@@ -31,13 +31,22 @@ import {
     SelectValue,
 } from "@/shared/ui/select"
 import { useToast } from "@/shared/ui/use-toast"
-import { useDebounceCallback } from "usehooks-ts"
+import { Input } from "@/shared/ui/input"
+import { Label } from "@/shared/ui/label"
+import {
+    Dialog,
+    DialogContent,
+    DialogDescription,
+    DialogFooter,
+    DialogHeader,
+    DialogTitle,
+} from "@/shared/ui/dialog"
 import { type ResumeAnalysisResult } from "./resume-feedback"
 import type { ParsedDocument } from "@/shared/infrastructure/ai"
 import {
     resumeVersionsService,
+    sourceFormatFromFileName,
     type ResumeVersion,
-    type SourceFormat,
 } from "@/lib/services/resume-versions"
 import { buildExtensions } from "./editor/extensions"
 import { blocksToTipTap, emptyDoc } from "./editor/blocks-to-tiptap"
@@ -50,6 +59,21 @@ import { DiffModal } from "./editor/diff-modal"
 // Re-export legacy types so existing imports keep working until callers migrate.
 export type { EditorBlock, BlockType, BlockStyles } from "./editor/types"
 
+const plainTextToTipTap = (text: string | null): ResumeDoc => {
+    if (!text?.trim()) return emptyDoc()
+    return {
+        type: 'doc',
+        content: text
+            .split(/\n+/)
+            .map(line => line.trim())
+            .filter(Boolean)
+            .map(line => ({
+                type: 'paragraph',
+                content: [{ type: 'text', text: line }],
+            })),
+    }
+}
+
 interface ResumeEditorProps {
     documentUrl: string
     analysis: ResumeAnalysisResult | null
@@ -57,16 +81,11 @@ interface ResumeEditorProps {
     extractedText: string | null
     applicationId: string
     documentId: string
+    initialVersionId?: string | null
+    autoApplyRecommendations?: boolean
+    onVersionSaved?: (version: ResumeVersion) => void
     onBack: () => void
     fileName: string
-}
-
-const detectSourceFormat = (fileName: string): SourceFormat => {
-    const ext = fileName.toLowerCase().split('.').pop()
-    if (ext === 'docx' || ext === 'doc') return 'docx'
-    if (ext === 'txt') return 'txt'
-    if (ext === 'json') return 'json'
-    return 'pdf'
 }
 
 export function ResumeEditor({
@@ -74,6 +93,9 @@ export function ResumeEditor({
     extractedText,
     applicationId,
     documentId,
+    initialVersionId = null,
+    autoApplyRecommendations = false,
+    onVersionSaved,
     onBack,
     fileName,
 }: ResumeEditorProps) {
@@ -91,8 +113,20 @@ export function ResumeEditor({
     const [diffLoading, setDiffLoading] = useState(false)
     const [selectionEmpty, setSelectionEmpty] = useState(true)
     const [docSettings, setDocSettings] = useState<DocSettings>(DEFAULT_DOC_SETTINGS)
+    const [isDirty, setIsDirty] = useState(false)
+    const [saveDialogOpen, setSaveDialogOpen] = useState(false)
+    const [versionName, setVersionName] = useState("")
+    const suppressDirtyRef = useRef(false)
+    const autoApplyStartedRef = useRef(false)
 
-    const sourceFormat = useMemo(() => detectSourceFormat(fileName), [fileName])
+    const sourceFormat = useMemo(() => sourceFormatFromFileName(fileName), [fileName])
+    const nextVersionNumber = useMemo(
+        () => versions.reduce(
+            (highest, version, index) => Math.max(highest, version.version_number ?? index + 1),
+            0,
+        ) + 1,
+        [versions],
+    )
 
     const settingsStorageKey = useMemo(
         () => `resume-doc-settings:${documentId}:${applicationId}`,
@@ -143,83 +177,58 @@ export function ResumeEditor({
         },
     })
 
-    const debouncedSave = useDebounceCallback(async (doc: JSONContent) => {
-        if (!currentVersionId) return
-        setIsSaving(true)
-        try {
-            const version = versions.find(v => v.id === currentVersionId)
-            if (!version) return
-            const saved = await resumeVersionsService.saveVersion({
-                id: version.id,
-                document_id: documentId,
-                application_id: applicationId,
-                version_name: version.version_name,
-                content_json: doc,
-                template_id: templateId,
-                source_format: sourceFormat,
-                parent_document_id: documentId,
-            })
-            setVersions(prev => prev.map(v => v.id === saved.id ? saved : v))
-        } catch (err) {
-            console.error("Auto-save error:", err)
-        } finally {
-            setIsSaving(false)
-        }
-    }, 1500)
-
     useEffect(() => {
         if (!editor) return
-        const handler = () => {
-            debouncedSave(editor.getJSON())
+        const updateHandler = () => {
+            if (!suppressDirtyRef.current) setIsDirty(true)
         }
         const selectionHandler = () => {
             setSelectionEmpty(editor.state.selection.empty)
         }
-        editor.on('update', handler)
+        editor.on('update', updateHandler)
         editor.on('selectionUpdate', selectionHandler)
         editor.on('transaction', selectionHandler)
         return () => {
-            editor.off('update', handler)
+            editor.off('update', updateHandler)
             editor.off('selectionUpdate', selectionHandler)
             editor.off('transaction', selectionHandler)
         }
-    }, [editor, debouncedSave])
+    }, [editor])
 
     useEffect(() => {
         const load = async () => {
             try {
-                const fetched = await resumeVersionsService.getVersions(documentId)
-                const appScoped = fetched.filter(v => v.application_id === applicationId)
-                setVersions(appScoped)
+                let fetched = await resumeVersionsService.getVersions(documentId)
+                if (fetched.length === 0) {
+                    const original = await resumeVersionsService.ensureOriginalVersion({
+                        id: documentId,
+                        file_name: fileName,
+                    })
+                    fetched = [original]
+                }
+                fetched.sort((a, b) => {
+                    if (a.is_original !== b.is_original) return a.is_original ? -1 : 1
+                    return new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+                })
+                setVersions(fetched)
 
+                const target = fetched.find((version) => version.id === initialVersionId)
+                    ?? fetched[fetched.length - 1]
                 let initialDoc: ResumeDoc = emptyDoc()
-                let initialTemplate: TemplateId = 'modern'
-                let initialVersionId: string | null = null
-                let needsExtraction = false
+                let initialTemplate: TemplateId = target?.template_id ?? 'modern'
 
-                const docFromVersion = (v: typeof fetched[number]): ResumeDoc | null => {
-                    if (v.content_json) return v.content_json as ResumeDoc
-                    if (v.blocks && Array.isArray(v.blocks) && v.blocks.length > 0) {
-                        return blocksToTipTap(v.blocks as EditorBlock[])
+                const docFromVersion = (version: ResumeVersion): ResumeDoc | null => {
+                    if (version.content_json) return version.content_json as ResumeDoc
+                    if (version.blocks && version.blocks.length > 0) {
+                        return blocksToTipTap(version.blocks as EditorBlock[])
                     }
                     return null
                 }
 
-                if (appScoped.length > 0) {
-                    const latest = appScoped[0]
-                    initialVersionId = latest.id
-                    initialTemplate = latest.template_id ?? 'modern'
-                    const doc = docFromVersion(latest)
-                    if (doc) initialDoc = doc
-                } else if (fetched.length > 0) {
-                    // Reuse any prior version's content (e.g., from another application
-                    // using the same document) so extraction runs once per document.
-                    const reusable = fetched.find(v => docFromVersion(v) !== null) ?? fetched[0]
-                    const doc = docFromVersion(reusable)
-                    if (doc) initialDoc = doc
-                    initialTemplate = reusable.template_id ?? 'modern'
+                const storedDoc = target ? docFromVersion(target) : null
+                if (storedDoc) {
+                    initialDoc = storedDoc
                 } else {
-                    needsExtraction = true
                     if (sourceFormat === 'pdf') {
                         try {
                             const layoutRes = await fetch('/api/editor/detect-layout', {
@@ -229,72 +238,68 @@ export function ResumeEditor({
                             })
                             if (layoutRes.ok) {
                                 const { layout } = await layoutRes.json()
-                                if (layout?.suggestedTemplate) {
-                                    initialTemplate = layout.suggestedTemplate
-                                }
+                                if (layout?.suggestedTemplate) initialTemplate = layout.suggestedTemplate
                             }
                         } catch (err) {
                             console.warn("Layout detection failed:", err)
                         }
                     }
+
+                    if (sourceFormat === 'docx') {
+                        try {
+                            const res = await fetch('/api/editor/import-docx', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ documentId }),
+                            })
+                            if (res.ok) {
+                                const data = await res.json()
+                                if (data.contentJson) initialDoc = data.contentJson as ResumeDoc
+                            }
+                        } catch (err) {
+                            console.warn("DOCX import error, falling back to extracted text:", err)
+                        }
+                    }
+
+                    const stillEmpty = !initialDoc.content || initialDoc.content.length === 0
+                        || (initialDoc.content.length === 1 && !initialDoc.content[0].content)
+                    if (stillEmpty && extractedText && extractedText.trim().length > 50) {
+                        try {
+                            const res = await fetch('/api/editor/parse-text', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({ extractedText }),
+                            })
+                            if (res.ok) {
+                                const data = await res.json()
+                                if (Array.isArray(data.blocks) && data.blocks.length > 0) {
+                                    initialDoc = blocksToTipTap(data.blocks as EditorBlock[])
+                                }
+                            }
+                        } catch (err) {
+                            console.warn("AI parse failed:", err)
+                        }
+                    }
+
+                    const contentStillEmpty = !initialDoc.content || initialDoc.content.length === 0
+                        || (initialDoc.content.length === 1 && !initialDoc.content[0].content)
+                    if (contentStillEmpty) initialDoc = plainTextToTipTap(extractedText)
                 }
 
-                if (needsExtraction && sourceFormat === 'docx') {
-                    try {
-                        const res = await fetch('/api/editor/import-docx', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ documentId }),
-                        })
-                        if (res.ok) {
-                            const data = await res.json()
-                            if (data.contentJson) {
-                                initialDoc = data.contentJson as ResumeDoc
-                            }
-                        } else {
-                            console.warn("DOCX import failed:", res.status)
-                        }
-                    } catch (err) {
-                        console.warn("DOCX import error, falling back to text parse:", err)
-                    }
-                } else if (needsExtraction && extractedText && extractedText.trim().length > 50) {
-                    try {
-                        const res = await fetch('/api/editor/parse-text', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ extractedText }),
-                        })
-                        if (res.ok) {
-                            const data = await res.json()
-                            if (data.blocks && Array.isArray(data.blocks)) {
-                                initialDoc = blocksToTipTap(data.blocks as EditorBlock[])
-                            }
-                        }
-                    } catch (err) {
-                        console.warn("AI parse failed, falling back to plain text:", err)
-                    }
+                if (target?.is_original && !target.content_json) {
+                    // Hydrate version 1 in memory for instant switching. The database
+                    // continues to point at the immutable uploaded source.
+                    setVersions(fetched.map((version) =>
+                        version.id === target.id ? { ...version, content_json: initialDoc } : version,
+                    ))
                 }
 
-                if (editor) {
-                    editor.commands.setContent(initialDoc)
-                }
+                suppressDirtyRef.current = true
+                editor?.commands.setContent(initialDoc)
                 setTemplateId(initialTemplate)
-
-                if (!initialVersionId) {
-                    const created = await resumeVersionsService.saveVersion({
-                        document_id: documentId,
-                        application_id: applicationId,
-                        version_name: 'Version 1',
-                        content_json: editor ? editor.getJSON() : initialDoc,
-                        template_id: initialTemplate,
-                        source_format: sourceFormat,
-                        parent_document_id: documentId,
-                    })
-                    setVersions([created])
-                    setCurrentVersionId(created.id)
-                } else {
-                    setCurrentVersionId(initialVersionId)
-                }
+                setCurrentVersionId(target?.id ?? null)
+                setIsDirty(false)
+                queueMicrotask(() => { suppressDirtyRef.current = false })
             } catch (err) {
                 console.error("Editor load failed:", err)
                 toast({ title: "Failed to load resume", variant: "destructive" })
@@ -302,29 +307,39 @@ export function ResumeEditor({
                 setIsLoading(false)
             }
         }
-        if (editor) {
-            load()
-        }
+        if (editor) void load()
+        // The editor instance and selected version define a fresh editor session.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [editor, documentId, applicationId])
+    }, [editor, documentId, initialVersionId])
+
+    const openSaveDialog = () => {
+        setVersionName(`Version ${nextVersionNumber}`)
+        setSaveDialogOpen(true)
+    }
 
     const handleNewVersion = async () => {
-        if (!editor) return
+        if (!editor || !versionName.trim()) return
         setIsSaving(true)
         try {
-            const newName = `Version ${versions.length + 1}`
-            const created = await resumeVersionsService.saveVersion({
+            const created = await resumeVersionsService.createVersion({
                 document_id: documentId,
                 application_id: applicationId,
-                version_name: newName,
+                version_name: versionName.trim(),
                 content_json: editor.getJSON(),
                 template_id: templateId,
                 source_format: sourceFormat,
+                is_original: false,
                 parent_document_id: documentId,
             })
-            setVersions([created, ...versions])
+            setVersions((previous) => [...previous, created])
             setCurrentVersionId(created.id)
-            toast({ title: "Saved as new version" })
+            setIsDirty(false)
+            setSaveDialogOpen(false)
+            onVersionSaved?.(created)
+            toast({
+                title: "Version saved",
+                description: `Saved as “${created.version_name}”.`,
+            })
         } catch (err) {
             console.error("Capture failed:", err)
             toast({
@@ -339,7 +354,7 @@ export function ResumeEditor({
 
     const handleDeleteVersion = async (id: string) => {
         const v = versions.find(x => x.id === id)
-        if (!v) return
+        if (!v || v.is_original) return
         const confirmed = window.confirm(`Delete "${v.version_name}"? This cannot be undone.`)
         if (!confirmed) return
         try {
@@ -348,11 +363,14 @@ export function ResumeEditor({
             setVersions(remaining)
             if (currentVersionId === id) {
                 if (remaining.length > 0 && editor) {
-                    const next = remaining[0]
+                    const next = remaining[remaining.length - 1]
                     const doc = (next.content_json as ResumeDoc | null) ??
                         (next.blocks ? blocksToTipTap(next.blocks as EditorBlock[]) : emptyDoc())
+                    suppressDirtyRef.current = true
                     editor.commands.setContent(doc)
                     setCurrentVersionId(next.id)
+                    setIsDirty(false)
+                    queueMicrotask(() => { suppressDirtyRef.current = false })
                     if (next.template_id) setTemplateId(next.template_id)
                 } else {
                     setCurrentVersionId(null)
@@ -370,39 +388,31 @@ export function ResumeEditor({
         }
     }
 
-    const handleSwitchVersion = (id: string) => {
-        if (!editor) return
-        const v = versions.find(x => x.id === id)
-        if (!v) return
-        const doc = (v.content_json as ResumeDoc | null) ??
-            (v.blocks ? blocksToTipTap(v.blocks as EditorBlock[]) : emptyDoc())
-        editor.commands.setContent(doc)
-        setCurrentVersionId(id)
-        if (v.template_id) setTemplateId(v.template_id)
+    const handleBack = () => {
+        if (isDirty && !window.confirm("Leave the editor without saving this new version?")) return
+        onBack()
     }
 
-    const handleTemplateChange = useCallback(async (id: TemplateId) => {
+    const handleSwitchVersion = (id: string) => {
+        if (!editor || id === currentVersionId) return
+        if (isDirty && !window.confirm("Discard unsaved changes and switch versions?")) return
+        const version = versions.find((item) => item.id === id)
+        if (!version) return
+        const doc = (version.content_json as ResumeDoc | null)
+            ?? (version.blocks ? blocksToTipTap(version.blocks as EditorBlock[]) : null)
+            ?? (version.is_original ? plainTextToTipTap(extractedText) : emptyDoc())
+        suppressDirtyRef.current = true
+        editor.commands.setContent(doc)
+        setCurrentVersionId(id)
+        setIsDirty(false)
+        queueMicrotask(() => { suppressDirtyRef.current = false })
+        if (version.template_id) setTemplateId(version.template_id)
+    }
+
+    const handleTemplateChange = useCallback((id: TemplateId) => {
         setTemplateId(id)
-        if (currentVersionId && editor) {
-            try {
-                const v = versions.find(x => x.id === currentVersionId)
-                if (!v) return
-                const saved = await resumeVersionsService.saveVersion({
-                    id: v.id,
-                    document_id: documentId,
-                    application_id: applicationId,
-                    version_name: v.version_name,
-                    content_json: editor.getJSON(),
-                    template_id: id,
-                    source_format: sourceFormat,
-                    parent_document_id: documentId,
-                })
-                setVersions(prev => prev.map(x => x.id === saved.id ? saved : x))
-            } catch (err) {
-                console.error("Template switch save failed:", err)
-            }
-        }
-    }, [currentVersionId, editor, versions, documentId, applicationId, sourceFormat])
+        setIsDirty(true)
+    }, [])
 
     const handleAIRewriteSelection = async () => {
         if (!editor) return
@@ -454,6 +464,7 @@ export function ResumeEditor({
                 body: JSON.stringify({
                     applicationId,
                     documentId,
+                    resumeVersionId: currentVersionId,
                     contentJson: original,
                     recommendations: analysis.recommendations,
                 }),
@@ -480,33 +491,33 @@ export function ResumeEditor({
         }
     }
 
-    const acceptDiff = async (mergedDoc: ResumeDoc) => {
+    const acceptDiff = (mergedDoc: ResumeDoc) => {
         if (!editor) return
         editor.commands.setContent(mergedDoc as unknown as JSONContent)
+        setIsDirty(true)
         setDiffOpen(false)
         setDiffProposed(null)
         setDiffOriginal(null)
         toast({
             title: "Recommendations applied",
-            description: "Saved as a new version.",
+            description: "Review the changes, make any edits, then save and name a new version.",
         })
-        try {
-            const newName = `Version ${versions.length + 1}`
-            const created = await resumeVersionsService.saveVersion({
-                document_id: documentId,
-                application_id: applicationId,
-                version_name: newName,
-                content_json: mergedDoc,
-                template_id: templateId,
-                source_format: sourceFormat,
-                parent_document_id: documentId,
-            })
-            setVersions([created, ...versions])
-            setCurrentVersionId(created.id)
-        } catch (err) {
-            console.error("Failed to capture version after diff accept:", err)
-        }
     }
+
+    useEffect(() => {
+        if (
+            autoApplyRecommendations
+            && !isLoading
+            && editor
+            && analysis?.recommendations?.length
+            && !autoApplyStartedRef.current
+        ) {
+            autoApplyStartedRef.current = true
+            void handleApplyRecommendations()
+        }
+        // Run once after the selected version has loaded into the editor.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [autoApplyRecommendations, isLoading, editor, analysis])
 
     const handleExport = async (format: 'pdf' | 'docx') => {
         if (!editor) return
@@ -579,7 +590,7 @@ export function ResumeEditor({
                     <Button
                         variant="ghost"
                         size="sm"
-                        onClick={onBack}
+                        onClick={handleBack}
                         className="font-medium text-muted-foreground hover:text-primary hover:bg-muted px-2 sm:px-3"
                     >
                         <ArrowLeft className="h-4 w-4 lg:mr-2" /> <span className="hidden lg:inline">Back</span>
@@ -599,19 +610,23 @@ export function ResumeEditor({
                                     <div className="px-2 py-1.5 text-xs text-muted-foreground">No saved versions yet</div>
                                 ) : versions.map(v => (
                                     <div key={v.id} className="flex items-center pr-1 group">
-                                        <SelectItem value={v.id} className="flex-1">{v.version_name}</SelectItem>
-                                        <button
-                                            type="button"
-                                            onPointerDown={(e) => {
-                                                e.preventDefault()
-                                                e.stopPropagation()
-                                                handleDeleteVersion(v.id)
-                                            }}
-                                            className="opacity-60 hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
-                                            title={`Delete ${v.version_name}`}
-                                        >
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </button>
+                                        <SelectItem value={v.id} className="flex-1">
+                                            {v.version_name}{v.is_original ? " · Original" : ""}
+                                        </SelectItem>
+                                        {!v.is_original ? (
+                                            <button
+                                                type="button"
+                                                onPointerDown={(e) => {
+                                                    e.preventDefault()
+                                                    e.stopPropagation()
+                                                    handleDeleteVersion(v.id)
+                                                }}
+                                                className="opacity-60 hover:opacity-100 p-1 rounded hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors"
+                                                title={`Delete ${v.version_name}`}
+                                            >
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </button>
+                                        ) : null}
                                     </div>
                                 ))}
                             </SelectContent>
@@ -619,7 +634,7 @@ export function ResumeEditor({
                         <Button
                             variant="outline"
                             size="sm"
-                            onClick={handleNewVersion}
+                            onClick={openSaveDialog}
                             disabled={isSaving}
                             className="h-9 px-2 sm:px-3 border-dashed font-medium bg-muted/40 border-primary/30 text-foreground hover:bg-muted hover:border-primary"
                         >
@@ -733,11 +748,53 @@ export function ResumeEditor({
                             <Loader2 className="h-3 w-3 animate-spin" />
                             <span>Saving…</span>
                         </>
+                    ) : isDirty ? (
+                        <span className="text-amber-600 dark:text-amber-400">Unsaved changes</span>
                     ) : (
-                        <span className="text-primary">✓ Saved</span>
+                        <span className="text-primary">✓ Version saved</span>
                     )}
                 </div>
             </div>
+
+            <Dialog open={saveDialogOpen} onOpenChange={(open) => !isSaving && setSaveDialogOpen(open)}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Save a new resume version</DialogTitle>
+                        <DialogDescription>
+                            Give this revision a memorable name. Your current version will remain unchanged.
+                        </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2">
+                        <Label htmlFor="resume-version-name">Version name</Label>
+                        <Input
+                            id="resume-version-name"
+                            value={versionName}
+                            onChange={(event) => setVersionName(event.target.value)}
+                            onKeyDown={(event) => {
+                                if (event.key === "Enter" && versionName.trim() && !isSaving) {
+                                    event.preventDefault()
+                                    void handleNewVersion()
+                                }
+                            }}
+                            maxLength={80}
+                            autoFocus
+                            placeholder="e.g. Backend role — tailored"
+                        />
+                        <p className="text-xs text-muted-foreground">
+                            This will become version {nextVersionNumber} in your document history.
+                        </p>
+                    </div>
+                    <DialogFooter>
+                        <Button onClick={() => void handleNewVersion()} disabled={!versionName.trim() || isSaving}>
+                            {isSaving ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Save className="mr-2 h-4 w-4" />}
+                            Save Version
+                        </Button>
+                        <Button variant="outline" onClick={() => setSaveDialogOpen(false)} disabled={isSaving}>
+                            Cancel
+                        </Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
         </div>
     )
 }

@@ -150,7 +150,7 @@ export async function getApplicationDocumentDetails(applicationId: string) {
   const supabase = createClient()
   const { data, error } = await supabase
     .from('document_analyses')
-    .select('document_id, analysis_result, analysis_status, summary_generated_at')
+    .select('id, application_id, document_id, resume_version_id, analysis_result, analysis_status, summary_generated_at, created_at, updated_at')
     .eq('application_id', applicationId)
 
   if (error) throw error
