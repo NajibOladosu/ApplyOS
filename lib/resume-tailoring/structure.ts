@@ -1,4 +1,5 @@
 import type { JSONContent } from "@tiptap/core"
+import { diffChars } from "diff"
 import type { EditorBlock } from "@/modules/applications/components/editor/types"
 import { collectEditableResumeBlocks } from "./engine"
 
@@ -117,6 +118,186 @@ export function normalizeGeneratedResumeBlocks(value: unknown): EditorBlock[] {
                     ...(item.styles?.underline === true ? { underline: true } : {}),
                     ...(align ? { align } : {}),
                 },
+            }
+        })
+        .filter((block): block is EditorBlock => Boolean(block))
+}
+
+interface CanonicalCharacter {
+    value: string
+    rawIndex: number
+    rawEnd: number
+}
+
+const canonicalCharacters = (value: string): CanonicalCharacter[] => {
+    const output: CanonicalCharacter[] = []
+    for (let rawIndex = 0; rawIndex < value.length;) {
+        const codePoint = value.codePointAt(rawIndex)
+        if (codePoint === undefined) break
+        const character = String.fromCodePoint(codePoint)
+        const rawEnd = rawIndex + character.length
+        const normalized = character
+            .toLocaleLowerCase()
+            .normalize("NFKD")
+            .replace(/[^\p{L}\p{N}]+/gu, "")
+
+        // diffChars indexes UTF-16 code units, so retain one mapping entry for
+        // every code unit emitted by normalization.
+        for (let index = 0; index < normalized.length; index += 1) {
+            output.push({ value: normalized[index], rawIndex, rawEnd })
+        }
+        rawIndex = rawEnd
+    }
+    return output
+}
+
+const canonicalValue = (characters: CanonicalCharacter[]) =>
+    characters.map((character) => character.value).join("")
+
+/**
+ * Treat the model output as a layout proposal, not as resume evidence. Character
+ * alignment transfers its block and word boundaries onto the original text, so
+ * the returned blocks can never contain model-authored claims or altered facts.
+ */
+export function reconcileGeneratedResumeBlocks(
+    source: JSONContent,
+    generatedBlocks: EditorBlock[],
+): EditorBlock[] | null {
+    const sourceText = textFromDocument(source)
+    const sourceCharacters = canonicalCharacters(sourceText)
+    if (sourceCharacters.length === 0 || generatedBlocks.length === 0) return null
+
+    const generatedLayout = generatedBlocks.map((block) => {
+        const characters = canonicalCharacters(block.content)
+        return { block, characters, start: 0, end: 0 }
+    })
+    const generatedCharacters: CanonicalCharacter[] = []
+    const generatedSpaceBoundaries = new Set<number>()
+
+    generatedLayout.forEach((layout) => {
+        layout.start = generatedCharacters.length
+        layout.characters.forEach((character, index) => {
+            if (index > 0) {
+                const previous = layout.characters[index - 1]
+                const between = layout.block.content.slice(previous.rawEnd, character.rawIndex)
+                if (/\s/u.test(between)) {
+                    generatedSpaceBoundaries.add(generatedCharacters.length)
+                }
+            }
+            generatedCharacters.push(character)
+        })
+        layout.end = generatedCharacters.length
+    })
+    if (generatedCharacters.length === 0) return null
+
+    const sourceCanonical = canonicalValue(sourceCharacters)
+    const generatedCanonical = canonicalValue(generatedCharacters)
+    const generatedToSource = new Array<number>(generatedCanonical.length + 1).fill(0)
+    const generatedCharacterSources = new Array<number>(generatedCanonical.length).fill(-1)
+    let sourceOffset = 0
+    let generatedOffset = 0
+    let matchedCharacters = 0
+
+    diffChars(sourceCanonical, generatedCanonical).forEach((part) => {
+        const length = part.value.length
+        if (part.removed) {
+            sourceOffset += length
+            generatedToSource[generatedOffset] = sourceOffset
+            return
+        }
+        if (part.added) {
+            for (let index = 0; index < length; index += 1) {
+                generatedOffset += 1
+                generatedToSource[generatedOffset] = sourceOffset
+            }
+            return
+        }
+
+        for (let index = 0; index < length; index += 1) {
+            generatedToSource[generatedOffset] = sourceOffset
+            generatedCharacterSources[generatedOffset] = sourceOffset
+            generatedOffset += 1
+            sourceOffset += 1
+            matchedCharacters += 1
+            generatedToSource[generatedOffset] = sourceOffset
+        }
+    })
+    generatedToSource[generatedCanonical.length] = sourceCharacters.length
+
+    const alignment = matchedCharacters / Math.max(sourceCharacters.length, generatedCharacters.length)
+    if (alignment < 0.78) return null
+
+    const rawBoundary = (canonicalOffset: number) => {
+        if (canonicalOffset <= 0) return 0
+        if (canonicalOffset >= sourceCharacters.length) return sourceText.length
+        return sourceCharacters[canonicalOffset].rawIndex
+    }
+    const sourceSpaceBoundaries = new Set<number>()
+    const orderedGeneratedSpaces = [...generatedSpaceBoundaries].sort((left, right) => left - right)
+    const anchoredSourceRange = (start: number, end: number) => {
+        if (end <= start) return null
+        const first = generatedCharacterSources[start]
+        if (first < 0) return null
+        for (let offset = start; offset < end; offset += 1) {
+            if (generatedCharacterSources[offset] !== first + (offset - start)) return null
+        }
+        return { start: first, end: first + (end - start) }
+    }
+
+    orderedGeneratedSpaces.forEach((boundary, boundaryIndex) => {
+        const layout = generatedLayout.find((item) => boundary > item.start && boundary < item.end)
+        if (!layout) return
+        const previousCandidate = orderedGeneratedSpaces[boundaryIndex - 1]
+        const nextCandidate = orderedGeneratedSpaces[boundaryIndex + 1]
+        const previousSpace = previousCandidate > layout.start ? previousCandidate : undefined
+        const nextSpace = nextCandidate < layout.end ? nextCandidate : undefined
+        const left = anchoredSourceRange(previousSpace ?? layout.start, boundary)
+        const right = anchoredSourceRange(boundary, nextSpace ?? layout.end)
+        const mapped = right?.start ?? left?.end ?? -1
+        if (mapped > 0 && mapped < sourceCharacters.length) {
+            sourceSpaceBoundaries.add(rawBoundary(mapped))
+        }
+    })
+
+    const rebuildSlice = (start: number, end: number) => {
+        let output = ""
+        for (let rawIndex = start; rawIndex < end; rawIndex += 1) {
+            if (
+                sourceSpaceBoundaries.has(rawIndex)
+                && output.length > 0
+                && !/\s$/u.test(output)
+                && !/^\s/u.test(sourceText[rawIndex] ?? "")
+            ) {
+                output += " "
+            }
+            output += sourceText[rawIndex]
+        }
+        return output.trim()
+    }
+
+    return generatedLayout
+        .map((layout, index): EditorBlock | null => {
+            const mappedStart = index === 0 ? 0 : generatedToSource[layout.start]
+            const mappedEnd = index === generatedLayout.length - 1
+                ? sourceCharacters.length
+                : generatedToSource[layout.end]
+            if (mappedEnd <= mappedStart) return null
+
+            let content = rebuildSlice(rawBoundary(mappedStart), rawBoundary(mappedEnd))
+                .replace(/\s*\|\s*/g, " | ")
+                .replace(/\+\s+(?=\d)/g, "+")
+            // The list node supplies these presentation markers. Removing them
+            // does not remove resume evidence and prevents doubled bullets.
+            content = content.replace(/[•●▪◦*]\s*$/u, "").trim()
+            if (layout.block.type === "bullet") {
+                content = content.replace(/^[•●▪◦*]\s*/u, "").trim()
+            }
+            if (!content) return null
+
+            return {
+                ...layout.block,
+                id: `reconciled-${index + 1}`,
+                content,
             }
         })
         .filter((block): block is EditorBlock => Boolean(block))

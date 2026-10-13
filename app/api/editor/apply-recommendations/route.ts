@@ -10,6 +10,7 @@ import {
 } from "@/lib/resume-tailoring/engine"
 import {
     normalizeGeneratedResumeBlocks,
+    reconcileGeneratedResumeBlocks,
     resumeNeedsStructuralRepair,
     validateStructuralRepair,
 } from "@/lib/resume-tailoring/structure"
@@ -123,7 +124,15 @@ Return ONLY JSON in this shape:
     const response = await callGeminiWithFallback(prompt, "COMPLEX")
     const parsed = parseJsonObject(response) as { blocks?: unknown }
     const normalizedBlocks = normalizeGeneratedResumeBlocks(parsed.blocks)
-    const repaired = blocksToTipTap(normalizedBlocks)
+    const reconciledBlocks = reconcileGeneratedResumeBlocks(source, normalizedBlocks)
+    if (!reconciledBlocks) {
+        return {
+            valid: false as const,
+            reason: "The proposed layout did not align closely enough with the imported source text.",
+        }
+    }
+
+    const repaired = blocksToTipTap(reconciledBlocks)
     const validation = validateStructuralRepair(source, repaired)
 
     return validation.valid
@@ -222,6 +231,7 @@ export async function POST(req: NextRequest) {
         if (resumeNeedsStructuralRepair(contentJson)) {
             const repair = await repairResumeStructure(contentJson)
             if (!repair.valid) {
+                console.warn("[Apply Recommendations] Structural repair rejected:", repair.reason)
                 return NextResponse.json({
                     error: "We could not safely reconstruct this resume's formatting without risking changes to its facts. Please review the imported text in the editor and try again.",
                     details: repair.reason,

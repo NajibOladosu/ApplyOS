@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { JSONContent } from '@tiptap/core'
 import {
   normalizeGeneratedResumeBlocks,
+  reconcileGeneratedResumeBlocks,
   resumeBlocksFromTextLines,
   resumeNeedsStructuralRepair,
   validateStructuralRepair,
@@ -27,12 +28,13 @@ const sections = [
   { type: 'paragraph' as const, content: 'BSc Computer Science | University of Lagos | 2021' },
 ]
 
-const repaired = blocksToTipTap(sections.map((block, index) => ({
+const generatedBlocks = sections.map((block, index) => ({
   id: `block-${index}`,
   type: block.type,
   content: block.content,
   styles: {},
-})))
+}))
+const repaired = blocksToTipTap(generatedBlocks)
 
 const flattenedText = sections.map((block) => block.content).join('').replace(/\s+/g, '')
 const malformed: JSONContent = {
@@ -48,6 +50,32 @@ describe('resume structural repair safety', () => {
 
   it('accepts whitespace and hierarchy restoration that preserves all evidence', () => {
     expect(validateStructuralRepair(malformed, repaired)).toEqual({ valid: true })
+  })
+
+  it('uses model output only for layout and restores exact source evidence', () => {
+    const modelProposal = generatedBlocks.map((block) => ({
+      ...block,
+      content: block.content
+        .replace('Figma', 'Sketch')
+        .replace('Reduced application abandonment', 'Lowered application drop-off'),
+    }))
+    const reconciled = reconcileGeneratedResumeBlocks(malformed, modelProposal)
+
+    expect(reconciled).not.toBeNull()
+    const reconstructedText = reconciled?.map((block) => block.content).join('\n') ?? ''
+    expect(reconstructedText).toContain('Figma')
+    expect(reconstructedText).not.toContain('Sketch')
+    expect(reconstructedText).toContain('Reduced application abandonment')
+    expect(validateStructuralRepair(malformed, blocksToTipTap(reconciled ?? []))).toEqual({ valid: true })
+  })
+
+  it('rejects a layout proposal that does not align with the source', () => {
+    const unrelated = generatedBlocks.map((block, index) => ({
+      ...block,
+      content: `Unrelated fabricated content ${index}`,
+    }))
+
+    expect(reconcileGeneratedResumeBlocks(malformed, unrelated)).toBeNull()
   })
 
   it('rejects a reconstruction that changes a protected numeric fact', () => {
