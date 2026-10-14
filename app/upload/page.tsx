@@ -7,15 +7,34 @@ import { PageHeader } from "@/components/layout/page-header"
 import Link from "next/link"
 import { Button } from "@/shared/ui/button"
 import { motion } from "framer-motion"
-import { Upload, FileText, CheckCircle, X } from "lucide-react"
+import { Upload, FileText, CheckCircle, X, Loader2, Wand2 } from "lucide-react"
 import { useDropzone } from "react-dropzone"
 import { AlertModal } from "@/components/modals/alert-modal"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog"
+
+interface UploadedDocument {
+  id: string
+  file_name: string
+  profile_ready: boolean
+}
 
 export default function UploadPage() {
   const [files, setFiles] = useState<File[]>([])
   const [uploading, setUploading] = useState(false)
   const [uploaded, setUploaded] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
+  const [profilePromptOpen, setProfilePromptOpen] = useState(false)
+  const [profileDocuments, setProfileDocuments] = useState<UploadedDocument[]>([])
+  const [applyingDetails, setApplyingDetails] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+  const [profileResult, setProfileResult] = useState<string | null>(null)
 
   const onDrop = useCallback((acceptedFiles: File[]) => {
     setFiles(acceptedFiles)
@@ -25,9 +44,10 @@ export default function UploadPage() {
     onDrop,
     accept: {
       "application/pdf": [".pdf"],
-      "application/msword": [".doc"],
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": [".docx"],
-      "image/*": [".png", ".jpg", ".jpeg"],
+      "text/plain": [".txt"],
+      "text/markdown": [".md"],
+      "application/json": [".json"],
     },
     multiple: true,
   })
@@ -53,6 +73,13 @@ export default function UploadPage() {
         throw new Error(data.error || "Failed to upload documents")
       }
 
+      const result = await res.json()
+      const ready = (Array.isArray(result.documents) ? result.documents : [])
+        .filter((document: UploadedDocument) => document.profile_ready)
+      setProfileDocuments(ready)
+      setProfilePromptOpen(ready.length > 0)
+      setProfileError(null)
+      setProfileResult(null)
       setUploaded(true)
     } catch (error) {
       console.error("Upload failed:", error)
@@ -63,6 +90,30 @@ export default function UploadPage() {
       )
     } finally {
       setUploading(false)
+    }
+  }
+
+  const handleUseDocumentDetails = async () => {
+    setApplyingDetails(true)
+    setProfileError(null)
+    try {
+      const response = await fetch("/api/profile/autofill-from-documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentIds: profileDocuments.map((document) => document.id) }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(result?.error || "Could not update application details")
+      setProfileResult(
+        result.filledCount > 0
+          ? `${result.filledCount} blank detail${result.filledCount === 1 ? " was" : "s were"} added to your profile.`
+          : "Your profile already has the details found in these documents."
+      )
+      setProfilePromptOpen(false)
+    } catch (error) {
+      setProfileError(error instanceof Error ? error.message : "Could not update application details")
+    } finally {
+      setApplyingDetails(false)
     }
   }
 
@@ -87,8 +138,9 @@ export default function UploadPage() {
               Upload successful
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-              Your documents have been uploaded and are being analyzed.
+              Your documents are in your library. Any extracted details are ready to use.
             </p>
+            {profileResult ? <p role="status" className="mt-4 text-sm text-primary-strong dark:text-primary">{profileResult}</p> : null}
             <div className="mt-7 flex items-center justify-center gap-3">
               <Link
                 href="/documents"
@@ -101,6 +153,8 @@ export default function UploadPage() {
                 onClick={() => {
                   setUploaded(false)
                   setFiles([])
+                  setProfileDocuments([])
+                  setProfileResult(null)
                 }}
                 className="inline-flex h-10 items-center rounded-lg border border-border/80 bg-card px-5 text-sm font-medium text-foreground transition-colors hover:border-primary/40"
               >
@@ -109,6 +163,41 @@ export default function UploadPage() {
             </div>
           </motion.div>
         </div>
+        <Dialog open={profilePromptOpen} onOpenChange={(open) => {
+          if (!open && !applyingDetails) setProfilePromptOpen(false)
+        }}>
+          <DialogContent className="max-w-md rounded-2xl">
+            <DialogHeader>
+              <span className="mb-2 flex h-10 w-10 items-center justify-center rounded-xl border border-primary/25 bg-primary/10 text-primary-strong dark:text-primary">
+                <Wand2 className="h-5 w-5" />
+              </span>
+              <DialogTitle className="font-display text-[clamp(1.25rem,1vw+1rem,1.6rem)] tracking-[-0.04em]">
+                Add these details to your profile?
+              </DialogTitle>
+              <DialogDescription>
+                We found application details in {profileDocuments.length === 1 ? "this document" : "these documents"}. Only blank fields will be filled. You can also do this later from Profile.
+              </DialogDescription>
+            </DialogHeader>
+            <ul className="space-y-2 rounded-xl border border-border/70 bg-muted/30 p-3 text-sm text-foreground">
+              {profileDocuments.map((document) => (
+                <li key={document.id} className="flex min-w-0 items-center gap-2">
+                  <FileText className="h-4 w-4 shrink-0 text-primary-strong dark:text-primary" />
+                  <span className="truncate">{document.file_name}</span>
+                </li>
+              ))}
+            </ul>
+            {profileError ? <p role="alert" className="text-sm text-destructive">{profileError}</p> : null}
+            <DialogFooter>
+              <Button onClick={handleUseDocumentDetails} disabled={applyingDetails}>
+                {applyingDetails ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                {applyingDetails ? "Adding details…" : "Yes, fill blank details"}
+              </Button>
+              <Button variant="outline" onClick={() => setProfilePromptOpen(false)} disabled={applyingDetails}>
+                No, not now
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </DashboardLayout>
     )
   }
@@ -155,7 +244,7 @@ export default function UploadPage() {
                     <span className="text-primary-strong dark:text-primary">browse</span>
                   </p>
                   <p className="mt-1.5 text-xs text-muted-foreground sm:text-sm">
-                    PDF, DOC, DOCX, PNG, JPG · up to 10MB each
+                    PDF, DOCX, TXT, MD, JSON · up to 25MB each
                   </p>
                 </>
               )}

@@ -12,6 +12,14 @@ import { PromptModal } from "@/components/modals/prompt-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { ImportApplicationsModal } from "@/modules/applications/components/modals/import-applications-modal"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog"
+import {
   EMPTY_AUTOFILL_PROFILE,
   mergeImportedProfile,
   normalizeAutofillProfile,
@@ -95,11 +103,14 @@ export default function ProfilePage() {
   // and read by the AI drafts and the browser extension.
   const [autofill, setAutofill] = useState<AutofillProfile>(EMPTY_AUTOFILL_PROFILE)
   const [savingAutofill, setSavingAutofill] = useState(false)
+  const [autofillDirty, setAutofillDirty] = useState(false)
   const [autofillError, setAutofillError] = useState<string | null>(null)
   const [autofillSuccess, setAutofillSuccess] = useState(false)
   const [savedDocuments, setSavedDocuments] = useState<ImportDocumentOption[]>([])
   const [documentsError, setDocumentsError] = useState(false)
-  const [selectedDocumentId, setSelectedDocumentId] = useState("")
+  const [documentsModalOpen, setDocumentsModalOpen] = useState(false)
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set())
+  const [applyingDocuments, setApplyingDocuments] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
   const [importingAutofill, setImportingAutofill] = useState(false)
   const [importError, setImportError] = useState<string | null>(null)
@@ -140,6 +151,7 @@ export default function ProfilePage() {
           if (!next.contact.email.trim()) next.contact.email = p.email
           return next
         })
+        setAutofillDirty(false)
         // Priority: Google full_name > database name > metadata name
         const fullName =
           user.user_metadata?.full_name ||
@@ -149,13 +161,12 @@ export default function ProfilePage() {
         setName(fullName)
         setAvatarUrl(p.avatar_url || user.user_metadata?.avatar_url || "")
 
-        const { data: docs, error: docsError } = await supabase
-          .from("documents")
-          .select("id, file_name")
-          .eq("user_id", user.id)
-          .order("created_at", { ascending: false })
-        if (docsError) setDocumentsError(true)
-        else setSavedDocuments((docs ?? []).filter((doc) => /\.(pdf|docx|txt|md|json)$/i.test(doc.file_name)))
+        const documentsResponse = await fetch("/api/profile/autofill-from-documents")
+        if (!documentsResponse.ok) setDocumentsError(true)
+        else {
+          const documentsData = await documentsResponse.json()
+          setSavedDocuments(documentsData.documents ?? [])
+        }
       } catch (err) {
         console.error("Error loading profile:", err)
         setError("Unable to load your profile. Please try again.")
@@ -221,6 +232,7 @@ export default function ProfilePage() {
     value: string
   ) => {
     setAutofill((prev) => ({ ...prev, [group]: { ...prev[group], [key]: value } }))
+    setAutofillDirty(true)
     clearAutofillStatus()
   }
 
@@ -232,11 +244,13 @@ export default function ProfilePage() {
           ? { ...prev.eligibility, [key]: value }
           : { ...prev.eligibility, [key]: value === "" ? null : value === "true" },
     }))
+    setAutofillDirty(true)
     clearAutofillStatus()
   }
 
   const updateAutofillText = (key: "skills" | "certifications" | "languages", value: string) => {
     setAutofill((prev) => ({ ...prev, [key]: value }))
+    setAutofillDirty(true)
     clearAutofillStatus()
   }
 
@@ -269,6 +283,7 @@ export default function ProfilePage() {
         setName(full)
       }
       setAutofillSuccess(true)
+      setAutofillDirty(false)
       setImportNotice(null)
       setTimeout(() => setAutofillSuccess(false), 2500)
     } catch (err) {
@@ -285,26 +300,18 @@ export default function ProfilePage() {
   }
 
   const handleImportAutofill = async () => {
-    if (!selectedFile && !selectedDocumentId) return
+    if (!selectedFile) return
     setImportingAutofill(true)
     setImportError(null)
     setImportNotice(null)
     clearAutofillStatus()
 
     try {
-      const request = selectedFile
-        ? (() => {
-            const formData = new FormData()
-            formData.append("file", selectedFile)
-            return { body: formData }
-          })()
-        : {
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ documentId: selectedDocumentId }),
-          }
+      const formData = new FormData()
+      formData.append("file", selectedFile)
       const response = await fetch("/api/extension/profile/import", {
         method: "POST",
-        ...request,
+        body: formData,
       })
       const result = await response.json().catch(() => null)
       if (!response.ok) {
@@ -315,12 +322,50 @@ export default function ProfilePage() {
       }
 
       setAutofill((current) => mergeImportedProfile(current, result.profile as ImportedProfile).profile)
+      setAutofillDirty(true)
       setImportNotice("Document read. Any blank details were filled; existing answers were kept. Review the details, then select Save below.")
     } catch (err) {
       console.error("Error importing application details:", err)
       setImportError(err instanceof Error ? err.message : "Could not import this document.")
     } finally {
       setImportingAutofill(false)
+    }
+  }
+
+  const handleApplySavedDocuments = async () => {
+    if (selectedDocumentIds.size === 0 || autofillDirty) return
+    setApplyingDocuments(true)
+    setImportError(null)
+    setImportNotice(null)
+    try {
+      const documentIds = savedDocuments
+        .filter((document) => selectedDocumentIds.has(document.id))
+        .map((document) => document.id)
+      const response = await fetch("/api/profile/autofill-from-documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentIds }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(result?.error || "Could not update application details")
+      setAutofill(normalizeAutofillProfile(result.profile))
+      if (!profile?.name?.trim() && result.name) {
+        setProfile((current) => current ? { ...current, name: result.name } : current)
+        setName(result.name)
+      }
+      setAutofillDirty(false)
+      setImportNotice(
+        result.filledCount > 0
+          ? `${result.filledCount} blank detail${result.filledCount === 1 ? " was" : "s were"} added to your profile.`
+          : "Your profile already contains the details found in those documents."
+      )
+      setDocumentsModalOpen(false)
+      setSelectedDocumentIds(new Set())
+    } catch (error) {
+      console.error("Error applying saved document details:", error)
+      setImportError(error instanceof Error ? error.message : "Could not update application details")
+    } finally {
+      setApplyingDocuments(false)
     }
   }
 
@@ -562,55 +607,111 @@ export default function ProfilePage() {
                 Fill from a resume or document
               </h3>
             </div>
-            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
-              <label className="min-w-0 text-xs font-medium text-muted-foreground">
-                Uploaded document
-                <select
-                  value={selectedDocumentId}
-                  onChange={(event) => {
-                    setSelectedDocumentId(event.target.value)
-                    setSelectedFile(null)
-                    if (importFileInputRef.current) importFileInputRef.current.value = ""
-                    setImportError(null)
-                  }}
-                  className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+              <div className="flex flex-col items-start justify-between gap-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Use details already analyzed in your document library.
+                </p>
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-lg"
+                  onClick={() => setDocumentsModalOpen(true)}
+                  disabled={savedDocuments.length === 0 || autofillDirty || applyingDocuments}
                 >
-                  <option value="">Select a saved document</option>
-                  {savedDocuments.map((document) => (
-                    <option key={document.id} value={document.id}>{document.file_name}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="min-w-0 text-xs font-medium text-muted-foreground">
-                Or choose a file
+                  Choose saved documents ({savedDocuments.length})
+                </Button>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Or scan a new file
                 <input
                   ref={importFileInputRef}
                   type="file"
                   accept=".pdf,.docx,.txt,.md,.json"
                   onChange={(event) => {
                     setSelectedFile(event.target.files?.[0] ?? null)
-                    setSelectedDocumentId("")
                     setImportError(null)
                   }}
                   className="mt-1.5 block h-10 w-full rounded-lg border border-input bg-background text-sm text-foreground file:mr-3 file:h-full file:border-0 file:border-r file:border-border file:bg-muted file:px-3 file:text-xs file:font-medium file:text-foreground"
                 />
-              </label>
-              <Button
-                variant="outline"
-                className="h-10 shrink-0 rounded-lg"
-                onClick={handleImportAutofill}
-                disabled={importingAutofill || savingAutofill || (!selectedFile && !selectedDocumentId)}
-              >
-                {importingAutofill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
-                {importingAutofill ? "Reading…" : "Fill empty fields"}
-              </Button>
+                </label>
+                <Button
+                  variant="outline"
+                  className="mt-2 h-9 rounded-lg"
+                  onClick={handleImportAutofill}
+                  disabled={importingAutofill || savingAutofill || !selectedFile}
+                >
+                  {importingAutofill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                  {importingAutofill ? "Reading…" : "Fill empty fields"}
+                </Button>
+              </div>
             </div>
             {documentsError ? (
-              <p className="mt-2 text-xs text-muted-foreground">Saved documents could not be loaded. You can still choose a file.</p>
+              <p className="mt-2 text-xs text-muted-foreground">Saved documents could not be loaded. You can still scan a file.</p>
+            ) : null}
+            {autofillDirty && savedDocuments.length > 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">Save your current edits before using saved documents.</p>
             ) : null}
             {importError ? <p role="alert" className="mt-2 text-xs text-destructive">{importError}</p> : null}
             {importNotice ? <p role="status" className="mt-2 text-xs text-primary-strong dark:text-primary">{importNotice}</p> : null}
           </div>
+
+          <Dialog open={documentsModalOpen} onOpenChange={(open) => {
+            if (!open && !applyingDocuments) {
+              setDocumentsModalOpen(false)
+              setImportError(null)
+            }
+          }}>
+            <DialogContent className="max-w-md rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="font-display text-[clamp(1.25rem,1vw+1rem,1.6rem)] tracking-[-0.04em]">
+                  Use saved documents
+                </DialogTitle>
+                <DialogDescription>
+                  Select one or more analyzed documents. Their details will fill blank profile fields and be saved immediately.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary-strong dark:text-primary"
+                  onClick={() => setSelectedDocumentIds(
+                    selectedDocumentIds.size === savedDocuments.length
+                      ? new Set()
+                      : new Set(savedDocuments.map((document) => document.id))
+                  )}
+                >
+                  {selectedDocumentIds.size === savedDocuments.length ? "Clear selection" : "Select all"}
+                </button>
+              </div>
+              <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-border/70 p-2">
+                {savedDocuments.map((document) => (
+                  <label key={document.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/60">
+                    <input
+                      type="checkbox"
+                      checked={selectedDocumentIds.has(document.id)}
+                      onChange={() => setSelectedDocumentIds((current) => {
+                        const next = new Set(current)
+                        if (next.has(document.id)) next.delete(document.id)
+                        else next.add(document.id)
+                        return next
+                      })}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span className="min-w-0 truncate text-sm text-foreground">{document.file_name}</span>
+                  </label>
+                ))}
+              </div>
+              {importError ? <p role="alert" className="text-sm text-destructive">{importError}</p> : null}
+              <DialogFooter>
+                <Button onClick={handleApplySavedDocuments} disabled={selectedDocumentIds.size === 0 || applyingDocuments}>
+                  {applyingDocuments ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {applyingDocuments ? "Adding details…" : "Fill blank details"}
+                </Button>
+                <Button variant="outline" onClick={() => setDocumentsModalOpen(false)} disabled={applyingDocuments}>Cancel</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <div className="divide-y divide-border/50">
             <AutofillGroup title="Identity">
