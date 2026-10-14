@@ -12,6 +12,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { InterviewReportModal, type InterviewReportData } from '@/modules/interviews/components/modals/interview-report-modal'
 import type { InterviewQuestion } from '@/types/database'
 import { useRouter } from 'next/navigation'
+import { sanitizeAIGeneratedText } from '@/shared/infrastructure/ai-style'
 
 interface LiveInterviewProps {
   sessionId: string
@@ -177,7 +178,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           },
           onTextResponse: (text) => {
             // Keep for fallback/debugging, but transcriptions are primary
-            setCurrentAIMessage(text)
+            setCurrentAIMessage(sanitizeAIGeneratedText(text))
             // Note: Not adding to transcript here - transcriptions handle that
           },
           onAudioResponse: (audioData) => {
@@ -268,15 +269,16 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
           },
           onOutputTranscription: (text) => {
             // AI speech transcription - display this instead of text response
+            const sanitizedText = sanitizeAIGeneratedText(text)
 
             if (isAITurnCompleteRef.current) {
               // New turn starting
               // Replace text
-              setCurrentAITranscription(text)
+              setCurrentAITranscription(sanitizedText)
               isAITurnCompleteRef.current = false
             } else {
               // Continuing current turn, append text
-              setCurrentAITranscription(prev => prev + (prev ? ' ' : '') + text)
+              setCurrentAITranscription(prev => prev + (prev ? ' ' : '') + sanitizedText)
             }
 
             setOrbMode('ai')

@@ -3,6 +3,10 @@ import type { GenerationConfig } from "@google/generative-ai"
 import type { JSONContent } from "@tiptap/core"
 import { createClient } from "@/shared/db/supabase/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
+import {
+    sanitizeAIGeneratedText,
+    type AIWritingStylePolicy,
+} from "@/shared/infrastructure/ai-style"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import { MAX_LENGTHS } from "@/lib/validation"
 import {
@@ -48,6 +52,7 @@ const generateStructuredJson = async (
     prompt: string,
     generationConfig: Partial<GenerationConfig>,
     operation: string,
+    writingStyle: AIWritingStylePolicy = "enforce",
 ): Promise<unknown> => {
     let lastError: unknown
     for (let attempt = 1; attempt <= 2; attempt += 1) {
@@ -58,6 +63,7 @@ const generateStructuredJson = async (
             const response = await callGeminiWithFallback(`${prompt}${retryInstruction}`, "COMPLEX", {
                 generationConfig,
                 disableThinking: true,
+                writingStyle,
             })
             return parseJsonObject(response)
         } catch (error) {
@@ -70,6 +76,9 @@ const generateStructuredJson = async (
 
 const cleanString = (value: unknown, maxLength: number) =>
     typeof value === "string" ? value.trim().slice(0, maxLength) : ""
+
+const cleanGeneratedString = (value: unknown, maxLength: number) =>
+    sanitizeAIGeneratedText(cleanString(value, maxLength))
 
 const normalizePlan = (value: unknown): ResumeTailoringPlan => {
     if (!value || typeof value !== "object") throw new Error("AI returned an invalid tailoring plan")
@@ -84,7 +93,7 @@ const normalizePlan = (value: unknown): ResumeTailoringPlan => {
         .map((item) => {
             const input = item as { requirement?: unknown; priority?: unknown }
             return {
-                requirement: cleanString(input?.requirement, 160),
+                requirement: cleanGeneratedString(input?.requirement, 160),
                 priority: input?.priority === "preferred" ? "preferred" as const : "required" as const,
             }
         })
@@ -103,19 +112,19 @@ const normalizePlan = (value: unknown): ResumeTailoringPlan => {
             return {
                 blockIndex: typeof input?.blockIndex === "number" ? Math.trunc(input.blockIndex) : -1,
                 originalText: cleanString(input?.originalText, 1200),
-                replacementText: cleanString(input?.replacementText, 1200),
+                replacementText: cleanGeneratedString(input?.replacementText, 1200),
                 keywordsAdded: (input?.keywordsAdded ?? [])
                     .slice(0, 12)
-                    .map((keyword) => cleanString(keyword, 100))
+                    .map((keyword) => cleanGeneratedString(keyword, 100))
                     .filter(Boolean),
-                reason: cleanString(input?.reason, 300),
+                reason: cleanGeneratedString(input?.reason, 300),
             }
         })
         .filter((item) => item.blockIndex >= 0 && item.originalText && item.replacementText)
 
     const familiaritySkills = (candidate.familiaritySkills ?? [])
         .slice(0, 12)
-        .map((skill) => cleanString(skill, 100))
+        .map((skill) => cleanGeneratedString(skill, 100))
         .filter(Boolean)
 
     return { requirements, edits, familiaritySkills }
@@ -155,6 +164,7 @@ Return ONLY JSON in this shape:
         prompt,
         STRICT_JSON_CONFIG,
         "structural repair",
+        "preserve-source",
     ) as { blocks?: unknown }
     const normalizedBlocks = normalizeGeneratedResumeBlocks(parsed.blocks)
     const reconciledBlocks = reconcileGeneratedResumeBlocks(source, normalizedBlocks)
@@ -332,6 +342,7 @@ Return ONLY JSON in this shape:
             prompt,
             STRICT_JSON_CONFIG,
             "tailoring plan",
+            "prompt-only",
         ))
         const result = applyEvidenceLedTailoring(tailoringSource, plan, mode)
         result.report.safety.structureRepaired = structureRepaired

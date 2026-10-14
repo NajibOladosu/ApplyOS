@@ -226,7 +226,9 @@ IMPORTANT:
 
 Extract ALL the open-ended questions found on this page:`
 
-      let text = (await callGeminiWithFallback(prompt, 'SIMPLE')).trim()
+      let text = (await callGeminiWithFallback(prompt, 'SIMPLE', {
+        writingStyle: 'preserve-source',
+      })).trim()
 
       console.log(`Gemini response length: ${text.length} characters`)
 

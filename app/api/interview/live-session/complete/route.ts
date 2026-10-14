@@ -3,6 +3,8 @@ import { createClient } from '@/shared/db/supabase/server'
 import { createConversationTurn, saveFullTranscript } from '@/modules/interviews/services/conversation.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { BufferedTurn } from '@/lib/gemini-live/types'
+import type { ConversationTurn } from '@/types/database'
+import { sanitizeAIGeneratedText } from '@/shared/infrastructure/ai-style'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -49,12 +51,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json()
     const { sessionId, remainingTurns, transcript } = body
 
-    if (!sessionId || !transcript) {
+    if (!sessionId || !transcript || !Array.isArray(transcript)) {
       return NextResponse.json(
-        { error: 'Missing required fields: sessionId, transcript' },
+        { error: 'Missing or invalid required fields: sessionId, transcript' },
         { status: 400 }
       )
     }
+    const sanitizedTranscript = (transcript as ConversationTurn[]).map((turn) => ({
+      ...turn,
+      content: turn.speaker === 'ai'
+        ? sanitizeAIGeneratedText(turn.content)
+        : turn.content,
+    }))
 
     // Verify session belongs to user
     const { data: session } = await supabase
@@ -86,7 +94,9 @@ export async function POST(request: NextRequest) {
               session_id: sessionId,
               turn_number: turn.turn_number,
               speaker: turn.speaker,
-              content: turn.content,
+              content: turn.speaker === 'ai'
+                ? sanitizeAIGeneratedText(turn.content)
+                : turn.content,
               ...(turn.metadata && { metadata: turn.metadata }),
             },
             supabase
@@ -100,7 +110,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save full transcript to session
-    await saveFullTranscript(sessionId, transcript, supabase)
+    await saveFullTranscript(sessionId, sanitizedTranscript, supabase)
 
     // Update session status and metadata
     const { error: updateError } = await supabase
@@ -109,7 +119,7 @@ export async function POST(request: NextRequest) {
         status: 'completed',
         completed_at: endedAt.toISOString(),
         conversation_ended_at: endedAt.toISOString(),
-        answered_questions: transcript.filter((t: { speaker: string }) => t.speaker === 'user').length,
+        answered_questions: sanitizedTranscript.filter((turn) => turn.speaker === 'user').length,
         total_duration_seconds: totalDurationSeconds,
       })
       .eq('id', sessionId)
@@ -124,7 +134,7 @@ export async function POST(request: NextRequest) {
 
     console.log(`Interview session ${sessionId} completed successfully`)
     console.log(`- Remaining turns saved: ${turnsSaved}`)
-    console.log(`- Total transcript entries: ${transcript.length}`)
+    console.log(`- Total transcript entries: ${sanitizedTranscript.length}`)
 
     return NextResponse.json(
       {

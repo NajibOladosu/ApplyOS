@@ -4,6 +4,7 @@
  */
 
 import type { InterviewQuestion } from '@/types/database'
+import { AI_WRITING_STYLE_INSTRUCTION } from '@/shared/infrastructure/ai-style'
 
 export interface SystemPromptConfig {
   sessionType: string
@@ -81,6 +82,11 @@ ${questionList}
   1. Speak your closing remarks (thank the user).
   2. **IN THE SAME TURN**, call \`signal_interview_complete\`.
   3. DO NOT wait for the user to reply. DO NOT ask "Is there anything else?". Just end it.
+
+## Writing Style
+
+${AI_WRITING_STYLE_INSTRUCTION}
+This style rule applies to your generated questions and feedback, not to verbatim user_response transcripts.
 
 Remember: Stick to the pre-generated questions. This is a structured interview, not an exploratory conversation.`
 }

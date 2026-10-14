@@ -87,6 +87,7 @@ Rules:
         const response = await callGeminiWithFallback(prompt, 'COMPLEX', {
             generationConfig: STRICT_JSON_CONFIG,
             disableThinking: true,
+            writingStyle: "preserve-source",
         })
 
         let jsonText = response.trim()

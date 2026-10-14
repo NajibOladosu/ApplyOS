@@ -4,6 +4,11 @@ import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model
 import { getGenerativeModel, isGeminiConfigured } from '@/shared/infrastructure/ai/client'
 import type { GenerationConfig } from '@google/generative-ai'
 import { classifyError, logAICall } from '@/shared/infrastructure/ai/telemetry'
+import {
+  applyAIWritingStyle,
+  sanitizeAIGeneratedText,
+  type AIWritingStylePolicy,
+} from '@/shared/infrastructure/ai-style'
 
 /**
  * Token optimization configurations per complexity level
@@ -63,6 +68,8 @@ interface GeminiCallOptions {
   generationConfig?: Partial<GenerationConfig>
   /** Disable Gemini 2.5's token-consuming reasoning for strict formatting tasks. */
   disableThinking?: boolean
+  /** Generated prose is guarded by default; parsing paths must opt out explicitly. */
+  writingStyle?: AIWritingStylePolicy
 }
 
 export async function callGeminiWithFallback(
@@ -70,6 +77,8 @@ export async function callGeminiWithFallback(
   complexity: 'SIMPLE' | 'MEDIUM' | 'COMPLEX' = 'MEDIUM',
   options: GeminiCallOptions = {},
 ): Promise<string> {
+  const writingStyle = options.writingStyle ?? 'enforce'
+  const requestPrompt = applyAIWritingStyle(prompt, writingStyle)
   const startedAt = Date.now()
   const fallbackPath: string[] = []
   let lastError: Error | null = null
@@ -105,7 +114,7 @@ export async function callGeminiWithFallback(
         status: 'rate_limited',
         error_class: 'AIRateLimitError',
         error_message: 'all models rate limited',
-        prompt_chars: prompt.length,
+        prompt_chars: requestPrompt.length,
       })
 
       throw new AIRateLimitError(
@@ -127,9 +136,12 @@ export async function callGeminiWithFallback(
       } as GenerationConfig
       const genModel = getGenerativeModel(model, generationConfig)
 
-      const result = await genModel.generateContent(prompt)
+      const result = await genModel.generateContent(requestPrompt)
       const response = await result.response
-      const text = response.text()
+      const rawText = response.text()
+      const text = writingStyle === 'enforce'
+        ? sanitizeAIGeneratedText(rawText)
+        : rawText
 
       logAICall({
         ts: new Date().toISOString(),
@@ -142,7 +154,7 @@ export async function callGeminiWithFallback(
         retries,
         fallback_path: fallbackPath,
         status: 'success',
-        prompt_chars: prompt.length,
+        prompt_chars: requestPrompt.length,
         response_chars: text.length,
       })
 
@@ -180,7 +192,7 @@ export async function callGeminiWithFallback(
         http_status: classified.status,
         error_class: error instanceof Error ? error.name : 'Error',
         error_message: classified.message,
-        prompt_chars: prompt.length,
+        prompt_chars: requestPrompt.length,
       })
 
       throw error
@@ -200,7 +212,7 @@ export async function callGeminiWithFallback(
     status: 'failed',
     error_class: lastError?.name,
     error_message: lastError?.message,
-    prompt_chars: prompt.length,
+    prompt_chars: requestPrompt.length,
   })
 
   throw lastError || new Error('Failed to get AI response after maximum attempts')
@@ -477,8 +489,10 @@ Rules:
 - NO markdown, NO code fences, NO explanations`
 
   try {
-    // COMPLEX complexity: Large resumes need full token limit to avoid truncation
-    const text = await callGeminiWithFallback(prompt, 'COMPLEX')
+    // Preserve punctuation while extracting source-authored resume content.
+    const text = await callGeminiWithFallback(prompt, 'COMPLEX', {
+      writingStyle: 'preserve-source',
+    })
 
     // Handle markdown code fences (```json...``` or ```...```)
     let jsonText = text
@@ -1595,7 +1609,9 @@ RULES:
 - If you cannot find a company, use null (not the string "null").`
 
   try {
-    const raw = await callGeminiWithFallback(prompt, 'MEDIUM')
+    const raw = await callGeminiWithFallback(prompt, 'MEDIUM', {
+      writingStyle: 'preserve-source',
+    })
 
     let jsonText = raw
     const fence = raw.match(/```(?:json)?\s*([\s\S]*?)```/)

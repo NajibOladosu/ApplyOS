@@ -3,6 +3,7 @@ import { createClient } from '@/shared/db/supabase/server'
 import { getQuestionsForSession } from '@/modules/interviews/services/interview.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import { validateString, MAX_LENGTHS } from '@/lib/validation'
+import { sanitizeAIGeneratedText } from '@/shared/infrastructure/ai-style'
 
 export async function POST(request: NextRequest) {
     try {
@@ -79,11 +80,17 @@ export async function POST(request: NextRequest) {
             confidence_score: confidenceScore,
             // Complete feedback structure
             feedback: {
-                overall: overallFeedback,
-                strengths: strengths || [],
-                weaknesses: weaknesses || [],
-                suggestions: suggestions || [],
-                tone_analysis: toneAnalysis
+                overall: sanitizeAIGeneratedText(String(overallFeedback || '')),
+                strengths: Array.isArray(strengths)
+                    ? strengths.map((item) => sanitizeAIGeneratedText(String(item)))
+                    : [],
+                weaknesses: Array.isArray(weaknesses)
+                    ? weaknesses.map((item) => sanitizeAIGeneratedText(String(item)))
+                    : [],
+                suggestions: Array.isArray(suggestions)
+                    ? suggestions.map((item) => sanitizeAIGeneratedText(String(item)))
+                    : [],
+                tone_analysis: sanitizeAIGeneratedText(String(toneAnalysis || ''))
             },
         })
 

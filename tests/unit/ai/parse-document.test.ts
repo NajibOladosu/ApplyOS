@@ -99,6 +99,15 @@ describe('parseDocument', () => {
     expect(result.experience[0].company).toBe('Co')
     expect(result.experience[0].role).toBe('Dev')
   })
+
+  it('preserves em dashes when extracting source-authored document text', async () => {
+    mockGeminiResponse(
+      '{"education":[],"experience":[],"projects":[],"skills":{"technical":[],"soft":[],"other":[]},"achievements":["Source-authored — punctuation"],"certifications":[],"keywords":[],"raw_highlights":[]}'
+    )
+    const result = await parseDocument('text')
+    expect(result.achievements).toEqual(['Source-authored — punctuation'])
+    expect(mockGenerateContent.mock.calls[0][0]).not.toContain('WRITING STYLE REQUIREMENT')
+  })
 })
 
 describe('generateAnswer', () => {
@@ -106,6 +115,14 @@ describe('generateAnswer', () => {
     mockGeminiResponse('My answer to the question.')
     const result = await generateAnswer('Why X?', { resume: 'My resume context' })
     expect(result).toBe('My answer to the question.')
+  })
+
+  it('enforces the shared no-em-dash rule for generated prose', async () => {
+    mockGeminiResponse('Focused — truthful — concise.')
+    const result = await generateAnswer('Why X?', { resume: 'My resume context' })
+
+    expect(result).toBe('Focused, truthful, concise.')
+    expect(mockGenerateContent.mock.calls[0][0]).toContain('WRITING STYLE REQUIREMENT')
   })
 
   it('passes context into the prompt (verifies behavior end-to-end)', async () => {

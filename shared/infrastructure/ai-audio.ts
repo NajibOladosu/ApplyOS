@@ -7,6 +7,10 @@
 import 'server-only'
 import { SPECIALIZED_MODELS } from '@/shared/infrastructure/ai/model-manager'
 import { getGeminiClient } from '@/shared/infrastructure/ai/client'
+import {
+  AI_WRITING_STYLE_INSTRUCTION,
+  sanitizeAIGeneratedText,
+} from '@/shared/infrastructure/ai-style'
 
 function requireClient() {
   const client = getGeminiClient()
@@ -112,7 +116,7 @@ export async function createAudioDialogSession(
         maxOutputTokens: 1024,
         candidateCount: 1
       },
-      systemInstruction: systemPrompt
+      systemInstruction: `${systemPrompt}\n\n${AI_WRITING_STYLE_INSTRUCTION}`
     })
 
     const chat = model.startChat({
@@ -155,7 +159,7 @@ export async function sendAudioToDialog(
     ])
 
     const response = await result.response
-    const aiResponse = response.text()
+    const aiResponse = sanitizeAIGeneratedText(response.text())
 
     // For MVP, we don't have separate transcription
     // In production with native audio dialog, Gemini would provide both

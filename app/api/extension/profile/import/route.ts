@@ -127,7 +127,9 @@ export async function POST(req: NextRequest) {
       resumeText = resumeText.slice(0, MAX_LENGTHS.extractedText)
     }
 
-    const response = await callGeminiWithFallback(buildImportPrompt(resumeText), "COMPLEX")
+    const response = await callGeminiWithFallback(buildImportPrompt(resumeText), "COMPLEX", {
+      writingStyle: "preserve-source",
+    })
     const parsed = extractJsonObject(response)
     if (!parsed) {
       return NextResponse.json(
