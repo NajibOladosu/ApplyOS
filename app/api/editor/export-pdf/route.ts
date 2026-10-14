@@ -79,6 +79,7 @@ export async function POST(req: NextRequest) {
         try {
             const { PDFDocument } = await import("pdf-lib")
             const page = await browser.newPage()
+            await page.emulateMediaType("print")
             let pdf: Uint8Array | null = null
             let pageCount = 0
             let appliedDensity: ResumeLayoutDensity = "standard"
@@ -91,7 +92,13 @@ export async function POST(req: NextRequest) {
                     docSettings,
                     density,
                 })
-                await page.setContent(html, { waitUntil: "networkidle0" })
+                // The generated document is fully self-contained, so waiting for
+                // network idleness only adds a failure mode when a host blocks
+                // outbound requests. DOM readiness is sufficient for printing.
+                await page.setContent(html, {
+                    waitUntil: "domcontentloaded",
+                    timeout: 10_000,
+                })
                 pdf = await page.pdf({
                     format: "A4",
                     printBackground: true,

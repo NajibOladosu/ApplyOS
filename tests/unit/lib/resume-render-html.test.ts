@@ -30,6 +30,13 @@ describe('ATS resume HTML rendering', () => {
     expect(html).toContain('Amina Doe')
   })
 
+  it('does not depend on remote assets during PDF rendering', () => {
+    const html = renderResumeHTML({ contentJson, templateId: 'modern' })
+
+    expect(html).not.toMatch(/@import\s+url/i)
+    expect(html).not.toMatch(/https?:\/\//i)
+  })
+
   it('adds density fallback CSS only when requested', () => {
     const standard = renderResumeHTML({ contentJson, templateId: 'ats' })
     const tight = renderResumeHTML({ contentJson, templateId: 'ats', density: 'tight' })
