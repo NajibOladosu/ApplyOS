@@ -63,8 +63,7 @@ const baseStylesFor = (s?: DocSettings) => {
     const bottom = s?.marginBottomMm ?? 20
     const left = s?.marginLeftMm ?? 20
     return `
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Manrope:wght@400;500;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap');
-
+/* Keep PDF rendering self-contained. Remote font imports can stall headless Chromium. */
 @page {
     size: A4;
     margin: ${top}mm ${right}mm ${bottom}mm ${left}mm;
