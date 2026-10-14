@@ -3,6 +3,7 @@ import { createClient } from '@/shared/db/supabase/server'
 import { createConversationTurn } from '@/modules/interviews/services/conversation.service'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import type { BufferedTurn } from '@/lib/gemini-live/types'
+import { sanitizeAIGeneratedText } from '@/shared/infrastructure/ai-style'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -76,7 +77,9 @@ export async function POST(request: NextRequest) {
             session_id: sessionId,
             turn_number: turn.turn_number,
             speaker: turn.speaker,
-            content: turn.content,
+            content: turn.speaker === 'ai'
+              ? sanitizeAIGeneratedText(turn.content)
+              : turn.content,
             metadata: turn.metadata || undefined,
           },
           supabase

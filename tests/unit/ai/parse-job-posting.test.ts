@@ -68,6 +68,15 @@ describe('parseJobPosting', () => {
     expect(job.job_description).toBe('the raw posting body')
   })
 
+  it('preserves source punctuation in extracted job fields', async () => {
+    mockGeminiResponse('{"title":"Engineer — Platform","company":"Acme","job_description":"Build — maintain."}')
+    const job = await parseJobPosting('text')
+
+    expect(job.title).toBe('Engineer — Platform')
+    expect(job.job_description).toBe('Build — maintain.')
+    expect(mockGenerateContent.mock.calls[0][0]).not.toContain('WRITING STYLE REQUIREMENT')
+  })
+
   it('throws a user-facing error when the response is not valid JSON', async () => {
     mockGeminiResponse('not json at all')
     await expect(parseJobPosting('text')).rejects.toThrow(/failed to parse job posting/i)

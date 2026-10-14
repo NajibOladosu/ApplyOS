@@ -8,6 +8,7 @@ import { GeminiLiveClient } from '@/lib/gemini-live/client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
 import type { ConversationTurn } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
+import { sanitizeAIGeneratedText } from '@/shared/infrastructure/ai-style'
 
 interface LiveInterviewProps {
   sessionId: string
@@ -93,7 +94,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             startRecording()
           },
           onTextResponse: (text) => {
-            setCurrentAIMessage(text)
+            const sanitizedText = sanitizeAIGeneratedText(text)
+            setCurrentAIMessage(sanitizedText)
             setOrbState('ai')
 
             // Add to transcript
@@ -103,7 +105,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
               user_id: '',
               turn_number: turnCount + 1,
               speaker: 'ai',
-              content: text,
+              content: sanitizedText,
               audio_url: null,
               audio_duration_seconds: null,
               timestamp: new Date().toISOString(),
@@ -113,7 +115,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
             setTranscript((prev) => [...prev, turn])
 
             // Buffer turn
-            addTurn('ai', text)
+            addTurn('ai', sanitizedText)
           },
           onAudioResponse: (audioData) => {
             playAudioResponse(audioData)
