@@ -5,6 +5,7 @@ import TextAlign from "@tiptap/extension-text-align"
 import { TextStyle } from "@tiptap/extension-text-style"
 import { FontFamily } from "@tiptap/extension-font-family"
 import type { DocSettings, TemplateId } from "@/modules/applications/components/editor/types"
+import { normalizeDocSettings } from "@/lib/editor/document-settings"
 
 const FontSize = Extension.create({
     name: 'fontSize',
@@ -58,10 +59,11 @@ interface RenderOpts {
 }
 
 const baseStylesFor = (s?: DocSettings) => {
-    const top = s?.marginTopMm ?? 20
-    const right = s?.marginRightMm ?? 20
-    const bottom = s?.marginBottomMm ?? 20
-    const left = s?.marginLeftMm ?? 20
+    const settings = normalizeDocSettings(s)
+    const top = settings.marginTopMm
+    const right = settings.marginRightMm
+    const bottom = settings.marginBottomMm
+    const left = settings.marginLeftMm
     return `
 /* Keep PDF rendering self-contained. Remote font imports can stall headless Chromium. */
 @page {
@@ -81,8 +83,8 @@ html, body {
 }
 
 .resume-page {
-    max-width: 170mm;
-    margin: 0 auto;
+    width: 100%;
+    margin: 0;
 }
 
 p { margin: 0 0 6px 0; orphans: 3; widows: 3; }

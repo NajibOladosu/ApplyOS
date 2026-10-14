@@ -8,6 +8,8 @@ import {
     LevelFormat,
 } from "docx"
 import type { JSONContent } from "@tiptap/core"
+import type { DocSettings } from "@/modules/applications/components/editor/types"
+import { docSettingsToTwips } from "@/lib/editor/document-settings"
 
 /**
  * Convert TipTap JSON document to a DOCX Buffer.
@@ -134,7 +136,10 @@ const docNodeToParagraphs = (node: JSONContent): Paragraph[] => {
     return []
 }
 
-export async function tiptapToDocxBuffer(json: JSONContent): Promise<Buffer> {
+export async function tiptapToDocxBuffer(
+    json: JSONContent,
+    docSettings?: DocSettings,
+): Promise<Buffer> {
     const paragraphs: Paragraph[] = []
     if (json.type === 'doc' && Array.isArray(json.content)) {
         for (const node of json.content) {
@@ -146,6 +151,7 @@ export async function tiptapToDocxBuffer(json: JSONContent): Promise<Buffer> {
         paragraphs.push(new Paragraph({ children: [] }))
     }
 
+    const pageMargins = docSettingsToTwips(docSettings)
     const doc = new Document({
         creator: 'ApplyOS',
         title: 'Resume',
@@ -192,7 +198,7 @@ export async function tiptapToDocxBuffer(json: JSONContent): Promise<Buffer> {
         sections: [{
             properties: {
                 page: {
-                    margin: { top: 1134, right: 1134, bottom: 1134, left: 1134 }, // 20mm in twips
+                    margin: pageMargins,
                 },
             },
             children: paragraphs,
