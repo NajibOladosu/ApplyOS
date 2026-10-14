@@ -17,65 +17,7 @@
  * leaving them blank.
  */
 
-export interface ImportedProfile {
-  identity?: Partial<{
-    firstName: string
-    middleName: string
-    lastName: string
-    preferredName: string
-  }>
-  contact?: Partial<{
-    email: string
-    phone: string
-    addressLine1: string
-    addressLine2: string
-    city: string
-    state: string
-    postalCode: string
-    country: string
-  }>
-  links?: Partial<{
-    linkedin: string
-    github: string
-    portfolio: string
-    website: string
-    twitter: string
-  }>
-  work?: Partial<{
-    currentCompany: string
-    currentTitle: string
-    yearsExperience: string
-    noticePeriod: string
-    desiredSalary: string
-  }>
-  education?: Partial<{
-    school: string
-    degree: string
-    fieldOfStudy: string
-    graduationYear: string
-    gpa: string
-  }>
-  experience?: Array<{
-    company: string
-    title: string
-    location?: string
-    startDate?: string
-    endDate?: string
-    current?: boolean
-    description?: string
-  }>
-  educationHistory?: Array<{
-    school: string
-    degree?: string
-    fieldOfStudy?: string
-    startYear?: string
-    endYear?: string
-    gpa?: string
-  }>
-  skills?: string
-  certifications?: string
-  languages?: string
-}
+import type { ImportedProfile } from "@/types/autofill"
 
 export function buildImportPrompt(resumeText: string): string {
   return `You are building an autofill profile for job applications from a candidate's resume.

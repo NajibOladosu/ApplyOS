@@ -10,6 +10,7 @@ import {
   MAX_LENGTHS,
 } from "@/lib/validation"
 import { authenticateRequest } from "../../_lib/auth"
+import { isOwnedStorageUrl } from "@/lib/security/url-validator"
 import {
   buildImportPrompt,
   coerceImportedProfile,
@@ -77,10 +78,13 @@ export async function POST(req: NextRequest) {
         resumeText = buffer.toString("utf-8")
       }
     } else {
-      const body = await req.json()
+      const body = await req.json().catch(() => null)
       const { documentId, text } = body ?? {}
 
       if (documentId) {
+        if (typeof documentId !== "string") {
+          return NextResponse.json({ error: "Invalid document id" }, { status: 400 })
+        }
         const { data: doc, error: docError } = await supabase
           .from("documents")
           .select("id, user_id, extracted_text, file_url, file_name")
@@ -98,20 +102,34 @@ export async function POST(req: NextRequest) {
         if (doc.extracted_text) {
           resumeText = doc.extracted_text
         } else if (doc.file_url) {
-          const response = await fetch(doc.file_url)
-          if (!response.ok) {
+          if (!isOwnedStorageUrl(doc.file_url)) {
+            return NextResponse.json({ error: "Invalid document file URL" }, { status: 400 })
+          }
+          const marker = "/storage/v1/object/public/documents/"
+          const encodedPath = new URL(doc.file_url).pathname.split(marker)[1]
+          const filePath = encodedPath ? decodeURIComponent(encodedPath) : ""
+          if (!filePath.startsWith(`${user.id}/`)) {
+            return NextResponse.json({ error: "Invalid document storage path" }, { status: 400 })
+          }
+          const { data: file, error: downloadError } = await supabase.storage
+            .from("documents")
+            .download(filePath)
+          if (downloadError || !file) {
             return NextResponse.json(
               { error: "Could not download the document file" },
               { status: 502 }
             )
           }
-          const buffer = Buffer.from(await response.arrayBuffer())
+          if (file.size > MAX_DOCUMENT_FILE_SIZE_BYTES) {
+            return NextResponse.json({ error: "File exceeds the 25 MB limit" }, { status: 413 })
+          }
+          const buffer = Buffer.from(await file.arrayBuffer())
           const name = (doc.file_name || "").toLowerCase()
           if (name.endsWith(".pdf")) resumeText = await extractTextFromPDF(buffer)
           else if (name.endsWith(".docx")) resumeText = await extractTextFromDOCX(buffer)
           else resumeText = buffer.toString("utf-8")
         }
-      } else if (text) {
+      } else if (typeof text === "string") {
         resumeText = text
       }
     }

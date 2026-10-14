@@ -6,7 +6,6 @@ import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Calendar, Loader2, Edit2, Upload, BadgeCheck, FileSpreadsheet, ShieldAlert, Wand2 } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
-import { MiniBar } from "@/components/data/stat"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { PromptModal } from "@/components/modals/prompt-modal"
@@ -14,10 +13,16 @@ import { AlertModal } from "@/components/modals/alert-modal"
 import { ImportApplicationsModal } from "@/modules/applications/components/modals/import-applications-modal"
 import {
   EMPTY_AUTOFILL_PROFILE,
-  countAutofillFields,
+  mergeImportedProfile,
   normalizeAutofillProfile,
   type AutofillProfile,
+  type ImportedProfile,
 } from "@/types/autofill"
+
+interface ImportDocumentOption {
+  id: string
+  file_name: string
+}
 
 interface Profile {
   id: string
@@ -69,6 +74,7 @@ function AutofillField({
 export default function ProfilePage() {
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [name, setName] = useState("")
@@ -91,6 +97,13 @@ export default function ProfilePage() {
   const [savingAutofill, setSavingAutofill] = useState(false)
   const [autofillError, setAutofillError] = useState<string | null>(null)
   const [autofillSuccess, setAutofillSuccess] = useState(false)
+  const [savedDocuments, setSavedDocuments] = useState<ImportDocumentOption[]>([])
+  const [documentsError, setDocumentsError] = useState(false)
+  const [selectedDocumentId, setSelectedDocumentId] = useState("")
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [importingAutofill, setImportingAutofill] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importNotice, setImportNotice] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -135,6 +148,14 @@ export default function ProfilePage() {
           ""
         setName(fullName)
         setAvatarUrl(p.avatar_url || user.user_metadata?.avatar_url || "")
+
+        const { data: docs, error: docsError } = await supabase
+          .from("documents")
+          .select("id, file_name")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+        if (docsError) setDocumentsError(true)
+        else setSavedDocuments((docs ?? []).filter((doc) => /\.(pdf|docx|txt|md|json)$/i.test(doc.file_name)))
       } catch (err) {
         console.error("Error loading profile:", err)
         setError("Unable to load your profile. Please try again.")
@@ -153,8 +174,6 @@ export default function ProfilePage() {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join("") || "U"
-
-  const autofillProgress = countAutofillFields(autofill)
 
   const handleSave = async () => {
     if (!user || !profile) return
@@ -240,6 +259,8 @@ export default function ProfilePage() {
         .from("users")
         .update(payload)
         .eq("id", user.id)
+        .select("id")
+        .single()
 
       if (updateError) throw updateError
 
@@ -248,12 +269,58 @@ export default function ProfilePage() {
         setName(full)
       }
       setAutofillSuccess(true)
+      setImportNotice(null)
       setTimeout(() => setAutofillSuccess(false), 2500)
     } catch (err) {
       console.error("Error saving autofill profile:", err)
-      setAutofillError("Failed to save your autofill details. Please try again.")
+      setAutofillError(
+        err && typeof err === "object" && "code" in err &&
+          (err.code === "42703" || err.code === "PGRST204")
+          ? "Application details storage is not available yet. Please contact support."
+          : "Failed to save your application details. Please try again."
+      )
     } finally {
       setSavingAutofill(false)
+    }
+  }
+
+  const handleImportAutofill = async () => {
+    if (!selectedFile && !selectedDocumentId) return
+    setImportingAutofill(true)
+    setImportError(null)
+    setImportNotice(null)
+    clearAutofillStatus()
+
+    try {
+      const request = selectedFile
+        ? (() => {
+            const formData = new FormData()
+            formData.append("file", selectedFile)
+            return { body: formData }
+          })()
+        : {
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ documentId: selectedDocumentId }),
+          }
+      const response = await fetch("/api/extension/profile/import", {
+        method: "POST",
+        ...request,
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not extract details from this document.")
+      }
+      if (!result?.profile || typeof result.profile !== "object") {
+        throw new Error("The document did not contain usable application details.")
+      }
+
+      setAutofill((current) => mergeImportedProfile(current, result.profile as ImportedProfile).profile)
+      setImportNotice("Document read. Any blank details were filled; existing answers were kept. Review the details, then select Save below.")
+    } catch (err) {
+      console.error("Error importing application details:", err)
+      setImportError(err instanceof Error ? err.message : "Could not import this document.")
+    } finally {
+      setImportingAutofill(false)
     }
   }
 
@@ -473,59 +540,76 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* Autofill profile — the details a job application asks for, entered
-            once and reused by drafts and the browser extension. */}
+        {/* Application details — entered once and reused by drafts and the browser extension. */}
         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-          <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="border-b border-border/60 px-5 py-4">
             <div className="flex items-start gap-3">
               <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary-strong dark:text-primary">
                 <Wand2 className="h-4 w-4" />
               </span>
               <div>
                 <h2 className="font-display text-[15px] font-bold tracking-tight text-foreground">
-                  Autofill profile
+                  Application details
                 </h2>
-                <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
-                  The details a job application asks for — name, contact, address and
-                  eligibility. Enter them once and drafts plus the browser extension
-                  fill the forms for you.
-                </p>
               </div>
             </div>
-            <div className="flex shrink-0 items-center gap-4">
-              <div className="w-36">
-                <p className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-                  <span>Completion</span>
-                  <span className="tabular-nums">
-                    {autofillProgress.filled}/{autofillProgress.total}
-                  </span>
-                </p>
-                <div className="mt-1.5">
-                  <MiniBar
-                    ratio={
-                      autofillProgress.total > 0
-                        ? autofillProgress.filled / autofillProgress.total
-                        : 0
-                    }
-                    tone="primary"
-                  />
-                </div>
-              </div>
+          </div>
+
+          <div className="border-b border-border/60 bg-muted/30 px-5 py-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Upload className="h-4 w-4 text-primary-strong dark:text-primary" />
+              <h3 className="font-display text-[clamp(0.875rem,0.35vw+0.78rem,1rem)] font-semibold text-foreground">
+                Fill from a resume or document
+              </h3>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] sm:items-end">
+              <label className="min-w-0 text-xs font-medium text-muted-foreground">
+                Uploaded document
+                <select
+                  value={selectedDocumentId}
+                  onChange={(event) => {
+                    setSelectedDocumentId(event.target.value)
+                    setSelectedFile(null)
+                    if (importFileInputRef.current) importFileInputRef.current.value = ""
+                    setImportError(null)
+                  }}
+                  className="mt-1.5 h-10 w-full rounded-lg border border-input bg-background px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                >
+                  <option value="">Select a saved document</option>
+                  {savedDocuments.map((document) => (
+                    <option key={document.id} value={document.id}>{document.file_name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="min-w-0 text-xs font-medium text-muted-foreground">
+                Or choose a file
+                <input
+                  ref={importFileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt,.md,.json"
+                  onChange={(event) => {
+                    setSelectedFile(event.target.files?.[0] ?? null)
+                    setSelectedDocumentId("")
+                    setImportError(null)
+                  }}
+                  className="mt-1.5 block h-10 w-full rounded-lg border border-input bg-background text-sm text-foreground file:mr-3 file:h-full file:border-0 file:border-r file:border-border file:bg-muted file:px-3 file:text-xs file:font-medium file:text-foreground"
+                />
+              </label>
               <Button
-                className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
-                onClick={handleSaveAutofill}
-                disabled={savingAutofill}
+                variant="outline"
+                className="h-10 shrink-0 rounded-lg"
+                onClick={handleImportAutofill}
+                disabled={importingAutofill || savingAutofill || (!selectedFile && !selectedDocumentId)}
               >
-                {savingAutofill ? (
-                  <>
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  "Save autofill details"
-                )}
+                {importingAutofill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                {importingAutofill ? "Reading…" : "Fill empty fields"}
               </Button>
             </div>
+            {documentsError ? (
+              <p className="mt-2 text-xs text-muted-foreground">Saved documents could not be loaded. You can still choose a file.</p>
+            ) : null}
+            {importError ? <p role="alert" className="mt-2 text-xs text-destructive">{importError}</p> : null}
+            {importNotice ? <p role="status" className="mt-2 text-xs text-primary-strong dark:text-primary">{importNotice}</p> : null}
           </div>
 
           <div className="divide-y divide-border/50">
@@ -805,6 +889,36 @@ export default function ProfilePage() {
               </AutofillField>
             </AutofillGroup>
 
+            {(autofill.experience.length > 0 || autofill.educationHistory.length > 0) && (
+              <div className="px-5 py-4">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Work and education history
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {autofill.experience.length > 0 && (
+                    <div>
+                      <p className="mb-1.5 text-xs font-medium text-foreground">Experience</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {autofill.experience.map((entry) => (
+                          <li key={entry.id}>{[entry.title, entry.company].filter(Boolean).join(" · ")}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {autofill.educationHistory.length > 0 && (
+                    <div>
+                      <p className="mb-1.5 text-xs font-medium text-foreground">Education</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {autofill.educationHistory.map((entry) => (
+                          <li key={entry.id}>{[entry.degree, entry.school].filter(Boolean).join(" · ")}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <AutofillGroup title="Everything else" hint="Comma-separated where it helps.">
               <AutofillField label="Skills">
                 <Input
@@ -830,20 +944,25 @@ export default function ProfilePage() {
             </AutofillGroup>
           </div>
 
-          {(autofillSuccess || autofillError) && (
-            <div
-              className={
-                "border-t px-5 py-3 text-xs " +
-                (autofillSuccess
-                  ? "border-primary/20 bg-primary/[0.06] text-primary-strong dark:text-primary"
-                  : "border-destructive/20 bg-destructive/[0.06] text-destructive")
-              }
+          <div className="flex flex-wrap items-center gap-3 border-t border-border/60 px-5 py-4">
+            <Button
+              className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
+              onClick={handleSaveAutofill}
+              disabled={savingAutofill}
             >
-              {autofillSuccess
-                ? "Autofill details saved. New drafts and the extension will use them."
-                : autofillError}
-            </div>
-          )}
+              {savingAutofill ? (
+                <>
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
+            {autofillSuccess ? <span className="text-xs text-primary-strong dark:text-primary">Saved.</span> : null}
+            {autofillError ? <span className="text-xs text-destructive">{autofillError}</span> : null}
+          </div>
+
         </section>
 
         {/* Data — import lives beside the account facts instead of in its own

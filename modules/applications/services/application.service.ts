@@ -89,12 +89,15 @@ export async function deleteApplications(ids: string[]) {
 
 export async function setApplicationArchived(id: string, archived: boolean) {
   const supabase = createClient()
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('applications')
     .update({ archived })
     .eq('id', id)
+    .select()
+    .single()
 
   if (error) throw error
+  return data as Application
 }
 
 export async function updateApplicationsStatus(ids: string[], status: ApplicationStatus) {
