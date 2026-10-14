@@ -26,6 +26,9 @@ interface NodeChange {
     accepted: boolean
 }
 
+export const escapeMarkdownTableCell = (value: string): string =>
+    value.replace(/[\\|]/g, (character) => `\\${character}`)
+
 const collectTextNodes = (
     node: JSONContent,
     path: number[] = [],
@@ -119,7 +122,7 @@ export function DiffModal({
     const downloadReport = () => {
         if (!report) return
         const requirementRows = report.requirements.map((item) =>
-            `| ${item.requirement.replace(/\|/g, "\\|")} | ${item.priority} | ${item.status} | ${item.evidence.join("; ").replace(/\|/g, "\\|") || "—"} |`,
+            `| ${escapeMarkdownTableCell(item.requirement)} | ${item.priority} | ${item.status} | ${escapeMarkdownTableCell(item.evidence.join("; ")) || "—"} |`,
         )
         const markdown = [
             "# Resume tailoring report",
