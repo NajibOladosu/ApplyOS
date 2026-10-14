@@ -6,6 +6,7 @@ import RetryQueueService from "@/shared/infrastructure/ai/retry-queue"
 import { extractTextFromPDF } from "@/modules/documents/lib/pdf-utils"
 import { extractTextFromDOCX } from "@/modules/documents/lib/docx-utils"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+import { hasImportedProfileDetails } from "@/lib/autofill/from-parsed-document"
 import {
   MAX_DOCUMENT_FILE_SIZE_BYTES,
   ALLOWED_DOCUMENT_MIME_TYPES,
@@ -74,6 +75,7 @@ export async function POST(req: NextRequest) {
       file_type: string | null
       file_size: number | null
       parsed_data: unknown | null
+      profile_ready: boolean
     }[] = []
 
     for (const entry of files) {
@@ -91,13 +93,14 @@ export async function POST(req: NextRequest) {
         )
       }
 
-      const contentType = (file.type || "").toLowerCase()
+      const extension = file.name.split(".").pop()?.toLowerCase()
+      const inferredTextType = extension === "txt" ? "text/plain"
+        : extension === "md" ? "text/markdown"
+        : extension === "json" ? "application/json" : ""
+      const contentType = (file.type || inferredTextType).toLowerCase()
 
       // Reject MIME types not on the allowlist
-      const mimeAllowed = [...ALLOWED_DOCUMENT_MIME_TYPES].some((allowed) =>
-        contentType.includes(allowed) || allowed.includes(contentType)
-      )
-      if (contentType && !mimeAllowed) {
+      if (!contentType || !ALLOWED_DOCUMENT_MIME_TYPES.has(contentType)) {
         return NextResponse.json(
           { error: `File type "${contentType}" is not supported` },
           { status: 415 }
@@ -112,7 +115,7 @@ export async function POST(req: NextRequest) {
       }
 
       // Verify the actual file bytes match the claimed MIME type (prevents spoofing)
-      if (contentType && !verifyFileMagicBytes(buffer, contentType)) {
+      if (!verifyFileMagicBytes(buffer, contentType)) {
         return NextResponse.json(
           { error: `File content does not match its declared type` },
           { status: 415 }
@@ -149,7 +152,7 @@ export async function POST(req: NextRequest) {
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from("documents")
         .upload(path, buffer, {
-          contentType: file.type || undefined,
+          contentType,
           upsert: false,
         })
 
@@ -171,7 +174,7 @@ export async function POST(req: NextRequest) {
             user_id: user.id,
             file_name: file.name,
             file_url: publicUrl,
-            file_type: file.type,
+            file_type: contentType,
             file_size: file.size,
             extracted_text: extractedText || null,
             analysis_status: "not_analyzed",
@@ -190,6 +193,7 @@ export async function POST(req: NextRequest) {
 
       // Now analyze with AI using the ACTUAL extracted text
       let parsed_data = null
+      let analysisSaved = false
 
       try {
         if (extractedText && extractedText.trim().length > 0) {
@@ -207,6 +211,8 @@ export async function POST(req: NextRequest) {
 
             if (updateError) {
               console.error("Failed to update parsed_data:", updateError)
+            } else {
+              analysisSaved = true
             }
           }
         }
@@ -253,7 +259,8 @@ export async function POST(req: NextRequest) {
 
       createdDocuments.push({
         ...docRow,
-        parsed_data: parsed_data ?? docRow.parsed_data ?? null,
+        parsed_data: analysisSaved ? parsed_data : docRow.parsed_data ?? null,
+        profile_ready: analysisSaved && hasImportedProfileDetails(parsed_data),
       })
     }
 

@@ -100,6 +100,24 @@ describe('parseDocument', () => {
     expect(result.experience[0].role).toBe('Dev')
   })
 
+  it('stores only supported application details for later profile import', async () => {
+    mockGeminiResponse(JSON.stringify({
+      education: [], experience: [], projects: [],
+      skills: { technical: [], soft: [], other: [] },
+      achievements: [], certifications: [], keywords: [], raw_highlights: [],
+      application_details: {
+        identity: { firstName: 'Ada' },
+        contact: { email: 'ada@example.com' },
+        eligibility: { requiresSponsorship: false },
+      },
+    }))
+    const result = await parseDocument('Ada resume')
+    expect(result.application_details).toEqual({
+      identity: { firstName: 'Ada' },
+      contact: { email: 'ada@example.com' },
+    })
+  })
+
   it('preserves em dashes when extracting source-authored document text', async () => {
     mockGeminiResponse(
       '{"education":[],"experience":[],"projects":[],"skills":{"technical":[],"soft":[],"other":[]},"achievements":["Source-authored — punctuation"],"certifications":[],"keywords":[],"raw_highlights":[]}'

@@ -289,26 +289,6 @@ export default function SettingsPage() {
           overline="Account"
           title="Settings"
           description="Notifications, AI behaviour, appearance and data. Changes apply to your account only."
-          actions={
-            <div className="flex items-center gap-3">
-              {success ? <span className="text-xs text-primary-strong dark:text-primary">Saved.</span> : null}
-              {error ? <span className="text-xs text-destructive">{error}</span> : null}
-              <Button
-                className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
-                onClick={persistSettings}
-                disabled={saving}
-              >
-                {saving ? (
-                  <>
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  "Save changes"
-                )}
-              </Button>
-            </div>
-          }
         />
 
         {/* Notifications */}
@@ -444,6 +424,25 @@ export default function SettingsPage() {
             </a>
           </SettingsRow>
         </SettingsSection>
+
+        <div className="flex flex-wrap items-center gap-3 px-1 pb-2">
+          <Button
+            className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
+            onClick={persistSettings}
+            disabled={saving}
+          >
+            {saving ? (
+              <>
+                <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                Saving…
+              </>
+            ) : (
+              "Save changes"
+            )}
+          </Button>
+          {success ? <span className="text-xs text-primary-strong dark:text-primary">Saved.</span> : null}
+          {error ? <span className="text-xs text-destructive">{error}</span> : null}
+        </div>
 
         {/* Password Change Modal */}
         <Dialog open={showPasswordModal} onOpenChange={setShowPasswordModal}>

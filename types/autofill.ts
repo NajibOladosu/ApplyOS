@@ -145,6 +145,80 @@ export interface AutofillProfile {
   coverLetterDocumentId: string | null
 }
 
+/** Fields the resume importer can supply. Sensitive screening and EEO answers are excluded. */
+export interface ImportedProfile {
+  identity?: Partial<Pick<AutofillProfile["identity"], "firstName" | "middleName" | "lastName" | "preferredName">>
+  contact?: Partial<Pick<AutofillProfile["contact"], "email" | "phone" | "addressLine1" | "addressLine2" | "city" | "state" | "postalCode" | "country">>
+  links?: Partial<AutofillProfile["links"]>
+  work?: Partial<Pick<AutofillProfile["work"], "currentCompany" | "currentTitle" | "yearsExperience" | "noticePeriod" | "desiredSalary">>
+  education?: Partial<Pick<AutofillProfile["education"], "school" | "degree" | "fieldOfStudy" | "graduationYear" | "gpa">>
+  experience?: Array<Omit<WorkExperienceEntry, "id">>
+  educationHistory?: Array<Omit<EducationEntry, "id">>
+  skills?: string
+  certifications?: string
+  languages?: string
+}
+
+/** Preserve manually entered values while making resume extraction reviewable before saving. */
+export function mergeImportedProfile(
+  current: AutofillProfile,
+  imported: ImportedProfile
+): { profile: AutofillProfile; filled: string[]; kept: string[] } {
+  const next = structuredClone(current)
+  const filled: string[] = []
+  const kept: string[] = []
+
+  const mergeFields = <K extends "identity" | "contact" | "links" | "work" | "education">(
+    section: K,
+    source: ImportedProfile[K]
+  ) => {
+    if (!source) return
+    const target = next[section] as Record<string, string>
+    for (const [key, value] of Object.entries(source)) {
+      if (typeof value !== "string" || !value.trim()) continue
+      if (target[key]?.trim()) {
+        kept.push(`${section}.${key}`)
+      } else {
+        target[key] = value.trim()
+        filled.push(`${section}.${key}`)
+      }
+    }
+  }
+
+  mergeFields("identity", imported.identity)
+  mergeFields("contact", imported.contact)
+  mergeFields("links", imported.links)
+  mergeFields("work", imported.work)
+  mergeFields("education", imported.education)
+
+  for (const key of ["skills", "certifications", "languages"] as const) {
+    const value = imported[key]?.trim()
+    if (!value) continue
+    if (next[key].trim()) kept.push(key)
+    else {
+      next[key] = value
+      filled.push(key)
+    }
+  }
+
+  if (imported.experience?.length) {
+    if (next.experience.length) kept.push("experience")
+    else {
+      next.experience = imported.experience.map((entry) => ({ ...entry, id: crypto.randomUUID() }))
+      filled.push("experience")
+    }
+  }
+  if (imported.educationHistory?.length) {
+    if (next.educationHistory.length) kept.push("educationHistory")
+    else {
+      next.educationHistory = imported.educationHistory.map((entry) => ({ ...entry, id: crypto.randomUUID() }))
+      filled.push("educationHistory")
+    }
+  }
+
+  return { profile: next, filled, kept }
+}
+
 export const EMPTY_AUTOFILL_PROFILE: AutofillProfile = {
   version: 1,
   identity: { firstName: "", middleName: "", lastName: "", preferredName: "", pronouns: "" },

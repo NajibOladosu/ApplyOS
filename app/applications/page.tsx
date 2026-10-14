@@ -138,6 +138,7 @@ export default function ApplicationsPage() {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [bulkDeleteConfirmOpen, setBulkDeleteConfirmOpen] = useState(false)
   const [bulkLoading, setBulkLoading] = useState(false)
+  const [archivingId, setArchivingId] = useState<string | null>(null)
 
   useEffect(() => {
     fetchApplications()
@@ -215,10 +216,16 @@ export default function ApplicationsPage() {
   }
 
   const handleArchiveToggle = async (id: string, archived: boolean) => {
+    if (archivingId) return
+
     // Optimistic: drop it from the current view immediately.
     setApplications((apps) => apps.map((a) => (a.id === id ? { ...a, archived } : a)))
+    setArchivingId(id)
     try {
-      await setApplicationArchived(id, archived)
+      const updatedApplication = await setApplicationArchived(id, archived)
+      setApplications((apps) =>
+        apps.map((app) => (app.id === id ? updatedApplication : app))
+      )
     } catch (error) {
       console.error("Archive toggle failed:", error)
       setApplications((apps) =>
@@ -229,6 +236,8 @@ export default function ApplicationsPage() {
           ? "Failed to archive the application. Please try again."
           : "Failed to restore the application. Please try again."
       )
+    } finally {
+      setArchivingId(null)
     }
   }
 
@@ -553,10 +562,17 @@ export default function ApplicationsPage() {
                           size="icon"
                           className="h-8 w-8"
                           onClick={() => handleArchiveToggle(app.id, !app.archived)}
+                          disabled={archivingId !== null}
                           aria-label={app.archived ? `Restore ${app.title}` : `Archive ${app.title}`}
                           title={app.archived ? "Restore to active" : "Archive"}
                         >
-                          {app.archived ? <ArchiveRestore className="h-4 w-4" /> : <Archive className="h-4 w-4" />}
+                          {archivingId === app.id ? (
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                          ) : app.archived ? (
+                            <ArchiveRestore className="h-4 w-4" />
+                          ) : (
+                            <Archive className="h-4 w-4" />
+                          )}
                         </Button>
                         <Button
                           variant="ghost"

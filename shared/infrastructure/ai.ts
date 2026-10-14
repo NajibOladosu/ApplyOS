@@ -1,5 +1,7 @@
 import 'server-only'
 import type { DocumentReport } from '@/types/database'
+import type { ImportedProfile } from '@/types/autofill'
+import { coerceImportedProfile } from '@/app/api/extension/_lib/profile-import'
 import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 import { getGenerativeModel, isGeminiConfigured } from '@/shared/infrastructure/ai/client'
 import type { GenerationConfig } from '@google/generative-ai'
@@ -365,6 +367,7 @@ Cover Letter (write as if you are the candidate):`
  * Structured analysis shape for documents.
  */
 export type ParsedDocument = {
+  application_details?: ImportedProfile
   education: {
     institution: string
     degree: string
@@ -475,7 +478,16 @@ IMPORTANT: Return ONLY valid JSON (no markdown, no code fences, no extra text). 
     }
   ],
   "keywords": ["Key terms", "Industries", "Technologies"],
-  "raw_highlights": ["Bullet point 1", "Bullet point 2"]
+  "raw_highlights": ["Bullet point 1", "Bullet point 2"],
+  "application_details": {
+    "identity": { "firstName": "", "middleName": "", "lastName": "", "preferredName": "" },
+    "contact": { "email": "", "phone": "", "addressLine1": "", "addressLine2": "", "city": "", "state": "", "postalCode": "", "country": "" },
+    "links": { "linkedin": "", "github": "", "portfolio": "", "website": "", "twitter": "" },
+    "work": { "currentCompany": "", "currentTitle": "", "yearsExperience": "", "noticePeriod": "", "desiredSalary": "" },
+    "education": { "school": "", "degree": "", "fieldOfStudy": "", "graduationYear": "", "gpa": "" },
+    "languages": "",
+    "certifications": ""
+  }
 }
 
 Rules:
@@ -484,6 +496,8 @@ Rules:
 - Include ALL work experience found
 - Include ALL projects found (personal, academic, or professional)
 - Extract technical AND soft skills
+- For application_details, include only facts directly stated in the document. Omit unknown fields and sections.
+- Never infer work authorization, sponsorship, consent, demographic answers, salary, or a current job from old experience.
 - Use empty arrays [] if section not found
 - Use empty strings "" for missing details
 - NO markdown, NO code fences, NO explanations`
@@ -520,6 +534,7 @@ Rules:
     }
 
     const obj = parsed as Record<string, unknown>
+    const applicationDetails = coerceImportedProfile(obj.application_details)
 
     const normalizeArray = (value: unknown): string[] =>
       Array.isArray(value) ? value.map((v) => String(v)).filter(Boolean) : []
@@ -571,6 +586,9 @@ Rules:
         : [],
       keywords: normalizeArray(obj.keywords),
       raw_highlights: normalizeArray(obj.raw_highlights),
+      ...(Object.keys(applicationDetails).length > 0
+        ? { application_details: applicationDetails }
+        : {}),
     }
 
     return normalized

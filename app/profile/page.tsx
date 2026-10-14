@@ -6,18 +6,31 @@ import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
 import { Calendar, Loader2, Edit2, Upload, BadgeCheck, FileSpreadsheet, ShieldAlert, Wand2 } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
-import { MiniBar } from "@/components/data/stat"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import { PromptModal } from "@/components/modals/prompt-modal"
 import { AlertModal } from "@/components/modals/alert-modal"
 import { ImportApplicationsModal } from "@/modules/applications/components/modals/import-applications-modal"
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/shared/ui/dialog"
+import {
   EMPTY_AUTOFILL_PROFILE,
-  countAutofillFields,
+  mergeImportedProfile,
   normalizeAutofillProfile,
   type AutofillProfile,
+  type ImportedProfile,
 } from "@/types/autofill"
+
+interface ImportDocumentOption {
+  id: string
+  file_name: string
+}
 
 interface Profile {
   id: string
@@ -69,6 +82,7 @@ function AutofillField({
 export default function ProfilePage() {
   const supabase = createClient()
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const importFileInputRef = useRef<HTMLInputElement>(null)
   const [user, setUser] = useState<SupabaseUser | null>(null)
   const [profile, setProfile] = useState<Profile | null>(null)
   const [name, setName] = useState("")
@@ -89,8 +103,18 @@ export default function ProfilePage() {
   // and read by the AI drafts and the browser extension.
   const [autofill, setAutofill] = useState<AutofillProfile>(EMPTY_AUTOFILL_PROFILE)
   const [savingAutofill, setSavingAutofill] = useState(false)
+  const [autofillDirty, setAutofillDirty] = useState(false)
   const [autofillError, setAutofillError] = useState<string | null>(null)
   const [autofillSuccess, setAutofillSuccess] = useState(false)
+  const [savedDocuments, setSavedDocuments] = useState<ImportDocumentOption[]>([])
+  const [documentsError, setDocumentsError] = useState(false)
+  const [documentsModalOpen, setDocumentsModalOpen] = useState(false)
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set())
+  const [applyingDocuments, setApplyingDocuments] = useState(false)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
+  const [importingAutofill, setImportingAutofill] = useState(false)
+  const [importError, setImportError] = useState<string | null>(null)
+  const [importNotice, setImportNotice] = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -127,6 +151,7 @@ export default function ProfilePage() {
           if (!next.contact.email.trim()) next.contact.email = p.email
           return next
         })
+        setAutofillDirty(false)
         // Priority: Google full_name > database name > metadata name
         const fullName =
           user.user_metadata?.full_name ||
@@ -135,6 +160,13 @@ export default function ProfilePage() {
           ""
         setName(fullName)
         setAvatarUrl(p.avatar_url || user.user_metadata?.avatar_url || "")
+
+        const documentsResponse = await fetch("/api/profile/autofill-from-documents")
+        if (!documentsResponse.ok) setDocumentsError(true)
+        else {
+          const documentsData = await documentsResponse.json()
+          setSavedDocuments(documentsData.documents ?? [])
+        }
       } catch (err) {
         console.error("Error loading profile:", err)
         setError("Unable to load your profile. Please try again.")
@@ -153,8 +185,6 @@ export default function ProfilePage() {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase())
       .join("") || "U"
-
-  const autofillProgress = countAutofillFields(autofill)
 
   const handleSave = async () => {
     if (!user || !profile) return
@@ -202,6 +232,7 @@ export default function ProfilePage() {
     value: string
   ) => {
     setAutofill((prev) => ({ ...prev, [group]: { ...prev[group], [key]: value } }))
+    setAutofillDirty(true)
     clearAutofillStatus()
   }
 
@@ -213,11 +244,13 @@ export default function ProfilePage() {
           ? { ...prev.eligibility, [key]: value }
           : { ...prev.eligibility, [key]: value === "" ? null : value === "true" },
     }))
+    setAutofillDirty(true)
     clearAutofillStatus()
   }
 
   const updateAutofillText = (key: "skills" | "certifications" | "languages", value: string) => {
     setAutofill((prev) => ({ ...prev, [key]: value }))
+    setAutofillDirty(true)
     clearAutofillStatus()
   }
 
@@ -240,6 +273,8 @@ export default function ProfilePage() {
         .from("users")
         .update(payload)
         .eq("id", user.id)
+        .select("id")
+        .single()
 
       if (updateError) throw updateError
 
@@ -248,12 +283,89 @@ export default function ProfilePage() {
         setName(full)
       }
       setAutofillSuccess(true)
+      setAutofillDirty(false)
+      setImportNotice(null)
       setTimeout(() => setAutofillSuccess(false), 2500)
     } catch (err) {
       console.error("Error saving autofill profile:", err)
-      setAutofillError("Failed to save your autofill details. Please try again.")
+      setAutofillError(
+        err && typeof err === "object" && "code" in err &&
+          (err.code === "42703" || err.code === "PGRST204")
+          ? "Application details storage is not available yet. Please contact support."
+          : "Failed to save your application details. Please try again."
+      )
     } finally {
       setSavingAutofill(false)
+    }
+  }
+
+  const handleImportAutofill = async () => {
+    if (!selectedFile) return
+    setImportingAutofill(true)
+    setImportError(null)
+    setImportNotice(null)
+    clearAutofillStatus()
+
+    try {
+      const formData = new FormData()
+      formData.append("file", selectedFile)
+      const response = await fetch("/api/extension/profile/import", {
+        method: "POST",
+        body: formData,
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) {
+        throw new Error(result?.error || "Could not extract details from this document.")
+      }
+      if (!result?.profile || typeof result.profile !== "object") {
+        throw new Error("The document did not contain usable application details.")
+      }
+
+      setAutofill((current) => mergeImportedProfile(current, result.profile as ImportedProfile).profile)
+      setAutofillDirty(true)
+      setImportNotice("Document read. Any blank details were filled; existing answers were kept. Review the details, then select Save below.")
+    } catch (err) {
+      console.error("Error importing application details:", err)
+      setImportError(err instanceof Error ? err.message : "Could not import this document.")
+    } finally {
+      setImportingAutofill(false)
+    }
+  }
+
+  const handleApplySavedDocuments = async () => {
+    if (selectedDocumentIds.size === 0 || autofillDirty) return
+    setApplyingDocuments(true)
+    setImportError(null)
+    setImportNotice(null)
+    try {
+      const documentIds = savedDocuments
+        .filter((document) => selectedDocumentIds.has(document.id))
+        .map((document) => document.id)
+      const response = await fetch("/api/profile/autofill-from-documents", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ documentIds }),
+      })
+      const result = await response.json().catch(() => null)
+      if (!response.ok) throw new Error(result?.error || "Could not update application details")
+      setAutofill(normalizeAutofillProfile(result.profile))
+      if (!profile?.name?.trim() && result.name) {
+        setProfile((current) => current ? { ...current, name: result.name } : current)
+        setName(result.name)
+      }
+      setAutofillDirty(false)
+      setImportNotice(
+        result.filledCount > 0
+          ? `${result.filledCount} blank detail${result.filledCount === 1 ? " was" : "s were"} added to your profile.`
+          : "Your profile already contains the details found in those documents."
+      )
+      setDocumentsModalOpen(false)
+      setSelectedDocumentIds(new Set())
+    } catch (error) {
+      console.error("Error applying saved document details:", error)
+      setImportError(error instanceof Error ? error.message : "Could not update application details")
+    } finally {
+      setApplyingDocuments(false)
     }
   }
 
@@ -473,60 +585,133 @@ export default function ProfilePage() {
           </div>
         </section>
 
-        {/* Autofill profile — the details a job application asks for, entered
-            once and reused by drafts and the browser extension. */}
+        {/* Application details — entered once and reused by drafts and the browser extension. */}
         <section className="overflow-hidden rounded-2xl border border-border/70 bg-card">
-          <div className="flex flex-col gap-4 border-b border-border/60 px-5 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="border-b border-border/60 px-5 py-4">
             <div className="flex items-start gap-3">
               <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg border border-primary/25 bg-primary/10 text-primary-strong dark:text-primary">
                 <Wand2 className="h-4 w-4" />
               </span>
               <div>
                 <h2 className="font-display text-[15px] font-bold tracking-tight text-foreground">
-                  Autofill profile
+                  Application details
                 </h2>
-                <p className="mt-0.5 max-w-xl text-xs text-muted-foreground">
-                  The details a job application asks for — name, contact, address and
-                  eligibility. Enter them once and drafts plus the browser extension
-                  fill the forms for you.
-                </p>
               </div>
-            </div>
-            <div className="flex shrink-0 items-center gap-4">
-              <div className="w-36">
-                <p className="flex items-center justify-between text-[11px] font-medium text-muted-foreground">
-                  <span>Completion</span>
-                  <span className="tabular-nums">
-                    {autofillProgress.filled}/{autofillProgress.total}
-                  </span>
-                </p>
-                <div className="mt-1.5">
-                  <MiniBar
-                    ratio={
-                      autofillProgress.total > 0
-                        ? autofillProgress.filled / autofillProgress.total
-                        : 0
-                    }
-                    tone="primary"
-                  />
-                </div>
-              </div>
-              <Button
-                className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
-                onClick={handleSaveAutofill}
-                disabled={savingAutofill}
-              >
-                {savingAutofill ? (
-                  <>
-                    <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
-                    Saving…
-                  </>
-                ) : (
-                  "Save autofill details"
-                )}
-              </Button>
             </div>
           </div>
+
+          <div className="border-b border-border/60 bg-muted/30 px-5 py-4">
+            <div className="mb-3 flex items-center gap-2">
+              <Upload className="h-4 w-4 text-primary-strong dark:text-primary" />
+              <h3 className="font-display text-[clamp(0.875rem,0.35vw+0.78rem,1rem)] font-semibold text-foreground">
+                Fill from a resume or document
+              </h3>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)]">
+              <div className="flex flex-col items-start justify-between gap-2">
+                <p className="text-xs font-medium text-muted-foreground">
+                  Use details already analyzed in your document library.
+                </p>
+                <Button
+                  variant="outline"
+                  className="h-10 rounded-lg"
+                  onClick={() => setDocumentsModalOpen(true)}
+                  disabled={savedDocuments.length === 0 || autofillDirty || applyingDocuments}
+                >
+                  Choose saved documents ({savedDocuments.length})
+                </Button>
+              </div>
+              <div className="min-w-0">
+                <label className="block text-xs font-medium text-muted-foreground">
+                  Or scan a new file
+                <input
+                  ref={importFileInputRef}
+                  type="file"
+                  accept=".pdf,.docx,.txt,.md,.json"
+                  onChange={(event) => {
+                    setSelectedFile(event.target.files?.[0] ?? null)
+                    setImportError(null)
+                  }}
+                  className="mt-1.5 block h-10 w-full rounded-lg border border-input bg-background text-sm text-foreground file:mr-3 file:h-full file:border-0 file:border-r file:border-border file:bg-muted file:px-3 file:text-xs file:font-medium file:text-foreground"
+                />
+                </label>
+                <Button
+                  variant="outline"
+                  className="mt-2 h-9 rounded-lg"
+                  onClick={handleImportAutofill}
+                  disabled={importingAutofill || savingAutofill || !selectedFile}
+                >
+                  {importingAutofill ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Wand2 className="mr-2 h-4 w-4" />}
+                  {importingAutofill ? "Reading…" : "Fill empty fields"}
+                </Button>
+              </div>
+            </div>
+            {documentsError ? (
+              <p className="mt-2 text-xs text-muted-foreground">Saved documents could not be loaded. You can still scan a file.</p>
+            ) : null}
+            {autofillDirty && savedDocuments.length > 0 ? (
+              <p className="mt-2 text-xs text-muted-foreground">Save your current edits before using saved documents.</p>
+            ) : null}
+            {importError ? <p role="alert" className="mt-2 text-xs text-destructive">{importError}</p> : null}
+            {importNotice ? <p role="status" className="mt-2 text-xs text-primary-strong dark:text-primary">{importNotice}</p> : null}
+          </div>
+
+          <Dialog open={documentsModalOpen} onOpenChange={(open) => {
+            if (!open && !applyingDocuments) {
+              setDocumentsModalOpen(false)
+              setImportError(null)
+            }
+          }}>
+            <DialogContent className="max-w-md rounded-2xl">
+              <DialogHeader>
+                <DialogTitle className="font-display text-[clamp(1.25rem,1vw+1rem,1.6rem)] tracking-[-0.04em]">
+                  Use saved documents
+                </DialogTitle>
+                <DialogDescription>
+                  Select one or more analyzed documents. Their details will fill blank profile fields and be saved immediately.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  className="text-xs font-medium text-primary-strong dark:text-primary"
+                  onClick={() => setSelectedDocumentIds(
+                    selectedDocumentIds.size === savedDocuments.length
+                      ? new Set()
+                      : new Set(savedDocuments.map((document) => document.id))
+                  )}
+                >
+                  {selectedDocumentIds.size === savedDocuments.length ? "Clear selection" : "Select all"}
+                </button>
+              </div>
+              <div className="max-h-64 space-y-1 overflow-y-auto rounded-xl border border-border/70 p-2">
+                {savedDocuments.map((document) => (
+                  <label key={document.id} className="flex cursor-pointer items-center gap-3 rounded-lg px-2 py-2 hover:bg-muted/60">
+                    <input
+                      type="checkbox"
+                      checked={selectedDocumentIds.has(document.id)}
+                      onChange={() => setSelectedDocumentIds((current) => {
+                        const next = new Set(current)
+                        if (next.has(document.id)) next.delete(document.id)
+                        else next.add(document.id)
+                        return next
+                      })}
+                      className="h-4 w-4 accent-primary"
+                    />
+                    <span className="min-w-0 truncate text-sm text-foreground">{document.file_name}</span>
+                  </label>
+                ))}
+              </div>
+              {importError ? <p role="alert" className="text-sm text-destructive">{importError}</p> : null}
+              <DialogFooter>
+                <Button onClick={handleApplySavedDocuments} disabled={selectedDocumentIds.size === 0 || applyingDocuments}>
+                  {applyingDocuments ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
+                  {applyingDocuments ? "Adding details…" : "Fill blank details"}
+                </Button>
+                <Button variant="outline" onClick={() => setDocumentsModalOpen(false)} disabled={applyingDocuments}>Cancel</Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           <div className="divide-y divide-border/50">
             <AutofillGroup title="Identity">
@@ -805,6 +990,36 @@ export default function ProfilePage() {
               </AutofillField>
             </AutofillGroup>
 
+            {(autofill.experience.length > 0 || autofill.educationHistory.length > 0) && (
+              <div className="px-5 py-4">
+                <p className="mb-3 text-[11px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/70">
+                  Work and education history
+                </p>
+                <div className="grid gap-4 sm:grid-cols-2">
+                  {autofill.experience.length > 0 && (
+                    <div>
+                      <p className="mb-1.5 text-xs font-medium text-foreground">Experience</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {autofill.experience.map((entry) => (
+                          <li key={entry.id}>{[entry.title, entry.company].filter(Boolean).join(" · ")}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {autofill.educationHistory.length > 0 && (
+                    <div>
+                      <p className="mb-1.5 text-xs font-medium text-foreground">Education</p>
+                      <ul className="space-y-1 text-xs text-muted-foreground">
+                        {autofill.educationHistory.map((entry) => (
+                          <li key={entry.id}>{[entry.degree, entry.school].filter(Boolean).join(" · ")}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
             <AutofillGroup title="Everything else" hint="Comma-separated where it helps.">
               <AutofillField label="Skills">
                 <Input
@@ -830,20 +1045,25 @@ export default function ProfilePage() {
             </AutofillGroup>
           </div>
 
-          {(autofillSuccess || autofillError) && (
-            <div
-              className={
-                "border-t px-5 py-3 text-xs " +
-                (autofillSuccess
-                  ? "border-primary/20 bg-primary/[0.06] text-primary-strong dark:text-primary"
-                  : "border-destructive/20 bg-destructive/[0.06] text-destructive")
-              }
+          <div className="flex flex-wrap items-center gap-3 border-t border-border/60 px-5 py-4">
+            <Button
+              className="h-9 rounded-lg bg-primary px-4 text-[13px] font-semibold text-primary-foreground shadow-[0_4px_14px_-4px_rgba(24,187,112,0.5)]"
+              onClick={handleSaveAutofill}
+              disabled={savingAutofill}
             >
-              {autofillSuccess
-                ? "Autofill details saved. New drafts and the extension will use them."
-                : autofillError}
-            </div>
-          )}
+              {savingAutofill ? (
+                <>
+                  <Loader2 className="mr-2 h-3.5 w-3.5 animate-spin" />
+                  Saving…
+                </>
+              ) : (
+                "Save"
+              )}
+            </Button>
+            {autofillSuccess ? <span className="text-xs text-primary-strong dark:text-primary">Saved.</span> : null}
+            {autofillError ? <span className="text-xs text-destructive">{autofillError}</span> : null}
+          </div>
+
         </section>
 
         {/* Data — import lives beside the account facts instead of in its own
