@@ -1,6 +1,6 @@
 "use client"
 
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useRef, useState } from "react"
 import { cn } from "@/shared/lib/utils"
 
 /**
@@ -14,6 +14,19 @@ import { cn } from "@/shared/lib/utils"
 
 const WEEKDAYS = ["Mon", "", "Wed", "", "Fri", "", "Sun"]
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
+const CELL_SIZE_PX = 13
+const CELL_GAP_PX = 3
+const GRID_CHROME_PX = 30
+const MAX_WEEKS = 52
+
+export function responsiveWeekCount(containerWidth: number, minimumWeeks: number): number {
+  const minimum = Math.max(1, Math.min(MAX_WEEKS, Math.floor(minimumWeeks)))
+  if (!Number.isFinite(containerWidth) || containerWidth <= GRID_CHROME_PX) return minimum
+
+  const availableWidth = containerWidth - GRID_CHROME_PX
+  const capacity = Math.floor((availableWidth + CELL_GAP_PX) / (CELL_SIZE_PX + CELL_GAP_PX))
+  return Math.max(minimum, Math.min(MAX_WEEKS, capacity))
+}
 
 interface Day {
   date: string // yyyy-mm-dd
@@ -71,13 +84,28 @@ export function ActivityHeatmap({
   subtitle,
 }: {
   data: Record<string, number> | Map<string, number>
+  /** Minimum history shown. Wider cards add weeks, up to one year, to fill the row. */
   weeks?: number
   title?: string
   subtitle?: string
 }) {
   const counts = useMemo(() => (data instanceof Map ? data : new Map(Object.entries(data))), [data])
-  const cols = useMemo(() => buildDays(counts, weeks), [counts, weeks])
+  const viewportRef = useRef<HTMLDivElement>(null)
+  const [visibleWeeks, setVisibleWeeks] = useState(() => responsiveWeekCount(0, weeks))
+  const cols = useMemo(() => buildDays(counts, visibleWeeks), [counts, visibleWeeks])
   const [hover, setHover] = useState<{ date: string; count: number } | null>(null)
+
+  useEffect(() => {
+    const viewport = viewportRef.current
+    if (!viewport || typeof ResizeObserver === "undefined") return
+
+    const observer = new ResizeObserver((entries) => {
+      const width = entries[0]?.contentRect.width ?? viewport.clientWidth
+      setVisibleWeeks(responsiveWeekCount(width, weeks))
+    })
+    observer.observe(viewport)
+    return () => observer.disconnect()
+  }, [weeks])
 
   const max = Math.max(0, ...counts.values())
   const total = counts.size ? [...counts.values()].reduce((a, b) => a + b, 0) : 0
@@ -109,7 +137,7 @@ export function ActivityHeatmap({
         </div>
       </div>
 
-      <div className="mt-5 overflow-x-auto pb-1">
+      <div ref={viewportRef} className="mt-5 w-full overflow-x-auto pb-1">
         <div className="inline-flex min-w-full gap-2">
           {/* weekday gutter */}
           <div className="flex flex-col justify-between pt-[18px]">
