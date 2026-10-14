@@ -67,10 +67,6 @@ export async function POST(req: NextRequest) {
         }
 
         const selectedTemplate = templateId ?? "modern"
-        const top = `${docSettings?.marginTopMm ?? 20}mm`
-        const right = `${docSettings?.marginRightMm ?? 20}mm`
-        const bottom = `${docSettings?.marginBottomMm ?? 20}mm`
-        const left = `${docSettings?.marginLeftMm ?? 20}mm`
         const densities: ResumeLayoutDensity[] = fitToOnePage || selectedTemplate === "ats"
             ? ["standard", "compact", "tight"]
             : ["standard"]
@@ -102,7 +98,7 @@ export async function POST(req: NextRequest) {
                 pdf = await page.pdf({
                     format: "A4",
                     printBackground: true,
-                    margin: { top, right, bottom, left },
+                    // @page is the single source of truth for editor margins.
                     preferCSSPageSize: true,
                 })
                 pageCount = (await PDFDocument.load(pdf)).getPageCount()

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { tiptapToDocxBuffer } from "@/lib/editor/docx-export"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
+import type { DocSettings } from "@/modules/applications/components/editor/types"
 import type { JSONContent } from "@tiptap/core"
 
 export const runtime = "nodejs"
@@ -20,16 +21,17 @@ export async function POST(req: NextRequest) {
         if (rateLimitResponse) return rateLimitResponse
 
         const body = await req.json()
-        const { contentJson, fileName } = body as {
+        const { contentJson, fileName, docSettings } = body as {
             contentJson?: JSONContent
             fileName?: string
+            docSettings?: DocSettings
         }
 
         if (!contentJson) {
             return new NextResponse("Missing contentJson", { status: 400 })
         }
 
-        const buffer = await tiptapToDocxBuffer(contentJson)
+        const buffer = await tiptapToDocxBuffer(contentJson, docSettings)
         const safeName = (fileName ?? "resume").replace(/\.[^.]+$/, "")
 
         return new NextResponse(buffer as unknown as BodyInit, {

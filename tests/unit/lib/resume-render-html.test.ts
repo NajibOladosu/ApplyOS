@@ -19,14 +19,16 @@ describe('ATS resume HTML rendering', () => {
       docSettings: {
         marginTopMm: 12,
         marginRightMm: 14,
-        marginBottomMm: 12,
-        marginLeftMm: 14,
+        marginBottomMm: 16,
+        marginLeftMm: 18,
       },
     })
 
     expect(html).toContain('<title>Amina Resume</title>')
     expect(html).toContain('font-family: Arial, Helvetica, sans-serif')
-    expect(html).toContain('margin: 12mm 14mm 12mm 14mm')
+    expect(html).toContain('margin: 12mm 14mm 16mm 18mm')
+    expect(html).toContain('.resume-page {\n    width: 100%;\n    margin: 0;')
+    expect(html).not.toContain('max-width: 170mm')
     expect(html).toContain('Amina Doe')
   })
 
