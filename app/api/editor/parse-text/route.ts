@@ -1,3 +1,4 @@
+import { AIConnectionError } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import type { GenerationConfig } from "@google/generative-ai"
 import type { JSONContent } from "@tiptap/core"
@@ -134,6 +135,7 @@ Rules:
 
         return NextResponse.json({ blocks })
     } catch (error) {
+      if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
         console.error("AI Parse Error:", error)
         return NextResponse.json({ blocks: fallbackBlocks }, { status: 200 })
     }

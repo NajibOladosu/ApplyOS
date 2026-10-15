@@ -22,7 +22,7 @@ type TaskComplexity = 'SIMPLE' | 'MEDIUM' | 'COMPLEX'
  */
 export const SPECIALIZED_MODELS = {
   /** Real-time bidirectional audio (Gemini Live WebSocket API). */
-  LIVE_AUDIO: 'models/gemini-2.5-flash-native-audio-preview-09-2025',
+  LIVE_AUDIO: 'models/gemini-3.8-live',
   /** One-shot audio transcription via inlineData. */
   AUDIO_TRANSCRIPTION: 'models/gemini-2.5-flash',
 } as const

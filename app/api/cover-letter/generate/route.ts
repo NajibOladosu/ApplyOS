@@ -1,3 +1,4 @@
+import { AIConnectionError, withAIUser } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
@@ -181,7 +182,7 @@ export async function POST(req: NextRequest) {
 
     try {
       console.log("Generating cover letter for application:", app.title)
-      const coverLetter = await generateCoverLetter(app.title, app.company || null, context)
+      const coverLetter = await withAIUser(user.id, () => generateCoverLetter(app.title, app.company || null, context))
       console.log("Generated cover letter, length:", coverLetter.length)
 
       // Save the cover letter to the database
@@ -203,6 +204,7 @@ export async function POST(req: NextRequest) {
         { status: 200 }
       )
     } catch (error) {
+      if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
       console.error("Error generating cover letter:", {
         applicationId,
         message: error instanceof Error ? error.message : String(error),
@@ -214,6 +216,7 @@ export async function POST(req: NextRequest) {
       )
     }
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error("Unexpected generate cover letter error:", error)
     return NextResponse.json(
       { error: "Unexpected error while generating cover letter" },

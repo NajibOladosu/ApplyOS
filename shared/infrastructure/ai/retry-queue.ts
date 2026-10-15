@@ -97,6 +97,7 @@ export class RetryQueueService {
           .select('*')
           .is('completed_at', null)
           .lte('scheduled_retry_time', now.toISOString())
+          .lt('attempt_count', 5)
           .order('scheduled_retry_time', { ascending: true })
           .limit(limit)
 
@@ -125,11 +126,17 @@ export class RetryQueueService {
     _maxAttempts: number = 5
   ): Promise<boolean> {
     try {
+      const { data: task, error: fetchError } = await this.supabase
+        .from('ai_retry_queue')
+        .select('attempt_count')
+        .eq('id', taskId)
+        .single()
+      if (fetchError || !task) return false
       const { error: updateError } = await this.supabase
         .from('ai_retry_queue')
         .update({
           scheduled_retry_time: nextRetryTime.toISOString(),
-          attempt_count: this.supabase.rpc('increment_attempt_count', { task_id: taskId }), // Will be replaced by increment in trigger or manual count
+          attempt_count: (task.attempt_count || 1) + 1,
           last_error: error || null,
           updated_at: new Date().toISOString(),
         })
@@ -219,6 +226,7 @@ export class RetryQueueService {
       const { error: updateError } = await this.supabase
         .from('ai_retry_queue')
         .update({
+          attempt_count: 5,
           last_error: error,
           updated_at: new Date().toISOString(),
         })

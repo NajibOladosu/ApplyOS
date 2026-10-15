@@ -6,6 +6,7 @@ import { Button } from '@/shared/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/shared/ui/card'
 import { Badge } from '@/shared/ui/badge'
 import { GeminiLiveClient } from '@/lib/gemini-live/client'
+import { OpenAILiveClient } from '@/lib/gemini-live/openai-client'
 import type { ConnectionState, ContentPart } from '@/lib/gemini-live/types'
 
 interface TestTurn {
@@ -25,7 +26,7 @@ export default function TestLivePage() {
 
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
   const [messages, setMessages] = useState<string[]>([])
-  const [client, setClient] = useState<GeminiLiveClient | null>(null)
+  const [client, setClient] = useState<GeminiLiveClient | OpenAILiveClient | null>(null)
   const [sessionId, setSessionId] = useState('')
   const [isRecording, setIsRecording] = useState(false)
   const [micPermission, setMicPermission] = useState<'granted' | 'denied' | 'prompt'>('prompt')
@@ -144,12 +145,13 @@ export default function TestLivePage() {
         throw new Error(error.error || 'Failed to initialize session')
       }
 
-      const { token, systemInstruction, model } = await response.json()
+      const { token, provider, systemInstruction, model } = await response.json()
       addMessage(`✅ Token received for model: ${model}`)
 
       // Create WebSocket client
-      const wsClient = new GeminiLiveClient(
-        { token, systemInstruction, model },
+      const LiveClient = provider === 'openai' ? OpenAILiveClient : GeminiLiveClient
+      const wsClient = new LiveClient(
+        { token, provider, systemInstruction, model },
         {
           onConnected: () => {
             addMessage('✅ WebSocket connected')

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/shared/db/supabase/server'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
 import RetryQueueService from '@/shared/infrastructure/ai/retry-queue'
 import { parseDocument } from '@/shared/infrastructure/ai'
+import { resolveAISource, withAIUser } from '@/shared/infrastructure/ai/connections'
 import { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
 import { isAuthorizedCronRequest } from '@/lib/security/cron-auth'
 
@@ -22,16 +23,18 @@ export const dynamic = 'force-dynamic'
 
 interface AIRetryTask {
   id: string
+  user_id: string
   task_type: string
   task_data: {
     documentId?: string
     extractedText?: string
     questionId?: string
+    textSource?: string
   }
 }
 
 async function retryParseDocument(
-  supabaseClient: Awaited<ReturnType<typeof createClient>>,
+  supabaseClient: SupabaseClient,
   task: AIRetryTask
 ): Promise<boolean> {
   try {
@@ -42,8 +45,17 @@ async function retryParseDocument(
       return false
     }
 
+    // A retry must use the billing source chosen when the task was queued.
+    // Older queue rows predate source selection and belong to ApplyOS Gemini.
+    const queuedSource = task.task_data.textSource ?? 'applyos'
+    const currentSource = (await resolveAISource('text', task.user_id)).source
+    if (currentSource !== queuedSource) {
+      await RetryQueueService.failTask(task.id, `AI source changed from ${queuedSource} to ${currentSource}; retry stopped.`)
+      return false
+    }
+
     // Retry the parse operation
-    const parsed = await parseDocument(extractedText)
+    const parsed = await withAIUser(task.user_id, () => parseDocument(extractedText))
 
     if (!parsed) {
       console.warn(`[Retry] Failed to parse document ${documentId}: empty result`)
@@ -59,6 +71,7 @@ async function retryParseDocument(
         parsed_at: new Date().toISOString(),
       })
       .eq('id', documentId)
+      .eq('user_id', task.user_id)
 
     if (updateError) {
       console.error(`[Retry] Failed to update document ${documentId}:`, updateError)
@@ -109,67 +122,14 @@ async function retryParseDocument(
   }
 }
 
-async function retryGenerateReport(
-  supabaseClient: Awaited<ReturnType<typeof createClient>>,
-  task: AIRetryTask
-): Promise<boolean> {
-  try {
-    const { documentId } = task.task_data
-
-    // Fetch the document to get its parsed data and extracted text
-    const { data: doc, error: fetchError } = await supabaseClient
-      .from('documents')
-      .select('parsed_data, extracted_text')
-      .eq('id', documentId)
-      .single()
-
-    if (fetchError || !doc) {
-      console.error(`[Retry] Failed to fetch document ${documentId}:`, fetchError)
-      return false
-    }
-
-    // Since generateDocumentReport is not exported yet, we'll mark this task as completed
-    // In a real scenario, we'd call the function here
-    console.log(`[Retry] Report generation retry for document ${documentId} not yet implemented`)
-
-    // For now, just mark as completed
-    await RetryQueueService.completeTask(task.id)
-    return true
-  } catch (error) {
-    console.error('[Retry] Error in retryGenerateReport:', error)
-    return false
-  }
+async function retryGenerateReport(task: AIRetryTask): Promise<boolean> {
+  await RetryQueueService.failTask(task.id, 'Report retry is unsupported; no AI request was made.')
+  return false
 }
 
-async function retryGenerateAnswer(
-  supabaseClient: Awaited<ReturnType<typeof createClient>>,
-  task: AIRetryTask
-): Promise<boolean> {
-  try {
-    const { questionId } = task.task_data
-
-    // Fetch the question and regenerate answer
-    const { data: question, error: fetchError } = await supabaseClient
-      .from('questions')
-      .select('question_text, application_id')
-      .eq('id', questionId)
-      .single()
-
-    if (fetchError || !question) {
-      console.error(`[Retry] Failed to fetch question ${questionId}:`, fetchError)
-      return false
-    }
-
-    // Answer generation retry would happen here
-    // For now, mark as completed
-    console.log(`[Retry] Answer generation retry for question ${questionId} not yet implemented`)
-    await RetryQueueService.completeTask(task.id)
-
-    return true
-  } catch (error) {
-    console.error('[Retry] Error in retryGenerateAnswer:', error)
-    return false
-  }
+async function retryGenerateAnswer(task: AIRetryTask): Promise<boolean> {
+  await RetryQueueService.failTask(task.id, 'Answer retry is unsupported; no AI request was made.')
+  return false
 }
 
 export async function POST(req: NextRequest) {
@@ -181,7 +141,14 @@ export async function POST(req: NextRequest) {
 
     console.log('[Cron] Starting AI task retry job')
 
-    const supabaseClient = await createClient()
+    const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    if (!serviceRoleKey || !supabaseUrl) {
+      return NextResponse.json({ error: 'AI retry service is not configured' }, { status: 503 })
+    }
+    const supabaseClient = createClient(supabaseUrl, serviceRoleKey, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    })
 
     // Get pending tasks
     const pendingTasks = await RetryQueueService.getPendingTasks(10)
@@ -209,10 +176,10 @@ export async function POST(req: NextRequest) {
             success = await retryParseDocument(supabaseClient, task)
             break
           case 'generate_report':
-            success = await retryGenerateReport(supabaseClient, task)
+            success = await retryGenerateReport(task)
             break
           case 'generate_answer':
-            success = await retryGenerateAnswer(supabaseClient, task)
+            success = await retryGenerateAnswer(task)
             break
           default:
             console.warn(`[Cron] Unknown task type: ${task.task_type}`)

@@ -3,7 +3,7 @@ import { createClient } from '@/shared/db/supabase/server'
 import { ConversationManager, generateIntroductionPrompt, generateQuestionPrompt, generateConclusionPrompt, shouldAskFollowUp } from '@/modules/interviews/services/conversation.service'
 import { getQuestionsForSession, getInterviewSession, updateInterviewSession, createQuestionsForSession } from '@/modules/interviews/services/interview.service'
 import { generateInterviewQuestions, callGeminiWithFallback } from '@/shared/infrastructure/ai'
-import { isGeminiConfigured } from '@/shared/infrastructure/ai/client'
+import { AIConnectionError, isAIConfigured } from '@/shared/infrastructure/ai/connections'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import { MAX_LENGTHS } from '@/lib/validation'
 import type { QuestionCategory, InterviewSession } from '@/types/database'
@@ -23,13 +23,6 @@ export const runtime = 'nodejs'
  * - userResponse?: string (required for 'respond' action)
  */
 export async function POST(request: NextRequest) {
-    if (!isGeminiConfigured()) {
-        return new Response(
-            JSON.stringify({ error: 'AI is not configured' }),
-            { status: 500, headers: { 'Content-Type': 'application/json' } }
-        )
-    }
-
     try {
         const supabase = await createClient()
         const {
@@ -41,6 +34,10 @@ export async function POST(request: NextRequest) {
                 JSON.stringify({ error: 'Unauthorized' }),
                 { status: 401, headers: { 'Content-Type': 'application/json' } }
             )
+        }
+
+        if (!(await isAIConfigured())) {
+            return Response.json({ error: 'AI is not configured' }, { status: 503 })
         }
 
         const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.ai, async () => user.id)
@@ -163,6 +160,7 @@ export async function POST(request: NextRequest) {
                 )
         }
     } catch (error) {
+        if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
         console.error('Error in conversation API:', error)
         return new Response(
             JSON.stringify({ error: 'Internal server error' }),

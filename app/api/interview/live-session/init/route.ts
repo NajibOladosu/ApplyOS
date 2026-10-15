@@ -6,6 +6,7 @@ import {
 } from '@/modules/interviews/services/interview.service'
 import { generateSystemInstruction } from '@/lib/gemini-live/system-prompts'
 import { SPECIALIZED_MODELS } from '@/shared/infrastructure/ai/model-manager'
+import { AIConnectionError, resolveAISource } from '@/shared/infrastructure/ai/connections'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 
 export const dynamic = 'force-dynamic'
@@ -37,15 +38,6 @@ export async function POST(request: NextRequest) {
   const startTime = Date.now()
 
   try {
-    // Verify Gemini Live API key is configured
-    if (!process.env.GEMINI_LIVE_API_KEY) {
-      console.error('GEMINI_LIVE_API_KEY not configured')
-      return NextResponse.json(
-        { error: 'Gemini Live API is not configured' },
-        { status: 500 }
-      )
-    }
-
     // Authenticate user
     const supabase = await createClient()
     const {
@@ -213,26 +205,57 @@ export async function POST(request: NextRequest) {
       },
     ]
 
-    // Model configuration (centralized in SPECIALIZED_MODELS)
-    const model = SPECIALIZED_MODELS.LIVE_AUDIO
+    const audio = await resolveAISource('audio', user.id)
+    const provider = audio.source === 'openai' ? 'openai' : 'gemini'
+    const model = audio.source === 'openai' ? 'gpt-realtime-mini'
+      : SPECIALIZED_MODELS.LIVE_AUDIO
+    let token: string
 
-    // SECURITY NOTE: The Gemini Live WebSocket API requires a key in the URL query string
-    // for the client-side WebSocket connection. The current `@google/generative-ai` SDK
-    // does not expose ephemeral token issuance for this use case.
-    //
-    // MITIGATIONS IN PLACE:
-    // - GEMINI_LIVE_API_KEY MUST be a SEPARATE key from GEMINI_API_KEY, restricted in
-    //   Google Cloud Console to only the "Generative Language API".
-    // - This endpoint requires authentication (above) — only signed-in users can fetch.
-    // - Rate-limited per user (RATE_LIMITS.ai) to bound abuse if a key leaks.
-    // - Add HTTP referrer restrictions in Google Cloud Console for this key.
-    //
-    // PLANNED MIGRATION (P1+): Switch to `@google/genai` SDK and use
-    // `auth_tokens.create` to mint short-lived (≤1h), per-session, single-use ephemeral
-    // tokens. Track in TODO_UPSTASH_UPGRADE.md or a follow-up issue.
-    const token = process.env.GEMINI_LIVE_API_KEY
-
-    console.log('Live session token prepared for model:', model)
+    if (provider === 'gemini') {
+      const apiKey = audio.source === 'gemini' ? audio.apiKey : process.env.GEMINI_LIVE_API_KEY
+      if (!apiKey) throw new AIConnectionError('ApplyOS voice is unavailable. Select another audio source in Settings.')
+      const response = await fetch('https://generativelanguage.googleapis.com/v1beta/auth_tokens', {
+        method: 'POST', signal: AbortSignal.timeout(15000),
+        headers: { 'x-goog-api-key': apiKey, 'content-type': 'application/json' },
+        body: JSON.stringify({
+          uses: 1,
+          expireTime: new Date(Date.now() + 30 * 60_000).toISOString(),
+          newSessionExpireTime: new Date(Date.now() + 60_000).toISOString(),
+        }),
+      })
+      if (!response.ok) throw new AIConnectionError(`Gemini voice connection failed (HTTP ${response.status}). Check its API billing in Settings.`)
+      const body = await response.json() as { name?: string }
+      if (!body.name) throw new AIConnectionError('Gemini did not issue a voice session credential.')
+      token = body.name
+    } else {
+      const response = await fetch('https://api.openai.com/v1/realtime/client_secrets', {
+        method: 'POST', signal: AbortSignal.timeout(15000),
+        headers: {
+          authorization: `Bearer ${audio.apiKey}`,
+          'content-type': 'application/json',
+          'OpenAI-Safety-Identifier': user.id,
+        },
+        body: JSON.stringify({
+          expires_after: { anchor: 'created_at', seconds: 60 },
+          session: {
+            type: 'realtime', model, instructions: systemInstruction,
+            output_modalities: ['audio'],
+            audio: {
+              input: { format: { type: 'audio/pcm', rate: 24000 }, transcription: { model: 'gpt-4o-mini-transcribe' } },
+              output: { format: { type: 'audio/pcm', rate: 24000 }, voice: 'alloy' },
+            },
+            tools: tools[0].functionDeclarations.map(declaration => ({
+              type: 'function', name: declaration.name,
+              description: declaration.description, parameters: declaration.parameters,
+            })),
+          },
+        }),
+      })
+      if (!response.ok) throw new AIConnectionError(`OpenAI voice connection failed (HTTP ${response.status}). Check its API billing in Settings.`)
+      const body = await response.json() as { value?: string }
+      if (!body.value) throw new AIConnectionError('OpenAI did not issue a voice session credential.')
+      token = body.value
+    }
 
     // Update session to mark conversation mode
     await supabase
@@ -250,6 +273,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       {
         token,
+        provider,
         sessionId,
         questions: questions.map((q) => ({
           id: q.id,
@@ -264,10 +288,10 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
-    console.error('Error initializing live session:', error)
+    console.error('Error initializing live session:', error instanceof AIConnectionError ? error.message : 'Unexpected error')
     return NextResponse.json(
-      { error: 'Internal server error' },
-      { status: 500 }
+      { error: error instanceof AIConnectionError ? error.message : 'Internal server error' },
+      { status: error instanceof AIConnectionError ? 503 : 500 }
     )
   }
 }
