@@ -10,6 +10,7 @@ import { Bell, Download, Key, Palette, Star, Loader2, Sun, Moon, Monitor, Chrome
 import { PageHeader } from "@/components/layout/page-header"
 import { cn } from "@/shared/lib/utils"
 import { ToggleSwitch } from "@/shared/ui/toggle-switch"
+import { AIConnectionsSettings } from "./ai-connections"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import {
@@ -341,6 +342,8 @@ export default function SettingsPage() {
             />
           </SettingsRow>
         </SettingsSection>
+
+        <AIConnectionsSettings />
 
         {/* Appearance */}
         <SettingsSection

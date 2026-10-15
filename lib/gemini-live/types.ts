@@ -5,6 +5,7 @@
 
 export interface LiveSessionConfig {
   token: string
+  provider?: 'gemini' | 'openai'
   model?: string
   systemInstruction?: string
   tools?: unknown[]

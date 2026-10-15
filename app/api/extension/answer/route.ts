@@ -5,6 +5,7 @@ import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
 import { validateString, MAX_LENGTHS } from "@/lib/validation"
 import { authenticateRequest } from "../_lib/auth"
 import { profileToBackground } from "../_lib/profile-context"
+import { withAIUser, AIConnectionError } from "@/shared/infrastructure/ai/connections"
 
 export const dynamic = "force-dynamic"
 
@@ -130,15 +131,15 @@ export async function POST(req: NextRequest) {
           }))
       : []
 
-    const answer = await generateAnswer(question, {
+    const answer = await withAIUser(user.id, () => generateAnswer(question, {
       resume: backgroundParts.join("\n\n") || undefined,
       jobDescription: jobDescription || application?.job_description || undefined,
       previousAnswers: priorAnswers,
-    })
+    }))
 
     return NextResponse.json({ answer })
   } catch (error) {
     console.error("Extension answer route error:", error)
-    return NextResponse.json({ error: "Failed to generate answer" }, { status: 500 })
+    return NextResponse.json({ error: error instanceof AIConnectionError ? error.message : "Failed to generate answer" }, { status: error instanceof AIConnectionError ? 503 : 500 })
   }
 }

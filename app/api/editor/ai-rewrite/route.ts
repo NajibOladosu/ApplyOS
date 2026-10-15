@@ -1,3 +1,4 @@
+import { AIConnectionError } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
@@ -70,6 +71,7 @@ export async function POST(req: NextRequest) {
 
         return NextResponse.json({ rewritten: rewritten.trim() })
     } catch (error) {
+      if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
         console.error("AI Rewrite Error:", error)
         return new NextResponse("Internal Server Error", { status: 500 })
     }

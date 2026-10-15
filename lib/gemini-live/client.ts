@@ -18,7 +18,8 @@ export class GeminiLiveClient {
   private config: LiveSessionConfig
   private connectionState: ConnectionState = 'disconnected'
   private reconnectAttempts = 0
-  private maxReconnectAttempts = 3
+  // Live credentials are single-use. A new connection must request a new token.
+  private maxReconnectAttempts = 0
   private reconnectDelay = 2000 // Start with 2 seconds
   private intentionalDisconnect = false // Flag to prevent reconnection after intentional disconnect
   private heartbeatInterval: NodeJS.Timeout | null = null
@@ -74,7 +75,7 @@ export class GeminiLiveClient {
     return new Promise((resolve, reject) => {
       try {
         // Gemini Live API WebSocket endpoint
-        const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1alpha.GenerativeService.BidiGenerateContent?key=${this.config.token}`
+        const wsUrl = `wss://generativelanguage.googleapis.com/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContentConstrained?access_token=${encodeURIComponent(this.config.token)}`
 
 
         this.ws = new WebSocket(wsUrl)
