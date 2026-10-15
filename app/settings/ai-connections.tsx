@@ -2,7 +2,8 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import styles from './ai-connections.module.css'
+import { Button } from '@/shared/ui/button'
+import { Input } from '@/shared/ui/input'
 
 type Provider = 'claude' | 'openai' | 'gemini'
 type Settings = {
@@ -11,16 +12,19 @@ type Settings = {
   connections: { provider: Provider; testedAt: string }[]
 }
 
-const providers: { id: Provider; label: string }[] = [
-  { id: 'claude', label: 'Claude API' },
-  { id: 'openai', label: 'OpenAI API' },
-  { id: 'gemini', label: 'Gemini API' },
+const providers: { id: Provider; label: string; help: string }[] = [
+  { id: 'claude', label: 'Claude', help: 'Max and Team members can claim monthly API credits for a linked Claude Console organization.' },
+  { id: 'openai', label: 'OpenAI', help: 'This uses OpenAI API billing. ChatGPT plan sign-in requires ApplyOS partner approval.' },
+  { id: 'gemini', label: 'Gemini', help: 'This uses Gemini API billing, separate from a Gemini app subscription.' },
 ]
+
+const selectClass = 'h-9 rounded-lg border border-border/80 bg-card px-3 text-[13px] text-foreground'
 
 export function AIConnectionsSettings() {
   const [settings, setSettings] = useState<Settings | null>(null)
   const [keys, setKeys] = useState<Record<Provider, string>>({ claude: '', openai: '', gemini: '' })
-  const [busy, setBusy] = useState<string | null>(null)
+  const [editing, setEditing] = useState<Provider | null>(null)
+  const [busy, setBusy] = useState(false)
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
 
   useEffect(() => {
@@ -33,8 +37,8 @@ export function AIConnectionsSettings() {
       .catch(() => setMessage({ text: 'Could not load AI connections. Refresh this page to try again.', error: true }))
   }, [])
 
-  async function mutate(path: string, method: string, body: Record<string, unknown>, label: string) {
-    setBusy(label)
+  async function mutate(path: string, method: string, body: Record<string, unknown>, success: string): Promise<boolean> {
+    setBusy(true)
     setMessage(null)
     try {
       const response = await fetch(path, {
@@ -43,79 +47,101 @@ export function AIConnectionsSettings() {
       const result = await response.json()
       if (!response.ok) throw new Error(result.error || 'The request failed.')
       if (result.textSource) setSettings(result as Settings)
-      if (method === 'POST' && path === '/api/ai/connections') {
-        setKeys(previous => ({ ...previous, [body.provider as Provider]: '' }))
-      }
-      setMessage({ text: `${label} succeeded.`, error: false })
+      setMessage({ text: success, error: false })
+      return true
     } catch (error) {
-      setMessage({ text: error instanceof Error ? error.message : `${label} failed.`, error: true })
+      setMessage({ text: error instanceof Error ? error.message : 'The request failed.', error: true })
+      return false
     } finally {
-      setBusy(null)
+      setBusy(false)
     }
   }
 
-  const textConnected = settings?.textSource === 'applyos' || settings?.connections.some(connection => connection.provider === settings?.textSource)
-  const audioConnected = settings?.audioSource === 'applyos' || settings?.connections.some(connection => connection.provider === settings?.audioSource)
+  async function connect(provider: Provider) {
+    if (!keys[provider].trim()) return
+    const saved = await mutate('/api/ai/connections', 'POST', { provider, apiKey: keys[provider] }, `${provider} connected.`)
+    if (saved) {
+      setKeys(previous => ({ ...previous, [provider]: '' }))
+      setEditing(null)
+    }
+  }
+
+  const connected = (provider: Provider) => settings?.connections.some(connection => connection.provider === provider)
+  const textMissing = settings && settings.textSource !== 'applyos' && !connected(settings.textSource)
+  const audioMissing = settings && settings.audioSource !== 'applyos' && !connected(settings.audioSource)
 
   return (
-    <section className={styles.panel} aria-labelledby="ai-connections-title">
-      <div className={styles.hero}>
+    <div className="divide-y divide-border/50">
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
         <div>
-          <p className={styles.eyebrow}>AI routing / Your account</p>
-          <h2 className={styles.title} id="ai-connections-title">Choose who powers your work.</h2>
-          <p className={styles.intro}>Use ApplyOS Gemini or connect your own provider API account. Text and voice can have different sources.</p>
+          <label htmlFor="ai-text-source" className="text-[13.5px] font-medium text-foreground">Text source</label>
+          <p className="mt-0.5 text-xs text-muted-foreground">Documents, writing and questions</p>
+          {textMissing ? <p role="alert" className="mt-1 text-xs text-destructive">Selected connection is missing. Reconnect it or choose another source.</p> : null}
         </div>
-        <div className={styles.routeMark} aria-hidden="true">ApplyOS <span /> Your source</div>
+        <select id="ai-text-source" className={selectClass} value={settings?.textSource ?? 'applyos'} disabled={!settings || busy}
+          onChange={event => void mutate('/api/ai/connections/select', 'PATCH', { kind: 'text', source: event.target.value }, 'Text source updated.')}>
+          <option value="applyos">ApplyOS Gemini</option>
+          {providers.map(provider => <option key={provider.id} value={provider.id} disabled={!connected(provider.id) || (provider.id === 'claude' && settings?.audioSource === 'applyos')}>{provider.label} API</option>)}
+        </select>
       </div>
 
-      <div className={styles.body}>
-        <div className={styles.sources}>
-          <div className={styles.field}>
-            <label htmlFor="ai-text-source">Text, documents and writing</label>
-            <select id="ai-text-source" value={settings?.textSource ?? 'applyos'} disabled={!settings || !!busy}
-              onChange={event => void mutate('/api/ai/connections/select', 'PATCH', { kind: 'text', source: event.target.value }, 'Text source update')}>
-              <option value="applyos">ApplyOS Gemini</option>
-              {providers.map(provider => <option key={provider.id} value={provider.id} disabled={!settings?.connections.some(connection => connection.provider === provider.id) || (provider.id === 'claude' && settings?.audioSource === 'applyos')}>{provider.label}</option>)}
-            </select>
-            <p className={styles.status}>Claude text requires your own Gemini or OpenAI voice source.</p>
-            {settings && !textConnected ? <p role="alert" className={styles.status}>Selected connection is missing. Reconnect it to resume text AI.</p> : null}
-          </div>
-          <div className={styles.field}>
-            <label htmlFor="ai-audio-source">Voice and transcription</label>
-            <select id="ai-audio-source" value={settings?.audioSource ?? 'applyos'} disabled={!settings || !!busy}
-              onChange={event => void mutate('/api/ai/connections/select', 'PATCH', { kind: 'audio', source: event.target.value }, 'Audio source update')}>
-              <option value="applyos">ApplyOS Gemini</option>
-              {providers.filter(provider => provider.id !== 'claude').map(provider => <option key={provider.id} value={provider.id} disabled={!settings?.connections.some(connection => connection.provider === provider.id)}>{provider.label}</option>)}
-            </select>
-            {settings && !audioConnected ? <p role="alert" className={styles.status}>Selected connection is missing. Reconnect it to resume voice AI.</p> : null}
-          </div>
-          <p className={styles.payer}><strong>Who pays</strong>{settings ? <>{settings.textSource === 'applyos' ? 'ApplyOS pays for text AI.' : `Your ${settings.textSource} API account pays for text AI.`} {settings.audioSource === 'applyos' ? 'ApplyOS pays for voice AI.' : `Your ${settings.audioSource} API account pays for voice AI.`} API use may incur provider charges; consumer subscriptions do not cover this connection.</> : 'Source details are unavailable until connections load.'}</p>
+      <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
+        <div>
+          <label htmlFor="ai-audio-source" className="text-[13.5px] font-medium text-foreground">Voice source</label>
+          <p className="mt-0.5 text-xs text-muted-foreground">Interviews and transcription. Claude text needs your own Gemini or OpenAI voice source.</p>
+          {audioMissing ? <p role="alert" className="mt-1 text-xs text-destructive">Selected connection is missing. Reconnect it or choose another source.</p> : null}
         </div>
+        <select id="ai-audio-source" className={selectClass} value={settings?.audioSource ?? 'applyos'} disabled={!settings || busy}
+          onChange={event => void mutate('/api/ai/connections/select', 'PATCH', { kind: 'audio', source: event.target.value }, 'Voice source updated.')}>
+          <option value="applyos">ApplyOS Gemini</option>
+          {providers.filter(provider => provider.id !== 'claude').map(provider => <option key={provider.id} value={provider.id} disabled={!connected(provider.id)}>{provider.label} API</option>)}
+        </select>
+      </div>
 
-        <div className={styles.connections}>
-          <h3>Connections</h3>
-          {providers.map(provider => {
-            const connected = settings?.connections.find(connection => connection.provider === provider.id)
-            return <div className={styles.provider} key={provider.id}>
-              <div className={styles.providerHead}><span className={styles.providerName}>{provider.label}</span><span className={styles.status}>{connected ? 'Connected · API key saved' : 'Not connected'}</span></div>
-              <div className={styles.keyRow}>
-                <input className={styles.keyInput} type="password" autoComplete="off" aria-label={`${provider.label} API key`} placeholder={connected ? 'Replace API key' : 'Paste API key'} value={keys[provider.id]}
-                  onChange={event => setKeys(previous => ({ ...previous, [provider.id]: event.target.value }))} />
-                <button className={styles.action} disabled={!settings || !!busy || !keys[provider.id].trim()} onClick={() => void mutate('/api/ai/connections', 'POST', { provider: provider.id, apiKey: keys[provider.id] }, `${provider.label} connection`)}>Connect</button>
-              </div>
-              {connected ? <div>
-                <button className={styles.providerAction} disabled={!!busy} onClick={() => void mutate('/api/ai/connections/test', 'POST', { provider: provider.id }, `${provider.label} test`)}>Test connection</button>
-                <button className={styles.providerAction} disabled={!!busy} onClick={() => void mutate('/api/ai/connections', 'DELETE', { provider: provider.id }, `${provider.label} disconnect`)}>Disconnect</button>
-              </div> : null}
+      {providers.map(provider => {
+        const isConnected = connected(provider.id)
+        return <div key={provider.id} className="px-5 py-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-[13.5px] font-medium text-foreground">{provider.label}</p>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {isConnected ? 'Connected · API key saved' : 'Not connected'}
+                {provider.id === 'claude' ? ' · Max/Team API credits eligible' : ''}
+              </p>
             </div>
-          })}
+            <Button variant="outline" size="sm" disabled={!settings || busy}
+              onClick={() => setEditing(current => current === provider.id ? null : provider.id)}>
+              {isConnected ? 'Manage' : 'Connect'}
+            </Button>
+          </div>
+          {editing === provider.id ? <div className="mt-3 space-y-2 rounded-lg bg-muted/40 p-3">
+            <p className="text-xs text-muted-foreground">{provider.help}</p>
+            {provider.id === 'claude' ? <a className="inline-block text-xs text-primary-strong underline underline-offset-2" href="https://support.claude.com/en/articles/17154008-monthly-api-credits-for-max-and-team-plans" target="_blank" rel="noopener noreferrer">How to claim Claude API credits</a> : null}
+            <div className="flex flex-wrap gap-2">
+              <Input type="password" autoComplete="off" aria-label={`${provider.label} API key`}
+                placeholder={isConnected ? 'Replace API key' : 'Paste API key'} value={keys[provider.id]}
+                onChange={event => setKeys(previous => ({ ...previous, [provider.id]: event.target.value }))}
+                className="h-9 min-w-48 flex-1 text-[13px]" />
+              <Button size="sm" disabled={busy || !keys[provider.id].trim()} onClick={() => void connect(provider.id)}>Save key</Button>
+            </div>
+            {isConnected ? <div className="flex flex-wrap gap-2">
+              <Button variant="outline" size="sm" disabled={busy}
+                onClick={() => void mutate('/api/ai/connections/test', 'POST', { provider: provider.id }, `${provider.label} connection works.`)}>Test</Button>
+              <Button variant="outline" size="sm" disabled={busy}
+                onClick={() => void mutate('/api/ai/connections', 'DELETE', { provider: provider.id }, `${provider.label} disconnected.`)}>Disconnect</Button>
+            </div> : null}
+          </div> : null}
         </div>
-      </div>
-      <div className={styles.foot}>
-        {message ? <p className={`${styles.message} ${message.error ? styles.error : styles.success}`} role="status">{message.text}</p> : null}
+      })}
+
+      <div className="space-y-2 px-5 py-3.5 text-xs leading-relaxed text-muted-foreground">
+        {message ? <p role="status" className={message.error ? 'text-destructive' : 'text-primary-strong'}>{message.text}</p> : null}
+        <p><span className="font-medium text-foreground">Who pays:</span> {settings
+          ? `${settings.textSource === 'applyos' ? 'ApplyOS pays for text AI' : `Your ${settings.textSource} API account pays for text AI`}; ${settings.audioSource === 'applyos' ? 'ApplyOS pays for voice AI' : `your ${settings.audioSource} API account pays for voice AI`}.`
+          : 'Source details will appear when connections load.'} Claude Max and Team API credits may cover eligible Claude API use when claimed and linked in Claude Console.</p>
         <p>Your ApplyOS activity will not appear in your provider’s chat history. ApplyOS saves the results needed for your applications and interviews; the provider may retain API data under its policies.</p>
-        <p>Manage your saved applications and interviews in ApplyOS. <Link href="/profile">Account deletion controls</Link> are in Profile.</p>
+        <p><Link href="/profile" className="underline underline-offset-2">Account deletion controls</Link> are in Profile.</p>
       </div>
-    </section>
+    </div>
   )
 }
