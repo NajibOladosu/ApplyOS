@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest'
 const rows = vi.hoisted(() => ({
   preferences: new Map<string, Record<string, string>>(),
   connections: new Map<string, Record<string, string>>(),
+  failures: new Map<string, { code: string }>(),
 }))
 
 vi.mock('server-only', () => ({}))
@@ -18,7 +19,7 @@ function from(table: string) {
     eq(column: string, value: string) { filters[column] = value; return query },
     async maybeSingle() {
       const key = table === 'user_ai_preferences' ? filters.user_id : `${filters.user_id}:${filters.provider}`
-      return { data: (table === 'user_ai_preferences' ? rows.preferences : rows.connections).get(key) ?? null, error: null }
+      return { data: (table === 'user_ai_preferences' ? rows.preferences : rows.connections).get(key) ?? null, error: rows.failures.get(table) ?? null }
     },
     async upsert(row: Record<string, string>) {
       const key = table === 'user_ai_preferences' ? row.user_id : `${row.user_id}:${row.provider}`
@@ -33,7 +34,7 @@ function from(table: string) {
         }
         resolve({ error: null })
       } else {
-        resolve({ data: [...data.values()].filter(row => Object.entries(filters).every(([column, value]) => row[column] === value)), error: null })
+        resolve({ data: [...data.values()].filter(row => Object.entries(filters).every(([column, value]) => row[column] === value)), error: rows.failures.get(table) ?? null })
       }
     },
   }
@@ -45,12 +46,18 @@ import { deleteUserAIData, getAISettings, removeAIConnection, resolveAISource, s
 beforeEach(() => {
   rows.preferences.clear()
   rows.connections.clear()
+  rows.failures.clear()
   process.env.NEXT_PUBLIC_SUPABASE_URL = 'https://example.supabase.co'
   process.env.SUPABASE_SERVICE_ROLE_KEY = 'server-only-test-key'
   process.env.AI_CONNECTION_ENCRYPTION_KEY = Buffer.alloc(32, 7).toString('base64')
 })
 
 describe('saved AI connections', () => {
+  it('reports an incomplete deployment when the connection tables are missing', async () => {
+    rows.failures.set('user_ai_preferences', { code: 'PGRST205' })
+    await expect(getAISettings('user-1')).rejects.toThrow('not set up for this deployment')
+  })
+
   it('keeps credentials encrypted and returns only connection metadata', async () => {
     await saveAIConnection('user-1', 'claude', 'sk-private-user-key')
     expect(rows.connections.get('user-1:claude')?.encrypted_key).not.toContain('sk-private-user-key')

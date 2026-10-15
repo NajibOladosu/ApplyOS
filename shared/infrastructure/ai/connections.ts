@@ -70,7 +70,13 @@ export async function getAISettings(userId: string) {
     client.from('user_ai_preferences').select('text_source,audio_source').eq('user_id', userId).maybeSingle(),
     client.from('user_ai_connections').select('provider,tested_at').eq('user_id', userId),
   ])
-  if (prefs.error || connections.error) throw new AIConnectionError('Could not load AI connections. Please try again.')
+  const loadError = prefs.error ?? connections.error
+  if (loadError) {
+    if (['42P01', 'PGRST205'].includes(loadError.code)) {
+      throw new AIConnectionError('AI connections are not set up for this deployment. Contact support.')
+    }
+    throw new AIConnectionError('Could not load AI connections. Please try again.')
+  }
   return {
     textSource: (prefs.data?.text_source ?? 'applyos') as TextSource,
     audioSource: (prefs.data?.audio_source ?? 'applyos') as AudioSource,

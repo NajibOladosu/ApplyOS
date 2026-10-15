@@ -25,17 +25,24 @@ export function AIConnectionsSettings() {
   const [keys, setKeys] = useState<Record<Provider, string>>({ claude: '', openai: '', gemini: '' })
   const [editing, setEditing] = useState<Provider | null>(null)
   const [busy, setBusy] = useState(false)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [reloadCount, setReloadCount] = useState(0)
   const [message, setMessage] = useState<{ text: string; error: boolean } | null>(null)
 
   useEffect(() => {
+    let active = true
+    setLoadError(null)
     fetch('/api/ai/connections', { cache: 'no-store' })
       .then(async response => {
-        const body = await response.json()
-        if (!response.ok) throw new Error(body.error)
-        setSettings(body)
+        const body = await response.json().catch(() => null)
+        if (!response.ok) throw new Error(body?.error || 'Could not load API connections. Please try again.')
+        if (active) setSettings(body)
       })
-      .catch(() => setMessage({ text: 'Could not load AI connections. Refresh this page to try again.', error: true }))
-  }, [])
+      .catch(error => {
+        if (active) setLoadError(error instanceof Error ? error.message : 'Could not load API connections. Please try again.')
+      })
+    return () => { active = false }
+  }, [reloadCount])
 
   async function mutate(path: string, method: string, body: Record<string, unknown>, success: string): Promise<boolean> {
     setBusy(true)
@@ -72,6 +79,10 @@ export function AIConnectionsSettings() {
 
   return (
     <div className="divide-y divide-border/50">
+      {loadError ? <div role="alert" className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5 text-xs text-destructive">
+        <span>{loadError}</span>
+        <Button variant="outline" size="sm" onClick={() => setReloadCount(count => count + 1)}>Retry</Button>
+      </div> : null}
       <div className="flex flex-wrap items-center justify-between gap-3 px-5 py-3.5">
         <div>
           <label htmlFor="ai-text-source" className="text-[13.5px] font-medium text-foreground">Text source</label>
