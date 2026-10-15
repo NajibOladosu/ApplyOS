@@ -14,7 +14,7 @@ type Settings = {
 
 const providers: { id: Provider; label: string; help: string }[] = [
   { id: 'claude', label: 'Claude', help: 'Max and Team members can claim monthly API credits for a linked Claude Console organization.' },
-  { id: 'openai', label: 'OpenAI', help: 'This uses OpenAI API billing. ChatGPT plan sign-in requires ApplyOS partner approval.' },
+  { id: 'openai', label: 'OpenAI', help: 'This key uses OpenAI API billing, separate from your ChatGPT plan.' },
   { id: 'gemini', label: 'Gemini', help: 'This uses Gemini API billing, separate from a Gemini app subscription.' },
 ]
 
