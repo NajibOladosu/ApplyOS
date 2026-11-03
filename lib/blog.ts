@@ -12,6 +12,7 @@ export interface BlogPost {
     author: {
         name: string
         avatar?: string
+        url?: string
     }
     tags?: string[]
     content: string
@@ -26,6 +27,7 @@ export interface BlogPostFrontmatter {
     author: {
         name: string
         avatar?: string
+        url?: string
     }
     tags?: string[]
 }

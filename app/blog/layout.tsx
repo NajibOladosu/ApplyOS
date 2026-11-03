@@ -36,10 +36,10 @@ export default function BlogLayout({
                 <div className="container mx-auto px-6 h-16 flex items-center justify-between">
                     <Link href={blogBase} className="flex items-center space-x-2">
                         <Image src="/ApplyOS%20Logo.webp" alt="ApplyOS" width={1073} height={1000} className="h-8 w-auto" />
-                        <span className="font-display text-xl font-bold tracking-tight">
+                        <span className="inline-flex items-center whitespace-nowrap font-display text-[clamp(1rem,1.5vw,1.25rem)] font-bold tracking-tight">
                             <span className="text-primary-strong dark:text-primary">Apply</span>
                             <span className="text-foreground">OS</span>
-                            <span className="ml-2 rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground">
+                            <span className="ml-2 hidden rounded-full bg-muted px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.1em] text-muted-foreground sm:inline-flex">
                                 Blog
                             </span>
                         </span>
@@ -48,9 +48,10 @@ export default function BlogLayout({
                     <div className="flex items-center space-x-4">
                         <Link
                             href={`${appUrl}/`}
-                            className="text-sm text-muted-foreground transition-colors hover:text-foreground"
+                            className="whitespace-nowrap text-sm text-muted-foreground transition-colors hover:text-foreground"
                         >
-                            ← Back to ApplyOS
+                            <span className="sm:hidden">← ApplyOS</span>
+                            <span className="hidden sm:inline">← Back to ApplyOS</span>
                         </Link>
                         <Link
                             href={`${appUrl}/auth/signup`}

@@ -23,6 +23,7 @@ date: 2026-01-15
 coverImage: /a.jpg
 author:
   name: Test
+  url: https://example.com/author
 tags:
   - x
 ---
@@ -76,6 +77,7 @@ describe('getPostBySlug', () => {
     const post = await getPostBySlug('sample')
     expect(post?.slug).toBe('sample')
     expect(post?.title).toBe('Sample Post')
+    expect(post?.author.url).toBe('https://example.com/author')
   })
 })
 
