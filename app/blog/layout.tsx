@@ -2,7 +2,7 @@ import Image from "next/image"
 import Link from "next/link"
 import { Metadata } from "next"
 import { BlogSettingsButton } from "@/components/blog-settings-button"
-import { getMainAppUrl } from "@/lib/blog"
+import { getMainAppUrl, usesBlogSubdomain } from "@/lib/blog"
 
 export const metadata: Metadata = {
     title: {
@@ -28,7 +28,7 @@ export default function BlogLayout({
     const appUrl = getMainAppUrl()
     // Blog's own base path: "/" on the blog subdomain in production,
     // "/blog" when served from the single dev/preview origin.
-    const blogBase = process.env.NODE_ENV === "production" ? "/" : "/blog"
+    const blogBase = usesBlogSubdomain() ? "/" : "/blog"
     return (
         <div className="min-h-screen bg-background">
             {/* Blog Navigation */}

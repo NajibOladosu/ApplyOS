@@ -120,8 +120,12 @@ export async function getAllPostSlugs(): Promise<string[]> {
  * from a single origin, so an empty string keeps links relative (which is what
  * makes them work behind the preview proxy).
  */
+export function usesBlogSubdomain(): boolean {
+  return process.env.NODE_ENV === 'production' && process.env.VERCEL_ENV !== 'preview'
+}
+
 export function getMainAppUrl(): string {
-  if (process.env.NODE_ENV === "production") {
+  if (usesBlogSubdomain()) {
     const appUrl = process.env.NEXT_PUBLIC_APP_URL || "https://applyos.io"
     return appUrl.replace(/\/$/, "")
   }

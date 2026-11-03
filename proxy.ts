@@ -119,7 +119,7 @@ export async function proxy(request: NextRequest) {
   // This is a 301 Permanent Redirect, good for SEO.
   // In development the app is served from a single host, so /blog is
   // served internally (the blog subdomain does not exist there).
-  if (isProd && !isBlogSubdomain && pathname.startsWith('/blog')) {
+  if (isProd && process.env.VERCEL_ENV !== 'preview' && !isBlogSubdomain && pathname.startsWith('/blog')) {
     const newPath = pathname.replace(/^\/blog/, '') || '/'
     return NextResponse.redirect(new URL(newPath, 'https://blog.applyos.io'), 301)
   }

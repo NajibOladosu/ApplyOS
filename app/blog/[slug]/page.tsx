@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Metadata } from "next"
-import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime, getMainAppUrl } from "@/lib/blog"
+import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime, getMainAppUrl, usesBlogSubdomain } from "@/lib/blog"
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { ArrowLeft, Calendar, Clock, Share2, Twitter, Linkedin } from "lucide-react"
 import { Button } from "@/shared/ui/button"
@@ -79,7 +79,7 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
     const appUrl = getMainAppUrl()
     // Blog home: "/" on the blog subdomain in production, "/blog" in dev/preview.
-    const blogBase = process.env.NODE_ENV === "production" ? "/" : "/blog"
+    const blogBase = usesBlogSubdomain() ? "/" : "/blog"
     const shareUrl = `https://blog.applyos.io/${slug}`
     const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}`
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
