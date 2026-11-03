@@ -1,4 +1,4 @@
-import { describe, expect, it, vi, beforeEach } from 'vitest'
+import { describe, expect, it, vi, beforeEach, afterEach } from 'vitest'
 
 vi.mock('fs', async () => {
   const actual = await vi.importActual<typeof import('fs')>('fs')
@@ -14,7 +14,7 @@ vi.mock('fs', async () => {
 })
 
 import fs from 'fs'
-import { getAllPosts, getPostBySlug, getAllPostSlugs, formatDate, getReadingTime } from '@/lib/blog'
+import { getAllPosts, getPostBySlug, getAllPostSlugs, formatDate, getReadingTime, getMainAppUrl, usesBlogSubdomain } from '@/lib/blog'
 
 const SAMPLE_MDX = `---
 title: Sample Post
@@ -23,6 +23,7 @@ date: 2026-01-15
 coverImage: /a.jpg
 author:
   name: Test
+  url: https://example.com/author
 tags:
   - x
 ---
@@ -45,7 +46,10 @@ content
 
 beforeEach(() => {
   vi.resetAllMocks()
+  vi.unstubAllEnvs()
 })
+
+afterEach(() => vi.unstubAllEnvs())
 
 describe('getAllPosts', () => {
   it('returns empty array when content dir missing', async () => {
@@ -76,6 +80,7 @@ describe('getPostBySlug', () => {
     const post = await getPostBySlug('sample')
     expect(post?.slug).toBe('sample')
     expect(post?.title).toBe('Sample Post')
+    expect(post?.author.url).toBe('https://example.com/author')
   })
 })
 
@@ -105,5 +110,28 @@ describe('getReadingTime', () => {
   it('returns higher count for long content', () => {
     const longContent = Array(500).fill('word').join(' ')
     expect(getReadingTime(longContent)).toBe('3 min read')
+  })
+})
+
+describe('blog links across deployment environments', () => {
+  it('keeps preview links on the preview rather than redirecting to production', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('VERCEL_ENV', 'preview')
+    expect(usesBlogSubdomain()).toBe(false)
+    expect(getMainAppUrl()).toBe('')
+  })
+
+  it('uses the configured app origin in a production deployment', () => {
+    vi.stubEnv('NODE_ENV', 'production')
+    vi.stubEnv('VERCEL_ENV', 'production')
+    vi.stubEnv('NEXT_PUBLIC_APP_URL', 'https://www.applyos.io/')
+    expect(usesBlogSubdomain()).toBe(true)
+    expect(getMainAppUrl()).toBe('https://www.applyos.io')
+  })
+
+  it('keeps development routes relative', () => {
+    vi.stubEnv('NODE_ENV', 'development')
+    expect(usesBlogSubdomain()).toBe(false)
+    expect(getMainAppUrl()).toBe('')
   })
 })

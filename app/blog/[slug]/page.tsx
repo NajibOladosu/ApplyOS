@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation"
 import Link from "next/link"
 import { Metadata } from "next"
-import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime, getMainAppUrl } from "@/lib/blog"
+import { getPostBySlug, getAllPostSlugs, formatDate, getReadingTime, getMainAppUrl, usesBlogSubdomain } from "@/lib/blog"
 import { MDXRemote } from 'next-mdx-remote/rsc'
 import { ArrowLeft, Calendar, Clock, Share2, Twitter, Linkedin } from "lucide-react"
 import { Button } from "@/shared/ui/button"
@@ -28,8 +28,9 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
     }
 
     return {
-        title: `${post.title} | ApplyOS Blog`,
+        title: post.title,
         description: post.excerpt,
+        authors: [{ name: post.author.name, ...(post.author.url ? { url: post.author.url } : {}) }],
         alternates: {
             canonical: `https://blog.applyos.io/${slug}`,
         },
@@ -41,13 +42,13 @@ export async function generateMetadata({ params }: BlogPostPageProps): Promise<M
             siteName: "ApplyOS Blog",
             publishedTime: post.date,
             authors: [post.author.name],
-            images: post.coverImage ? [{ url: post.coverImage }] : [],
+            images: post.coverImage ? [{ url: new URL(post.coverImage, 'https://blog.applyos.io').href }] : [],
         },
         twitter: {
             card: "summary_large_image",
             title: post.title,
             description: post.excerpt,
-            images: post.coverImage ? [post.coverImage] : [],
+            images: post.coverImage ? [new URL(post.coverImage, 'https://blog.applyos.io').href] : [],
         },
     }
 }
@@ -78,13 +79,29 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
 
     const appUrl = getMainAppUrl()
     // Blog home: "/" on the blog subdomain in production, "/blog" in dev/preview.
-    const blogBase = process.env.NODE_ENV === "production" ? "/" : "/blog"
+    const blogBase = usesBlogSubdomain() ? "/" : "/blog"
     const shareUrl = `https://blog.applyos.io/${slug}`
     const twitterShareUrl = `https://twitter.com/intent/tweet?text=${encodeURIComponent(post.title)}&url=${encodeURIComponent(shareUrl)}`
     const linkedinShareUrl = `https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(shareUrl)}`
+    const articleSchema = {
+        '@context': 'https://schema.org',
+        '@type': 'BlogPosting',
+        headline: post.title,
+        description: post.excerpt,
+        datePublished: post.date,
+        mainEntityOfPage: shareUrl,
+        ...(post.coverImage ? { image: new URL(post.coverImage, 'https://blog.applyos.io').href } : {}),
+        author: {
+            '@type': post.author.name === 'ApplyOS Team' ? 'Organization' : 'Person',
+            name: post.author.name,
+            ...(post.author.url ? { url: post.author.url } : {}),
+        },
+        publisher: { '@type': 'Organization', name: 'ApplyOS', url: 'https://www.applyos.io' },
+    }
 
     return (
         <article className="container mx-auto px-6 max-w-3xl">
+            <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleSchema).replace(/</g, '\\u003c') }} />
             {/* Back Link */}
             <Link
                 href={blogBase}
@@ -126,7 +143,9 @@ export default async function BlogPostPage({ params }: BlogPostPageProps) {
                                 {post.author.name.charAt(0)}
                             </span>
                         </div>
-                        <span>{post.author.name}</span>
+                        {post.author.url ? (
+                            <a href={post.author.url} rel="author" className="underline underline-offset-4">{post.author.name}</a>
+                        ) : <span>{post.author.name}</span>}
                     </div>
                     <span className="flex items-center gap-1">
                         <Calendar className="h-4 w-4" />

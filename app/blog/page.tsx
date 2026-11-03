@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { getAllPosts, formatDate, getReadingTime, getMainAppUrl } from "@/lib/blog"
+import { getAllPosts, formatDate, getReadingTime, getMainAppUrl, usesBlogSubdomain } from "@/lib/blog"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
 import { ArrowRight, Clock, Calendar } from "lucide-react"
@@ -8,7 +8,7 @@ export default async function BlogHomePage() {
     const posts = await getAllPosts()
     const appUrl = getMainAppUrl()
     // Post href prefix: "" on the blog subdomain in production, "/blog" in dev/preview.
-    const postBase = process.env.NODE_ENV === "production" ? "" : "/blog"
+    const postBase = usesBlogSubdomain() ? "" : "/blog"
 
     return (
         <div className="container mx-auto px-6">
