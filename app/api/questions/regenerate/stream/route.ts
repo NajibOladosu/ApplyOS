@@ -2,6 +2,7 @@ import { NextRequest } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { createClient as createSupabaseClient } from "@supabase/supabase-js"
 import { generateAnswer } from "@/shared/infrastructure/ai"
+import { withAIUser, AIConnectionError } from "@/shared/infrastructure/ai/connections"
 import {
   getAnalyzedDocuments,
   buildContextFromDocument,
@@ -129,10 +130,10 @@ export async function POST(req: NextRequest) {
       const answeredPairs: { question: string; answer: string }[] = []
       for (const q of questionList) {
         try {
-          const answer = await generateAnswer(q.question_text, {
+          const answer = await withAIUser(user.id, () => generateAnswer(q.question_text, {
             ...context,
             previousAnswers: answeredPairs,
-          })
+          }))
           const { data: saved, error: updateError } = await supabase
             .from("questions")
             .update({ ai_answer: answer })
@@ -146,6 +147,10 @@ export async function POST(req: NextRequest) {
           answeredPairs.push({ question: q.question_text, answer })
           controller.enqueue(encoder.encode(sseEvent("answer", saved)))
         } catch (err) {
+          if (err instanceof AIConnectionError) {
+            controller.enqueue(encoder.encode(sseEvent('error', { questionId: q.id, message: err.message })))
+            break
+          }
           controller.enqueue(
             encoder.encode(
               sseEvent("error", {

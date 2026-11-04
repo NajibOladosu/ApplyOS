@@ -1,6 +1,14 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 import { parseDocument, generateAnswer } from '@/shared/infrastructure/ai'
 import { retry } from '@/tests/helpers/retry'
+
+// This suite checks the real ApplyOS Gemini path without an HTTP user session.
+// Connection storage and user-owned routing are covered separately in unit tests.
+vi.mock('@/shared/infrastructure/ai/connections', () => ({
+  AIConnectionError: class AIConnectionError extends Error {},
+  isAIConfigured: async () => true,
+  resolveAISource: async () => ({ source: 'applyos', apiKey: null }),
+}))
 
 describe('AI integration (real Gemini)', () => {
   it('parses a simple resume into structured data', async () => {

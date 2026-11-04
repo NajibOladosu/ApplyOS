@@ -1,3 +1,4 @@
+import { AIConnectionError, withAIUser } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
@@ -200,10 +201,10 @@ export async function POST(req: NextRequest) {
         const priorAnswers = questionList
           .filter((q) => q.id !== target.id && q.ai_answer)
           .map((q) => ({ question: q.question_text, answer: q.ai_answer as string }))
-        const answer = await generateAnswer(target.question_text, {
+        const answer = await withAIUser(user.id, () => generateAnswer(target.question_text, {
           ...context,
           previousAnswers: priorAnswers,
-        })
+        }))
         console.log("Generated answer, length:", answer.length)
         const { data: saved, error: updateError } = await supabase
           .from("questions")
@@ -218,6 +219,7 @@ export async function POST(req: NextRequest) {
         console.log("Question updated:", saved.id)
         updatedQuestions.push(saved)
       } catch (error) {
+        if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
         console.error("Error regenerating single answer:", {
           questionId,
           message: error instanceof Error ? error.message : String(error),
@@ -236,10 +238,10 @@ export async function POST(req: NextRequest) {
       for (const q of questionList) {
         try {
           console.log("Generating answer for question:", q.id)
-          const answer = await generateAnswer(q.question_text, {
+          const answer = await withAIUser(user.id, () => generateAnswer(q.question_text, {
             ...context,
             previousAnswers: answeredPairs,
-          })
+          }))
           console.log("Generated answer, length:", answer.length)
           const { data: saved, error: updateError } = await supabase
             .from("questions")
@@ -255,6 +257,7 @@ export async function POST(req: NextRequest) {
           updatedQuestions.push(saved)
           answeredPairs.push({ question: q.question_text, answer })
         } catch (error) {
+          if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
           console.error("Error regenerating answer for question:", q.id, {
             message: error instanceof Error ? error.message : String(error),
             error
@@ -279,6 +282,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error("Unexpected regenerate error:", error)
     return NextResponse.json(
       { error: "Unexpected error while regenerating answers" },

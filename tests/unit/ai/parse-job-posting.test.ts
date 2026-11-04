@@ -2,6 +2,12 @@ import { describe, expect, it, vi, beforeEach } from 'vitest'
 
 const mockGenerateContent = vi.fn()
 
+vi.mock('@/shared/infrastructure/ai/connections', () => ({
+  AIConnectionError: class AIConnectionError extends Error {},
+  isAIConfigured: vi.fn(async () => true),
+  resolveAISource: vi.fn(async () => ({ source: 'applyos', apiKey: null })),
+}))
+
 vi.mock('@/shared/infrastructure/ai/client', () => ({
   isGeminiConfigured: () => true,
   getGenerativeModel: vi.fn(() => ({ generateContent: mockGenerateContent })),

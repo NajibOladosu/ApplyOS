@@ -1,3 +1,4 @@
+import { AIConnectionError } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
 import { createClient } from "@/shared/db/supabase/server"
@@ -111,6 +112,8 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(data)
 
     } catch (e) {
+
+      if (e instanceof AIConnectionError) return Response.json({ error: e.message }, { status: 503 })
         console.error('Compatibility check error:', e)
         return NextResponse.json({ error: 'Internal Server Error' }, { status: 500 })
     }

@@ -1,3 +1,4 @@
+import { AIConnectionError } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { evaluateInterviewAnswer } from '@/shared/infrastructure/ai'
@@ -126,6 +127,7 @@ export async function POST(request: NextRequest) {
       { status: 201 }
     )
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error('Error submitting interview answer:', error)
     return NextResponse.json(
       { error: 'Failed to submit answer' },
