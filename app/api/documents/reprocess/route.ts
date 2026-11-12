@@ -1,3 +1,4 @@
+import { AIConnectionError, isAIConfigured } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/shared/db/supabase/server"
 import { parseDocument } from "@/shared/infrastructure/ai"
@@ -135,7 +136,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!(await isAIConfigured())) {
       return NextResponse.json(
         {
           error:
@@ -368,6 +369,7 @@ export async function POST(request: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error("Unexpected error in /api/documents/reprocess:", error)
     return NextResponse.json(
       {

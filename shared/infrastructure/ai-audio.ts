@@ -7,6 +7,8 @@
 import 'server-only'
 import { SPECIALIZED_MODELS } from '@/shared/infrastructure/ai/model-manager'
 import { getGeminiClient } from '@/shared/infrastructure/ai/client'
+import { AIConnectionError, resolveAISource } from '@/shared/infrastructure/ai/connections'
+import { GoogleGenerativeAI } from '@google/generative-ai'
 import {
   AI_WRITING_STYLE_INSTRUCTION,
   sanitizeAIGeneratedText,
@@ -46,11 +48,31 @@ export async function transcribeAudio(
   audioBase64: string,
   config: AudioTranscriptionConfig
 ): Promise<TranscriptionResult> {
+  let userOwnedAudio = false
   try {
+    const selected = await resolveAISource('audio')
+    userOwnedAudio = selected.source !== 'applyos'
+    if (selected.source === 'openai') {
+      const form = new FormData()
+      const mime = config.mimeType.split(';')[0]
+      const extension = mime === 'audio/webm' ? 'webm' : mime === 'audio/mp4' ? 'mp4' : 'wav'
+      form.append('file', new Blob([Buffer.from(audioBase64, 'base64')], { type: mime }), `interview.${extension}`)
+      form.append('model', 'gpt-4o-mini-transcribe')
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+        method: 'POST', headers: { authorization: `Bearer ${selected.apiKey}` },
+        body: form, signal: AbortSignal.timeout(60000),
+      })
+      if (!response.ok) throw new AIConnectionError(`OpenAI audio connection failed (HTTP ${response.status}). Check its API billing in Settings.`)
+      const body = await response.json() as { text?: string }
+      if (!body.text) throw new AIConnectionError('OpenAI returned no transcription. Check the audio connection in Settings.')
+      return { text: body.text, confidence: estimateConfidence(body.text), timestamp: Date.now() }
+    }
     // Audio transcription requires a multimodal model — kept centralized in SPECIALIZED_MODELS
     // because the text-only fallback chain in ModelManager cannot accept inlineData parts.
-    const model = requireClient().getGenerativeModel({
-      model: SPECIALIZED_MODELS.AUDIO_TRANSCRIPTION
+    const client = selected.source === 'gemini'
+      ? new GoogleGenerativeAI(selected.apiKey!) : requireClient()
+    const model = client.getGenerativeModel({
+      model: selected.source === 'gemini' ? 'gemini-3.8-flash' : SPECIALIZED_MODELS.AUDIO_TRANSCRIPTION
     })
 
     const prompt = 'Transcribe this audio accurately. Return only the transcribed text, no additional commentary.'
@@ -75,6 +97,11 @@ export async function transcribeAudio(
     }
 
   } catch (error) {
+    if (error instanceof AIConnectionError) throw error
+    if (userOwnedAudio) {
+      console.error('User-owned audio connection failed')
+      throw new AIConnectionError('Your audio connection failed. Check its API key and billing in Settings.')
+    }
     console.error('Gemini transcription error:', error)
 
     if (error instanceof Error) {
@@ -94,6 +121,7 @@ export interface AudioDialogSession {
   sessionId: string
   chat: unknown // Gemini chat session
   conversationHistory: ConversationTurn[]
+  userOwned: boolean
 }
 
 export interface ConversationTurn {
@@ -108,8 +136,16 @@ export interface ConversationTurn {
 export async function createAudioDialogSession(
   systemPrompt: string
 ): Promise<AudioDialogSession> {
+  let userOwnedAudio = false
   try {
-    const model = requireClient().getGenerativeModel({
+    const selected = await resolveAISource('audio')
+    userOwnedAudio = selected.source !== 'applyos'
+    if (selected.source === 'openai') {
+      throw new AIConnectionError('This audio dialog requires Gemini. Use the OpenAI live interview connection instead.')
+    }
+    const client = selected.source === 'gemini'
+      ? new GoogleGenerativeAI(selected.apiKey!) : requireClient()
+    const model = client.getGenerativeModel({
       model: SPECIALIZED_MODELS.AUDIO_TRANSCRIPTION,
       generationConfig: {
         temperature: 0.7,
@@ -126,11 +162,14 @@ export async function createAudioDialogSession(
     return {
       sessionId: generateSessionId(),
       chat,
-      conversationHistory: []
+      conversationHistory: [],
+      userOwned: userOwnedAudio,
     }
 
   } catch (error) {
-    console.error('Failed to create audio dialog session:', error)
+    console.error('Failed to create audio dialog session')
+    if (error instanceof AIConnectionError) throw error
+    if (userOwnedAudio) throw new AIConnectionError('Your audio connection failed. Check its API key and billing in Settings.')
     throw error
   }
 }
@@ -171,6 +210,7 @@ export async function sendAudioToDialog(
     }
 
   } catch (error) {
+    if (session.userOwned) throw new AIConnectionError('Your audio connection failed. Check its API key and billing in Settings.')
     console.error('Audio dialog error:', error)
     throw error
   }
@@ -311,7 +351,7 @@ export async function transcribeAudioWithRetry(
       console.warn(`Transcription attempt ${attempt + 1} failed:`, lastError.message)
 
       // Don't retry on validation errors
-      if (error instanceof AudioProcessingError && error.code === 'INVALID_AUDIO') {
+      if (error instanceof AIConnectionError || (error instanceof AudioProcessingError && error.code === 'INVALID_AUDIO')) {
         throw error
       }
 

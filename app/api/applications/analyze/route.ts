@@ -1,3 +1,4 @@
+import { AIConnectionError, withAIUser } from '@/shared/infrastructure/ai/connections'
 import { createClient } from '@/shared/db/supabase/server'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { NextRequest, NextResponse } from 'next/server'
@@ -161,7 +162,7 @@ export async function POST(req: NextRequest) {
         }
 
         try {
-            const analysis = await analyzeResumeMatch(resumeText, application.job_description)
+            const analysis = await withAIUser(user.id, () => analyzeResumeMatch(resumeText, application.job_description))
             const completedAt = new Date().toISOString()
 
             const { error: updateError } = await supabase
@@ -209,6 +210,7 @@ export async function POST(req: NextRequest) {
             throw analysisError
         }
     } catch (error) {
+      if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
         console.error('Error in Job Fit analysis:', error)
         const message = error instanceof Error && error.message.includes('AI is not configured')
             ? error.message

@@ -1,3 +1,4 @@
+import { AIConnectionError, isAIConfigured } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { parseJobPosting } from '@/shared/infrastructure/ai'
@@ -7,7 +8,6 @@ import { isPublicHttpUrl } from '@/lib/security/url-validator'
 import { htmlToText } from '@/lib/parsing/html-to-text'
 import { MAX_LENGTHS } from '@/lib/validation'
 
-const aiConfigured = !!process.env.GEMINI_API_KEY
 
 export const dynamic = 'force-dynamic'
 
@@ -23,13 +23,6 @@ export async function POST(request: NextRequest) {
 
     const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.ai, async () => user.id)
     if (rateLimitResponse) return rateLimitResponse
-
-    if (!aiConfigured) {
-      return NextResponse.json(
-        { error: 'AI service not configured. Please add a Gemini API key.' },
-        { status: 503 }
-      )
-    }
 
     const body = await request.json().catch(() => ({}))
     const url = typeof body.url === 'string' ? body.url.trim() : ''
@@ -131,10 +124,18 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (!(await isAIConfigured())) {
+      return NextResponse.json(
+        { error: 'AI parsing is unavailable. Check your AI source in Settings.' },
+        { status: 503 }
+      )
+    }
+
     try {
       const job = await parseJobPosting(sourceText)
       return NextResponse.json(job, { status: 200 })
     } catch (error) {
+      if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
       if (error instanceof AIRateLimitError) {
         const retryAfter = Math.max(1, Math.ceil((error.nextAvailableTime - Date.now()) / 1000))
         return NextResponse.json(
@@ -149,6 +150,7 @@ export async function POST(request: NextRequest) {
       )
     }
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error('Apply kit parse unexpected error:', error)
     return NextResponse.json({ error: 'Unexpected error.' }, { status: 500 })
   }

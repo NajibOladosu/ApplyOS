@@ -1,3 +1,4 @@
+import { AIConnectionError, isAIConfigured } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import { createClient as createSupabaseServerClient } from "@/shared/db/supabase/server"
 import { generateDocumentReport } from "@/shared/infrastructure/ai"
@@ -112,7 +113,7 @@ export async function POST(
       )
     }
 
-    if (!process.env.GEMINI_API_KEY) {
+    if (!(await isAIConfigured())) {
       return NextResponse.json(
         {
           error:
@@ -194,6 +195,7 @@ export async function POST(
       { status: 200 }
     )
   } catch (err) {
+    if (err instanceof AIConnectionError) return Response.json({ error: err.message }, { status: 503 })
     console.error("Error generating document report:", err)
     return NextResponse.json(
       { error: "Internal server error while generating report" },
