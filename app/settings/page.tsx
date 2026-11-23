@@ -3,13 +3,13 @@
 import { useEffect, useState } from "react"
 import { useTheme } from "next-themes"
 import { DashboardLayout } from "@/components/layout/dashboard-layout"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/shared/ui/card"
 import { Button } from "@/shared/ui/button"
 import { Input } from "@/shared/ui/input"
-import { Bell, Download, Key, Palette, Star, Loader2, Sun, Moon, Monitor, Chrome } from "lucide-react"
+import { Bell, Download, Key, Palette, Star, Loader2, Sun, Moon, Monitor, Chrome, Plug, MessageCircle } from "lucide-react"
 import { PageHeader } from "@/components/layout/page-header"
 import { cn } from "@/shared/lib/utils"
 import { ToggleSwitch } from "@/shared/ui/toggle-switch"
+import { AIConnectionsSettings } from "./ai-connections"
 import { createClient } from "@/shared/db/supabase/client"
 import type { User as SupabaseUser } from "@supabase/supabase-js"
 import {
@@ -340,6 +340,27 @@ export default function SettingsPage() {
               onChange={(checked) => setAiSettings({ auto_generate_answers: checked })}
             />
           </SettingsRow>
+        </SettingsSection>
+
+        <SettingsSection
+          icon={<MessageCircle className="h-4 w-4" />}
+          title="ChatGPT integration"
+          description="Use an eligible ChatGPT plan for ApplyOS AI requests."
+        >
+          <SettingsRow
+            label="ChatGPT plan"
+            hint="ApplyOS needs OpenAI partner access before you can connect a ChatGPT account."
+          >
+            <span className="text-xs font-medium text-muted-foreground">Awaiting access</span>
+          </SettingsRow>
+        </SettingsSection>
+
+        <SettingsSection
+          icon={<Plug className="h-4 w-4" />}
+          title="API keys"
+          description="Connect Claude, OpenAI, or Gemini with your own API key."
+        >
+          <AIConnectionsSettings />
         </SettingsSection>
 
         {/* Appearance */}

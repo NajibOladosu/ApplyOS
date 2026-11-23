@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { transcribeAudioWithRetry, validateAudioData, AudioProcessingError } from '@/shared/infrastructure/ai-audio'
+import { AIConnectionError } from '@/shared/infrastructure/ai/connections'
 import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import {
   MAX_AUDIO_CHUNKS,
@@ -137,8 +138,8 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('[Transcribe] Unexpected error:', error)
     return NextResponse.json(
-      { error: 'Failed to transcribe audio' },
-      { status: 500 }
+      { error: error instanceof AIConnectionError ? error.message : 'Failed to transcribe audio' },
+      { status: error instanceof AIConnectionError ? 503 : 500 }
     )
   }
 }

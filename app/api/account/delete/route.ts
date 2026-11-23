@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/shared/db/supabase/server";
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit";
+import { deleteUserAIData } from "@/shared/infrastructure/ai/connections";
 
 /**
  * Secure account deletion endpoint.
@@ -57,6 +58,13 @@ export async function POST(request: NextRequest) {
 
     const rateLimitResponse = await rateLimitMiddleware(request, RATE_LIMITS.auth, async () => userId);
     if (rateLimitResponse) return rateLimitResponse;
+
+    try {
+      await deleteUserAIData(userId);
+    } catch (error) {
+      console.error("Could not remove saved AI credentials during account deletion:", error);
+      return NextResponse.json({ error: "Failed to remove AI connections" }, { status: 500 });
+    }
 
     // Step 1: Delete from public.users; cascades will remove related data
     console.log(`3️⃣  Deleting user profile and related data...`);

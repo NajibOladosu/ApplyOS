@@ -18,7 +18,7 @@ function buildCsp(nonce: string, isProd: boolean): string {
     "style-src 'self' 'unsafe-inline'",
     "img-src 'self' data: blob: https://hvmaerptxgeldviarcuj.supabase.co",
     "font-src 'self' data:",
-    "connect-src 'self' https://hvmaerptxgeldviarcuj.supabase.co https://*.supabase.co https://generativelanguage.googleapis.com wss://hvmaerptxgeldviarcuj.supabase.co wss://generativelanguage.googleapis.com",
+    "connect-src 'self' https://hvmaerptxgeldviarcuj.supabase.co https://*.supabase.co https://generativelanguage.googleapis.com wss://hvmaerptxgeldviarcuj.supabase.co wss://generativelanguage.googleapis.com wss://api.openai.com",
     "form-action 'self'",
     "frame-ancestors 'none'",
     "base-uri 'self'",

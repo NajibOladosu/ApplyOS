@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { callGeminiWithFallback } from "@/shared/infrastructure/ai"
+import { withAIUser, AIConnectionError } from "@/shared/infrastructure/ai/connections"
 import { extractTextFromPDF } from "@/modules/documents/lib/pdf-utils"
 import { extractTextFromDOCX } from "@/modules/documents/lib/docx-utils"
 import { rateLimitMiddleware, RATE_LIMITS } from "@/lib/middleware/rate-limit"
@@ -145,9 +146,9 @@ export async function POST(req: NextRequest) {
       resumeText = resumeText.slice(0, MAX_LENGTHS.extractedText)
     }
 
-    const response = await callGeminiWithFallback(buildImportPrompt(resumeText), "COMPLEX", {
+    const response = await withAIUser(user.id, () => callGeminiWithFallback(buildImportPrompt(resumeText), "COMPLEX", {
       writingStyle: "preserve-source",
-    })
+    }))
     const parsed = extractJsonObject(response)
     if (!parsed) {
       return NextResponse.json(
@@ -167,6 +168,7 @@ export async function POST(req: NextRequest) {
 
     return NextResponse.json({ profile })
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error("Extension profile import error:", error)
     return NextResponse.json(
       { error: "Failed to import the resume" },

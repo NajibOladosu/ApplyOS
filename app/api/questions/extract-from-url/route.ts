@@ -1,3 +1,4 @@
+import { AIConnectionError, isAIConfigured } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { callGeminiWithFallback } from '@/shared/infrastructure/ai'
@@ -6,7 +7,6 @@ import { rateLimitMiddleware, RATE_LIMITS } from '@/lib/middleware/rate-limit'
 import { isPublicHttpUrl } from '@/lib/security/url-validator'
 import { htmlToText } from '@/lib/parsing/html-to-text'
 
-const aiConfigured = !!process.env.GEMINI_API_KEY
 
 export const dynamic = 'force-dynamic'
 
@@ -45,17 +45,6 @@ export async function POST(request: NextRequest) {
     )
     if (rateLimitResponse) return rateLimitResponse
 
-    // Check if Gemini AI is configured
-    if (!aiConfigured) {
-      return NextResponse.json(
-        {
-          error: 'AI service not configured. Please add Gemini API key to enable question extraction.',
-          questions: [],
-        },
-        { status: 200 }
-      )
-    }
-
     // Parse request body
     const body = await request.json()
     const { url } = body
@@ -92,6 +81,13 @@ export async function POST(request: NextRequest) {
       hostnameLower.endsWith('.localhost')
     ) {
       return NextResponse.json({ error: 'Invalid URL: blocked host' }, { status: 400 })
+    }
+
+    if (!(await isAIConfigured())) {
+      return NextResponse.json(
+        { error: 'AI question extraction is unavailable. Check your AI source in Settings.', questions: [] },
+        { status: 503 }
+      )
     }
 
     // Fetch the URL content
@@ -277,6 +273,7 @@ Extract ALL the open-ended questions found on this page:`
         questions: validQuestions,
       })
     } catch (error) {
+      if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
       if (error instanceof AIRateLimitError) {
         const retryAfter = Math.max(1, Math.ceil((error.nextAvailableTime - Date.now()) / 1000))
         return NextResponse.json(
@@ -294,6 +291,7 @@ Extract ALL the open-ended questions found on this page:`
       )
     }
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error('Unexpected error in extract-from-url:', error)
     return NextResponse.json(
       { error: 'Internal server error' },

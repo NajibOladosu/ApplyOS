@@ -3,7 +3,9 @@ import type { DocumentReport } from '@/types/database'
 import type { ImportedProfile } from '@/types/autofill'
 import { coerceImportedProfile } from '@/app/api/extension/_lib/profile-import'
 import ModelManager, { AIRateLimitError } from '@/shared/infrastructure/ai/model-manager'
-import { getGenerativeModel, isGeminiConfigured } from '@/shared/infrastructure/ai/client'
+import { getGenerativeModel } from '@/shared/infrastructure/ai/client'
+import { AIConnectionError, isAIConfigured, resolveAISource } from '@/shared/infrastructure/ai/connections'
+import { generateUserText } from '@/shared/infrastructure/ai/providers'
 import type { GenerationConfig } from '@google/generative-ai'
 import { classifyError, logAICall } from '@/shared/infrastructure/ai/telemetry'
 import {
@@ -81,6 +83,16 @@ export async function callGeminiWithFallback(
 ): Promise<string> {
   const writingStyle = options.writingStyle ?? 'enforce'
   const requestPrompt = applyAIWritingStyle(prompt, writingStyle)
+  const selected = await resolveAISource('text')
+  if (selected.source !== 'applyos') {
+    const raw = await generateUserText(
+      selected.source,
+      selected.apiKey!,
+      requestPrompt,
+      options.generationConfig?.maxOutputTokens ?? GENERATION_CONFIGS[complexity].maxOutputTokens,
+    )
+    return writingStyle === 'enforce' ? sanitizeAIGeneratedText(raw) : raw
+  }
   const startedAt = Date.now()
   const fallbackPath: string[] = []
   let lastError: Error | null = null
@@ -239,7 +251,7 @@ export async function generateAnswer(
     previousAnswers?: { question: string; answer: string }[]
   }
 ): Promise<string> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     return 'AI answer generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
@@ -289,7 +301,7 @@ Answer (write as if you are the candidate):`
     // MEDIUM complexity: Balance of speed and quality for application answers
     return await callGeminiWithFallback(prompt, 'MEDIUM')
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error // Re-throw rate limit errors to be handled by caller
     }
     console.error('Error generating answer:', error)
@@ -312,7 +324,7 @@ export async function generateCoverLetter(
     extraInstructions?: string
   }
 ): Promise<string> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     return 'AI cover letter generation is not configured. Please add your Gemini API key to use this feature.'
   }
 
@@ -355,7 +367,7 @@ Cover Letter (write as if you are the candidate):`
     // COMPLEX complexity: Quality priority for cover letters (can be slower)
     return await callGeminiWithFallback(prompt, 'COMPLEX')
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error // Re-throw rate limit errors to be handled by caller
     }
     console.error('Error generating cover letter:', error)
@@ -425,7 +437,7 @@ export async function parseDocument(fileContent: string): Promise<ParsedDocument
     raw_highlights: [],
   }
 
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     return empty
   }
 
@@ -593,7 +605,7 @@ Rules:
 
     return normalized
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error // Re-throw rate limit errors to be handled by caller
     }
     console.error('Error parsing document:', error)
@@ -631,7 +643,7 @@ export async function generateDocumentReport(input: {
     categories: [],
   }
 
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     console.warn('Gemini API key not configured for generateDocumentReport')
     defaultReport.overallAssessment =
       'Report generation is unavailable because AI is not configured for this deployment.'
@@ -838,7 +850,7 @@ MANDATORY RULES - DO NOT BREAK THESE:
 
     return report
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error // Re-throw rate limit errors to be handled by caller
     }
     console.error('Error generating document report:', error)
@@ -879,7 +891,7 @@ export async function generateInterviewQuestions(params: {
   }
   estimated_duration_seconds: number
 }>> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1017,7 +1029,7 @@ Generate exactly ${questionCount} unique, high-quality VERBAL interview question
 
     return parsed.questions
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error
     }
     console.error('Error generating interview questions:', error)
@@ -1057,7 +1069,7 @@ export async function generateResumeGrillQuestions(params: {
   }
   estimated_duration_seconds: number
 }>> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1189,7 +1201,7 @@ Generate exactly ${questionCount} questions that reference ACTUAL content from t
 
     return parsed.questions
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error
     }
     console.error('Error generating resume grill questions:', error)
@@ -1220,7 +1232,7 @@ export async function generateCompanySpecificQuestions(params: {
   jobDescription?: string
   questionCount: number
 }): Promise<Array<CompanySpecificQuestion>> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1307,7 +1319,7 @@ Return exactly ${questionCount} questions.`
 
     return parsed.questions as CompanySpecificQuestion[]
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error
     }
     console.error('Error generating company-specific questions:', error)
@@ -1348,7 +1360,7 @@ export async function evaluateInterviewAnswer(params: {
     tone_analysis?: string
   }
 }> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1482,7 +1494,7 @@ Be honest with your scoring. Don't inflate or deflate scores.`
       },
     }
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error
     }
     console.error('Error evaluating interview answer:', error)
@@ -1520,7 +1532,7 @@ export async function analyzeResumeMatch(
   resumeText: string,
   jobDescription: string
 ): Promise<ResumeAnalysisResult> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1584,7 +1596,7 @@ Return ONLY valid JSON (no markdown, no code fences):
     }
 
   } catch (error) {
-    if (error instanceof AIRateLimitError) {
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) {
       throw error
     }
     console.error('Error analyzing resume match:', error)
@@ -1603,7 +1615,7 @@ export interface ParsedJob {
  * Title falls back to a placeholder so a NOT NULL applications.title insert never fails.
  */
 export async function parseJobPosting(text: string): Promise<ParsedJob> {
-  if (!isGeminiConfigured()) {
+  if (!(await isAIConfigured())) {
     throw new Error('AI is not configured. Please add your Gemini API key.')
   }
 
@@ -1649,7 +1661,7 @@ RULES:
 
     return { title, company, job_description }
   } catch (error) {
-    if (error instanceof AIRateLimitError) throw error
+    if (error instanceof AIRateLimitError || error instanceof AIConnectionError) throw error
     console.error('Error parsing job posting:', error)
     throw new Error('Failed to parse job posting. Please try again.')
   }

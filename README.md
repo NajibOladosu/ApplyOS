@@ -24,7 +24,7 @@ ApplyOS is an AI-assisted job and scholarship application manager. It combines a
 | Application | Next.js 16 App Router, React 19, TypeScript |
 | UI | Tailwind CSS, Radix UI, TipTap, Framer Motion, React Three Fiber |
 | Data and auth | Supabase PostgreSQL, Auth, Storage, Row Level Security |
-| AI | Google Gemini with model fallback, telemetry, and retry support |
+| AI | ApplyOS Gemini by default; user-owned Claude, OpenAI, or Gemini API connections |
 | Email | Resend and React Email |
 | Testing | Vitest, Testing Library, Playwright |
 | Deployment | Vercel |
@@ -73,6 +73,14 @@ GEMINI_API_KEY=
 ```
 
 For email, cron jobs, server-side administration, and unsubscribe links, also configure `RESEND_API_KEY`, `RESEND_DOMAIN`, `CRON_SECRET`, `SUPABASE_SERVICE_ROLE_KEY`, and `UNSUBSCRIBE_SIGNING_SECRET` as applicable. Never expose server-only credentials in the browser.
+
+### User-owned AI connections
+
+Apply `supabase/migrations/035_user_ai_connections.sql` and set `AI_CONNECTION_ENCRYPTION_KEY` to a stable, base64-encoded 32-byte secret (`openssl rand -base64 32`). `SUPABASE_SERVICE_ROLE_KEY` is required for the server-only connection store. Back up the encryption key securely: losing it makes saved API keys unreadable. Deploy the migration and environment variable before exposing Settings to users.
+
+Settings shows ChatGPT plan access separately from Claude, OpenAI, and Gemini API keys. ChatGPT plan access remains unavailable until ApplyOS has OpenAI partner approval. API keys support separate text and voice sources. Existing users stay on ApplyOS Gemini. Claude text requires a user-owned OpenAI or Gemini voice source. Claude Max and Team members may claim monthly Claude API credits in a linked Claude Console organization, and keys from that organization can use those credits before other API credits. OpenAI and Gemini keys use their separate API billing arrangements. A missing or rejected selected connection fails without switching to ApplyOS billing. The browser receives only connection metadata and short-lived voice session credentials, never saved API keys. Disconnecting a selected provider keeps the selection so the failure stays visible until the user reconnects or explicitly chooses another source.
+
+ApplyOS does not create provider consumer-app conversations. Generated results saved in ApplyOS remain subject to ApplyOS account deletion; provider API data retention is governed by each provider. Consumer subscription sign-in is unavailable until ApplyOS has the relevant provider approval.
 
 ## Database and storage
 

@@ -6,6 +6,7 @@ import { AIOrb } from './ai-orb'
 import type { OrbMode } from './ai-orb'
 import { AlertCircle } from 'lucide-react'
 import { GeminiLiveClient } from '@/lib/gemini-live/client'
+import { OpenAILiveClient } from '@/lib/gemini-live/openai-client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
 import type { ConversationTurn } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -26,7 +27,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   // Interview state
   const [interviewState, setInterviewState] = useState<'idle' | 'starting' | 'active' | 'ending' | 'completed' | 'generating-report'>('idle')
   const [_connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
-  const [_client, setClient] = useState<GeminiLiveClient | null>(null)
+  const [_client, setClient] = useState<GeminiLiveClient | OpenAILiveClient | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Auto-termination state
@@ -59,7 +60,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
   const processorRef = useRef<ScriptProcessorNode | null>(null)
   const playbackContextRef = useRef<AudioContext | null>(null)
   const nextPlayTimeRef = useRef<number>(0)
-  const clientRef = useRef<GeminiLiveClient | null>(null)
+  const clientRef = useRef<GeminiLiveClient | OpenAILiveClient | null>(null)
   const isAITurnCompleteRef = useRef<boolean>(false)
   const userAnswerAccumulator = useRef<string>('')
 
@@ -131,7 +132,7 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         throw new Error(error.error || 'Failed to initialize session')
       }
 
-      const { token, systemInstruction, model, tools, questions: fetchedQuestions } = await response.json()
+      const { token, provider, systemInstruction, model, tools, questions: fetchedQuestions } = await response.json()
 
       // Store questions and total count
       setQuestions(fetchedQuestions)
@@ -144,7 +145,8 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
       aiTurnCounterRef.current = 0
 
       // Create WebSocket client
-      const wsClient = new GeminiLiveClient(
+      const LiveClient = provider === 'openai' ? OpenAILiveClient : GeminiLiveClient
+      const wsClient = new LiveClient(
         { token, systemInstruction, model, tools },
         {
           onConnected: () => {

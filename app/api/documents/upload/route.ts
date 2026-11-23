@@ -1,3 +1,4 @@
+import { AIConnectionError } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from "next/server"
 import { createClient } from "@/shared/db/supabase/server"
 import { parseDocument } from "@/shared/infrastructure/ai"
@@ -217,6 +218,9 @@ export async function POST(req: NextRequest) {
           }
         }
       } catch (parseError) {
+        if (parseError instanceof AIConnectionError) {
+          return NextResponse.json({ error: parseError.message }, { status: 503 })
+        }
         // Handle rate limit errors by queuing for retry
         if (parseError instanceof AIRateLimitError) {
           console.warn(
@@ -241,6 +245,8 @@ export async function POST(req: NextRequest) {
               documentId: docRow.id,
               extractedText,
               fileName: file.name,
+              // AIRateLimitError only comes from the ApplyOS Gemini fallback chain.
+              textSource: 'applyos',
             },
             scheduledRetryTime: retryTime,
           })
@@ -276,6 +282,7 @@ export async function POST(req: NextRequest) {
       { status: 200 }
     )
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     console.error("Unexpected upload error:", error)
     return NextResponse.json(
       { error: "Unexpected error while uploading documents" },

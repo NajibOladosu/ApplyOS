@@ -5,6 +5,7 @@ import { Button } from '@/shared/ui/button'
 import { AIOrb, type OrbMode } from './ai-orb'
 import { Mic, MicOff, Square, AlertCircle } from 'lucide-react'
 import { GeminiLiveClient } from '@/lib/gemini-live/client'
+import { OpenAILiveClient } from '@/lib/gemini-live/openai-client'
 import type { ConnectionState, BufferedTurn } from '@/lib/gemini-live/types'
 import type { ConversationTurn } from '@/types/database'
 import { motion, AnimatePresence } from 'framer-motion'
@@ -19,7 +20,7 @@ interface LiveInterviewProps {
 export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewProps) {
   // Connection state
   const [connectionState, setConnectionState] = useState<ConnectionState>('disconnected')
-  const [client, setClient] = useState<GeminiLiveClient | null>(null)
+  const [client, setClient] = useState<GeminiLiveClient | OpenAILiveClient | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   // Recording state
@@ -69,11 +70,12 @@ export function LiveInterview({ sessionId, onComplete, onError }: LiveInterviewP
         throw new Error(error.error || 'Failed to initialize session')
       }
 
-      const { token, systemInstruction, model } = await response.json()
+      const { token, provider, systemInstruction, model } = await response.json()
 
       // Create WebSocket client
-      const wsClient = new GeminiLiveClient(
-        { token, systemInstruction, model },
+      const LiveClient = provider === 'openai' ? OpenAILiveClient : GeminiLiveClient
+      const wsClient = new LiveClient(
+        { token, provider, systemInstruction, model },
         {
           onConnected: () => {
             setConnectionState('connected')

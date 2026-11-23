@@ -1,3 +1,4 @@
+import { AIConnectionError } from '@/shared/infrastructure/ai/connections'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/shared/db/supabase/server'
 import { callGeminiWithFallback } from '@/shared/infrastructure/ai'
@@ -269,6 +270,7 @@ Be honest with your scoring. Don't inflate or deflate scores.`
       { status: 200 }
     )
   } catch (error) {
+    if (error instanceof AIConnectionError) return Response.json({ error: error.message }, { status: 503 })
     if (error instanceof AIRateLimitError) {
       const retryAfter = Math.max(1, Math.ceil((error.nextAvailableTime - Date.now()) / 1000))
       return NextResponse.json(
